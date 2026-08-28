@@ -7,11 +7,14 @@ export const Colors = {
   // Brand
   primaryRed: "#B3151C",
   primaryRedDark: "#8E0F16",
+  logoRed: "#B3151C",
   gold: "#F0A400",
   goldLight: "#F6C90E",
+  logoGold: "#F0A400",
 
   // Gradients (pass directly to expo-linear-gradient's `colors` prop)
   gradientHeader: ["#B3151C", "#8E0F16"],
+  gradientLogo: ["#B3151C", "#8E0F16"],
   gradientGoldAccent: ["#F6C90E", "#F0A400"],
   gradientButton: ["#D9291C", "#F0A400"],
   gradientSplash: ["#FDF5F2", "#FEF3E8", "#FDF5F2"],
