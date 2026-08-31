@@ -165,7 +165,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => router.push("/education")}
+              onPress={() => router.push("/notifications")}
               activeOpacity={0.7}
             >
               <Text style={styles.loginButtonText}>SEND OTP </Text>
