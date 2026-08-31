@@ -20,12 +20,10 @@ import Svg, { Path } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 
-const LOGO = require("../../assets/images/logo.png");
 // Swap each of these for the user's actual uploaded photos, e.g. { uri: photo.url }
 const PHOTO_PLACEHOLDER = require("../../assets/images/Match7.png");
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HEADER_HEIGHT = 140;
 
 const INITIAL_PHOTOS = [
   { id: "1", isPrimary: true },
@@ -303,18 +301,21 @@ export default function EditProfileScreen() {
     >
       <StatusBar barStyle="light-content" />
 
-      {/* ================= HEADER — logo only ================= */}
+      {/* ================= HEADER — back button only, luxury look ================= */}
       <View style={styles.headerWrapper}>
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.75}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <View style={styles.backButtonCircle}>
+              <Ionicons name="arrow-back" size={20} color={Colors.primaryRed} />
+            </View>
           </TouchableOpacity>
 
-          <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
+          <Text style={styles.headerTitle}>Edit Profile</Text>
         </LinearGradient>
 
         <Svg
@@ -377,8 +378,19 @@ export default function EditProfileScreen() {
                   style={styles.photoImage}
                   resizeMode="cover"
                 />
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.35)"]}
+                  style={styles.photoShade}
+                  pointerEvents="none"
+                />
                 {photo.isPrimary ? (
                   <View style={styles.primaryBadge}>
+                    <Ionicons
+                      name="star"
+                      size={10}
+                      color={Colors.white}
+                      style={{ marginRight: 3 }}
+                    />
                     <Text style={styles.primaryBadgeText}>Primary</Text>
                   </View>
                 ) : (
@@ -394,7 +406,9 @@ export default function EditProfileScreen() {
             ))}
 
             <TouchableOpacity style={styles.addPhotoTile} activeOpacity={0.7}>
-              <Ionicons name="add" size={26} color={Colors.primaryRed} />
+              <View style={styles.addPhotoIconCircle}>
+                <Ionicons name="add" size={22} color={Colors.primaryRed} />
+              </View>
               <Text style={styles.addPhotoText}>Add Photo</Text>
             </TouchableOpacity>
           </View>
@@ -663,28 +677,37 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  /* ===== HEADER — logo only ===== */
+  /* ===== HEADER — back button only, luxury look ===== */
   headerWrapper: {
     width: "100%",
   },
   header: {
-    height: HEADER_HEIGHT,
+    height: 90,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 16,
   },
   backButton: {
-    position: "absolute",
-    left: 16,
-    top: "50%",
-    marginTop: -12,
-    zIndex: 2,
+    marginRight: 14,
   },
-  headerLogo: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+  backButtonCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  headerTitle: {
+    fontSize: FontSizes.welcome,
+    fontFamily: Fonts.display.bold,
+    color: Colors.white,
+    letterSpacing: 0.3,
   },
   headerWave: {
     marginTop: -6,
@@ -764,55 +787,85 @@ const styles = StyleSheet.create({
   photoTile: {
     flex: 1,
     aspectRatio: 0.82,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
     backgroundColor: Colors.border,
     position: "relative",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   photoImage: {
     width: "100%",
     height: "100%",
   },
-  primaryBadge: {
+  photoShade: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.primaryRed,
-    paddingVertical: 4,
+    height: "45%",
+  },
+  primaryBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: Colors.primaryRed,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   primaryBadgeText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontFamily: Fonts.body.bold,
     color: Colors.white,
   },
   removePhotoButton: {
     position: "absolute",
-    top: 6,
-    right: 6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.primaryRed,
+    top: 7,
+    right: 7,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(179,21,28,0.92)",
     alignItems: "center",
     justifyContent: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   addPhotoTile: {
     flex: 1,
     aspectRatio: 0.82,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: Colors.primaryRed,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FDF1EF",
+  },
+  addPhotoIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
   },
   addPhotoText: {
     fontSize: 10,
     fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
-    marginTop: 4,
     textAlign: "center",
   },
   tipBanner: {
