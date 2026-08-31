@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MudhirajMatrimonyApp",
-    "slug": "MudhirajMatrimonyApp",
+    "name": "Matrimony",
+    "slug": "Matrimony",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mudhirajmatrimonyapp",
+    "scheme": "matrimony",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -33,9 +33,7 @@
           "imageWidth": 76
         }
       ],
-      "expo-image",
-      "expo-font",
-      "expo-status-bar"
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
