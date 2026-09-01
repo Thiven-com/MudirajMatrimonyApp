@@ -74,6 +74,8 @@ const QUICK_STATS = [
     label: "Matches",
     icon: "people",
     color: COLORS.red,
+    route: "/matchesdetail",
+
   },
   {
     id: "2",
@@ -81,6 +83,7 @@ const QUICK_STATS = [
     icon: "eye-outline",
     count: 12,
     color: COLORS.gold,
+    route: "/visitors",
   },
   {
     id: "3",
@@ -88,6 +91,8 @@ const QUICK_STATS = [
     icon: "heart",
     count: 8,
     color: COLORS.red,
+    route: "/recentlyviewed",
+
   },
   {
     id: "4",
@@ -95,12 +100,14 @@ const QUICK_STATS = [
     icon: "chatbubble-ellipses",
     count: 5,
     color: COLORS.gold,
+    route:"/interests",
   },
   {
     id: "5",
     label: "Shortlist",
     icon: "star",
     color: COLORS.gold,
+    route:"/shortlist",
   },
 ];
 
@@ -180,11 +187,19 @@ export default function HomeScreen() {
   };
 
   const openPremium = () => {
-    router.push("/about-us");
+    router.push("/premium");
+  };
+
+  const openPremiumBenefits = () => {
+    router.push("/premium-benfits");
   };
 
   const openMatches = () => {
     router.push("/matches");
+  };
+
+  const openRecommendedProfiles = () => {
+    router.push("/recommendedprofiles");
   };
 
   const openProfile = (id) => {
@@ -355,6 +370,7 @@ export default function HomeScreen() {
               key={item.id}
               style={styles.statCard}
               activeOpacity={0.8}
+              onPress={() => router.push(item.route)}
             >
 
               <View style={styles.statIconContainer}>
@@ -395,7 +411,7 @@ export default function HomeScreen() {
           </Text>
 
           <TouchableOpacity
-            onPress={openMatches}
+            onPress={() => openRecommendedProfiles()}
             activeOpacity={0.7}
           >
             <Text style={styles.seeAll}>
@@ -468,7 +484,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.upgradeNowButton}
-            onPress={openPremium}
+            onPress={() => openPremiumBenefits()}
             activeOpacity={0.85}
           >
 

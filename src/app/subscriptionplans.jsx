@@ -2,13 +2,13 @@ import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
@@ -93,7 +93,8 @@ export default function SubscriptionPlansScreen() {
 
   const handleUpgrade = () => {
     // Wire this up to your checkout flow, e.g.:
-    // router.push(`/checkout?plan=${selectedPlan}`);
+   // router.push(`/checkout?plan=${selectedPlan}`);
+    router.push("/payment");
   };
 
   return (

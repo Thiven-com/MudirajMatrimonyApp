@@ -2,22 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
 } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
@@ -79,8 +79,13 @@ export default function OtpScreen() {
   const handleVerify = () => {
     const code = otp.join("");
     console.log({ mobile, code });
+    router.replace("/home");
     // TODO: call your OTP verification API, then:
     // router.replace('/home');
+  };
+
+  const openHome = () => {
+    handleVerify();
   };
 
   const handleVerifyWithWhatsapp = () => {
@@ -203,7 +208,7 @@ export default function OtpScreen() {
           !isComplete && styles.verifyButtonDisabled,
         ]}
         activeOpacity={0.85}
-        onPress={handleVerify}
+        onPress={() => openHome()}
         disabled={!isComplete}
       >
         <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>

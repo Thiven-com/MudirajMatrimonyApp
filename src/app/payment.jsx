@@ -3,12 +3,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
@@ -86,6 +86,7 @@ export default function PaymentScreen() {
   const handlePay = () => {
     // TODO: kick off payment for `selectedMethod`
     console.log("Paying with", selectedMethod);
+    router.push("/payment-history");
   };
 
   return (

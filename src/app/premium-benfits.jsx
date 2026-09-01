@@ -3,20 +3,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
 } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";

@@ -137,7 +137,7 @@ export default function ChatsScreen() {
   };
 
   const handleUpgrade = () => {
-    router.push("/premium");
+    router.push("/subscriptionplans");
   };
 
   const filteredChats = CHATS.filter((chat) => {
@@ -342,9 +342,7 @@ function ChatRow({ chat, onPress }) {
   );
 }
 
-/* ================================================= */
-/* ================= STYLESHEET =================== */
-/* ================================================= */
+
 
 const styles = StyleSheet.create({
   safeArea: {
