@@ -3,27 +3,28 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
 } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
+import { signup } from "../../utils/Functions";
 
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -48,17 +49,40 @@ export default function RegisterScreen() {
   const [agreed, setAgreed] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
 
-  const handleRegister = () => {
-    console.log({
-      fullName,
-      mobile,
-      email,
-      dob,
-      gender,
-      agreed,
-    });
-    // TODO: validate + call your signup API, then:
-    // router.replace('/home');
+  const handleRegister = async () => {
+    if (
+      !fullName.trim() ||
+      !mobile.trim() ||
+      !email.trim() ||
+      !dob ||
+      !gender ||
+      !agreed
+    ) {
+      console.log("Registration validation failed");
+      return;
+    }
+
+    try {
+      const result = await signup({
+        fullName: fullName.trim(),
+        mobile,
+        email: email.trim(),
+        dob,
+        gender,
+        agreed,
+      });
+
+      console.log("signup() raw result:", JSON.stringify(result));
+
+      if (result?.result === false || result?.success === 0) {
+        console.log(result?.message || "Unable to create account right now.");
+        return;
+      }
+
+      router.replace("/login");
+    } catch (error) {
+      console.log("signup Error:", error);
+    }
   };
 
   return (
