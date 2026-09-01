@@ -56,7 +56,7 @@ const COLORS = {
 
 const LOGO = require("../../../assets/images/logo.png");
 
-const HERO_IMAGE = require("../../../assets/images/Match1.png");
+const HERO_IMAGE = require("../../../assets/images/banner1.png");
 
 const MATCH_IMAGES = {
   Match1: require("../../../assets/images/Match1.png"),
@@ -176,11 +176,11 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const openNotifications = () => {
-    router.push("/notifications");
+    router.push("/privacy-policy");
   };
 
   const openPremium = () => {
-    router.push("/premium");
+    router.push("/about-us");
   };
 
   const openMatches = () => {
@@ -323,87 +323,21 @@ export default function HomeScreen() {
 
         </View>
 
+       
         {/* =================================================
-            HERO BANNER
-        ================================================= */}
+    PREMIUM HERO BANNER
+================================================= */}
 
         <TouchableOpacity
           style={styles.heroCard}
           onPress={openPremium}
           activeOpacity={0.95}
         >
-
-          <LinearGradient
-            colors={[
-              "#B60000",
-              "#D90D08",
-              "#E51A09",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-
-            {/* HERO TEXT */}
-
-            <View style={styles.heroText}>
-
-              <Text style={styles.heroFind}>
-                Find Your
-              </Text>
-
-              <Text style={styles.heroMatch}>
-                Perfect Match
-              </Text>
-
-              <View style={styles.heroDivider}>
-                <View style={styles.heroLine} />
-
-                <MaterialCommunityIcons
-                  name="ornament-variant"
-                  size={15}
-                  color={COLORS.gold}
-                />
-
-                <View style={styles.heroLine} />
-              </View>
-
-              <Text style={styles.teluguText}>
-                సంస్కారం మనది...
-              </Text>
-
-              <Text style={styles.teluguText}>
-                సంబంధం మనది...
-              </Text>
-
-              <TouchableOpacity
-                style={styles.heroButton}
-                onPress={openPremium}
-                activeOpacity={0.85}
-              >
-                <FontAwesome5
-                  name="crown"
-                  size={14}
-                  color={COLORS.darkRed}
-                />
-
-                <Text style={styles.heroButtonText}>
-                  Upgrade to Premium
-                </Text>
-              </TouchableOpacity>
-
-            </View>
-
-            {/* HERO IMAGE */}
-
-            <Image
-              source={HERO_IMAGE}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-
-          </LinearGradient>
-
+          <Image
+            source={HERO_IMAGE}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
         </TouchableOpacity>
 
         {/* =================================================
@@ -914,96 +848,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* =================================================
-     HERO
-  ================================================= */
+ /* =================================================
+   PREMIUM HERO BANNER
+================================================= */
 
-  heroCard: {
-    height: width < 400 ? 205 : 225,
-    borderRadius: 21,
-    overflow: "hidden",
-    marginBottom: 15,
+heroCard: {
+  width: "100%",
 
-    shadowColor: COLORS.red,
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 9,
-    elevation: 5,
+  height: width * 0.43,
+
+  borderRadius: 14,
+
+  overflow: "hidden",
+
+  marginTop: 2,
+  marginBottom: 10,
+
+  backgroundColor: "#C90000",
+
+  shadowColor: "#8B0000",
+
+  shadowOffset: {
+    width: 0,
+    height: 3,
   },
 
-  heroGradient: {
-    flex: 1,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
+  shadowOpacity: 0.22,
 
-  heroText: {
-    flex: 1,
-    paddingLeft: 18,
-    paddingTop: 22,
-    paddingBottom: 15,
-    zIndex: 2,
-  },
+  shadowRadius: 5,
 
-  heroFind: {
-    color: COLORS.white,
-    fontSize: width < 400 ? 24 : 27,
-    fontWeight: "500",
-  },
+  elevation: 5,
+},
 
-  heroMatch: {
-    color: "#FFD328",
-    fontSize: width < 400 ? 24 : 28,
-    fontWeight: "900",
-    marginTop: 1,
-  },
+heroImage: {
+  width: "100%",
+  height: "100%",
 
-  heroDivider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8,
-  },
-
-  heroLine: {
-    width: 27,
-    height: 1,
-    backgroundColor: "#FFFFFF",
-    opacity: 0.7,
-  },
-
-  teluguText: {
-    color: COLORS.white,
-    fontSize: width < 400 ? 13 : 14,
-    fontWeight: "600",
-    lineHeight: 21,
-  },
-
-  heroButton: {
-    height: 38,
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.yellow,
-    borderRadius: 11,
-    paddingHorizontal: 12,
-    marginTop: 10,
-  },
-
-  heroButtonText: {
-    color: "#3B1D00",
-    fontSize: width < 400 ? 10.5 : 11.5,
-    fontWeight: "800",
-    marginLeft: 6,
-  },
-
-  heroImage: {
-    width: width * 0.48,
-    height: "100%",
-    marginLeft: -5,
-  },
+  position: "absolute",
+  top: 0,
+  left: 0,
+},
 
   /* =================================================
      QUICK STATS

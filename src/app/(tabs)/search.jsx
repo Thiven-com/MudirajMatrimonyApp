@@ -1295,7 +1295,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
 
     paddingHorizontal: 20,
-    paddingTop: 11,
+    paddingTop: 15,
     paddingBottom: 18,
 
     borderRadius: 11,
@@ -1445,17 +1445,17 @@ const styles = StyleSheet.create({
 
   filterTextContainer: {
     flex: 1,
-    minWidth: 20,
+    minWidth: 30,
   },
 
 
   filterTitle: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: "700",
 
     color: "#3B3633",
 
-    lineHeight: 9,
+    lineHeight: 10,
   },
 
 

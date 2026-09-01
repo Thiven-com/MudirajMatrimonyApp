@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     shadowColor: "#9B8D82",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -1131,7 +1131,7 @@ const styles = StyleSheet.create({
   infoGrid: {
     flexDirection: "row",
 
-    gap: 8,
+    gap: 25,
   },
 
   infoColumn: {
