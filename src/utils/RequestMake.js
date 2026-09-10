@@ -10,11 +10,17 @@ import axios from "axios";
 export default async (url, options = {}) => {
   try {
     let response = null;
+    const axiosConfig = {
+      headers: options.headers || {},
+      timeout: 15000, // 15 second timeout
+    };
+
     if (options.method === "GET") {
-      const result = await axios.get(url, options);
+      axiosConfig.params = options.params;
+      const result = await axios.get(url, axiosConfig);
       response = result?.data;
     } else {
-      const result = await axios.post(url, options.body, options);
+      const result = await axios.post(url, options.body, axiosConfig);
       response = result?.data;
     }
 
@@ -31,6 +37,15 @@ export default async (url, options = {}) => {
   } catch (error) {
     let message = "Request failed";
     const responseData = error.response?.data;
+
+    console.log("RequestMake Error Details:", {
+      hasResponse: !!error.response,
+      hasRequest: !!error.request,
+      message: error.message,
+      url: url,
+      status: error.response?.status,
+    });
+
     if (error.response) {
       message =
         responseData?.message ||
@@ -40,7 +55,7 @@ export default async (url, options = {}) => {
           : undefined) ||
         "Validation failed";
     } else if (error.request) {
-      message = "No response from server";
+      message = `No response from server (${error.message})`;
     } else {
       message = "Request error: " + error.message;
     }

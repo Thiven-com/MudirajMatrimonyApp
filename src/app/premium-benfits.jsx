@@ -1,312 +1,740 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
-} from "react-native-svg";
-import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import { useCallback, useEffect, useState } from "react";
 
-const BENEFITS = [
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { router } from "expo-router";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+// TODO: adjust this import path to wherever getPackagesData actually lives
+import { getPackagesData } from "../utils/Functions";
+
+/* =========================================================
+   RESPONSIVE SCALE
+========================================================= */
+
+const { width } = Dimensions.get("window");
+
+const BASE_WIDTH = 390;
+
+const scale = (size) => {
+  const factor = width / BASE_WIDTH;
+
+  /*
+    Mobile-first scaling.
+    Prevents very large sizes on tablets.
+  */
+  return Math.round(size * Math.min(factor, 1.12));
+};
+
+/* =========================================================
+   TOP FEATURES (static, not from API)
+========================================================= */
+
+const FEATURES = [
   {
-    icon: "eye-outline",
-    title: "View Contact Details",
-    description: "View phone number & email of interested matches",
-    tag: "Connect directly with interested matches",
-  },
-  {
-    icon: "chatbubble-ellipses-outline",
-    title: "Send Unlimited Interests",
-    description: "Express interest to as many profiles as you want",
-    tag: "No limits, more chances of finding the one",
-  },
-  {
-    icon: "search-outline",
-    title: "Advanced Search Filters",
-    description: "Search by community, location, profession & more",
-    tag: "Find matches that truly match your preferences",
+    icon: "heart-outline",
+    label: "Express",
+    label2: "Interest",
+    color: "#E31E2F",
   },
   {
     icon: "person-outline",
-    title: "Profile Highlight",
-    description: "Stand out in search results and get more visibility",
-    tag: "Your profile will be shown at the top",
+    label: "Contact",
+    label2: "Details",
+    color: "#E31E2F",
   },
   {
-    icon: "people-outline",
-    title: "See Who Viewed You",
-    description: "Know who visited your profile and interested in you",
-    tag: "Stay informed and respond better",
+    icon: "image-outline",
+    label: "Photo",
+    label2: "Gallery",
+    color: "#E31E2F",
   },
   {
-    icon: "chatbox-ellipses-outline",
-    title: "Priority Customer Support",
-    description: "Get quick help from our dedicated support team",
-    tag: "We're here to help you anytime",
+    icon: "eye-outline",
+    label: "Profile",
+    label2: "Views",
+    color: "#F3A500",
+  },
+  {
+    icon: "images-outline",
+    label: "Gallery",
+    label2: "Views",
+    color: "#E31E2F",
+  },
+  {
+    icon: "star-outline",
+    label: "Auto",
+    label2: "Matches",
+    color: "#E67E00",
   },
 ];
 
-const PLANS = [
-  {
-    key: "3m",
-    duration: "3 Months",
-    price: "₹ 999",
-    strikePrice: "₹ 1,499",
-    save: "Save 33%",
-    mostPopular: false,
-  },
-  {
-    key: "12m",
-    duration: "12 Months",
-    price: "₹ 2,999",
-    strikePrice: "₹ 4,999",
-    save: "Save 40%",
-    mostPopular: true,
-  },
-  {
-    key: "6m",
-    duration: "6 Months",
-    price: "₹ 1,799",
-    strikePrice: "₹ 2,499",
-    save: "Save 28%",
-    mostPopular: false,
-  },
-];
+/* =========================================================
+   NORMALIZE API RESPONSE -> UI SHAPE
 
-const TRUST_BADGES = [
-  {
-    icon: "shield-checkmark-outline",
-    title: "100% Safe & Secure",
-    description: "Your privacy is our top priority",
-  },
-  {
-    icon: "ribbon-outline",
-    title: "Trusted by Thousands",
-    description: "Join 10,000+ happy Mudhiraj families",
-  },
-  {
-    icon: "lock-closed-outline",
-    title: "Secure Payments",
-    description: "Your payments are safe with us",
-  },
-  {
-    icon: "headset-outline",
-    title: "24/7 Support",
-    description: "We're here to help you anytime",
-  },
-];
+   The API (/api/home/packages via getPackagesData) will not
+   return exactly the shape the UI wants (e.g. image is a URL
+   string, not a local require()). This function maps whatever
+   comes back into the shape PackageCard expects.
 
-export default function PremiumBenefitsScreen() {
-  const router = useRouter();
-  const [selectedPlan, setSelectedPlan] = useState("12m");
+   ADJUST THE RIGHT-HAND FIELD NAMES to match your actual
+   API response. Paste the real payload and this can be
+   tightened up precisely.
+========================================================= */
 
-  const handleUpgrade = () => {
-    console.log("Upgrading with plan:", selectedPlan);
-    // TODO: kick off your payment flow here
+const normalizePackage = (apiItem = {}) => {
+  return {
+    id: apiItem.id ?? apiItem._id ?? apiItem.package_id,
+
+    name: apiItem.name ?? apiItem.title ?? "Package",
+
+    subtitle: apiItem.subtitle ?? apiItem.description ?? "",
+
+    days:
+      apiItem.days ??
+      (apiItem.validity_days ? `${apiItem.validity_days} Days` : ""),
+
+    // API image is expected to be a URL string -> Image needs { uri }
+    image: apiItem.image_url
+      ? { uri: apiItem.image_url }
+      : apiItem.image
+        ? { uri: apiItem.image }
+        : null,
+
+    oldPrice: apiItem.old_price ?? apiItem.oldPrice ?? "",
+
+    price: apiItem.price ?? "",
+
+    discount: apiItem.discount_label ?? apiItem.discount ?? "",
+
+    express: String(apiItem.express_interest_limit ?? apiItem.express ?? "0"),
+
+    contact: String(apiItem.contact_details_limit ?? apiItem.contact ?? "0"),
+
+    gallery: String(apiItem.gallery_limit ?? apiItem.gallery ?? "0"),
+
+    views: apiItem.profile_views_limit ?? apiItem.views ?? "0",
+
+    galleryView: Boolean(apiItem.gallery_image_view ?? apiItem.galleryView),
+
+    autoMatch: Boolean(apiItem.auto_profile_match ?? apiItem.autoMatch),
+
+    buttonColor: apiItem.button_color ?? apiItem.buttonColor ?? "#E51F35",
+
+    badge:
+      apiItem.is_popular || apiItem.badge === true
+        ? "MOST POPULAR"
+        : (apiItem.badge ?? null),
+
+    dayBg: apiItem.day_bg_color ?? apiItem.dayBg ?? "#FFF2D5",
+
+    dayColor: apiItem.day_text_color ?? apiItem.dayColor ?? "#E99A00",
+  };
+};
+
+/* =========================================================
+   FEATURE ITEM
+========================================================= */
+
+const FeatureItem = ({ icon, value, title, color, bg }) => {
+  return (
+    <View style={styles.packageFeature}>
+      <View
+        style={[
+          styles.packageFeatureIcon,
+          {
+            backgroundColor: bg,
+          },
+        ]}
+      >
+        <Ionicons name={icon} size={scale(22)} color={color} />
+      </View>
+
+      <View style={styles.featureText}>
+        <Text
+          style={[
+            styles.featureValue,
+            {
+              color,
+            },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
+          {value}
+        </Text>
+
+        <Text style={styles.featureLabel} numberOfLines={2}>
+          {title}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+/* =========================================================
+   EXTRA FEATURE
+========================================================= */
+
+const ExtraFeature = ({ enabled, children }) => {
+  return (
+    <View style={styles.extraFeatureItem}>
+      <View style={[styles.checkCircle, !enabled && styles.crossCircle]}>
+        <Ionicons
+          name={enabled ? "checkmark" : "close"}
+          size={scale(15)}
+          color={enabled ? "#258A2C" : "#E11E2E"}
+        />
+      </View>
+
+      <Text style={styles.extraFeatureText} numberOfLines={1}>
+        {children}
+      </Text>
+    </View>
+  );
+};
+
+/* =========================================================
+   PACKAGE CARD
+========================================================= */
+
+const PackageCard = ({ item, onPress }) => {
+  return (
+    <View style={[styles.packageCard, item.badge && styles.popularCard]}>
+      {/* ===================================================
+          POPULAR BADGE
+      =================================================== */}
+
+      {item.badge && (
+        <View style={styles.popularBadge}>
+          <MaterialCommunityIcons
+            name="crown"
+            size={scale(17)}
+            color="#FFD83D"
+          />
+
+          <Text style={styles.popularText}>{item.badge}</Text>
+        </View>
+      )}
+
+      {/* ===================================================
+          PACKAGE MAIN CONTENT
+      =================================================== */}
+
+      <View
+        style={[styles.packageContent, item.badge && styles.popularContent]}
+      >
+        {/* =================================================
+            IMAGE
+        ================================================= */}
+
+        <View style={styles.packageImageContainer}>
+          {item.image ? (
+            <Image
+              source={item.image}
+              style={styles.packageImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={[styles.packageImage, { backgroundColor: "#F4F4F4" }]}
+            />
+          )}
+        </View>
+
+        {/* =================================================
+            RIGHT DETAILS
+        ================================================= */}
+
+        <View style={styles.packageDetails}>
+          {/* =================================================
+              TITLE
+          ================================================= */}
+
+          <View style={styles.packageTitleRow}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.packageName} numberOfLines={2}>
+                {item.name}
+              </Text>
+
+              <Text style={styles.packageSubtitle} numberOfLines={2}>
+                {item.subtitle}
+              </Text>
+            </View>
+
+            {!!item.days && (
+              <View
+                style={[
+                  styles.daysBadge,
+                  {
+                    backgroundColor: item.dayBg,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.daysText,
+                    {
+                      color: item.dayColor,
+                    },
+                  ]}
+                >
+                  {item.days}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================
+          FEATURES SECTION
+      =================================================== */}
+
+      <View style={styles.featuresSection}>
+        <View style={styles.packageFeaturesGrid}>
+          <FeatureItem
+            icon="heart-outline"
+            value={item.express}
+            title={
+              <>
+                Express{"\n"}
+                Interest
+              </>
+            }
+            color="#D7192D"
+            bg="#FFF0ED"
+          />
+
+          <FeatureItem
+            icon="person-outline"
+            value={item.contact}
+            title={
+              <>
+                Contact{"\n"}
+                Details
+              </>
+            }
+            color="#24913A"
+            bg="#EFF9E9"
+          />
+
+          <FeatureItem
+            icon="image-outline"
+            value={item.gallery}
+            title={
+              <>
+                Photo{"\n"}
+                Gallery
+              </>
+            }
+            color="#7025C4"
+            bg="#F5E9FF"
+          />
+
+          <FeatureItem
+            icon="eye-outline"
+            value={item.views}
+            title={
+              <>
+                Profile{"\n"}
+                Views
+              </>
+            }
+            color="#1764C0"
+            bg="#EAF3FF"
+          />
+        </View>
+
+        {/* =================================================
+            EXTRA FEATURES
+        ================================================= */}
+
+        <View style={styles.extraFeatures}>
+          <ExtraFeature enabled={item.galleryView}>
+            Gallery Image View
+          </ExtraFeature>
+
+          <ExtraFeature enabled={item.autoMatch}>
+            Auto Profile Match
+          </ExtraFeature>
+        </View>
+
+        {/* =================================================
+            DIVIDER
+        ================================================= */}
+
+        <View style={styles.divider} />
+
+        {/* =================================================
+            PRICE AREA
+        ================================================= */}
+
+        <View style={styles.bottomPackageRow}>
+          {/* PRICE */}
+
+          <View style={styles.priceContainer}>
+            <View style={styles.priceTexts}>
+              {!!item.oldPrice && (
+                <Text style={styles.oldPrice}>{item.oldPrice}</Text>
+              )}
+
+              <Text style={styles.currentPrice}>{item.price}</Text>
+            </View>
+
+            {!!item.discount && (
+              <View
+                style={[
+                  styles.discountBadge,
+                  {
+                    backgroundColor: item.dayBg,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.discountText,
+                    {
+                      color: item.dayColor,
+                    },
+                  ]}
+                >
+                  {item.discount}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* BUTTON */}
+
+          <TouchableOpacity
+            style={[
+              styles.chooseButton,
+              {
+                backgroundColor: item.buttonColor,
+              },
+            ]}
+            activeOpacity={0.85}
+            onPress={() => {
+              onPress?.(item);
+
+              router.push({
+                pathname: "/packagedetails",
+                params: { packageId: item.id },
+              });
+            }}
+          >
+            <Text style={styles.chooseButtonText}>Choose Package</Text>
+
+            <Ionicons name="chevron-forward" size={scale(18)} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+/* =========================================================
+   MAIN SCREEN
+========================================================= */
+
+export default function ChoosePackageScreen({ navigation }) {
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchPackages = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await getPackagesData(); // GET /api/home/packages
+
+      // Adjust this line if the API wraps the list, e.g. response.data.packages
+      const rawList = Array.isArray(response)
+        ? response
+        : (response?.data ?? response?.packages ?? []);
+
+      setPackages(rawList.map(normalizePackage));
+    } catch (err) {
+      console.log("Failed to load packages:", err);
+      setError("Couldn't load packages. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
+
+  const handleChoosePackage = (item) => {
+    console.log("Selected package:", item.name);
+
+    /*
+      When Payment screen is ready:
+
+      navigation.navigate(
+        "Payment",
+        {
+          package: item,
+        }
+      );
+    */
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
-      <StatusBar barStyle="light-content" />
-
-      {/* ================= HEADER ================= */}
-      <LinearGradient colors={Colors.gradientHeader} style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleBlock}>
-          <Text style={styles.headerTitle}>Premium Benefits</Text>
-          <Text style={styles.headerSubtitle}>
-            Upgrade to Premium & get the best matchmaking experience
-          </Text>
-        </View>
-      </LinearGradient>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* ================= HERO CARD ================= */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroLeft}>
-            <View style={styles.heroIconWrapper}>
-              <View style={styles.heroShield}>
-                <Ionicons name="ribbon" size={28} color={Colors.primaryRed} />
-              </View>
-              <Ionicons
-                name="sparkles"
-                size={14}
-                color={Colors.gold}
-                style={styles.sparkleTopLeft}
-              />
-              <Ionicons
-                name="sparkles"
-                size={10}
-                color={Colors.gold}
-                style={styles.sparkleBottomRight}
-              />
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation?.goBack?.()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={scale(28)} color="#D51D2C" />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Choose Your Package
+          </Text>
+
+          <View style={styles.logoContainer}>
+            <Image style={styles.logo} resizeMode="contain" />
+          </View>
+        </View>
+
+        {/* =================================================
+            HERO
+        ================================================= */}
+
+        <View style={styles.hero}>
+          <LinearGradient
+            colors={["#B50013", "#DD172A", "#B50013"]}
+            start={{
+              x: 0,
+              y: 0,
+            }}
+            end={{
+              x: 1,
+              y: 0,
+            }}
+            style={styles.heroGradient}
+          >
+            {/* TEXT */}
+
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroSmallTitle}>Find Your</Text>
+
+              <Text style={styles.heroTitle}>Perfect Match</Text>
+
+              <Text style={styles.heroDescription}>
+                Choose the perfect package and
+              </Text>
+
+              <Text style={styles.heroDescription}>
+                start your journey towards happiness
+              </Text>
             </View>
 
-            <Text style={styles.heroLine1}>Go Premium &</Text>
-            <Text style={styles.heroLine2}>
-              Find Your Perfect Match Faster!
-            </Text>
-            <Text style={styles.heroDescription}>
-              Get exclusive features and stand out to connect with the right
-              matches.
-            </Text>
-          </View>
+            {/* COUPLE */}
 
-          <TrustMedal />
-        </View>
-
-        {/* ================= ALL PREMIUM BENEFITS ================= */}
-        <View style={styles.sectionHeadingRow}>
-          <View style={styles.sectionHeadingIcon}>
-            <Ionicons name="star" size={13} color={Colors.white} />
-          </View>
-          <Text style={styles.sectionHeading}>All Premium Benefits</Text>
-        </View>
-
-        <View style={styles.benefitsCard}>
-          {BENEFITS.map((benefit, index) => (
-            <View
-              key={benefit.title}
-              style={[
-                styles.benefitRow,
-                index === BENEFITS.length - 1 && styles.benefitRowLast,
-              ]}
-            >
-              <View style={styles.benefitIconCircle}>
-                <Ionicons
-                  name={benefit.icon}
-                  size={19}
-                  color={Colors.primaryRed}
-                />
-              </View>
-
-              <View style={styles.benefitTextBlock}>
-                <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                <Text style={styles.benefitDescription}>
-                  {benefit.description}
-                </Text>
-              </View>
-
-              <View style={styles.benefitTagBox}>
-                <Text style={styles.benefitTagText}>{benefit.tag}</Text>
-              </View>
-
-              <View style={styles.benefitCheckCircle}>
-                <Ionicons name="checkmark" size={15} color={Colors.white} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* ================= CHOOSE YOUR PLAN ================= */}
-        <View style={styles.sectionHeadingRow}>
-          <Ionicons name="pricetag" size={17} color={Colors.primaryRed} />
-          <Text style={styles.sectionHeading}>Choose Your Premium Plan</Text>
-        </View>
-
-        <View style={styles.plansRow}>
-          {PLANS.map((plan) => (
-            <PlanCard
-              key={plan.key}
-              plan={plan}
-              isSelected={selectedPlan === plan.key}
-              onSelect={() => setSelectedPlan(plan.key)}
+            <Image
+              source={require("../../assets/images/couple.png")}
+              style={styles.coupleImage}
+              resizeMode="contain"
             />
-          ))}
+
+            {/* DECORATIVE HEART */}
+
+            <Text style={styles.decorHeart}>♡</Text>
+          </LinearGradient>
         </View>
 
-        {/* ================= TRUST BADGES ================= */}
-        <View style={styles.trustBadgesCard}>
-          {TRUST_BADGES.map((badge) => (
-            <View key={badge.title} style={styles.trustBadgeItem}>
-              <View style={styles.trustBadgeIconCircle}>
-                <Ionicons
-                  name={badge.icon}
-                  size={17}
-                  color={Colors.primaryRed}
-                />
-              </View>
-              <View style={styles.trustBadgeTextBlock}>
-                <Text style={styles.trustBadgeTitle}>{badge.title}</Text>
-                <Text style={styles.trustBadgeDescription}>
-                  {badge.description}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        {/* =================================================
+            TOP FEATURES
+        ================================================= */}
 
-        {/* ================= UPGRADE BUTTON ================= */}
-        <TouchableOpacity
-          style={styles.upgradeButtonTouchable}
-          activeOpacity={0.85}
-          onPress={handleUpgrade}
-        >
-          <Svg width="100%" height={56} style={StyleSheet.absoluteFillObject}>
-            <Defs>
-              <SvgGradient
-                id="premiumBenefitsBtnGrad"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="0"
+        <View style={styles.featureBar}>
+          {FEATURES.map((item, index) => (
+            <View style={styles.topFeature} key={index}>
+              <View
+                style={[
+                  styles.topFeatureIcon,
+                  {
+                    backgroundColor: index === 3 ? "#FFF7DF" : "#FFF8E9",
+                  },
+                ]}
               >
-                <Stop offset="0" stopColor={Colors.primaryRed} />
-                <Stop offset="1" stopColor={Colors.primaryRedDark} />
-              </SvgGradient>
-            </Defs>
-            <Path
-              d="M14,0 H1000 V56 H14 A14,14 0 0 1 0,42 V14 A14,14 0 0 1 14,0 Z"
-              fill="url(#premiumBenefitsBtnGrad)"
-            />
-          </Svg>
-          <View style={styles.upgradeButtonContent}>
-            <Text style={styles.upgradeButtonText}>
-              Upgrade Now & Get Premium Benefits
-            </Text>
-            <Ionicons
-              name="arrow-forward"
-              size={18}
-              color={Colors.white}
-              style={{ marginLeft: 8 }}
-            />
-          </View>
-        </TouchableOpacity>
+                <Ionicons
+                  name={item.icon}
+                  size={scale(23)}
+                  color={item.color}
+                />
+              </View>
 
-        {/* ================= FOOTER ================= */}
-        <View style={styles.footerRow}>
+              <Text style={styles.topFeatureText}>{item.label}</Text>
+
+              <Text style={styles.topFeatureText}>{item.label2}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* =================================================
+            PACKAGES
+        ================================================= */}
+
+        <View style={styles.packagesContainer}>
+          <Text style={styles.sectionTitle}>
+            Choose the package that suits you
+          </Text>
+
+          <Text style={styles.sectionSubtitle}>
+            Get more features and better opportunities
+          </Text>
+
+          {/* LOADING STATE */}
+
+          {loading && (
+            <View style={styles.stateContainer}>
+              <ActivityIndicator size="large" color="#E51F35" />
+            </View>
+          )}
+
+          {/* ERROR STATE */}
+
+          {!loading && error && (
+            <View style={styles.stateContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+
+              <TouchableOpacity
+                style={styles.retryButton}
+                activeOpacity={0.85}
+                onPress={fetchPackages}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* EMPTY STATE */}
+
+          {!loading && !error && packages.length === 0 && (
+            <View style={styles.stateContainer}>
+              <Text style={styles.errorText}>
+                No packages available right now.
+              </Text>
+            </View>
+          )}
+
+          {/* PACKAGE LIST */}
+
+          {!loading &&
+            !error &&
+            packages.map((item, index) => (
+              <PackageCard
+                key={item.id ?? index}
+                item={item}
+                onPress={handleChoosePackage}
+              />
+            ))}
+        </View>
+
+        {/* =================================================
+            SECURITY BAR
+        ================================================= */}
+
+        <View style={styles.securityBar}>
+          {/* SECURE */}
+
+          <View style={styles.securityItem}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={scale(27)}
+              color="#E21D32"
+            />
+
+            <Text style={styles.securityText}>100% Secure{"\n"}& Verified</Text>
+          </View>
+
+          <View style={styles.securityDivider} />
+
+          {/* SUPPORT */}
+
+          <View style={styles.securityItem}>
+            <Ionicons name="headset-outline" size={scale(27)} color="#E21D32" />
+
+            <Text style={styles.securityText}>
+              Priority{"\n"}
+              Support
+            </Text>
+          </View>
+
+          <View style={styles.securityDivider} />
+
+          {/* PRICE */}
+
+          <View style={styles.securityItem}>
+            <Text style={styles.rupeeIcon}>₹</Text>
+
+            <Text style={styles.securityText}>
+              Best Price{"\n"}
+              Guarantee
+            </Text>
+          </View>
+
+          <View style={styles.securityDivider} />
+
+          {/* TRUST */}
+
+          <View style={styles.securityItem}>
+            <Ionicons name="ribbon-outline" size={scale(27)} color="#E21D32" />
+
+            <Text style={styles.securityText}>
+              Trusted by{"\n"}
+              Thousands
+            </Text>
+          </View>
+        </View>
+
+        {/* =================================================
+            BOTTOM SECURE
+        ================================================= */}
+
+        <View style={styles.bottomSecure}>
           <Ionicons
-            name="shield-checkmark-outline"
-            size={13}
-            color={Colors.textMuted}
+            name="lock-closed-outline"
+            size={scale(18)}
+            color="#777987"
           />
-          <Text style={styles.footerText}>
-            You can cancel or change your plan anytime.
+
+          <Text style={styles.bottomSecureText}>
+            Secure payments. Cancel anytime.
           </Text>
         </View>
       </ScrollView>
@@ -314,454 +742,987 @@ export default function PremiumBenefitsScreen() {
   );
 }
 
-// ================= TRUST MEDAL =================
-function TrustMedal() {
-  return (
-    <View style={styles.medalWrapper}>
-      <View style={styles.medalCircle}>
-        <Text style={styles.medalTrustedBy}>TRUSTED BY</Text>
-        <Text style={styles.medalNumber}>10,000+</Text>
-        <Text style={styles.medalFamilies}>MUDHIRAJ{"\n"}FAMILIES</Text>
-      </View>
-      <View style={styles.medalRibbons}>
-        <View
-          style={[
-            styles.medalRibbon,
-            { transform: [{ rotate: "-18deg" }], marginRight: -6 },
-          ]}
-        />
-        <View
-          style={[
-            styles.medalRibbon,
-            { transform: [{ rotate: "18deg" }], marginLeft: -6 },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-// ================= PLAN CARD =================
-function PlanCard({ plan, isSelected, onSelect }) {
-  return (
-    <TouchableOpacity
-      style={[styles.planCard, isSelected && styles.planCardSelected]}
-      activeOpacity={0.9}
-      onPress={onSelect}
-    >
-      {plan.mostPopular && (
-        <View style={styles.mostPopularBadge}>
-          <Text style={styles.mostPopularText}>MOST POPULAR</Text>
-        </View>
-      )}
-
-      <Text style={styles.planDuration}>{plan.duration}</Text>
-      <Text style={styles.planLabel}>Plan</Text>
-      <Text style={styles.planPrice}>{plan.price}</Text>
-      <Text style={styles.planStrikePrice}>{plan.strikePrice}</Text>
-
-      <View style={[styles.saveButton, isSelected && styles.saveButtonFilled]}>
-        <Text
-          style={[
-            styles.saveButtonText,
-            isSelected && styles.saveButtonTextFilled,
-          ]}
-        >
-          {plan.save}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = StyleSheet.create({
+  /* =====================================================
+     SCREEN
+  ===================================================== */
+
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#FFFFFF",
   },
+
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 30,
+    paddingBottom: scale(35),
   },
 
-  /* ===== HEADER ===== */
+  /* =====================================================
+     HEADER
+  ===================================================== */
+
   header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 4 : 14,
-    paddingBottom: 18,
-    gap: 14,
-  },
-  headerTitleBlock: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: FontSizes.title,
-    fontFamily: Fonts.display.extraBold,
-    color: Colors.white,
-  },
-  headerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.goldLight,
-    marginTop: 4,
-  },
+    height: scale(76),
 
-  /* ===== HERO CARD ===== */
-  heroCard: {
+    backgroundColor: "#FFFFFF",
+
     flexDirection: "row",
-    backgroundColor: "#FFF9E8",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F0DFA3",
-    padding: 18,
-    marginTop: -20,
-    marginBottom: 22,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  heroLeft: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  heroIconWrapper: {
-    marginBottom: 10,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
     position: "relative",
-    width: 54,
-  },
-  heroShield: {
-    width: 54,
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#FDF3D8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sparkleTopLeft: {
-    position: "absolute",
-    top: -6,
-    left: -6,
-  },
-  sparkleBottomRight: {
-    position: "absolute",
-    bottom: -4,
-    right: -4,
-  },
-  heroLine1: {
-    fontSize: 19,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  heroLine2: {
-    fontSize: 19,
-    fontFamily: Fonts.display.extraBold,
-    color: Colors.textPrimary,
-    marginTop: 1,
-  },
-  heroDescription: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textSecondary,
-    marginTop: 8,
-    lineHeight: 18,
-  },
 
-  /* ===== TRUST MEDAL ===== */
-  medalWrapper: {
-    width: 92,
-    alignItems: "center",
-  },
-  medalCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: Colors.gold,
-    borderWidth: 3,
-    borderColor: Colors.goldLight,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  medalTrustedBy: {
-    fontSize: 6.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRedDark,
-    letterSpacing: 0.5,
-  },
-  medalNumber: {
-    fontSize: 14,
-    fontFamily: Fonts.display.extraBold,
-    color: Colors.primaryRedDark,
-    marginTop: 1,
-  },
-  medalFamilies: {
-    fontSize: 6.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRedDark,
-    textAlign: "center",
-    marginTop: 1,
-    lineHeight: 8,
-  },
-  medalRibbons: {
-    flexDirection: "row",
-    marginTop: -6,
-  },
-  medalRibbon: {
-    width: 16,
-    height: 26,
-    backgroundColor: Colors.primaryRed,
-  },
-
-  /* ===== SECTION HEADINGS ===== */
-  sectionHeadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 14,
-  },
-  sectionHeadingIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.primaryRed,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionHeading: {
-    fontSize: FontSizes.welcome - 3,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-
-  /* ===== BENEFITS ===== */
-  benefitsCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    marginBottom: 22,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  benefitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 10,
-  },
-  benefitRowLast: {
-    borderBottomWidth: 0,
-  },
-  benefitIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FDF3D8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  benefitTextBlock: {
-    flex: 1.1,
-  },
-  benefitTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-  benefitDescription: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 2,
-    lineHeight: 14,
-  },
-  benefitTagBox: {
-    flex: 1,
-    backgroundColor: "#FDEAE0",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  benefitTagText: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.medium,
-    color: Colors.primaryRed,
-    lineHeight: 14,
-  },
-  benefitCheckCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.success,
-    alignItems: "center",
-    justifyContent: "center",
+
+    borderBottomColor: "#F1F1F1",
   },
 
-  /* ===== PLANS ===== */
-  plansRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 20,
-  },
-  planCard: {
-    flex: 1,
-    borderWidth: 1.3,
-    borderColor: Colors.border,
-    borderRadius: 14,
-    alignItems: "center",
-    paddingTop: 18,
-    paddingBottom: 14,
-    paddingHorizontal: 8,
-    backgroundColor: Colors.cardBackground,
-    position: "relative",
-  },
-  planCardSelected: {
-    borderColor: Colors.primaryRed,
-  },
-  mostPopularBadge: {
+  backButton: {
     position: "absolute",
-    top: -12,
-    backgroundColor: Colors.gold,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  mostPopularText: {
-    fontSize: 8.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
-  planDuration: {
-    fontSize: 16,
-    fontFamily: Fonts.display.bold,
-    color: Colors.textPrimary,
-    marginTop: 6,
-  },
-  planLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginBottom: 6,
-  },
-  planPrice: {
-    fontSize: 19,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  planStrikePrice: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    textDecorationLine: "line-through",
-    marginTop: 1,
-    marginBottom: 10,
-  },
-  saveButton: {
-    borderWidth: 1.3,
-    borderColor: Colors.primaryRed,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  saveButtonFilled: {
-    backgroundColor: Colors.primaryRed,
-  },
-  saveButtonText: {
-    fontSize: 11,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
-  },
-  saveButtonTextFilled: {
-    color: Colors.white,
+
+    left: scale(10),
+
+    width: scale(48),
+
+    height: scale(48),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    borderRadius: scale(24),
   },
 
-  /* ===== TRUST BADGES ===== */
-  trustBadgesCard: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: "#FDF3D8",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 20,
-  },
-  trustBadgeItem: {
-    width: "50%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 8,
-    paddingRight: 6,
-    gap: 8,
-  },
-  trustBadgeIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  trustBadgeTextBlock: {
-    flex: 1,
-  },
-  trustBadgeTitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-  trustBadgeDescription: {
-    fontSize: 10,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 1,
-    lineHeight: 13,
-  },
+  headerTitle: {
+    fontSize: scale(23),
 
-  /* ===== UPGRADE BUTTON ===== */
-  upgradeButtonTouchable: {
-    width: "100%",
-    height: 56,
-    borderRadius: 16,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: Colors.primaryRedDark,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    marginBottom: 14,
-  },
-  upgradeButtonContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  upgradeButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontFamily: Fonts.body.bold,
+    fontWeight: "800",
+
+    color: "#8E2026",
+
+    letterSpacing: -0.3,
+
+    maxWidth: "70%",
+
     textAlign: "center",
   },
 
-  /* ===== FOOTER ===== */
-  footerRow: {
-    flexDirection: "row",
+  logoContainer: {
+    position: "absolute",
+
+    right: scale(10),
+
+    width: scale(55),
+
+    height: scale(55),
+
     alignItems: "center",
+
     justifyContent: "center",
-    gap: 6,
   },
-  footerText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+
+  logo: {
+    width: scale(52),
+
+    height: scale(52),
+  },
+
+  /* =====================================================
+     HERO
+  ===================================================== */
+
+  hero: {
+    height: scale(218),
+
+    overflow: "hidden",
+
+    borderBottomLeftRadius: scale(22),
+
+    borderBottomRightRadius: scale(22),
+  },
+
+  heroGradient: {
+    flex: 1,
+
+    position: "relative",
+
+    overflow: "hidden",
+  },
+
+  heroTextContainer: {
+    position: "absolute",
+
+    left: scale(22),
+
+    top: scale(29),
+
+    zIndex: 5,
+
+    width: "65%",
+  },
+
+  heroSmallTitle: {
+    color: "#FFFFFF",
+
+    fontSize: scale(23),
+
+    fontWeight: "700",
+
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+
+    marginBottom: scale(2),
+  },
+
+  heroTitle: {
+    color: "#FFE153",
+
+    fontSize: scale(34),
+
+    fontWeight: "800",
+
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+
+    lineHeight: scale(40),
+
+    marginBottom: scale(13),
+  },
+
+  heroDescription: {
+    color: "#FFFFFF",
+
+    fontSize: scale(12.5),
+
+    fontWeight: "500",
+
+    lineHeight: scale(18),
+
+    maxWidth: scale(245),
+  },
+
+  coupleImage: {
+    position: "absolute",
+
+    right: scale(-12),
+
+    bottom: scale(-6),
+
+    width: scale(235),
+
+    height: scale(205),
+
+    zIndex: 3,
+  },
+
+  decorHeart: {
+    position: "absolute",
+
+    right: scale(151),
+
+    top: scale(31),
+
+    color: "#E8B04B",
+
+    fontSize: scale(44),
+
+    fontWeight: "200",
+
+    zIndex: 2,
+  },
+
+  /* =====================================================
+     TOP FEATURE BAR
+  ===================================================== */
+
+  featureBar: {
+    marginHorizontal: scale(14),
+
+    marginTop: scale(-31),
+
+    height: scale(105),
+
+    borderRadius: scale(21),
+
+    backgroundColor: "#FFFFFF",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+
+    paddingHorizontal: scale(5),
+
+    shadowColor: "#000",
+
+    shadowOpacity: 0.12,
+
+    shadowOffset: {
+      width: 0,
+
+      height: 5,
+    },
+
+    shadowRadius: 12,
+
+    elevation: 8,
+
+    zIndex: 10,
+  },
+
+  topFeature: {
+    flex: 1,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    minWidth: 0,
+  },
+
+  topFeatureIcon: {
+    width: scale(42),
+
+    height: scale(42),
+
+    borderRadius: scale(21),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginBottom: scale(5),
+  },
+
+  topFeatureText: {
+    color: "#13182D",
+
+    fontSize: scale(9.5),
+
+    fontWeight: "700",
+
+    lineHeight: scale(12),
+
+    textAlign: "center",
+  },
+
+  /* =====================================================
+     PACKAGES CONTAINER
+  ===================================================== */
+
+  packagesContainer: {
+    marginTop: scale(27),
+
+    paddingHorizontal: scale(14),
+  },
+
+  sectionTitle: {
+    color: "#171B35",
+
+    fontSize: scale(19),
+
+    fontWeight: "800",
+
+    textAlign: "center",
+
+    marginBottom: scale(4),
+  },
+
+  sectionSubtitle: {
+    color: "#777A88",
+
+    fontSize: scale(11.5),
+
+    fontWeight: "500",
+
+    textAlign: "center",
+
+    marginBottom: scale(17),
+  },
+
+  /* =====================================================
+     LOADING / ERROR / EMPTY STATES
+  ===================================================== */
+
+  stateContainer: {
+    width: "100%",
+
+    paddingVertical: scale(34),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
+  errorText: {
+    color: "#777987",
+
+    fontSize: scale(13),
+
+    fontWeight: "600",
+
+    textAlign: "center",
+
+    marginBottom: scale(14),
+  },
+
+  retryButton: {
+    minHeight: scale(42),
+
+    minWidth: scale(120),
+
+    paddingHorizontal: scale(18),
+
+    borderRadius: scale(22),
+
+    backgroundColor: "#E51F35",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: scale(12.5),
+
+    fontWeight: "900",
+  },
+
+  /* =====================================================
+     PACKAGE CARD
+  ===================================================== */
+
+  packageCard: {
+    width: "100%",
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: scale(18),
+
+    marginBottom: scale(17),
+
+    borderWidth: 1,
+
+    borderColor: "#E4E5E8",
+
+    shadowColor: "#000",
+
+    shadowOpacity: 0.08,
+
+    shadowOffset: {
+      width: 0,
+
+      height: 3,
+    },
+
+    shadowRadius: 10,
+
+    elevation: 4,
+
+    overflow: "hidden",
+  },
+
+  popularCard: {
+    borderColor: "#F0B323",
+
+    borderWidth: scale(1.5),
+  },
+
+  /* =====================================================
+     POPULAR BADGE
+  ===================================================== */
+
+  popularBadge: {
+    position: "absolute",
+
+    top: 0,
+
+    left: scale(12),
+
+    height: scale(31),
+
+    minWidth: scale(132),
+
+    paddingHorizontal: scale(10),
+
+    backgroundColor: "#E51D2F",
+
+    borderBottomLeftRadius: scale(3),
+
+    borderBottomRightRadius: scale(7),
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    gap: scale(5),
+
+    zIndex: 20,
+  },
+
+  popularText: {
+    color: "#FFFFFF",
+
+    fontSize: scale(10),
+
+    fontWeight: "900",
+
+    letterSpacing: 0.2,
+  },
+
+  /* =====================================================
+     PACKAGE CONTENT
+  ===================================================== */
+
+  packageContent: {
+    flexDirection: "row",
+
+    paddingHorizontal: scale(13),
+
+    paddingTop: scale(14),
+
+    paddingBottom: scale(12),
+  },
+
+  popularContent: {
+    paddingTop: scale(43),
+  },
+
+  /* =====================================================
+     IMAGE
+  ===================================================== */
+
+  packageImageContainer: {
+    width: scale(108),
+
+    height: scale(108),
+
+    borderRadius: scale(14),
+
+    overflow: "hidden",
+
+    backgroundColor: "#F4F4F4",
+
+    flexShrink: 0,
+  },
+
+  packageImage: {
+    width: "100%",
+
+    height: "100%",
+  },
+
+  /* =====================================================
+     DETAILS
+  ===================================================== */
+
+  packageDetails: {
+    flex: 1,
+
+    marginLeft: scale(13),
+
+    minWidth: 0,
+
+    justifyContent: "flex-start",
+  },
+
+  /* =====================================================
+     TITLE ROW
+  ===================================================== */
+
+  packageTitleRow: {
+    width: "100%",
+
+    flexDirection: "row",
+
+    alignItems: "flex-start",
+
+    minWidth: 0,
+  },
+
+  titleContainer: {
+    flex: 1,
+
+    minWidth: 0,
+
+    paddingRight: scale(6),
+  },
+
+  packageName: {
+    color: "#111735",
+
+    fontSize: scale(18),
+
+    fontWeight: "900",
+
+    lineHeight: scale(22),
+
+    letterSpacing: -0.15,
+  },
+
+  packageSubtitle: {
+    color: "#5D6070",
+
+    fontSize: scale(11.5),
+
+    fontWeight: "500",
+
+    lineHeight: scale(16),
+
+    marginTop: scale(4),
+  },
+
+  /* =====================================================
+     DAYS BADGE
+  ===================================================== */
+
+  daysBadge: {
+    minWidth: scale(70),
+
+    height: scale(33),
+
+    paddingHorizontal: scale(8),
+
+    borderRadius: scale(11),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    flexShrink: 0,
+
+    marginLeft: scale(2),
+  },
+
+  daysText: {
+    fontSize: scale(11.5),
+
+    fontWeight: "900",
+
+    lineHeight: scale(14),
+  },
+
+  /* =====================================================
+     FEATURES SECTION
+  ===================================================== */
+
+  featuresSection: {
+    paddingHorizontal: scale(13),
+
+    paddingBottom: scale(13),
+  },
+
+  /* =====================================================
+     FEATURE GRID
+  ===================================================== */
+
+  packageFeaturesGrid: {
+    width: "100%",
+
+    flexDirection: "row",
+
+    flexWrap: "wrap",
+
+    justifyContent: "space-between",
+
+    rowGap: scale(11),
+  },
+
+  packageFeature: {
+    width: "48.5%",
+
+    minHeight: scale(43),
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    minWidth: 0,
+  },
+
+  /* =====================================================
+     FEATURE ICON
+  ===================================================== */
+
+  packageFeatureIcon: {
+    width: scale(38),
+
+    height: scale(38),
+
+    borderRadius: scale(10),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    flexShrink: 0,
+  },
+
+  /* =====================================================
+     FEATURE TEXT
+  ===================================================== */
+
+  featureText: {
+    flex: 1,
+
+    minWidth: 0,
+
+    marginLeft: scale(7),
+  },
+
+  featureValue: {
+    fontSize: scale(14),
+
+    fontWeight: "900",
+
+    lineHeight: scale(16),
+
+    includeFontPadding: false,
+  },
+
+  featureLabel: {
+    color: "#34384C",
+
+    fontSize: scale(10.5),
+
+    fontWeight: "600",
+
+    lineHeight: scale(13),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     EXTRA FEATURES
+  ===================================================== */
+
+  extraFeatures: {
+    width: "100%",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+
+    marginTop: scale(15),
+
+    gap: scale(8),
+  },
+
+  extraFeatureItem: {
+    flex: 1,
+
+    minWidth: 0,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+  },
+
+  checkCircle: {
+    width: scale(22),
+
+    height: scale(22),
+
+    borderRadius: scale(11),
+
+    backgroundColor: "#E4F5DC",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginRight: scale(5),
+
+    flexShrink: 0,
+  },
+
+  crossCircle: {
+    backgroundColor: "#FFF0F0",
+  },
+
+  extraFeatureText: {
+    flex: 1,
+
+    color: "#373A4E",
+
+    fontSize: scale(10),
+
+    fontWeight: "600",
+
+    lineHeight: scale(13),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     DIVIDER
+  ===================================================== */
+
+  divider: {
+    width: "100%",
+
+    height: 1,
+
+    backgroundColor: "#E5E5E5",
+
+    marginTop: scale(14),
+  },
+
+  /* =====================================================
+     PRICE + BUTTON
+  ===================================================== */
+
+  bottomPackageRow: {
+    width: "100%",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+
+    marginTop: scale(13),
+
+    minWidth: 0,
+  },
+
+  /* =====================================================
+     PRICE
+  ===================================================== */
+
+  priceContainer: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    flexShrink: 1,
+
+    minWidth: 0,
+  },
+
+  priceTexts: {
+    flexDirection: "row",
+
+    alignItems: "baseline",
+
+    flexShrink: 1,
+
+    minWidth: 0,
+  },
+
+  oldPrice: {
+    color: "#777985",
+
+    fontSize: scale(10.5),
+
+    fontWeight: "600",
+
+    textDecorationLine: "line-through",
+
+    marginRight: scale(6),
+
+    includeFontPadding: false,
+  },
+
+  currentPrice: {
+    color: "#B7192B",
+
+    fontSize: scale(21),
+
+    fontWeight: "900",
+
+    lineHeight: scale(25),
+
+    marginRight: scale(7),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     DISCOUNT
+  ===================================================== */
+
+  discountBadge: {
+    minHeight: scale(27),
+
+    paddingHorizontal: scale(7),
+
+    borderRadius: scale(6),
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    flexShrink: 0,
+  },
+
+  discountText: {
+    fontSize: scale(10),
+
+    fontWeight: "900",
+
+    lineHeight: scale(13),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     CHOOSE BUTTON
+  ===================================================== */
+
+  chooseButton: {
+    minHeight: scale(42),
+
+    minWidth: scale(125),
+
+    paddingHorizontal: scale(10),
+
+    borderRadius: scale(22),
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    flexShrink: 0,
+
+    marginLeft: scale(8),
+  },
+
+  chooseButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: scale(11),
+
+    fontWeight: "900",
+
+    marginRight: scale(4),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     SECURITY BAR
+  ===================================================== */
+
+  securityBar: {
+    marginHorizontal: scale(14),
+
+    marginTop: scale(2),
+
+    minHeight: scale(94),
+
+    borderRadius: scale(17),
+
+    backgroundColor: "#FFF7F8",
+
+    borderWidth: 1,
+
+    borderColor: "#F0D9DD",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    paddingHorizontal: scale(3),
+  },
+
+  securityItem: {
+    flex: 1,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    minWidth: 0,
+
+    paddingHorizontal: scale(2),
+  },
+
+  securityText: {
+    color: "#20233A",
+
+    fontSize: scale(9.5),
+
+    fontWeight: "700",
+
+    lineHeight: scale(13),
+
+    textAlign: "center",
+
+    marginTop: scale(5),
+
+    includeFontPadding: false,
+  },
+
+  securityDivider: {
+    width: 1,
+
+    height: scale(49),
+
+    backgroundColor: "#DACCCE",
+  },
+
+  /* =====================================================
+     RUPEE
+  ===================================================== */
+
+  rupeeIcon: {
+    width: scale(34),
+
+    height: scale(34),
+
+    borderWidth: 1.5,
+
+    borderColor: "#E21D32",
+
+    borderRadius: scale(17),
+
+    color: "#E21D32",
+
+    fontSize: scale(20),
+
+    fontWeight: "900",
+
+    textAlign: "center",
+
+    lineHeight: scale(31),
+
+    includeFontPadding: false,
+  },
+
+  /* =====================================================
+     BOTTOM SECURE
+  ===================================================== */
+
+  bottomSecure: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginTop: scale(14),
+
+    gap: scale(6),
+  },
+
+  bottomSecureText: {
+    color: "#777987",
+
+    fontSize: scale(10.5),
+
+    fontWeight: "500",
   },
 });

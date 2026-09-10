@@ -2,9 +2,21 @@ import Requestmake from "./RequestMake";
 
 function buildHeaders(user) {
   const headers = { "Content-Type": "application/json" };
-  if (user?.token) {
-    headers.Authorization = "Bearer " + user.token;
+  if (!user) return headers;
+
+  if (typeof user === "string") {
+    headers.Authorization = user.startsWith("Bearer ")
+      ? user
+      : "Bearer " + user;
+  } else if (user?.token) {
+    const tokenStr = String(user.token);
+    headers.Authorization = tokenStr.startsWith("Bearer ")
+      ? tokenStr
+      : "Bearer " + tokenStr;
+  } else if (user?.Authorization || user?.authorization) {
+    headers.Authorization = user.Authorization || user.authorization;
   }
+
   return headers;
 }
 
