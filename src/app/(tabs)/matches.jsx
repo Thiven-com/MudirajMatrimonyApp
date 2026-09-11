@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
   },
 
   emptyButton: {
-    marginTop: 18,
+    marginTop: 17,
     backgroundColor: COLORS.red,
     paddingHorizontal: 20,
     paddingVertical: 11,

@@ -13,7 +13,7 @@ export const Fonts = {
 
 // Font sizes, matched to the reference login screen
 export const FontSizes = {
-  title: 28, // "MUDIRAJ WORLD"
+  title: 27, // "MUDIRAJ WORLD"
   tagline: 14, // "Connect | Unite | Grow Together"
   welcome: 20, // "Welcome Back!"
   subtitle: 13, // "Login to continue..."

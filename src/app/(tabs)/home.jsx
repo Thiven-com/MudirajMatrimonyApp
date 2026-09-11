@@ -546,7 +546,9 @@ export default function HomeScreen() {
     }, []),
   );
 
-  const openNotifications = () => router.push("/privacy-policy");
+  {
+    /*const openNotifications = () => router.push("/privacy-policy");*/
+  }
   const openSearch = () => router.push("/search");
   const openPremium = () => router.push("/premium");
   const openPremiumBenefits = () => router.push("/premium-benfits");
@@ -631,7 +633,7 @@ export default function HomeScreen() {
               <Ionicons name="search-outline" size={25} color={COLORS.text} />
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/*<TouchableOpacity
               style={styles.headerIconButton}
               onPress={openNotifications}
               activeOpacity={0.7}
@@ -644,7 +646,7 @@ export default function HomeScreen() {
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>3</Text>
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity>*/}
           </View>
         </View>
 
@@ -719,7 +721,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/matchesdetail")}
                 activeOpacity={0.7}
               >
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -756,7 +758,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/new-members")}
                 activeOpacity={0.7}
               >
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -790,7 +792,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Membership Plans</Text>
               </View>
               <TouchableOpacity onPress={openPackages} activeOpacity={0.7}>
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -853,7 +855,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Happy Stories</Text>
               </View>
               <TouchableOpacity onPress={openHappyStories} activeOpacity={0.7}>
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -929,7 +931,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Latest Blogs</Text>
               </View>
               <TouchableOpacity onPress={openBlogs} activeOpacity={0.7}>
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -1000,7 +1002,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>What Our Members Say</Text>
               </View>
               <TouchableOpacity onPress={openReviews} activeOpacity={0.7}>
-                <Text style={styles.seeAll}>See All</Text>
+                {/*<Text style={styles.seeAll}>See All</Text>*/}
               </TouchableOpacity>
             </View>
 
@@ -1813,7 +1815,7 @@ const styles = StyleSheet.create({
     width: 240,
     backgroundColor: COLORS.white,
     borderRadius: 17,
-    padding: 14,
+    padding: 18,
     marginRight: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
