@@ -37,3 +37,21 @@ export async function postMethod(url, user, data) {
   };
   return Requestmake(url, requestOptions);
 }
+
+export async function putMethod(url, user, data) {
+  const requestOptions = {
+    method: "PUT",
+    headers: buildHeaders(user),
+    body: data,
+  };
+  return Requestmake(url, requestOptions);
+}
+
+export async function deleteMethod(url, user, params) {
+  const requestOptions = {
+    method: "DELETE",
+    headers: buildHeaders(user),
+    params,
+  };
+  return Requestmake(url, requestOptions);
+}
