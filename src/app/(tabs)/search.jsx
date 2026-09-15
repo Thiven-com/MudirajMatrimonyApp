@@ -11,14 +11,16 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import LinearGradient from "react-native-linear-gradient";
+
+import { useNavigation } from "@react-navigation/native";
 
 import { postMemberListing } from "../../utils/Functions";
 
@@ -50,30 +52,42 @@ const COLORS = {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /* ============================================================
-   GET TOKEN (same pattern as matches/home/profile screens)
+   GET TOKEN
 ============================================================ */
 
 const getToken = async () => {
   try {
     const authToken = await AsyncStorage.getItem("authToken");
-    if (authToken) return authToken;
+
+    if (authToken) {
+      return authToken;
+    }
 
     const userdata = await AsyncStorage.getItem("userdata");
+
     if (userdata) {
       try {
         const parsed = JSON.parse(userdata);
+
         const token =
           parsed?.data?.token || parsed?.token || parsed?.access_token || null;
-        if (token) return token;
+
+        if (token) {
+          return token;
+        }
       } catch (error) {
         console.log("getToken userdata parse error:", error);
       }
     }
 
     const fallbackKeys = ["token", "access_token", "userToken", "auth_token"];
+
     for (const key of fallbackKeys) {
       const value = await AsyncStorage.getItem(key);
-      if (value) return value;
+
+      if (value) {
+        return value;
+      }
     }
 
     return null;
@@ -84,30 +98,7 @@ const getToken = async () => {
 };
 
 /* ============================================================
-   FILTERS -> API BODY FOR POST /api/member/member-listing
-
-   Confirmed real request body:
-   {
-     age_from, age_to, member_code, marital_status, religion_id,
-     caste_id, sub_caste_id, mother_tongue, profession,
-     country_id, state_id, city_id, min_height, max_height,
-     member_type
-   }
-
-   *** ASSUMPTION WARNING ***
-   marital_status, religion_id, caste_id, country_id, state_id,
-   city_id, and member_type are numeric IDs on the backend, but
-   this screen only offers plain display strings ("Never
-   Married", "Hindu - Mudhiraj", "India", ...) with no real
-   taxonomy/lookup API wired up. ID_MAPS below is a BEST-GUESS
-   table built from this screen's own hardcoded option lists —
-   it is NOT verified against your actual database. Please check
-   these ids against your backend and correct any that are wrong.
-
-   NOTE: this same mapping logic also lives in matches.js (which
-   re-derives filters from route params so it can refetch on its
-   own). Consider moving both copies into a shared
-   utils/buildMemberFilters.js so they can't drift apart.
+   FILTER ID MAPS
 ============================================================ */
 
 const ID_MAPS = {
@@ -135,48 +126,79 @@ const ID_MAPS = {
     Canada: 5,
   },
 
-  // This screen's "location" is a single city+state string with no
-  // separate state selector, but the API wants state_id AND city_id
-  // separately.
   location: {
-    "Hyderabad, Telangana": { state_id: 1, city_id: 1 },
-    "Warangal, Telangana": { state_id: 1, city_id: 2 },
-    "Vijayawada, Andhra Pradesh": { state_id: 2, city_id: 3 },
-    "Bengaluru, Karnataka": { state_id: 3, city_id: 4 },
+    "Hyderabad, Telangana": {
+      state_id: 1,
+      city_id: 1,
+    },
+
+    "Warangal, Telangana": {
+      state_id: 1,
+      city_id: 2,
+    },
+
+    "Vijayawada, Andhra Pradesh": {
+      state_id: 2,
+      city_id: 3,
+    },
+
+    "Bengaluru, Karnataka": {
+      state_id: 3,
+      city_id: 4,
+    },
   },
 
-  // No confirmed source field for member_type on this screen yet —
-  // guessing it corresponds to "Looking For" (Bride/Groom). Verify
-  // against backend; could instead mean membership tier.
   lookingFor: {
     Bride: 1,
     Groom: 2,
   },
 };
 
-// "5'3\" - 5'5\"" -> { min_height: 5.3, max_height: 5.5 }
+/* ============================================================
+   HEIGHT PARSER
+============================================================ */
+
 function parseHeightRange(heightLabel) {
-  if (!heightLabel || typeof heightLabel !== "string") return {};
+  if (!heightLabel || typeof heightLabel !== "string") {
+    return {};
+  }
 
   const pairs = [...heightLabel.matchAll(/(\d+)'(\d+)"/g)].map(
     ([, feet, inches]) => Number(`${feet}.${inches}`),
   );
 
-  if (pairs.length === 0) return {};
+  if (pairs.length === 0) {
+    return {};
+  }
 
-  const result = { min_height: pairs[0] };
-  if (pairs.length > 1) result.max_height = pairs[1];
+  const result = {
+    min_height: pairs[0],
+  };
+
+  if (pairs.length > 1) {
+    result.max_height = pairs[1];
+  }
+
   return result;
 }
 
-// "24 - 30 yrs" -> { age_from: 24, age_to: 30 }
+/* ============================================================
+   AGE PARSER
+============================================================ */
+
 function parseAgeRange(ageLabel) {
-  if (!ageLabel || typeof ageLabel !== "string") return {};
+  if (!ageLabel || typeof ageLabel !== "string") {
+    return {};
+  }
 
   const numbers = ageLabel.match(/\d+/g);
-  if (!numbers || numbers.length === 0) return {};
+
+  if (!numbers || numbers.length === 0) {
+    return {};
+  }
 
   const age_from = Number(numbers[0]);
+
   const age_to = numbers.length > 1 ? Number(numbers[1]) : undefined;
 
   return {
@@ -185,36 +207,60 @@ function parseAgeRange(ageLabel) {
   };
 }
 
+/* ============================================================
+   BUILD FILTER BODY
+============================================================ */
+
 function buildFiltersFromState(filters) {
   const isSet = (value) =>
     !!value && value !== "Select" && value !== "Select City";
 
   const body = {
-    // Always present per the confirmed sample body, even when empty.
     member_code: "",
   };
 
   const { age_from, age_to } = parseAgeRange(filters.age);
-  if (age_from !== undefined) body.age_from = age_from;
-  if (age_to !== undefined) body.age_to = age_to;
+
+  if (age_from !== undefined) {
+    body.age_from = age_from;
+  }
+
+  if (age_to !== undefined) {
+    body.age_to = age_to;
+  }
 
   const { min_height, max_height } = parseHeightRange(filters.height);
-  if (min_height !== undefined) body.min_height = min_height;
-  if (max_height !== undefined) body.max_height = max_height;
+
+  if (min_height !== undefined) {
+    body.min_height = min_height;
+  }
+
+  if (max_height !== undefined) {
+    body.max_height = max_height;
+  }
 
   if (isSet(filters.maritalStatus)) {
     const id = ID_MAPS.maritalStatus[filters.maritalStatus];
-    if (id !== undefined) body.marital_status = id;
+
+    if (id !== undefined) {
+      body.marital_status = id;
+    }
   }
 
   if (isSet(filters.religion)) {
     const id = ID_MAPS.religion[filters.religion];
-    if (id !== undefined) body.religion_id = id;
+
+    if (id !== undefined) {
+      body.religion_id = id;
+    }
   }
 
   if (isSet(filters.caste)) {
     const id = ID_MAPS.caste[filters.caste];
-    if (id !== undefined) body.caste_id = id;
+
+    if (id !== undefined) {
+      body.caste_id = id;
+    }
   }
 
   if (isSet(filters.motherTongue)) {
@@ -227,11 +273,15 @@ function buildFiltersFromState(filters) {
 
   if (isSet(filters.country)) {
     const id = ID_MAPS.country[filters.country];
-    if (id !== undefined) body.country_id = id;
+
+    if (id !== undefined) {
+      body.country_id = id;
+    }
   }
 
   if (isSet(filters.location)) {
     const ids = ID_MAPS.location[filters.location];
+
     if (ids) {
       body.state_id = ids.state_id;
       body.city_id = ids.city_id;
@@ -240,12 +290,11 @@ function buildFiltersFromState(filters) {
 
   if (isSet(filters.lookingFor)) {
     const id = ID_MAPS.lookingFor[filters.lookingFor];
-    if (id !== undefined) body.member_type = id;
-  }
 
-  // sub_caste_id: no corresponding filter exists on this screen yet.
-  // education / income / gender: not present in the confirmed API
-  // body, so intentionally not sent.
+    if (id !== undefined) {
+      body.member_type = id;
+    }
+  }
 
   return body;
 }
@@ -255,7 +304,7 @@ function buildFiltersFromState(filters) {
 ============================================================ */
 
 export default function SearchScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -289,6 +338,7 @@ export default function SearchScreen() {
   ]);
 
   const [searching, setSearching] = useState(false);
+
   const [searchApiError, setSearchApiError] = useState("");
 
   /* ============================================================
@@ -374,7 +424,7 @@ export default function SearchScreen() {
   );
 
   /* ============================================================
-     FUNCTIONS
+     OPEN FILTER
   ============================================================ */
 
   const openFilter = (field) => {
@@ -382,8 +432,14 @@ export default function SearchScreen() {
     setShowFilterModal(true);
   };
 
+  /* ============================================================
+     SELECT OPTION
+  ============================================================ */
+
   const selectOption = (value) => {
-    if (!activeField) return;
+    if (!activeField) {
+      return;
+    }
 
     setFilters((previous) => ({
       ...previous,
@@ -393,6 +449,10 @@ export default function SearchScreen() {
     setShowFilterModal(false);
     setActiveField(null);
   };
+
+  /* ============================================================
+     RESET
+  ============================================================ */
 
   const resetAll = () => {
     setFilters({
@@ -410,7 +470,13 @@ export default function SearchScreen() {
       country: "Select",
       location: "Select City",
     });
+
+    setSearchApiError("");
   };
+
+  /* ============================================================
+     REMOVE RECENT SEARCH
+  ============================================================ */
 
   const removeRecentSearch = (item) => {
     setRecentSearches((previous) =>
@@ -418,8 +484,14 @@ export default function SearchScreen() {
     );
   };
 
+  /* ============================================================
+     VIEW MATCHES
+  ============================================================ */
+
   const viewMatches = async () => {
-    if (searching) return;
+    if (searching) {
+      return;
+    }
 
     setSearching(true);
     setSearchApiError("");
@@ -431,16 +503,19 @@ export default function SearchScreen() {
         setSearchApiError(
           "Authentication token not found. Please login again.",
         );
+
         return;
       }
 
       const body = buildFiltersFromState(filters);
+
       console.log(
         "SearchScreen -> postMemberListing body:",
         JSON.stringify(body),
       );
 
       const result = await postMemberListing(body, token);
+
       console.log(
         "SearchScreen -> postMemberListing result:",
         JSON.stringify(result),
@@ -448,34 +523,28 @@ export default function SearchScreen() {
 
       if (!(result?.success === 1 || result?.result === true)) {
         setSearchApiError(result?.message || "Unable to search matches.");
+
         return;
       }
 
-      // matches.js re-derives the same filter body from these route
-      // params (see buildFiltersFromParams there) and refetches on its
-      // own, so the person can still adjust the active tab / search box
-      // once they land on that screen.
-      router.push({
-        pathname: "/matches",
-
-        params: {
-          lookingFor: filters.lookingFor,
-          gender: filters.gender,
-          age: filters.age,
-          height: filters.height,
-          maritalStatus: filters.maritalStatus,
-          religion: filters.religion,
-          motherTongue: filters.motherTongue,
-          caste: filters.caste,
-          education: filters.education,
-          profession: filters.profession,
-          income: filters.income,
-          country: filters.country,
-          location: filters.location,
-        },
+      navigation.navigate("Matches", {
+        lookingFor: filters.lookingFor,
+        gender: filters.gender,
+        age: filters.age,
+        height: filters.height,
+        maritalStatus: filters.maritalStatus,
+        religion: filters.religion,
+        motherTongue: filters.motherTongue,
+        caste: filters.caste,
+        education: filters.education,
+        profession: filters.profession,
+        income: filters.income,
+        country: filters.country,
+        location: filters.location,
       });
     } catch (e) {
       console.log("SearchScreen viewMatches Error:", e);
+
       setSearchApiError(e?.message || "Unable to search matches.");
     } finally {
       setSearching(false);
@@ -502,8 +571,6 @@ export default function SearchScreen() {
         style={[styles.filterBox, fullWidth && styles.fullWidthFilterBox]}
       >
         <View style={styles.filterLeft}>
-          {/* ICON */}
-
           <View
             style={[
               styles.filterIconCircle,
@@ -518,8 +585,6 @@ export default function SearchScreen() {
               <Ionicons name={icon} size={15} color={color} />
             )}
           </View>
-
-          {/* TEXT */}
 
           <View style={styles.filterTextContainer}>
             <Text numberOfLines={1} style={styles.filterTitle}>
@@ -550,23 +615,23 @@ export default function SearchScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* =====================================================
-    TOP HERO SECTION
-===================================================== */}
+            HERO SECTION
+        ===================================================== */}
 
         <View style={styles.heroBackground}>
-          {/* BACK BUTTON */}
-
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={22} color="#B5120D" />
           </TouchableOpacity>
 
-          {/* LOGO */}
-
-          {/* TITLE */}
+          <View style={styles.logoWrapper}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>M</Text>
+            </View>
+          </View>
 
           <View style={styles.titleSection}>
             <Text style={styles.mainTitle}>Search</Text>
@@ -576,8 +641,6 @@ export default function SearchScreen() {
             </Text>
           </View>
 
-          {/* CURVED ORANGE / RED DESIGN */}
-
           <View style={styles.curveArea}>
             <View style={styles.orangeCurve} />
 
@@ -586,15 +649,11 @@ export default function SearchScreen() {
         </View>
 
         {/* =====================================================
-    SEARCH FILTER CARD
-===================================================== */}
+            SEARCH FILTER CARD
+        ===================================================== */}
 
         <View style={[styles.filterCard, { marginTop: 11 }]}>
-          {/* HEADING */}
-
           <Text style={styles.filtersHeading}>Search Filters</Text>
-
-          {/* GOLD DIVIDER */}
 
           <View style={styles.headingDivider}>
             <View style={styles.dividerLine} />
@@ -717,7 +776,7 @@ export default function SearchScreen() {
             fullWidth
           />
 
-          {/* BOTTOM ACTIONS */}
+          {/* ACTIONS */}
 
           <View style={styles.actionRow}>
             <TouchableOpacity
@@ -741,8 +800,14 @@ export default function SearchScreen() {
             >
               <LinearGradient
                 colors={["#C90804", "#E33B00", "#F5A500"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                start={{
+                  x: 0,
+                  y: 0,
+                }}
+                end={{
+                  x: 1,
+                  y: 0,
+                }}
                 style={styles.viewMatchesButton}
               >
                 {searching ? (
@@ -761,6 +826,7 @@ export default function SearchScreen() {
           {!!searchApiError && (
             <View style={styles.searchErrorBanner}>
               <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+
               <Text style={styles.searchErrorText}>{searchApiError}</Text>
             </View>
           )}
@@ -772,8 +838,6 @@ export default function SearchScreen() {
 
         {recentSearches.length > 0 && (
           <View style={styles.recentCard}>
-            {/* HEADER */}
-
             <View style={styles.recentHeader}>
               <Text style={styles.recentHeading}>Recent Searches</Text>
 
@@ -785,8 +849,6 @@ export default function SearchScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* SEARCH CHIPS */}
-
             <View style={styles.chipsContainer}>
               {recentSearches.map((item) => (
                 <TouchableOpacity
@@ -794,11 +856,8 @@ export default function SearchScreen() {
                   activeOpacity={0.8}
                   style={styles.searchChip}
                   onPress={() =>
-                    router.push({
-                      pathname: "/matches",
-                      params: {
-                        search: item,
-                      },
+                    navigation.navigate("Matches", {
+                      search: item,
                     })
                   }
                 >
@@ -822,7 +881,7 @@ export default function SearchScreen() {
                       right: 8,
                     }}
                     onPress={(event) => {
-                      event.stopPropagation?.();
+                      event?.stopPropagation?.();
                       removeRecentSearch(item);
                     }}
                   >
@@ -833,7 +892,6 @@ export default function SearchScreen() {
             </View>
           </View>
         )}
-        {/* Bottom spacing only — NO BOTTOM TABS */}
 
         <View style={{ height: 35 }} />
       </ScrollView>
@@ -905,10 +963,6 @@ export default function SearchScreen() {
 ============================================================ */
 
 const styles = StyleSheet.create({
-  /* ============================================================
-     MAIN SCREEN
-  ============================================================ */
-
   safeArea: {
     flex: 1,
     backgroundColor: "#FBF9F6",
@@ -919,7 +973,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     TOP HERO SECTION
+     HERO
   ============================================================ */
 
   heroBackground: {
@@ -928,8 +982,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#FBFAF8",
   },
-
-  /* BACK BUTTON */
 
   backButton: {
     position: "absolute",
@@ -945,23 +997,56 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  /* LOGO */
+  logoWrapper: {
+    position: "absolute",
+    width: 62,
+    height: 62,
+    right: 18,
+    top: 14,
+    zIndex: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  /*
+   * If your logo.png is available, replace this
+   * wrapper with:
+   *
+   * <Image
+   *   source={LOGO}
+   *   style={styles.logo}
+   * />
+   *
+   * The original uploaded code declared LOGO
+   * but did not render the Image component.
+   */
+
+  logoCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFF4D8",
+    borderWidth: 2,
+    borderColor: "#EAB129",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  logoText: {
+    fontSize: 25,
+    fontWeight: "900",
+    color: "#B5120D",
+  },
 
   logo: {
     position: "absolute",
-
     width: 62,
     height: 62,
-
     right: 18,
     top: 14,
-
     resizeMode: "contain",
-
     zIndex: 10,
   },
-
-  /* TITLE */
 
   titleSection: {
     position: "absolute",
@@ -993,7 +1078,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     ORANGE / RED CURVE
+     CURVE
   ============================================================ */
 
   curveArea: {
@@ -1037,7 +1122,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     SEARCH FILTER CARD
+     FILTER CARD
   ============================================================ */
 
   filterCard: {
@@ -1067,8 +1152,6 @@ const styles = StyleSheet.create({
 
     elevation: 2,
   },
-
-  /* FILTER HEADING */
 
   filtersHeading: {
     fontSize: 25,
@@ -1209,7 +1292,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     ACTION BUTTONS
+     ACTIONS
   ============================================================ */
 
   actionRow: {
@@ -1220,8 +1303,6 @@ const styles = StyleSheet.create({
 
     marginTop: 9,
   },
-
-  /* RESET */
 
   resetButton: {
     width: "40%",
@@ -1242,8 +1323,6 @@ const styles = StyleSheet.create({
 
     color: "#B11B16",
   },
-
-  /* VIEW MATCHES */
 
   matchesButtonWrapper: {
     flex: 1,
@@ -1277,23 +1356,30 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     SEARCH API ERROR BANNER
+     ERROR
   ============================================================ */
 
   searchErrorBanner: {
     marginTop: 10,
+
     backgroundColor: "#FDECEC",
+
     borderRadius: 10,
+
     paddingHorizontal: 12,
     paddingVertical: 10,
+
     flexDirection: "row",
     alignItems: "center",
+
     gap: 8,
   },
 
   searchErrorText: {
     flex: 1,
+
     fontSize: 12.5,
+
     color: "#B42318",
   },
 
@@ -1395,7 +1481,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     MODAL OVERLAY
+     MODAL
   ============================================================ */
 
   modalOverlay: {
@@ -1405,10 +1491,6 @@ const styles = StyleSheet.create({
 
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-
-  /* ============================================================
-     FILTER MODAL
-  ============================================================ */
 
   filterModal: {
     maxHeight: "72%",
@@ -1453,7 +1535,7 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     FILTER OPTIONS
+     OPTIONS
   ============================================================ */
 
   optionItem: {

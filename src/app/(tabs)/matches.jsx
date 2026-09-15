@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
   ActivityIndicator,
   Image,
@@ -12,11 +13,22 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
+// React Native CLI icons
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
+// AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// React Navigation
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+// API
 import { postMemberListing } from "../../utils/Functions";
+
+/* =========================================================
+   COLORS
+========================================================= */
 
 const COLORS = {
   primary: "#B20D08",
@@ -29,16 +41,19 @@ const COLORS = {
   background: "#FAF9F7",
 };
 
+/* =========================================================
+   FALLBACK IMAGE
+========================================================= */
+
 const FALLBACK_IMAGE = require("../../../assets/images/Match1.png");
 
 /* =========================================================
    GET TOKEN
-   Same token logic used by HomeScreen
 ========================================================= */
 
 const getToken = async () => {
   try {
-    // 1. Your login screen stores the token here
+    // 1. Login token
     const authToken = await AsyncStorage.getItem("authToken");
 
     if (authToken) {
@@ -46,7 +61,7 @@ const getToken = async () => {
       return authToken;
     }
 
-    // 2. Your login screen stores the complete response here
+    // 2. Complete user data
     const userdata = await AsyncStorage.getItem("userdata");
 
     if (userdata) {
@@ -69,7 +84,7 @@ const getToken = async () => {
       }
     }
 
-    // 3. Fallback keys
+    // 3. Other token keys
     const fallbackKeys = ["token", "access_token", "userToken", "auth_token"];
 
     for (const key of fallbackKeys) {
@@ -81,7 +96,7 @@ const getToken = async () => {
       }
     }
 
-    // 4. Additional fallback
+    // 4. User fallback
     const userStr =
       (await AsyncStorage.getItem("user")) ||
       (await AsyncStorage.getItem("user_data"));
@@ -113,11 +128,13 @@ const getToken = async () => {
 };
 
 /* =========================================================
-   API -> UI MAPPING
+   FORMAT HEIGHT
 ========================================================= */
 
 function formatHeight(value) {
-  if (value == null || value === "") return "";
+  if (value == null || value === "") {
+    return "";
+  }
 
   if (typeof value === "string" && value.includes("'")) {
     return value;
@@ -136,47 +153,26 @@ function formatHeight(value) {
 }
 
 /* =========================================================
-   ROUTE PARAMS -> API FILTERS
-   Confirmed real request body for POST /api/member/member-listing:
-   {
-     age_from, age_to, member_code, marital_status, religion_id,
-     caste_id, sub_caste_id, mother_tongue, profession,
-     country_id, state_id, city_id, min_height, max_height,
-     member_type
-   }
-
-   *** ASSUMPTION WARNING ***
-   marital_status, religion_id, caste_id, country_id, state_id,
-   city_id, and member_type are numeric IDs on the backend, but
-   SearchScreen only offers plain display strings ("Never
-   Married", "Hindu - Mudhiraj", "India", ...) with no real
-   taxonomy/lookup API wired up. The ID_MAPS table below is a
-   BEST-GUESS mapping built from SearchScreen's own hardcoded
-   option lists so the request body has the right shape — it is
-   NOT verified against your actual database. Please check these
-   ids against your backend and correct any that are wrong.
+   ID MAPS
 ========================================================= */
+
 const ID_MAPS = {
-  // Never Married / Divorced / Widowed -> numeric id
   maritalStatus: {
     "Never Married": 1,
     Divorced: 2,
     Widowed: 3,
   },
 
-  // Matches SearchScreen's religion options
   religion: {
     "Hindu - Mudhiraj": 1,
     Hindu: 2,
   },
 
-  // Matches SearchScreen's caste options
   caste: {
     Mudhiraj: 2,
     Other: 3,
   },
 
-  // Matches SearchScreen's country options
   country: {
     India: 1,
     USA: 2,
@@ -185,50 +181,79 @@ const ID_MAPS = {
     Canada: 5,
   },
 
-  // SearchScreen's "location" is a single city+state string with no
-  // separate state selector, but the API wants state_id AND city_id
-  // separately. Mapping each known location string to both ids.
   location: {
-    "Hyderabad, Telangana": { state_id: 1, city_id: 1 },
-    "Warangal, Telangana": { state_id: 1, city_id: 2 },
-    "Vijayawada, Andhra Pradesh": { state_id: 2, city_id: 3 },
-    "Bengaluru, Karnataka": { state_id: 3, city_id: 4 },
+    "Hyderabad, Telangana": {
+      state_id: 1,
+      city_id: 1,
+    },
+
+    "Warangal, Telangana": {
+      state_id: 1,
+      city_id: 2,
+    },
+
+    "Vijayawada, Andhra Pradesh": {
+      state_id: 2,
+      city_id: 3,
+    },
+
+    "Bengaluru, Karnataka": {
+      state_id: 3,
+      city_id: 4,
+    },
   },
 
-  // No confirmed source field for member_type on SearchScreen yet —
-  // guessing it corresponds to "Looking For" (Bride/Groom). Verify
-  // against backend; could instead mean membership tier (Free/Premium).
   lookingFor: {
     Bride: 1,
     Groom: 2,
   },
 };
 
-// "5'3\" - 5'5\"" -> { min_height: 5.3, max_height: 5.5 }
-// "6'0\"+"        -> { min_height: 6.0 }               (open-ended)
-function parseHeightRange(heightLabel) {
-  if (!heightLabel || typeof heightLabel !== "string") return {};
+/* =========================================================
+   PARSE HEIGHT RANGE
+========================================================= */
 
-  // Matches feet'inches" pairs, e.g. 5'3" or 6'0"
+function parseHeightRange(heightLabel) {
+  if (!heightLabel || typeof heightLabel !== "string") {
+    return {};
+  }
+
   const pairs = [...heightLabel.matchAll(/(\d+)'(\d+)"/g)].map(
     ([, feet, inches]) => Number(`${feet}.${inches}`),
   );
 
-  if (pairs.length === 0) return {};
+  if (pairs.length === 0) {
+    return {};
+  }
 
-  const result = { min_height: pairs[0] };
-  if (pairs.length > 1) result.max_height = pairs[1];
+  const result = {
+    min_height: pairs[0],
+  };
+
+  if (pairs.length > 1) {
+    result.max_height = pairs[1];
+  }
+
   return result;
 }
 
-function parseAgeRange(ageLabel) {
-  if (!ageLabel || typeof ageLabel !== "string") return {};
+/* =========================================================
+   PARSE AGE RANGE
+========================================================= */
 
-  // e.g. "24 - 30 yrs" -> [24, 30], "45+ yrs" -> [45, undefined]
+function parseAgeRange(ageLabel) {
+  if (!ageLabel || typeof ageLabel !== "string") {
+    return {};
+  }
+
   const numbers = ageLabel.match(/\d+/g);
-  if (!numbers || numbers.length === 0) return {};
+
+  if (!numbers || numbers.length === 0) {
+    return {};
+  }
 
   const age_from = Number(numbers[0]);
+
   const age_to = numbers.length > 1 ? Number(numbers[1]) : undefined;
 
   return {
@@ -237,72 +262,125 @@ function parseAgeRange(ageLabel) {
   };
 }
 
+/* =========================================================
+   BUILD FILTERS
+========================================================= */
+
 function buildFiltersFromParams(params) {
-  if (!params) return {};
+  if (!params) {
+    return {};
+  }
 
   const isSet = (value) =>
     !!value && value !== "Select" && value !== "Select City";
 
   const filters = {
-    // Always present per the confirmed sample body, even when empty.
     member_code: "",
   };
 
+  /* AGE */
+
   const { age_from, age_to } = parseAgeRange(params.age);
-  if (age_from !== undefined) filters.age_from = age_from;
-  if (age_to !== undefined) filters.age_to = age_to;
+
+  if (age_from !== undefined) {
+    filters.age_from = age_from;
+  }
+
+  if (age_to !== undefined) {
+    filters.age_to = age_to;
+  }
+
+  /* HEIGHT */
 
   const { min_height, max_height } = parseHeightRange(params.height);
-  if (min_height !== undefined) filters.min_height = min_height;
-  if (max_height !== undefined) filters.max_height = max_height;
+
+  if (min_height !== undefined) {
+    filters.min_height = min_height;
+  }
+
+  if (max_height !== undefined) {
+    filters.max_height = max_height;
+  }
+
+  /* MARITAL STATUS */
 
   if (isSet(params.maritalStatus)) {
     const id = ID_MAPS.maritalStatus[params.maritalStatus];
-    if (id !== undefined) filters.marital_status = id;
+
+    if (id !== undefined) {
+      filters.marital_status = id;
+    }
   }
+
+  /* RELIGION */
 
   if (isSet(params.religion)) {
     const id = ID_MAPS.religion[params.religion];
-    if (id !== undefined) filters.religion_id = id;
+
+    if (id !== undefined) {
+      filters.religion_id = id;
+    }
   }
+
+  /* CASTE */
 
   if (isSet(params.caste)) {
     const id = ID_MAPS.caste[params.caste];
-    if (id !== undefined) filters.caste_id = id;
+
+    if (id !== undefined) {
+      filters.caste_id = id;
+    }
   }
+
+  /* MOTHER TONGUE */
 
   if (isSet(params.motherTongue)) {
     filters.mother_tongue = params.motherTongue;
   }
 
+  /* PROFESSION */
+
   if (isSet(params.profession)) {
     filters.profession = params.profession;
   }
 
+  /* COUNTRY */
+
   if (isSet(params.country)) {
     const id = ID_MAPS.country[params.country];
-    if (id !== undefined) filters.country_id = id;
+
+    if (id !== undefined) {
+      filters.country_id = id;
+    }
   }
+
+  /* LOCATION */
 
   if (isSet(params.location)) {
     const ids = ID_MAPS.location[params.location];
+
     if (ids) {
       filters.state_id = ids.state_id;
       filters.city_id = ids.city_id;
     }
   }
 
+  /* LOOKING FOR */
+
   if (isSet(params.lookingFor)) {
     const id = ID_MAPS.lookingFor[params.lookingFor];
-    if (id !== undefined) filters.member_type = id;
-  }
 
-  // sub_caste_id: no corresponding filter exists on SearchScreen yet.
-  // education / income / gender: not present in the confirmed API body,
-  // so they're intentionally not sent.
+    if (id !== undefined) {
+      filters.member_type = id;
+    }
+  }
 
   return filters;
 }
+
+/* =========================================================
+   API MEMBER -> UI MEMBER
+========================================================= */
 
 function mapMember(api) {
   const joinedName = [api.first_name, api.last_name].filter(Boolean).join(" ");
@@ -310,11 +388,13 @@ function mapMember(api) {
   return {
     id: api.user_id ?? api.id ?? api.member_id,
 
-    name: (api.name ?? api.full_name ?? joinedName) || "Unknown",
+    name: api.name ?? api.full_name ?? joinedName ?? "Unknown",
 
     age: api.age ?? null,
 
-    // membership: 1 = Free, 2 = Premium
+    // membership:
+    // 1 = Free
+    // 2 = Premium
     membership: Number(api.membership ?? 1),
 
     profession: api.profession ?? api.occupation ?? "",
@@ -331,11 +411,17 @@ function mapMember(api) {
       api.community ?? [api.religion, api.caste].filter(Boolean).join(" - "),
 
     image: api.photo_url
-      ? { uri: api.photo_url }
+      ? {
+          uri: api.photo_url,
+        }
       : api.photo
-        ? { uri: api.photo }
+        ? {
+            uri: api.photo,
+          }
         : api.profile_photo
-          ? { uri: api.profile_photo }
+          ? {
+              uri: api.profile_photo,
+            }
           : FALLBACK_IMAGE,
 
     online: !!(api.is_online ?? api.online),
@@ -345,9 +431,9 @@ function mapMember(api) {
     recentlyActive: !!(api.recently_active ?? api.last_active_recent),
   };
 }
+
 /* =========================================================
    TABS
-   member_type: 0 = All, 1 = Premium, 2 = Free
 ========================================================= */
 
 const tabs = [
@@ -356,11 +442,13 @@ const tabs = [
     label: "All Members",
     icon: "people",
   },
+
   {
     key: "Premium",
     label: "Premium Members",
     icon: "radio",
   },
+
   {
     key: "Free",
     label: "Free",
@@ -373,28 +461,37 @@ const tabs = [
 ========================================================= */
 
 export default function MatchesScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+
+  const route = useRoute();
+
+  const params = route.params || {};
+
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [matches, setMatches] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [loadError, setLoadError] = useState("");
 
   const [activeTab, setActiveTab] = useState("All Members");
+
   const [liked, setLiked] = useState([]);
 
-  // Seeded from SearchScreen's recent-search chips / quick search
-  // (params.search), if present.
   const [searchText, setSearchText] = useState(
     typeof params.search === "string" ? params.search : "",
   );
 
-  /* =========================================================
-     LOAD MATCHES API
-  ========================================================= */
+  /* =======================================================
+     LOAD MATCHES
+  ======================================================= */
 
   const loadMatches = async () => {
     setLoading(true);
+
     setLoadError("");
 
     try {
@@ -404,31 +501,25 @@ export default function MatchesScreen() {
 
       if (!token) {
         setLoadError("Authentication token not found. Please login again.");
+
         return;
       }
 
-      /*
-       * IMPORTANT:
-       *
-       * postMemberListing expects:
-       *
-       * postMemberListing(filters, token)
-       *
-       * So DO NOT use:
-       *
-       * postMemberListing(token)
-       */
+      /* BUILD FILTERS */
 
       const filters = buildFiltersFromParams(params);
+
       console.log("postMemberListing filters:", JSON.stringify(filters));
+
+      /* API */
 
       const result = await postMemberListing(filters, token);
 
       console.log("postMemberListing result:", JSON.stringify(result));
 
+      /* SUCCESS */
+
       if (result?.success === 1 || result?.result === true) {
-        // API returns { data: { members: [...], age_from, age_to, ... } }
-        // so members live at result.data.members, not result.data directly.
         const apiData = Array.isArray(result?.data?.members)
           ? result.data.members
           : Array.isArray(result?.data)
@@ -441,23 +532,22 @@ export default function MatchesScreen() {
 
         setLoadError(result?.message || "Unable to load matches.");
       }
-    } catch (e) {
-      console.log("loadMatches Error:", e);
+    } catch (error) {
+      console.log("loadMatches Error:", error);
 
-      setLoadError(e?.message || "Unable to load matches.");
+      setLoadError(error?.message || "Unable to load matches.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================================================
+  /* =======================================================
      INITIAL LOAD
-  ========================================================= */
+  ======================================================= */
 
   useEffect(() => {
     loadMatches();
-    // Re-fetch if the person navigates back to this screen from Search
-    // with a different set of filters.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.age,
@@ -472,10 +562,9 @@ export default function MatchesScreen() {
     params.lookingFor,
   ]);
 
-  /* =========================================================
+  /* =======================================================
      FILTER MATCHES
-     member_type: 0 = All, 1 = Premium, 2 = Free
-  ========================================================= */
+  ======================================================= */
 
   const filteredMatches = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -502,9 +591,9 @@ export default function MatchesScreen() {
     });
   }, [matches, activeTab, searchText]);
 
-  /* =========================================================
+  /* =======================================================
      LIKE
-  ========================================================= */
+  ======================================================= */
 
   const toggleLike = (id) => {
     setLiked((previous) =>
@@ -514,18 +603,19 @@ export default function MatchesScreen() {
     );
   };
 
-  /* =========================================================
+  /* =======================================================
      CLEAR FILTERS
-  ========================================================= */
+  ======================================================= */
 
   const clearFilters = () => {
     setSearchText("");
+
     setActiveTab("All Members");
   };
 
-  /* =========================================================
-     LOADING STATE
-  ========================================================= */
+  /* =======================================================
+     LOADING
+  ======================================================= */
 
   if (loading) {
     return (
@@ -539,9 +629,9 @@ export default function MatchesScreen() {
     );
   }
 
-  /* =========================================================
+  /* =======================================================
      MAIN UI
-  ========================================================= */
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -553,13 +643,17 @@ export default function MatchesScreen() {
         ================================================= */}
 
         <View style={styles.headerArea}>
+          {/* BACK */}
+
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={28} color="#252525" />
           </TouchableOpacity>
+
+          {/* TITLE */}
 
           <View style={styles.titleSection}>
             <Text style={styles.title}>
@@ -572,9 +666,7 @@ export default function MatchesScreen() {
             </Text>
           </View>
 
-          {/* =================================================
-              SEARCH
-          ================================================= */}
+          {/* SEARCH */}
 
           <View style={styles.searchRow}>
             <View style={styles.searchContainer}>
@@ -602,9 +694,7 @@ export default function MatchesScreen() {
             </View>
           </View>
 
-          {/* =================================================
-              TABS
-          ================================================= */}
+          {/* TABS */}
 
           <ScrollView
             horizontal
@@ -657,9 +747,7 @@ export default function MatchesScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* =================================================
-              ERROR
-          ================================================= */}
+          {/* ERROR */}
 
           {!!loadError && (
             <View style={styles.emptyState}>
@@ -679,9 +767,7 @@ export default function MatchesScreen() {
             </View>
           )}
 
-          {/* =================================================
-              EMPTY
-          ================================================= */}
+          {/* EMPTY */}
 
           {!loadError && filteredMatches.length === 0 ? (
             <View style={styles.emptyState}>
@@ -709,15 +795,12 @@ export default function MatchesScreen() {
                 style={styles.matchCard}
                 activeOpacity={0.85}
                 onPress={() =>
-                  router.push({
-                    pathname: "/matchesdetail",
-                    params: { id: item.id },
+                  navigation.navigate("MatchesDetail", {
+                    id: String(item.id),
                   })
                 }
               >
-                {/* =================================================
-                    IMAGE
-                ================================================= */}
+                {/* IMAGE */}
 
                 <View style={styles.imageContainer}>
                   <Image
@@ -726,17 +809,23 @@ export default function MatchesScreen() {
                     resizeMode="cover"
                   />
 
+                  {/* ONLINE */}
+
                   {item.online && (
                     <View style={styles.onlineBadge}>
                       <Text style={styles.onlineText}>Online</Text>
                     </View>
                   )}
 
+                  {/* PREMIUM */}
+
                   {item.membership === 2 && (
                     <View style={styles.premiumTag}>
                       <Text style={styles.premiumTagText}>♛ Premium</Text>
                     </View>
                   )}
+
+                  {/* COMMUNITY */}
 
                   <View style={styles.communityBadge}>
                     <MaterialCommunityIcons
@@ -747,9 +836,7 @@ export default function MatchesScreen() {
                   </View>
                 </View>
 
-                {/* =================================================
-                    DETAILS
-                ================================================= */}
+                {/* DETAILS */}
 
                 <View style={styles.detailsContainer}>
                   <View style={styles.detailsLeft}>
@@ -840,11 +927,11 @@ export default function MatchesScreen() {
                     )}
                   </View>
 
-                  {/* =================================================
-                      ACTIONS
-                  ================================================= */}
+                  {/* ACTIONS */}
 
                   <View style={styles.actionsContainer}>
+                    {/* LIKE */}
+
                     <TouchableOpacity
                       style={styles.heartButton}
                       onPress={(event) => {
@@ -862,10 +949,13 @@ export default function MatchesScreen() {
                       />
                     </TouchableOpacity>
 
+                    {/* CHAT */}
+
                     <TouchableOpacity
                       style={styles.chatButton}
                       onPress={(event) => {
                         event.stopPropagation();
+
                         console.log("Chat member:", item.id);
                       }}
                       activeOpacity={0.8}
@@ -883,7 +973,7 @@ export default function MatchesScreen() {
           )}
 
           {/* =================================================
-              PREMIUM
+              PREMIUM BANNER
           ================================================= */}
 
           <View style={styles.premiumBanner}>
@@ -911,7 +1001,11 @@ export default function MatchesScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 24 }} />
+          <View
+            style={{
+              height: 24,
+            }}
+          />
         </ScrollView>
       </View>
     </SafeAreaView>

@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
+
 import {
   Dimensions,
   Image,
@@ -11,16 +12,14 @@ import {
   View,
 } from "react-native";
 
-import {
-  Feather,
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useRouter } from "expo-router";
+import LinearGradient from "react-native-linear-gradient";
+
 import {
   getBannerData,
   getBlogsData,
@@ -111,7 +110,10 @@ const WHY_CHOOSE = [
   },
 ];
 
-// Fallback membership plans shown until /getPackagesData returns real data.
+/* =====================================================
+   FALLBACK PACKAGES
+===================================================== */
+
 const PACKAGES = [
   {
     id: "1",
@@ -153,7 +155,10 @@ const PACKAGES = [
   },
 ];
 
-// Fallback happy-couple stories shown until /getHappyStoriesData returns real data.
+/* =====================================================
+   FALLBACK HAPPY STORIES
+===================================================== */
+
 const HAPPY_STORIES = [
   {
     id: "1",
@@ -181,7 +186,10 @@ const HAPPY_STORIES = [
   },
 ];
 
-// Fallback blog previews shown until /getBlogsData returns real data.
+/* =====================================================
+   FALLBACK BLOGS
+===================================================== */
+
 const BLOGS = [
   {
     id: "1",
@@ -214,7 +222,10 @@ const BLOGS = [
   },
 ];
 
-// Fallback member reviews shown until /getReviewsData returns real data.
+/* =====================================================
+   FALLBACK REVIEWS
+===================================================== */
+
 const REVIEWS = [
   {
     id: "1",
@@ -246,24 +257,35 @@ const REVIEWS = [
    HOME SCREEN
 ===================================================== */
 
-export default function HomeScreen() {
-  const router = useRouter();
+export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
   const [whyChooseList, setWhyChooseList] = useState(WHY_CHOOSE);
+
   const [packages, setPackages] = useState(PACKAGES);
+
   const [happyStories, setHappyStories] = useState(HAPPY_STORIES);
+
   const [premiumMembers, setPremiumMembers] = useState([]);
+
   const [newMembers, setNewMembers] = useState([]);
+
   const [howItWorks, setHowItWorks] = useState([]);
+
   const [blogs, setBlogs] = useState(BLOGS);
+
   const [reviews, setReviews] = useState(REVIEWS);
 
-  // Banner carousel state — array of { id, image, route? }.
-  // Empty array means "use the static HERO_IMAGE fallback".
   const [banners, setBanners] = useState([]);
+
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
   const bannerScrollRef = useRef(null);
+
+  /* =====================================================
+     TOKEN
+  ===================================================== */
 
   const getToken = async () => {
     try {
@@ -274,52 +296,82 @@ export default function HomeScreen() {
         "userToken",
         "auth_token",
       ];
+
       for (const key of possibleKeys) {
         const value = await AsyncStorage.getItem(key);
-        if (value) return value;
+
+        if (value) {
+          return value;
+        }
       }
+
       const userStr =
         (await AsyncStorage.getItem("user")) ||
         (await AsyncStorage.getItem("user_data"));
+
       if (userStr) {
         try {
           const parsed = JSON.parse(userStr);
+
           return (
             parsed?.token || parsed?.access_token || parsed?.data?.token || null
           );
         } catch (e) {}
       }
+
       return null;
     } catch (e) {
       return null;
     }
   };
 
-  // Normalizes an image field that might be a remote URL string, an
-  // already-shaped { uri } object, or missing entirely.
+  /* =====================================================
+     IMAGE RESOLVER
+  ===================================================== */
+
   const resolveImage = (remoteValue, fallbackIndex = 0) => {
     if (!remoteValue) {
       const keys = Object.keys(MATCH_IMAGES);
+
       return MATCH_IMAGES[keys[fallbackIndex % keys.length]];
     }
-    if (typeof remoteValue === "string") return { uri: remoteValue };
-    if (typeof remoteValue === "object" && remoteValue.uri) return remoteValue;
+
+    if (typeof remoteValue === "string") {
+      return {
+        uri: remoteValue,
+      };
+    }
+
+    if (typeof remoteValue === "object" && remoteValue.uri) {
+      return remoteValue;
+    }
+
     const keys = Object.keys(MATCH_IMAGES);
+
     return MATCH_IMAGES[keys[fallbackIndex % keys.length]];
   };
 
-  // Some "icon" fields coming from the API are actually image URLs rather
-  // than an Ionicons name (e.g. trusted-by-millions items). Detect that so
-  // we render an <Image> instead of crashing/warning inside <Ionicons>.
+  /* =====================================================
+     IMAGE URL CHECK
+  ===================================================== */
+
   const isImageUrl = (value) =>
     typeof value === "string" && /^(https?:)?\/\//i.test(value.trim());
 
+  /* =====================================================
+     LOAD HOME DATA
+  ===================================================== */
+
   const loadHomeData = async (isRefresh = false) => {
     try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
       const token = await getToken();
+
       console.log("Loading Home Data. Token:", token ? "FOUND" : "NOT FOUND");
 
       const [
@@ -345,14 +397,26 @@ export default function HomeScreen() {
       ]);
 
       console.log("Trusted By Millions:", JSON.stringify(trustedRes));
+
       console.log("Happy Stories:", JSON.stringify(storiesRes));
+
       console.log("Packages:", JSON.stringify(packagesRes));
+
       console.log("Premium Members:", JSON.stringify(premiumRes));
+
       console.log("Banner:", JSON.stringify(bannerRes));
+
       console.log("New Members:", JSON.stringify(newMembersRes));
+
       console.log("How It Works:", JSON.stringify(howItWorksRes));
+
       console.log("Blogs:", JSON.stringify(blogsRes));
+
       console.log("Reviews:", JSON.stringify(reviewsRes));
+
+      /* =====================================================
+         WHY CHOOSE
+      ===================================================== */
 
       if (
         trustedRes?.success === 1 &&
@@ -363,17 +427,26 @@ export default function HomeScreen() {
           .filter(Boolean)
           .map((item, idx) => ({
             id: String(item.id || idx + 1),
+
             icon:
               item.icon ||
               item.image ||
               (idx % 2 === 0 ? "shield-checkmark-outline" : "people-outline"),
+
             title: item.title || item.name || "100%",
+
             subtitle:
               item.subtitle || item.review || item.description || "Verified",
+
             color: idx % 2 === 0 ? COLORS.red : COLORS.gold,
           }));
+
         setWhyChooseList(formattedWhy);
       }
+
+      /* =====================================================
+         HAPPY STORIES
+      ===================================================== */
 
       if (
         storiesRes?.success === 1 &&
@@ -384,14 +457,23 @@ export default function HomeScreen() {
           .filter(Boolean)
           .map((s, idx) => ({
             id: String(s.id || idx + 1),
+
             coupleName:
               s.couple_name || s.coupleName || s.name || `Couple ${idx + 1}`,
+
             marriedDate: s.married_date || s.marriedDate || s.date || "",
+
             story: s.story || s.description || s.message || "",
+
             image: resolveImage(s.photo || s.image || s.couple_photo, idx),
           }));
+
         setHappyStories(formattedStories);
       }
+
+      /* =====================================================
+         PACKAGES
+      ===================================================== */
 
       if (
         packagesRes?.success === 1 &&
@@ -402,59 +484,93 @@ export default function HomeScreen() {
           .filter(Boolean)
           .map((p, idx) => ({
             id: String(p.id || idx + 1),
+
             name: p.name || p.title || `Plan ${idx + 1}`,
+
             price: p.price || p.amount || "₹0",
+
             duration: p.duration || p.validity || "",
+
             recommended: !!(p.recommended || p.is_recommended || idx === 1),
+
             features: Array.isArray(p.features)
               ? p.features
               : Array.isArray(p.benefits)
                 ? p.benefits
                 : [],
           }));
+
         setPackages(formattedPackages);
       }
+
+      /* =====================================================
+         PREMIUM MEMBERS
+      ===================================================== */
 
       if (premiumRes?.success === 1 && Array.isArray(premiumRes.data)) {
         const formattedPremium = premiumRes.data
           .filter(Boolean)
           .map((m, idx) => ({
             id: String(m.id || m.user_id || idx + 1),
+
             name: m.name || m.first_name || m.full_name || `Member ${idx + 1}`,
+
             memberId:
               m.member_id ||
               m.memberId ||
               m.member_code ||
               String(m.id || m.user_id || ""),
+
             age: m.age || 25,
+
             profession: m.profession || m.occupation || "Professional",
+
             location: m.location || m.city || m.residing_in || "Telangana",
+
             image: resolveImage(m.photo || m.profile_photo || m.image, idx),
           }));
+
         setPremiumMembers(formattedPremium);
       }
+
+      /* =====================================================
+         NEW MEMBERS
+      ===================================================== */
 
       if (newMembersRes?.success === 1 && Array.isArray(newMembersRes.data)) {
         const formattedNewMembers = newMembersRes.data
           .filter(Boolean)
           .map((m, idx) => ({
             id: String(m.id || m.user_id || idx + 1),
+
             name: m.name || m.first_name || m.full_name || `Member ${idx + 1}`,
+
             age: m.age || 25,
+
             profession: m.profession || m.occupation || "Professional",
+
             location: m.location || m.city || m.residing_in || "Telangana",
+
             joinedText: m.joined_text || m.joined_on || "New",
+
             image: resolveImage(m.photo || m.profile_photo || m.image, idx),
           }));
+
         setNewMembers(formattedNewMembers);
       }
+
+      /* =====================================================
+         HOW IT WORKS
+      ===================================================== */
 
       if (howItWorksRes?.success === 1 && Array.isArray(howItWorksRes.data)) {
         const formattedSteps = howItWorksRes.data
           .filter(Boolean)
           .map((s, idx) => ({
             id: String(s.id || idx + 1),
+
             step: s.step || s.order || idx + 1,
+
             icon:
               s.icon ||
               [
@@ -463,11 +579,18 @@ export default function HomeScreen() {
                 "chatbubbles-outline",
                 "heart-outline",
               ][idx % 4],
+
             title: s.title || s.name || `Step ${idx + 1}`,
+
             description: s.description || s.subtitle || "",
           }));
+
         setHowItWorks(formattedSteps);
       }
+
+      /* =====================================================
+         BLOGS
+      ===================================================== */
 
       if (
         blogsRes?.success === 1 &&
@@ -481,18 +604,29 @@ export default function HomeScreen() {
 
         const formattedBlogs = blogsRes.data.filter(Boolean).map((b, idx) => ({
           id: String(b.id || idx + 1),
+
           slug: b.slug || null,
+
           title: b.title || b.name || `Blog ${idx + 1}`,
+
           excerpt: cleanText(b.short_description || b.description),
+
           category: b.category_name || b.category || "",
+
           readTime: b.read_time || b.readTime || "",
+
           image: resolveImage(
             b.banner || b.image || b.cover_image || b.photo,
             idx,
           ),
         }));
+
         setBlogs(formattedBlogs);
       }
+
+      /* =====================================================
+         REVIEWS
+      ===================================================== */
 
       if (
         reviewsRes?.success === 1 &&
@@ -503,14 +637,23 @@ export default function HomeScreen() {
           .filter(Boolean)
           .map((r, idx) => ({
             id: String(r.id || idx + 1),
+
             name:
               r.name || r.reviewer_name || r.user_name || `Member ${idx + 1}`,
+
             rating: Number(r.rating || r.stars || 5),
+
             comment: r.comment || r.review || r.message || "",
+
             image: resolveImage(r.photo || r.image || r.avatar, idx),
           }));
+
         setReviews(formattedReviews);
       }
+
+      /* =====================================================
+         BANNERS
+      ===================================================== */
 
       if (
         bannerRes?.success === 1 &&
@@ -521,16 +664,20 @@ export default function HomeScreen() {
           .filter(Boolean)
           .map((b, idx) => ({
             id: String(b.id || idx + 1),
+
             image: resolveImage(
               b.image || b.image_url || b.photo || b.banner_image,
               idx,
             ),
+
             route: b.route || b.link || b.deep_link || null,
           }));
+
         setBanners(formattedBanners);
+
         setActiveBannerIndex(0);
       } else {
-        setBanners([]); // fall back to static HERO_IMAGE
+        setBanners([]);
       }
     } catch (err) {
       console.log("loadHomeData Error:", err);
@@ -540,40 +687,91 @@ export default function HomeScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadHomeData(false);
-    }, []),
-  );
+  /* =====================================================
+     LOAD DATA
+  ===================================================== */
 
-  {
-    /*const openNotifications = () => router.push("/privacy-policy");*/
-  }
-  const openSearch = () => router.push("/search");
-  const openPremium = () => router.push("/premium");
-  const openPremiumBenefits = () => router.push("/premium-benfits");
-  const openProfile = (id) =>
-    router.push({
-      pathname: "/matchesdetail",
-      params: { id: String(id) },
+  React.useEffect(() => {
+    loadHomeData(false);
+  }, []);
+
+  /* =====================================================
+     NAVIGATION
+  ===================================================== */
+
+  const openSearch = () => {
+    navigation.navigate("Search");
+  };
+
+  const openPremium = () => {
+    navigation.navigate("Premium");
+  };
+
+  const openPremiumBenefits = () => {
+    navigation.navigate("PremiumBenefits");
+  };
+
+  const openProfile = (id) => {
+    navigation.navigate("MatchesDetail", {
+      id: String(id),
     });
-  const openPackages = () => router.push("/packages");
-  const openHappyStories = () => router.push("/happy-stories");
-  const openBlogs = () => router.push("/blogs");
-  const openBlog = (blog) => router.push(`/blog/${blog.slug || blog.id}`);
-  const openReviews = () => router.push("/reviews");
+  };
+
+  const openPackages = () => {
+    navigation.navigate("Packages");
+  };
+
+  const openHappyStories = () => {
+    navigation.navigate("HappyStories");
+  };
+
+  const openBlogs = () => {
+    navigation.navigate("Blogs");
+  };
+
+  const openBlog = (blog) => {
+    navigation.navigate("BlogDetail", {
+      slug: blog.slug || String(blog.id),
+    });
+  };
+
+  const openReviews = () => {
+    navigation.navigate("Reviews");
+  };
+
+  /* =====================================================
+     BANNER PRESS
+  ===================================================== */
 
   const handleBannerPress = (banner) => {
-    if (banner?.route) router.push(banner.route);
-    else openPremium();
+    if (banner?.route) {
+      navigation.navigate(banner.route);
+    } else {
+      openPremium();
+    }
   };
+
+  /* =====================================================
+     BANNER SCROLL
+  ===================================================== */
 
   const handleBannerScroll = (event) => {
     const slideWidth = event.nativeEvent.layoutMeasurement.width;
+
     const offset = event.nativeEvent.contentOffset.x;
+
+    if (!slideWidth) {
+      return;
+    }
+
     const index = Math.round(offset / slideWidth);
+
     setActiveBannerIndex(index);
   };
+
+  /* =====================================================
+     UI
+  ===================================================== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -590,7 +788,10 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ================= HEADER ================= */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
+
         <View style={styles.header}>
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
             <Feather name="menu" size={28} color={COLORS.red} />
@@ -599,26 +800,39 @@ export default function HomeScreen() {
           <View style={styles.headerCenter}>
             <View style={styles.logoRow}>
               <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+
               <View style={styles.brandContainer}>
                 <Text style={styles.brandName}>MUDHIRAJ</Text>
+
                 <View style={styles.brandDividerRow}>
                   <View style={styles.smallLine} />
+
                   <MaterialCommunityIcons
                     name="ornament-variant"
                     size={13}
                     color={COLORS.gold}
                   />
+
                   <Text style={styles.brandMatrimony}>MATRIMONY</Text>
+
                   <MaterialCommunityIcons
                     name="ornament-variant"
                     size={13}
                     color={COLORS.gold}
-                    style={{ transform: [{ scaleX: -1 }] }}
+                    style={{
+                      transform: [
+                        {
+                          scaleX: -1,
+                        },
+                      ],
+                    }}
                   />
+
                   <View style={styles.smallLine} />
                 </View>
               </View>
             </View>
+
             <Text style={styles.tagline}>
               మన బంధం.. మన సంప్రదాయం.. మన ముదిరాజ్
             </Text>
@@ -632,25 +846,13 @@ export default function HomeScreen() {
             >
               <Ionicons name="search-outline" size={25} color={COLORS.text} />
             </TouchableOpacity>
-
-            {/*<TouchableOpacity
-              style={styles.headerIconButton}
-              onPress={openNotifications}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={25}
-                color={COLORS.text}
-              />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>3</Text>
-              </View>
-            </TouchableOpacity>*/}
           </View>
         </View>
 
-        {/* ================= HERO BANNER CAROUSEL ================= */}
+        {/* =====================================================
+            HERO BANNER
+        ===================================================== */}
+
         {banners.length > 0 ? (
           <View style={styles.heroCard}>
             <ScrollView
@@ -665,7 +867,9 @@ export default function HomeScreen() {
                   key={banner.id}
                   activeOpacity={0.95}
                   onPress={() => handleBannerPress(banner)}
-                  style={{ width: width - 28 }}
+                  style={{
+                    width: width - 28,
+                  }}
                 >
                   <Image
                     source={banner.image}
@@ -704,7 +908,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ================= PREMIUM MEMBERS ================= */}
+        {/* =====================================================
+            PREMIUM MEMBERS
+        ===================================================== */}
+
         {premiumMembers.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -713,16 +920,13 @@ export default function HomeScreen() {
                   name="crown"
                   size={14}
                   color={COLORS.gold}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>Premium Members</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => router.push("/matchesdetail")}
-                activeOpacity={0.7}
-              >
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -741,7 +945,10 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= NEW MEMBERS ================= */}
+        {/* =====================================================
+            NEW MEMBERS
+        ===================================================== */}
+
         {newMembers.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -750,16 +957,13 @@ export default function HomeScreen() {
                   name="sparkles"
                   size={15}
                   color={COLORS.gold}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>New Members</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => router.push("/new-members")}
-                activeOpacity={0.7}
-              >
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -778,7 +982,10 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= MEMBERSHIP PACKAGES ================= */}
+        {/* =====================================================
+            MEMBERSHIP PLANS
+        ===================================================== */}
+
         {packages.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -787,13 +994,13 @@ export default function HomeScreen() {
                   name="gem"
                   size={13}
                   color={COLORS.red}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>Membership Plans</Text>
               </View>
-              <TouchableOpacity onPress={openPackages} activeOpacity={0.7}>
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -812,36 +1019,53 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= PREMIUM BANNER ================= */}
+        {/* =====================================================
+            PREMIUM BANNER
+        ===================================================== */}
+
         <LinearGradient
           colors={["#FFF1C5", "#FFD84D", "#FFC400"]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
+          start={{
+            x: 0,
+            y: 0.5,
+          }}
+          end={{
+            x: 1,
+            y: 0.5,
+          }}
           style={styles.premiumBanner}
         >
           <View style={styles.premiumCrown}>
             <FontAwesome5 name="crown" size={28} color={COLORS.gold} />
           </View>
+
           <View style={styles.premiumTextContainer}>
             <Text style={styles.premiumTitle}>
               Go Premium, Get Better Matches
             </Text>
+
             <Text style={styles.premiumSubtitle}>
               Unlock all features & connect with
             </Text>
+
             <Text style={styles.premiumSubtitle}>the right life partner</Text>
           </View>
+
           <TouchableOpacity
             style={styles.upgradeNowButton}
             onPress={openPremiumBenefits}
             activeOpacity={0.85}
           >
             <Text style={styles.upgradeNowText}>Upgrade Now</Text>
-            <Ionicons name="chevron-forward" size={19} color="#FFFFFF" />
+
+            <Ionicons name="chevron-forward" size={19} color={COLORS.white} />
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ================= HAPPY STORIES ================= */}
+        {/* =====================================================
+            HAPPY STORIES
+        ===================================================== */}
+
         {happyStories.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -850,13 +1074,13 @@ export default function HomeScreen() {
                   name="heart-circle"
                   size={16}
                   color={COLORS.red}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>Happy Stories</Text>
               </View>
-              <TouchableOpacity onPress={openHappyStories} activeOpacity={0.7}>
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -871,12 +1095,17 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= HOW IT WORKS ================= */}
+        {/* =====================================================
+            HOW IT WORKS
+        ===================================================== */}
+
         {howItWorks.length > 0 && (
           <>
             <View style={styles.whyHeader}>
               <View style={styles.whyLine} />
+
               <Text style={styles.whyTitle}>How It Works</Text>
+
               <View style={styles.whyLine} />
             </View>
 
@@ -886,10 +1115,13 @@ export default function HomeScreen() {
                   <View style={styles.stepNumberBadge}>
                     <Text style={styles.stepNumberText}>{step.step}</Text>
                   </View>
+
                   <View style={styles.stepIconCircle}>
                     {isImageUrl(step.icon) ? (
                       <Image
-                        source={{ uri: step.icon }}
+                        source={{
+                          uri: step.icon,
+                        }}
                         style={styles.stepIconImage}
                         resizeMode="cover"
                       />
@@ -897,12 +1129,15 @@ export default function HomeScreen() {
                       <Ionicons name={step.icon} size={24} color={COLORS.red} />
                     )}
                   </View>
+
                   <Text style={styles.stepTitle}>{step.title}</Text>
+
                   {!!step.description && (
                     <Text style={styles.stepDescription} numberOfLines={3}>
                       {step.description}
                     </Text>
                   )}
+
                   {idx < howItWorks.length - 1 && (
                     <Ionicons
                       name="chevron-forward"
@@ -917,7 +1152,10 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= BLOGS ================= */}
+        {/* =====================================================
+            BLOGS
+        ===================================================== */}
+
         {blogs.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -926,13 +1164,13 @@ export default function HomeScreen() {
                   name="newspaper-outline"
                   size={16}
                   color={COLORS.red}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>Latest Blogs</Text>
               </View>
-              <TouchableOpacity onPress={openBlogs} activeOpacity={0.7}>
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -951,10 +1189,15 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= WHY CHOOSE ================= */}
+        {/* =====================================================
+            WHY CHOOSE
+        ===================================================== */}
+
         <View style={styles.whyHeader}>
           <View style={styles.whyLine} />
+
           <Text style={styles.whyTitle}>Why Choose Mudhiraj Matrimony?</Text>
+
           <View style={styles.whyLine} />
         </View>
 
@@ -972,7 +1215,9 @@ export default function HomeScreen() {
               >
                 {isImageUrl(item.icon) ? (
                   <Image
-                    source={{ uri: item.icon }}
+                    source={{
+                      uri: item.icon,
+                    }}
                     style={styles.whyIconImage}
                     resizeMode="cover"
                   />
@@ -980,7 +1225,9 @@ export default function HomeScreen() {
                   <Ionicons name={item.icon} size={30} color={item.color} />
                 )}
               </View>
+
               <Text style={styles.whyCardTitle}>{item.title}</Text>
+
               <Text style={styles.whyCardSubtitle} numberOfLines={3}>
                 {item.subtitle}
               </Text>
@@ -988,22 +1235,32 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ================= REVIEWS ================= */}
+        {/* =====================================================
+            REVIEWS
+        ===================================================== */}
+
         {reviews.length > 0 && (
           <>
-            <View style={[styles.sectionHeader, { marginTop: 22 }]}>
+            <View
+              style={[
+                styles.sectionHeader,
+                {
+                  marginTop: 22,
+                },
+              ]}
+            >
               <View style={styles.sectionTitleRow}>
                 <Ionicons
                   name="chatbubbles-outline"
                   size={16}
                   color={COLORS.red}
-                  style={{ marginRight: 6 }}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
+
                 <Text style={styles.sectionTitle}>What Our Members Say</Text>
               </View>
-              <TouchableOpacity onPress={openReviews} activeOpacity={0.7}>
-                {/*<Text style={styles.seeAll}>See All</Text>*/}
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -1018,14 +1275,18 @@ export default function HomeScreen() {
           </>
         )}
 
-        <View style={{ height: 25 }} />
+        <View
+          style={{
+            height: 25,
+          }}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 /* =====================================================
-   PREMIUM MEMBER CARD (full-bleed photo + bottom overlay)
+   PREMIUM MEMBER CARD
 ===================================================== */
 
 function PremiumMemberCard({ member, onPress }) {
@@ -1052,6 +1313,7 @@ function PremiumMemberCard({ member, onPress }) {
         <Text style={styles.premiumMemberName} numberOfLines={1}>
           {member.name}
         </Text>
+
         <Text style={styles.premiumMemberId} numberOfLines={1}>
           Member ID:{" "}
           <Text style={styles.premiumMemberIdBold}>{member.memberId}</Text>
@@ -1062,7 +1324,7 @@ function PremiumMemberCard({ member, onPress }) {
 }
 
 /* =====================================================
-   NEW MEMBER CARD (green "New" badge instead of Online/crown)
+   NEW MEMBER CARD
 ===================================================== */
 
 function NewMemberCard({ member, onPress }) {
@@ -1078,8 +1340,10 @@ function NewMemberCard({ member, onPress }) {
           style={styles.matchImage}
           resizeMode="cover"
         />
+
         <View style={styles.newBadge}>
           <Ionicons name="sparkles" size={10} color={COLORS.white} />
+
           <Text style={styles.newBadgeText}>{member.joinedText}</Text>
         </View>
       </View>
@@ -1089,13 +1353,17 @@ function NewMemberCard({ member, onPress }) {
           <Text style={styles.matchName} numberOfLines={1}>
             {member.name}, {member.age}
           </Text>
+
           <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
         </View>
+
         <Text style={styles.profession} numberOfLines={1}>
           {member.profession}
         </Text>
+
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={14} color={COLORS.red} />
+
           <Text style={styles.detailText} numberOfLines={1}>
             {member.location}
           </Text>
@@ -1122,6 +1390,7 @@ function PackageCard({ pkg, onPress }) {
       {pkg.recommended && (
         <View style={styles.packageBadge}>
           <FontAwesome5 name="star" size={9} color={COLORS.white} />
+
           <Text style={styles.packageBadgeText}>BEST VALUE</Text>
         </View>
       )}
@@ -1130,6 +1399,7 @@ function PackageCard({ pkg, onPress }) {
 
       <View style={styles.packagePriceRow}>
         <Text style={styles.packagePrice}>{pkg.price}</Text>
+
         {!!pkg.duration && (
           <Text style={styles.packageDuration}>/ {pkg.duration}</Text>
         )}
@@ -1139,6 +1409,7 @@ function PackageCard({ pkg, onPress }) {
         {pkg.features.map((feature, idx) => (
           <View key={idx} style={styles.packageFeatureRow}>
             <Ionicons name="checkmark-circle" size={15} color={COLORS.green} />
+
             <Text style={styles.packageFeatureText} numberOfLines={2}>
               {feature}
             </Text>
@@ -1165,20 +1436,26 @@ function StoryCard({ story }) {
         style={styles.storyImage}
         resizeMode="cover"
       />
+
       <View style={styles.storyContent}>
         <Ionicons
           name="heart"
           size={16}
           color={COLORS.red}
-          style={{ marginBottom: 6 }}
+          style={{
+            marginBottom: 6,
+          }}
         />
+
         <Text style={styles.storyText} numberOfLines={4}>
           {story.story}
         </Text>
+
         <View style={styles.storyFooterRow}>
           <Text style={styles.storyCoupleName} numberOfLines={1}>
             {story.coupleName}
           </Text>
+
           {!!story.marriedDate && (
             <View style={styles.storyDateBadge}>
               <Text style={styles.storyDateText}>{story.marriedDate}</Text>
@@ -1202,21 +1479,26 @@ function BlogCard({ blog, onPress }) {
       activeOpacity={0.9}
     >
       <Image source={blog.image} style={styles.blogImage} resizeMode="cover" />
+
       <View style={styles.blogContent}>
         {!!blog.category && (
           <View style={styles.blogCategoryTag}>
             <Text style={styles.blogCategoryText}>{blog.category}</Text>
           </View>
         )}
+
         <Text style={styles.blogTitle} numberOfLines={2}>
           {blog.title}
         </Text>
+
         <Text style={styles.blogExcerpt} numberOfLines={2}>
           {blog.excerpt}
         </Text>
+
         {!!blog.readTime && (
           <View style={styles.blogMetaRow}>
             <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+
             <Text style={styles.blogMetaText}>{blog.readTime}</Text>
           </View>
         )}
@@ -1238,10 +1520,16 @@ function ReviewCard({ review }) {
           style={styles.reviewAvatar}
           resizeMode="cover"
         />
-        <View style={{ flex: 1 }}>
+
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
           <Text style={styles.reviewName} numberOfLines={1}>
             {review.name}
           </Text>
+
           <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
@@ -1254,6 +1542,7 @@ function ReviewCard({ review }) {
           </View>
         </View>
       </View>
+
       <Text style={styles.reviewComment} numberOfLines={4}>
         {review.comment}
       </Text>
@@ -1266,9 +1555,23 @@ function ReviewCard({ review }) {
 ===================================================== */
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  container: { flex: 1, backgroundColor: COLORS.background },
-  contentContainer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 92 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  contentContainer: {
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 92,
+  },
+
+  /* HEADER */
 
   header: {
     minHeight: 92,
@@ -1277,37 +1580,55 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
+
   menuButton: {
     width: 42,
     height: 48,
     justifyContent: "center",
     alignItems: "flex-start",
   },
-  headerCenter: { flex: 1, alignItems: "center" },
+
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-  logo: { width: 58, height: 58 },
-  brandContainer: { alignItems: "center", marginLeft: 5 },
+
+  logo: {
+    width: 58,
+    height: 58,
+  },
+
+  brandContainer: {
+    alignItems: "center",
+    marginLeft: 5,
+  },
+
   brandName: {
     color: COLORS.red,
     fontSize: width < 380 ? 22 : 25,
     fontWeight: "900",
     letterSpacing: 0.5,
   },
+
   brandDividerRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: -2,
   },
+
   smallLine: {
     width: 18,
     height: 1,
     backgroundColor: COLORS.gold,
     marginHorizontal: 3,
   },
+
   brandMatrimony: {
     color: COLORS.text,
     fontSize: width < 380 ? 12 : 14,
@@ -1315,6 +1636,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginHorizontal: 3,
   },
+
   tagline: {
     color: COLORS.red,
     fontSize: 10,
@@ -1322,10 +1644,12 @@ const styles = StyleSheet.create({
     marginTop: 3,
     textAlign: "center",
   },
+
   headerActionsRow: {
     flexDirection: "row",
     alignItems: "center",
   },
+
   headerIconButton: {
     width: 40,
     height: 48,
@@ -1333,24 +1657,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  notificationBadge: {
-    position: "absolute",
-    top: 2,
-    right: 2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.brightRed,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-  },
-  notificationBadgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
+
+  /* HERO */
 
   heroCard: {
     width: "100%",
@@ -1360,13 +1668,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 18,
     backgroundColor: "#C90000",
+
     shadowColor: "#8B0000",
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.22,
+
     shadowRadius: 5,
+
     elevation: 5,
   },
-  heroImage: { width: "100%", height: "100%" },
+
+  heroImage: {
+    width: "100%",
+    height: "100%",
+  },
+
   bannerDots: {
     position: "absolute",
     bottom: 10,
@@ -1374,16 +1695,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 5,
   },
+
   bannerDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: "rgba(255,255,255,0.55)",
   },
+
   bannerDotActive: {
     width: 16,
     backgroundColor: COLORS.white,
   },
+
+  /* SECTION */
 
   sectionHeader: {
     flexDirection: "row",
@@ -1391,453 +1716,958 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center" },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: "900" },
-  seeAll: { color: COLORS.red, fontSize: 13, fontWeight: "800" },
 
-  matchesContainer: { paddingBottom: 18, paddingRight: 10 },
-  matchCard: {
-    width: width < 400 ? 220 : 230,
-    backgroundColor: COLORS.white,
-    borderRadius: 17,
-    overflow: "hidden",
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 7,
-    elevation: 3,
-  },
-  matchImageContainer: {
-    width: "100%",
-    height: width < 300 ? 205 : 180,
-    position: "relative",
-  },
-  matchImage: { width: "100%", height: "100%" },
-  newBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: COLORS.green,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+  sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  seeAll: {
+    color: COLORS.red,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  matchesContainer: {
+    paddingBottom: 18,
+    paddingRight: 10,
+  },
+
+  /* MEMBER CARD */
+
+  matchCard: {
+    width: width < 400 ? 220 : 230,
+
+    backgroundColor: COLORS.white,
+
+    borderRadius: 17,
+
+    overflow: "hidden",
+
+    marginRight: 12,
+
+    borderWidth: 1,
+
+    borderColor: COLORS.border,
+
+    shadowColor: COLORS.shadow,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.12,
+
+    shadowRadius: 7,
+
+    elevation: 3,
+  },
+
+  matchImageContainer: {
+    width: "100%",
+
+    height: width < 300 ? 205 : 180,
+
+    position: "relative",
+  },
+
+  matchImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  newBadge: {
+    position: "absolute",
+
+    top: 10,
+    left: 10,
+
+    backgroundColor: COLORS.green,
+
+    borderRadius: 12,
+
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
     gap: 4,
   },
-  newBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: "800" },
-  matchInfo: { paddingHorizontal: 11, paddingTop: 17, paddingBottom: 12 },
-  nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+
+  newBadgeText: {
+    color: COLORS.white,
+
+    fontSize: 10,
+
+    fontWeight: "800",
+  },
+
+  matchInfo: {
+    paddingHorizontal: 11,
+    paddingTop: 17,
+    paddingBottom: 12,
+  },
+
+  nameRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    marginBottom: 4,
+  },
+
   matchName: {
     color: COLORS.text,
+
     fontSize: 16,
+
     fontWeight: "900",
+
     marginRight: 4,
+
     maxWidth: "88%",
   },
-  profession: { color: COLORS.gray, fontSize: 12, marginBottom: 7 },
-  detailRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+
+  profession: {
+    color: COLORS.gray,
+
+    fontSize: 12,
+
+    marginBottom: 7,
+  },
+
+  detailRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    marginTop: 4,
+  },
+
   detailText: {
     flexShrink: 1,
+
     color: COLORS.gray,
+
     fontSize: 10.5,
+
     marginLeft: 4,
   },
 
-  /* ---------- Premium Member Card (full-bleed + overlay) ---------- */
+  /* PREMIUM MEMBER */
+
   premiumMemberCard: {
     width: 170,
     height: 260,
+
     borderRadius: 18,
+
     overflow: "hidden",
+
     marginRight: 12,
+
     backgroundColor: COLORS.text,
+
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
     shadowOpacity: 0.2,
+
     shadowRadius: 8,
+
     elevation: 4,
   },
+
   premiumMemberImage: {
     width: "100%",
     height: "100%",
+
     position: "absolute",
   },
+
   premiumCrownBadge: {
     position: "absolute",
+
     top: 10,
     right: 10,
+
     width: 28,
     height: 28,
+
     borderRadius: 14,
+
     backgroundColor: COLORS.gold,
+
     justifyContent: "center",
+
     alignItems: "center",
   },
+
   premiumMemberOverlay: {
     position: "absolute",
+
     left: 0,
     right: 0,
     bottom: 0,
+
     paddingHorizontal: 14,
+
     paddingTop: 40,
+
     paddingBottom: 14,
   },
+
   premiumMemberName: {
     color: COLORS.white,
+
     fontSize: 16,
+
     fontWeight: "900",
+
     marginBottom: 4,
   },
+
   premiumMemberId: {
     color: "rgba(255,255,255,0.85)",
+
     fontSize: 11,
+
     fontWeight: "500",
   },
+
   premiumMemberIdBold: {
     color: COLORS.white,
+
     fontWeight: "800",
   },
+
+  /* PREMIUM BANNER */
 
   premiumBanner: {
     minHeight: 105,
+
     borderRadius: 18,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     paddingHorizontal: 10,
+
     marginBottom: 20,
+
     shadowColor: COLORS.gold,
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.2,
+
     shadowRadius: 7,
+
     elevation: 3,
   },
+
   premiumCrown: {
     width: 60,
     height: 60,
+
     borderRadius: 30,
+
     backgroundColor: COLORS.darkRed,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     marginRight: 9,
   },
-  premiumTextContainer: { flex: 1 },
+
+  premiumTextContainer: {
+    flex: 1,
+  },
+
   premiumTitle: {
     color: COLORS.darkRed,
+
     fontSize: width < 400 ? 13 : 14,
+
     fontWeight: "900",
+
     marginBottom: 3,
   },
-  premiumSubtitle: { color: COLORS.text, fontSize: 10.5, lineHeight: 15 },
+
+  premiumSubtitle: {
+    color: COLORS.text,
+
+    fontSize: 10.5,
+
+    lineHeight: 15,
+  },
+
   upgradeNowButton: {
     minWidth: 95,
+
     height: 43,
+
     backgroundColor: COLORS.red,
+
     borderRadius: 12,
+
     paddingHorizontal: 8,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
   },
+
   upgradeNowText: {
     color: COLORS.white,
+
     fontSize: 11.5,
+
     fontWeight: "900",
+
     marginRight: 2,
   },
 
+  /* WHY HEADER */
+
   whyHeader: {
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginBottom: 13,
   },
-  whyLine: { flex: 1, height: 1, backgroundColor: COLORS.gold, opacity: 0.7 },
+
+  whyLine: {
+    flex: 1,
+
+    height: 1,
+
+    backgroundColor: COLORS.gold,
+
+    opacity: 0.7,
+  },
+
   whyTitle: {
     color: COLORS.text,
+
     fontSize: width < 400 ? 15 : 17,
+
     fontWeight: "900",
+
     marginHorizontal: 9,
+
     textAlign: "center",
   },
+
+  /* HOW IT WORKS */
 
   stepsRow: {
     flexDirection: "row",
+
     justifyContent: "space-between",
+
     marginBottom: 24,
   },
+
   stepCard: {
     width: "23.5%",
+
     alignItems: "center",
+
     position: "relative",
   },
+
   stepNumberBadge: {
     position: "absolute",
+
     top: -4,
+
     right: "18%",
+
     width: 18,
     height: 18,
+
     borderRadius: 9,
+
     backgroundColor: COLORS.darkRed,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     zIndex: 1,
   },
-  stepNumberText: { color: COLORS.white, fontSize: 9, fontWeight: "900" },
+
+  stepNumberText: {
+    color: COLORS.white,
+
+    fontSize: 9,
+
+    fontWeight: "900",
+  },
+
   stepIconCircle: {
     width: 52,
     height: 52,
+
     borderRadius: 26,
+
     backgroundColor: "#FFF0EF",
+
     justifyContent: "center",
+
     alignItems: "center",
+
     marginBottom: 8,
+
     overflow: "hidden",
   },
-  stepIconImage: { width: "100%", height: "100%" },
+
+  stepIconImage: {
+    width: "100%",
+    height: "100%",
+  },
+
   stepTitle: {
     color: COLORS.text,
+
     fontSize: 11.5,
+
     fontWeight: "800",
+
     textAlign: "center",
+
     marginBottom: 3,
   },
+
   stepDescription: {
     color: COLORS.gray,
+
     fontSize: 9.5,
+
     textAlign: "center",
+
     lineHeight: 13,
   },
+
   stepConnector: {
     position: "absolute",
+
     top: 18,
+
     right: -14,
   },
-  whyGrid: { flexDirection: "row", justifyContent: "space-between" },
+
+  /* WHY GRID */
+
+  whyGrid: {
+    flexDirection: "row",
+
+    justifyContent: "space-between",
+  },
+
   whyCard: {
     width: "23.5%",
+
     minHeight: 112,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 14,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     paddingVertical: 10,
+
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
     shadowOpacity: 0.08,
+
     shadowRadius: 5,
+
     elevation: 2,
   },
+
   whyIcon: {
     width: 48,
     height: 48,
+
     borderRadius: 24,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     marginBottom: 7,
+
     overflow: "hidden",
   },
-  whyIconImage: { width: "100%", height: "100%" },
+
+  whyIconImage: {
+    width: "100%",
+    height: "100%",
+  },
+
   whyCardTitle: {
     color: COLORS.text,
+
     fontSize: 12,
+
     fontWeight: "900",
+
     textAlign: "center",
   },
+
   whyCardSubtitle: {
     color: COLORS.gray,
+
     fontSize: 9.5,
+
     textAlign: "center",
+
     marginTop: 2,
   },
 
-  /* ---------- Package Card ---------- */
+  /* PACKAGE */
+
   packageCard: {
     width: 215,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 17,
+
     padding: 16,
+
     marginRight: 12,
+
     marginTop: 8,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.12,
+
     shadowRadius: 7,
+
     elevation: 3,
   },
+
   packageCardRecommended: {
     borderWidth: 2,
+
     borderColor: COLORS.gold,
   },
+
   packageBadge: {
     position: "absolute",
+
     top: -11,
+
     alignSelf: "center",
+
     backgroundColor: COLORS.darkRed,
+
     borderRadius: 12,
+
     paddingHorizontal: 10,
+
     paddingVertical: 4,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     gap: 4,
   },
-  packageBadgeText: { color: COLORS.white, fontSize: 9, fontWeight: "800" },
+
+  packageBadgeText: {
+    color: COLORS.white,
+
+    fontSize: 9,
+
+    fontWeight: "800",
+  },
+
   packageName: {
     color: COLORS.text,
+
     fontSize: 17,
+
     fontWeight: "900",
+
     marginTop: 6,
+
     marginBottom: 4,
   },
+
   packagePriceRow: {
     flexDirection: "row",
+
     alignItems: "baseline",
+
     marginBottom: 12,
   },
-  packagePrice: { color: COLORS.red, fontSize: 22, fontWeight: "900" },
-  packageDuration: { color: COLORS.gray, fontSize: 12, marginLeft: 4 },
-  packageFeaturesList: { marginBottom: 14 },
+
+  packagePrice: {
+    color: COLORS.red,
+
+    fontSize: 22,
+
+    fontWeight: "900",
+  },
+
+  packageDuration: {
+    color: COLORS.gray,
+
+    fontSize: 12,
+
+    marginLeft: 4,
+  },
+
+  packageFeaturesList: {
+    marginBottom: 14,
+  },
+
   packageFeatureRow: {
     flexDirection: "row",
+
     alignItems: "flex-start",
+
     marginBottom: 7,
+
     gap: 6,
   },
+
   packageFeatureText: {
     flex: 1,
+
     color: COLORS.text,
+
     fontSize: 11.5,
+
     lineHeight: 15,
   },
+
   packageCTAButton: {
     height: 42,
+
     backgroundColor: COLORS.red,
+
     borderRadius: 11,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
-  packageCTAText: { color: COLORS.white, fontSize: 13, fontWeight: "800" },
 
-  /* ---------- Happy Story Card ---------- */
+  packageCTAText: {
+    color: COLORS.white,
+
+    fontSize: 13,
+
+    fontWeight: "800",
+  },
+
+  /* STORY */
+
   storyCard: {
     width: 260,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 17,
+
     overflow: "hidden",
+
     marginRight: 12,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.1,
+
     shadowRadius: 6,
+
     elevation: 2,
   },
-  storyImage: { width: "100%", height: 130 },
-  storyContent: { padding: 14 },
+
+  storyImage: {
+    width: "100%",
+    height: 130,
+  },
+
+  storyContent: {
+    padding: 14,
+  },
+
   storyText: {
     color: COLORS.text,
+
     fontSize: 12,
+
     lineHeight: 17,
+
     marginBottom: 10,
   },
+
   storyFooterRow: {
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "space-between",
   },
+
   storyCoupleName: {
     color: COLORS.darkRed,
+
     fontSize: 12.5,
+
     fontWeight: "800",
+
     flexShrink: 1,
+
     marginRight: 6,
   },
+
   storyDateBadge: {
     backgroundColor: "#FFF0EF",
+
     borderRadius: 8,
+
     paddingHorizontal: 8,
+
     paddingVertical: 3,
   },
-  storyDateText: { color: COLORS.red, fontSize: 10, fontWeight: "700" },
 
-  /* ---------- Blog Card ---------- */
+  storyDateText: {
+    color: COLORS.red,
+
+    fontSize: 10,
+
+    fontWeight: "700",
+  },
+
+  /* BLOG */
+
   blogCard: {
     width: 220,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 17,
+
     overflow: "hidden",
+
     marginRight: 12,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.1,
+
     shadowRadius: 6,
+
     elevation: 2,
   },
-  blogImage: { width: "100%", height: 110 },
-  blogContent: { padding: 12 },
+
+  blogImage: {
+    width: "100%",
+    height: 110,
+  },
+
+  blogContent: {
+    padding: 12,
+  },
+
   blogCategoryTag: {
     alignSelf: "flex-start",
+
     backgroundColor: COLORS.lightGold,
+
     borderRadius: 8,
+
     paddingHorizontal: 8,
+
     paddingVertical: 3,
+
     marginBottom: 6,
   },
-  blogCategoryText: { color: COLORS.darkRed, fontSize: 9.5, fontWeight: "800" },
+
+  blogCategoryText: {
+    color: COLORS.darkRed,
+
+    fontSize: 9.5,
+
+    fontWeight: "800",
+  },
+
   blogTitle: {
     color: COLORS.text,
+
     fontSize: 13,
+
     fontWeight: "800",
+
     marginBottom: 5,
+
     lineHeight: 17,
   },
+
   blogExcerpt: {
     color: COLORS.gray,
+
     fontSize: 10.5,
+
     lineHeight: 14,
+
     marginBottom: 8,
   },
-  blogMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  blogMetaText: { color: COLORS.gray, fontSize: 10, fontWeight: "600" },
 
-  /* ---------- Review Card ---------- */
+  blogMetaRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 4,
+  },
+
+  blogMetaText: {
+    color: COLORS.gray,
+
+    fontSize: 10,
+
+    fontWeight: "600",
+  },
+
+  /* REVIEWS */
+
   reviewCard: {
     width: 240,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 17,
+
     padding: 18,
+
     marginRight: 12,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
     shadowOpacity: 0.1,
+
     shadowRadius: 6,
+
     elevation: 2,
   },
+
   reviewHeaderRow: {
     flexDirection: "row",
+
     alignItems: "center",
+
     marginBottom: 9,
+
     gap: 10,
   },
-  reviewAvatar: { width: 42, height: 42, borderRadius: 21 },
+
+  reviewAvatar: {
+    width: 42,
+    height: 42,
+
+    borderRadius: 21,
+  },
+
   reviewName: {
     color: COLORS.text,
+
     fontSize: 13,
+
     fontWeight: "800",
+
     marginBottom: 3,
   },
-  starRow: { flexDirection: "row", gap: 2 },
-  reviewComment: { color: COLORS.gray, fontSize: 11.5, lineHeight: 16 },
+
+  starRow: {
+    flexDirection: "row",
+
+    gap: 2,
+  },
+
+  reviewComment: {
+    color: COLORS.gray,
+
+    fontSize: 11.5,
+
+    lineHeight: 16,
+  },
 });

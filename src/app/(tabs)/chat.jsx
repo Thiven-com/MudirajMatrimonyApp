@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   Dimensions,
@@ -12,14 +14,24 @@ import {
   View,
 } from "react-native";
 
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+import LinearGradient from "react-native-linear-gradient";
+
+import { useNavigation } from "@react-navigation/native";
 
 import { getChatList, getToken } from "../../utils/Functions";
 
+/* =========================================================
+   DIMENSIONS
+========================================================= */
+
 const { width } = Dimensions.get("window");
+
+/* =========================================================
+   SPACING
+========================================================= */
 
 const SPACING = {
   xs: 4,
@@ -30,23 +42,38 @@ const SPACING = {
   xxl: 24,
 };
 
+/* =========================================================
+   COLORS
+========================================================= */
+
 const COLORS = {
   background: "#FAF7F3",
   white: "#FFFFFF",
+
   red: "#B70D09",
   darkRed: "#8D1713",
+
   gold: "#F5A400",
   goldDeep: "#FFB000",
   goldLight: "#FFF2CF",
+
   text: "#292321",
   gray: "#6B6259",
   mutedGray: "#8A8078",
+
   border: "#EFE4DA",
+
   green: "#149852",
   offlineGray: "#C9C0B8",
+
   badgeRed: "#E21B16",
+
   cardShadow: "#B8AAA0",
 };
+
+/* =========================================================
+   AVATAR COLORS
+========================================================= */
 
 const AVATAR_PALETTE = [
   "#B70D09",
@@ -58,8 +85,14 @@ const AVATAR_PALETTE = [
   "#B25B8F",
 ];
 
+/* =========================================================
+   GET AVATAR COLOR
+========================================================= */
+
 function getAvatarColor(name) {
-  if (!name) return COLORS.mutedGray;
+  if (!name) {
+    return COLORS.mutedGray;
+  }
 
   let hash = 0;
 
@@ -70,8 +103,14 @@ function getAvatarColor(name) {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
+/* =========================================================
+   GET INITIALS
+========================================================= */
+
 function getInitials(name) {
-  if (!name) return "?";
+  if (!name) {
+    return "?";
+  }
 
   const parts = name.trim().split(/\s+/);
 
@@ -82,14 +121,24 @@ function getInitials(name) {
   return (first + second).toUpperCase();
 }
 
+/* =========================================================
+   FILTERS
+========================================================= */
+
 const FILTERS = [
-  { key: "all", label: "All Chats", icon: "chatbubble" },
+  {
+    key: "all",
+    label: "All Chats",
+    icon: "chatbubble",
+  },
+
   {
     key: "unread",
     label: "Unread",
     icon: "chatbubble-outline",
     dot: COLORS.badgeRed,
   },
+
   {
     key: "online",
     label: "Online",
@@ -97,34 +146,64 @@ const FILTERS = [
     dotOnly: true,
     dot: COLORS.green,
   },
-  { key: "favourites", label: "Favourites", icon: "star-outline" },
+
+  {
+    key: "favourites",
+    label: "Favourites",
+    icon: "star-outline",
+  },
 ];
 
-// ---- API response -> chat row model ----
+/* =========================================================
+   API RESPONSE -> CHAT MODEL
+========================================================= */
+
 function mapChat(item) {
   return {
     threadId: String(item.id ?? ""),
+
     memberId: String(item.user_id ?? item.id ?? ""),
+
     name: item.member_name ?? "",
+
     profession: item.profession ?? "",
+
     lastMessage: item.last_message ?? "",
+
     time: item.last_message_time ?? "",
+
     unread: Number(item.unseen_message_count) || 0,
+
     online: item.active === 1,
+
     verified: true,
+
     avatarUrl: item.member_photo || null,
   };
 }
 
+/* =========================================================
+   CHATS SCREEN
+========================================================= */
+
 export default function ChatsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [activeFilter, setActiveFilter] = useState("all");
+
   const [search, setSearch] = useState("");
+
   const [chats, setChats] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState(null);
+
+  /* =======================================================
+     LOAD CHATS
+  ======================================================= */
 
   const loadChats = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -137,6 +216,7 @@ export default function ChatsScreen() {
 
     try {
       const token = await getToken();
+
       const result = await getChatList(token);
 
       const isSuccess =
@@ -161,6 +241,7 @@ export default function ChatsScreen() {
       }
     } catch (error) {
       console.log("loadChats Error:", error);
+
       setErrorMessage("Something went wrong loading your chats.");
     } finally {
       setLoading(false);
@@ -168,45 +249,84 @@ export default function ChatsScreen() {
     }
   }, []);
 
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
   useEffect(() => {
     loadChats();
   }, [loadChats]);
 
+  /* =======================================================
+     BACK
+  ======================================================= */
+
   const handleBack = () => {
-    router.back();
+    navigation.goBack();
   };
 
+  /* =======================================================
+     OPEN CHAT
+  ======================================================= */
+
   const handleOpenChatting = (chat) => {
-    router.push({
-      pathname: "/chatconversion",
-      params: {
-        id: chat.memberId,
-        threadId: chat.threadId,
-        name: chat.name,
-        profession: chat.profession,
-        online: chat.online ? "true" : "false",
-      },
+    navigation.navigate("ChatConversion", {
+      id: chat.memberId,
+
+      threadId: chat.threadId,
+
+      name: chat.name,
+
+      profession: chat.profession,
+
+      online: chat.online ? "true" : "false",
     });
   };
 
+  /* =======================================================
+     UPGRADE
+  ======================================================= */
+
   const handleUpgrade = () => {
-    router.push("/subscriptionplans");
+    navigation.navigate("SubscriptionPlans");
   };
 
+  /* =======================================================
+     SEARCH
+  ======================================================= */
+
   const normalizedSearch = search.trim().toLowerCase();
+
+  /* =======================================================
+     FILTER CHAT DATA
+  ======================================================= */
 
   const filteredChats = chats.filter((chat) => {
     const matchesSearch =
       !normalizedSearch || chat.name.toLowerCase().includes(normalizedSearch);
 
-    if (!matchesSearch) return false;
+    if (!matchesSearch) {
+      return false;
+    }
 
-    if (activeFilter === "unread") return chat.unread > 0;
-    if (activeFilter === "online") return chat.online;
-    if (activeFilter === "favourites") return false; // wire up to real favourites data
+    if (activeFilter === "unread") {
+      return chat.unread > 0;
+    }
+
+    if (activeFilter === "online") {
+      return chat.online;
+    }
+
+    if (activeFilter === "favourites") {
+      return false;
+    }
 
     return true;
   });
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -217,7 +337,12 @@ export default function ChatsScreen() {
           style={styles.backButton}
           onPress={handleBack}
           activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{
+            top: 8,
+            bottom: 8,
+            left: 8,
+            right: 8,
+          }}
         >
           <Ionicons name="arrow-back" size={23} color={COLORS.red} />
         </TouchableOpacity>
@@ -227,14 +352,17 @@ export default function ChatsScreen() {
         <View style={styles.headerRightSpace} />
       </View>
 
+      {/* ================= TITLE ================= */}
+
       <View style={styles.titleBlock}>
         <Text style={styles.screenTitle}>Chats</Text>
+
         <Text style={styles.screenSubtitle}>
           Connect, Chat & Find your perfect match
         </Text>
       </View>
 
-      {/* ================= SEARCH BAR ================= */}
+      {/* ================= SEARCH ================= */}
 
       <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color={COLORS.mutedGray} />
@@ -263,8 +391,6 @@ export default function ChatsScreen() {
         showsHorizontalScrollIndicator={false}
         style={styles.filtersList}
         contentContainerStyle={styles.filterRow}
-        contentInsetAdjustmentBehavior="never"
-        automaticallyAdjustContentInsets={false}
         renderItem={({ item }) => {
           const active = activeFilter === item.key;
 
@@ -276,7 +402,12 @@ export default function ChatsScreen() {
             >
               {item.dot ? (
                 <View
-                  style={[styles.filterDot, { backgroundColor: item.dot }]}
+                  style={[
+                    styles.filterDot,
+                    {
+                      backgroundColor: item.dot,
+                    },
+                  ]}
                 />
               ) : (
                 <Ionicons
@@ -304,6 +435,7 @@ export default function ChatsScreen() {
       {loading ? (
         <View style={styles.loadingState}>
           <ActivityIndicator size="large" color={COLORS.red} />
+
           <Text style={styles.loadingText}>Loading chats...</Text>
         </View>
       ) : (
@@ -317,8 +449,6 @@ export default function ChatsScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentInsetAdjustmentBehavior="never"
-          automaticallyAdjustContentInsets={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -340,8 +470,14 @@ export default function ChatsScreen() {
             filteredChats.length > 0 ? (
               <LinearGradient
                 colors={[COLORS.darkRed, COLORS.red]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
+                start={{
+                  x: 0,
+                  y: 0.5,
+                }}
+                end={{
+                  x: 1,
+                  y: 0.5,
+                }}
                 style={styles.premiumCard}
               >
                 <View style={styles.crownCircle}>
@@ -356,6 +492,7 @@ export default function ChatsScreen() {
                   <Text style={styles.premiumTitle}>
                     Go Premium, Get Better Connections
                   </Text>
+
                   <Text style={styles.premiumSubtitle}>
                     Chat unlimited & see who's interested in you.
                   </Text>
@@ -367,6 +504,7 @@ export default function ChatsScreen() {
                   onPress={handleUpgrade}
                 >
                   <Text style={styles.premiumUpgradeText}>Upgrade Now</Text>
+
                   <Ionicons
                     name="chevron-forward"
                     size={16}
@@ -382,9 +520,9 @@ export default function ChatsScreen() {
   );
 }
 
-/* ================================================= */
-/* ================= AVATAR ========================= */
-/* ================================================= */
+/* =========================================================
+   AVATAR
+========================================================= */
 
 function Avatar({ chat }) {
   const [failed, setFailed] = useState(false);
@@ -392,7 +530,9 @@ function Avatar({ chat }) {
   if (chat.avatarUrl && !failed) {
     return (
       <Image
-        source={{ uri: chat.avatarUrl }}
+        source={{
+          uri: chat.avatarUrl,
+        }}
         style={styles.avatar}
         resizeMode="cover"
         onError={() => setFailed(true)}
@@ -405,7 +545,9 @@ function Avatar({ chat }) {
       style={[
         styles.avatar,
         styles.avatarFallback,
-        { backgroundColor: getAvatarColor(chat.name) },
+        {
+          backgroundColor: getAvatarColor(chat.name),
+        },
       ]}
     >
       <Text style={styles.avatarFallbackText}>{getInitials(chat.name)}</Text>
@@ -413,9 +555,9 @@ function Avatar({ chat }) {
   );
 }
 
-/* ================================================= */
-/* ================= CHAT ROW ======================= */
-/* ================================================= */
+/* =========================================================
+   CHAT ROW
+========================================================= */
 
 function ChatRow({ chat, onPress }) {
   return (
@@ -424,6 +566,8 @@ function ChatRow({ chat, onPress }) {
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* AVATAR */}
+
       <View style={styles.avatarWrapper}>
         <Avatar chat={chat} />
 
@@ -437,7 +581,11 @@ function ChatRow({ chat, onPress }) {
         />
       </View>
 
+      {/* CONTENT */}
+
       <View style={styles.chatContent}>
+        {/* TOP ROW */}
+
         <View style={styles.chatTopRow}>
           <View style={styles.chatNameRow}>
             <Text style={styles.chatName} numberOfLines={1}>
@@ -456,11 +604,15 @@ function ChatRow({ chat, onPress }) {
           <Text style={styles.chatTime}>{chat.time}</Text>
         </View>
 
+        {/* PROFESSION */}
+
         {!!chat.profession && (
           <Text style={styles.chatProfession} numberOfLines={1}>
             {chat.profession}
           </Text>
         )}
+
+        {/* BOTTOM ROW */}
 
         <View style={styles.chatBottomRow}>
           <Text
@@ -486,9 +638,9 @@ function ChatRow({ chat, onPress }) {
   );
 }
 
-/* ================================================= */
-/* ================= EMPTY STATE ===================== */
-/* ================================================= */
+/* =========================================================
+   EMPTY STATE
+========================================================= */
 
 function EmptyState({ errorMessage, onRetry }) {
   return (
@@ -513,12 +665,17 @@ function EmptyState({ errorMessage, onRetry }) {
           activeOpacity={0.8}
         >
           <Ionicons name="refresh" size={15} color="#FFFFFF" />
+
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 }
+
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -556,6 +713,8 @@ const styles = StyleSheet.create({
     height: 34,
   },
 
+  /* ================= TITLE ================= */
+
   titleBlock: {
     paddingHorizontal: SPACING.md,
     marginTop: SPACING.xs,
@@ -574,7 +733,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
 
-  /* ================= SEARCH BAR ================= */
+  /* ================= SEARCH ================= */
 
   searchBar: {
     flexDirection: "row",
@@ -605,7 +764,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* ================= FILTER TABS ================= */
+  /* ================= FILTERS ================= */
 
   filterRow: {
     paddingHorizontal: SPACING.md,
@@ -679,12 +838,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
+
     shadowColor: COLORS.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
     shadowOpacity: 0.05,
     shadowRadius: 6,
+
     elevation: 2,
   },
+
+  /* ================= AVATAR ================= */
 
   avatarWrapper: {
     position: "relative",
@@ -719,6 +887,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.white,
   },
+
+  /* ================= CONTENT ================= */
 
   chatContent: {
     flex: 1,
@@ -793,7 +963,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  /* ================= LOADING / EMPTY ================= */
+  /* ================= LOADING ================= */
 
   loadingState: {
     flex: 1,
@@ -806,6 +976,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.mutedGray,
   },
+
+  /* ================= EMPTY ================= */
 
   emptyState: {
     flex: 1,
@@ -858,7 +1030,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  /* ================= PREMIUM BANNER ================= */
+  /* ================= PREMIUM ================= */
 
   premiumCard: {
     minHeight: 90,
@@ -868,10 +1040,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: SPACING.sm,
+
     shadowColor: COLORS.darkRed,
-    shadowOffset: { width: 0, height: 4 },
+
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
     shadowOpacity: 0.2,
     shadowRadius: 10,
+
     elevation: 4,
   },
 

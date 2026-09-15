@@ -13,96 +13,168 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+
+
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
   getChatView,
   getOldMessages,
   getToken,
   sendChatReply,
-} from "../utils/Functions"; // adjust path to your actual file
+} from "../utils/Functions";
 
 const { width } = Dimensions.get("window");
 
-const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
+/* ============================================================
+   SPACING
+============================================================ */
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+};
+
+/* ============================================================
+   COLORS
+============================================================ */
 
 const COLORS = {
   background: "#FAF7F3",
   white: "#FFFFFF",
+
   red: "#B70D09",
   darkRed: "#8D1713",
+
   gold: "#F5A400",
   goldDeep: "#FFB000",
   goldLight: "#FFF2CF",
+
   text: "#292321",
   gray: "#6B6259",
   mutedGray: "#8A8078",
+
   border: "#EFE4DA",
+
   green: "#149852",
   offlineGray: "#C9C0B8",
+
   badgeRed: "#E21B16",
+
   cardShadow: "#B8AAA0",
+
   bubbleSent: "#B70D09",
   bubbleReceived: "#FFFFFF",
 };
 
+/* ============================================================
+   FALLBACK AVATAR
+============================================================ */
+
 const FALLBACK_AVATAR = require("../../assets/images/Match1.png");
 
-// Field names kept consistent with chat-list's convention
-// (member_name, member_photo). Confirm against real chat-view response
-// and adjust if it differs.
+/* ============================================================
+   GET CHAT PARTNER
+============================================================ */
+
 function mapChatPartner(item, fallbackId) {
-  if (!item) return null;
+  if (!item) {
+    return null;
+  }
+
   return {
     id: String(item.user_id ?? item.id ?? fallbackId ?? ""),
+
     name: item.member_name ?? item.name ?? "",
+
     profession: item.profession ?? "",
+
     online: item.active === 1 || !!item.online,
+
     verified: true,
+
     avatarUrl: item.member_photo ?? item.avatar ?? null,
   };
 }
 
+/* ============================================================
+   MAP MESSAGE
+============================================================ */
+
 function mapMessage(item) {
   return {
     id: String(item.id ?? item.message_id ?? `m${Math.random()}`),
+
     fromMe: !!(item.from_me ?? item.is_sender ?? item.fromMe),
+
     text: item.message ?? item.text ?? item.body ?? "",
+
     time: item.time ?? item.created_at_formatted ?? item.created_at ?? "",
+
     status: item.status ?? undefined,
   };
 }
 
+/* ============================================================
+   MAIN SCREEN
+============================================================ */
+
 export default function ChatConversationScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const params = route.params || {};
+
   const memberId = params.id;
 
-  // threadId comes from ChatsScreen's nav params when available;
-  // falls back to whatever chat-view returns if missing (e.g. deep link).
+  /* ============================================================
+     THREAD ID
+  ============================================================ */
+
   const [chatThreadId, setChatThreadId] = useState(
     params.threadId ? String(params.threadId) : null,
   );
 
+  /* ============================================================
+     STATE
+  ============================================================ */
+
   const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState([]);
+
   const [chat, setChat] = useState(null);
 
   const [loading, setLoading] = useState(true);
+
   const [sending, setSending] = useState(false);
+
   const [loadingOlder, setLoadingOlder] = useState(false);
+
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
+
   const [errorMessage, setErrorMessage] = useState(null);
 
   const listRef = useRef(null);
 
-  /* ================= INITIAL LOAD ================= */
+  /* ============================================================
+     INITIAL LOAD
+  ============================================================ */
 
   const loadChatView = useCallback(async () => {
     if (!memberId) {
       setErrorMessage("No conversation selected.");
+
       setLoading(false);
+
       return;
     }
 
@@ -111,7 +183,10 @@ export default function ChatConversationScreen() {
 
     try {
       const token = await getToken();
+
       const result = await getChatView(memberId, token);
+
+      console.log("getChatView response:", JSON.stringify(result));
 
       const isSuccess =
         result?.success === 1 ||
@@ -130,9 +205,11 @@ export default function ChatConversationScreen() {
           payload?.messages || payload?.chats || payload?.data || [];
 
         setChat(partner);
+
         setMessages(
           (Array.isArray(rawMessages) ? rawMessages : []).map(mapMessage),
         );
+
         setHasMoreOlder(true);
 
         if (!chatThreadId) {
@@ -147,50 +224,62 @@ export default function ChatConversationScreen() {
         }
 
         requestAnimationFrame(() => {
-          listRef.current?.scrollToEnd({ animated: false });
+          listRef.current?.scrollToEnd({
+            animated: false,
+          });
         });
       } else {
         setErrorMessage(result?.message || "Unable to load this chat.");
       }
     } catch (err) {
       console.log("loadChatView Error:", err);
+
       setErrorMessage("Something went wrong loading this chat.");
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberId]);
 
   useEffect(() => {
     loadChatView();
   }, [loadChatView]);
 
-  /* ================= LOAD OLDER MESSAGES ================= */
+  /* ============================================================
+     LOAD OLDER MESSAGES
+  ============================================================ */
 
   const handleLoadOlderMessages = useCallback(async () => {
-    if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
+    if (loadingOlder || !hasMoreOlder || messages.length === 0) {
+      return;
+    }
 
     const firstMessageId = messages[0]?.id;
-    if (!firstMessageId || isNaN(Number(firstMessageId))) return;
+
+    if (!firstMessageId || isNaN(Number(firstMessageId))) {
+      return;
+    }
 
     setLoadingOlder(true);
 
     try {
       const token = await getToken();
+
       const result = await getOldMessages(Number(firstMessageId), token);
+
       console.log("getOldMessages response:", JSON.stringify(result));
 
-      if (result.success === 1) {
+      if (result?.success === 1) {
         const rawOld = Array.isArray(result.data) ? result.data : [];
 
         if (rawOld.length === 0) {
           setHasMoreOlder(false);
         } else {
           const olderMapped = rawOld.map(mapMessage);
+
           setMessages((prev) => [...olderMapped, ...prev]);
         }
       } else {
-        console.log("getOldMessages failed:", result.message);
+        console.log("getOldMessages failed:", result?.message);
       }
     } catch (err) {
       console.log("handleLoadOlderMessages Error:", err);
@@ -199,59 +288,103 @@ export default function ChatConversationScreen() {
     }
   }, [loadingOlder, hasMoreOlder, messages]);
 
-  /* ================= SEND MESSAGE ================= */
+  /* ============================================================
+     BACK
+  ============================================================ */
 
-  const handleBack = () => router.back();
+  const handleBack = () => {
+    navigation.goBack();
+  };
+
+  /* ============================================================
+     SEND MESSAGE
+  ============================================================ */
 
   const handleSend = async () => {
     const trimmed = message.trim();
-    if (!trimmed || sending) return;
 
-    if (!chatThreadId) {
-      console.log("handleSend: missing chatThreadId, cannot send.");
+    if (!trimmed || sending) {
       return;
     }
 
+    if (!chatThreadId) {
+      console.log("handleSend: missing chatThreadId, cannot send.");
+
+      return;
+    }
+
+    /* ============================================================
+       OPTIMISTIC MESSAGE
+    ============================================================ */
+
     const optimisticId = `m${Date.now()}`;
+
     const optimisticMsg = {
       id: optimisticId,
+
       fromMe: true,
+
       text: trimmed,
+
       time: formatTime(new Date()),
+
       status: "sending",
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
+
     setMessage("");
     setSending(true);
 
     requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: true });
+      listRef.current?.scrollToEnd({
+        animated: true,
+      });
     });
 
     try {
       const token = await getToken();
+
       const result = await sendChatReply(chatThreadId, trimmed, token);
 
-      if (result.success === 1) {
+      console.log("sendChatReply response:", JSON.stringify(result));
+
+      if (result?.success === 1) {
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === optimisticId ? { ...m, status: "sent" } : m,
+            m.id === optimisticId
+              ? {
+                  ...m,
+                  status: "sent",
+                }
+              : m,
           ),
         );
       } else {
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === optimisticId ? { ...m, status: "failed" } : m,
+            m.id === optimisticId
+              ? {
+                  ...m,
+                  status: "failed",
+                }
+              : m,
           ),
         );
-        console.log("sendChatReply failed:", result.message);
+
+        console.log("sendChatReply failed:", result?.message);
       }
     } catch (err) {
       console.log("handleSend Error:", err);
+
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === optimisticId ? { ...m, status: "failed" } : m,
+          m.id === optimisticId
+            ? {
+                ...m,
+                status: "failed",
+              }
+            : m,
         ),
       );
     } finally {
@@ -259,7 +392,9 @@ export default function ChatConversationScreen() {
     }
   };
 
-  /* ================= RENDER ================= */
+  /* ============================================================
+     LOADING
+  ============================================================ */
 
   if (loading) {
     return (
@@ -270,6 +405,10 @@ export default function ChatConversationScreen() {
       </SafeAreaView>
     );
   }
+
+  /* ============================================================
+     ERROR
+  ============================================================ */
 
   if (errorMessage || !chat) {
     return (
@@ -283,10 +422,12 @@ export default function ChatConversationScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.red} />
           </TouchableOpacity>
         </View>
+
         <View style={styles.centerState}>
           <Text style={styles.emptyText}>
             {errorMessage || "This conversation could not be found."}
           </Text>
+
           <TouchableOpacity style={styles.retryButton} onPress={loadChatView}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -295,13 +436,26 @@ export default function ChatConversationScreen() {
     );
   }
 
+  /* ============================================================
+     AVATAR
+  ============================================================ */
+
   const avatarSource = chat.avatarUrl
-    ? { uri: chat.avatarUrl }
+    ? {
+        uri: chat.avatarUrl,
+      }
     : FALLBACK_AVATAR;
+
+  /* ============================================================
+     MAIN UI
+  ============================================================ */
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ================= HEADER ================= */}
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -314,10 +468,15 @@ export default function ChatConversationScreen() {
         <TouchableOpacity
           style={styles.headerProfile}
           activeOpacity={0.8}
-          onPress={() => router.push(`/profile/${chat.id}`)}
+          onPress={() =>
+            navigation.navigate("Profile", {
+              id: chat.id,
+            })
+          }
         >
           <View style={styles.headerAvatarWrapper}>
             <Image source={avatarSource} style={styles.headerAvatar} />
+
             <View
               style={[
                 styles.headerStatusDot,
@@ -335,6 +494,7 @@ export default function ChatConversationScreen() {
               <Text style={styles.headerName} numberOfLines={1}>
                 {chat.name}
               </Text>
+
               {chat.verified && (
                 <Ionicons
                   name="checkmark-circle"
@@ -343,6 +503,7 @@ export default function ChatConversationScreen() {
                 />
               )}
             </View>
+
             <Text style={styles.headerStatus}>
               {chat.online ? "Online" : "Offline"}
             </Text>
@@ -353,6 +514,7 @@ export default function ChatConversationScreen() {
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
             <Ionicons name="call-outline" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
             <Ionicons
               name="ellipsis-vertical"
@@ -363,15 +525,22 @@ export default function ChatConversationScreen() {
         </View>
       </View>
 
-      {/* ================= SAFETY NOTICE ================= */}
+      {/* ======================================================
+          SAFETY NOTICE
+      ====================================================== */}
+
       <View style={styles.safetyBanner}>
         <Ionicons name="shield-checkmark" size={14} color={COLORS.green} />
+
         <Text style={styles.safetyText}>
           Never share OTPs, bank details or make payments outside the app.
         </Text>
       </View>
 
-      {/* ================= MESSAGES ================= */}
+      {/* ======================================================
+          MESSAGES + INPUT
+      ====================================================== */}
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -380,11 +549,13 @@ export default function ChatConversationScreen() {
         <FlatList
           ref={listRef}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() =>
-            listRef.current?.scrollToEnd({ animated: false })
+            listRef.current?.scrollToEnd({
+              animated: false,
+            })
           }
           onScroll={({ nativeEvent }) => {
             if (nativeEvent.contentOffset.y <= 20) {
@@ -399,6 +570,7 @@ export default function ChatConversationScreen() {
                   <ActivityIndicator size="small" color={COLORS.red} />
                 </View>
               )}
+
               <View style={styles.dateSeparator}>
                 <Text style={styles.dateSeparatorText}>Today</Text>
               </View>
@@ -414,7 +586,10 @@ export default function ChatConversationScreen() {
           renderItem={({ item }) => <MessageBubble message={item} />}
         />
 
-        {/* ================= INPUT BAR ================= */}
+        {/* ====================================================
+            INPUT BAR
+        ==================================================== */}
+
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Ionicons name="add" size={24} color={COLORS.darkRed} />
@@ -453,9 +628,9 @@ export default function ChatConversationScreen() {
   );
 }
 
-/* ================================================= */
-/* ================= MESSAGE BUBBLE ================= */
-/* ================================================= */
+/* ============================================================
+   MESSAGE BUBBLE
+============================================================ */
 
 function MessageBubble({ message }) {
   const { fromMe, text, time, status } = message;
@@ -491,7 +666,9 @@ function MessageBubble({ message }) {
               name="alert-circle"
               size={14}
               color={COLORS.badgeRed}
-              style={{ marginLeft: 3 }}
+              style={{
+                marginLeft: 3,
+              }}
             />
           ) : (
             fromMe && (
@@ -501,7 +678,9 @@ function MessageBubble({ message }) {
                 color={
                   status === "read" ? COLORS.goldLight : "rgba(255,255,255,0.7)"
                 }
-                style={{ marginLeft: 3 }}
+                style={{
+                  marginLeft: 3,
+                }}
               />
             )
           )}
@@ -511,21 +690,35 @@ function MessageBubble({ message }) {
   );
 }
 
+/* ============================================================
+   FORMAT TIME
+============================================================ */
+
 function formatTime(date) {
   let hours = date.getHours();
+
   const minutes = date.getMinutes().toString().padStart(2, "0");
+
   const ampm = hours >= 12 ? "PM" : "AM";
+
   hours = hours % 12 || 12;
+
   return `${hours}:${minutes} ${ampm}`;
 }
 
-/* ================================================= */
-/* ================= STYLES ========================= */
-/* ================================================= */
+/* ============================================================
+   STYLES
+============================================================ */
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  flex: { flex: 1 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  flex: {
+    flex: 1,
+  },
 
   centerState: {
     flex: 1,
@@ -549,9 +742,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  retryButtonText: { color: COLORS.white, fontWeight: "700" },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: "700",
+  },
 
-  /* ================= HEADER ================= */
+  /* ==========================================================
+     HEADER
+  ========================================================== */
 
   header: {
     flexDirection: "row",
@@ -577,9 +775,16 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
   },
 
-  headerAvatarWrapper: { position: "relative", marginRight: SPACING.sm },
+  headerAvatarWrapper: {
+    position: "relative",
+    marginRight: SPACING.sm,
+  },
 
-  headerAvatar: { width: 42, height: 42, borderRadius: 21 },
+  headerAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
 
   headerStatusDot: {
     position: "absolute",
@@ -592,9 +797,15 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
 
-  headerNameBlock: { flexShrink: 1 },
+  headerNameBlock: {
+    flexShrink: 1,
+  },
 
-  headerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  headerNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
 
   headerName: {
     fontSize: 16,
@@ -603,9 +814,16 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.4,
   },
 
-  headerStatus: { fontSize: 11.5, color: COLORS.mutedGray, marginTop: 1 },
+  headerStatus: {
+    fontSize: 11.5,
+    color: COLORS.mutedGray,
+    marginTop: 1,
+  },
 
-  headerActions: { flexDirection: "row", alignItems: "center" },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
   headerIconButton: {
     width: 36,
@@ -615,7 +833,9 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
   },
 
-  /* ================= SAFETY BANNER ================= */
+  /* ==========================================================
+     SAFETY BANNER
+  ========================================================== */
 
   safetyBanner: {
     flexDirection: "row",
@@ -626,9 +846,15 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
 
-  safetyText: { fontSize: 11, color: COLORS.gray, flexShrink: 1 },
+  safetyText: {
+    fontSize: 11,
+    color: COLORS.gray,
+    flexShrink: 1,
+  },
 
-  /* ================= MESSAGES ================= */
+  /* ==========================================================
+     MESSAGES
+  ========================================================== */
 
   messageList: {
     paddingHorizontal: SPACING.md,
@@ -658,11 +884,18 @@ const styles = StyleSheet.create({
     color: COLORS.mutedGray,
   },
 
-  bubbleRow: { flexDirection: "row", marginBottom: SPACING.sm },
+  bubbleRow: {
+    flexDirection: "row",
+    marginBottom: SPACING.sm,
+  },
 
-  bubbleRowLeft: { justifyContent: "flex-start" },
+  bubbleRowLeft: {
+    justifyContent: "flex-start",
+  },
 
-  bubbleRowRight: { justifyContent: "flex-end" },
+  bubbleRowRight: {
+    justifyContent: "flex-end",
+  },
 
   bubble: {
     maxWidth: width * 0.75,
@@ -683,9 +916,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 
-  bubbleTextSent: { fontSize: 14, color: COLORS.white, lineHeight: 19 },
+  bubbleTextSent: {
+    fontSize: 14,
+    color: COLORS.white,
+    lineHeight: 19,
+  },
 
-  bubbleTextReceived: { fontSize: 14, color: COLORS.text, lineHeight: 19 },
+  bubbleTextReceived: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 19,
+  },
 
   bubbleMeta: {
     flexDirection: "row",
@@ -694,11 +935,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  bubbleTimeSent: { fontSize: 10, color: "rgba(255,255,255,0.75)" },
+  bubbleTimeSent: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.75)",
+  },
 
-  bubbleTimeReceived: { fontSize: 10, color: COLORS.mutedGray },
+  bubbleTimeReceived: {
+    fontSize: 10,
+    color: COLORS.mutedGray,
+  },
 
-  /* ================= INPUT BAR ================= */
+  /* ==========================================================
+     INPUT BAR
+  ========================================================== */
 
   inputBar: {
     flexDirection: "row",
@@ -731,7 +980,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  textInput: { fontSize: 14, color: COLORS.text, maxHeight: 90 },
+  textInput: {
+    fontSize: 14,
+    color: COLORS.text,
+    maxHeight: 90,
+  },
 
   sendButton: {
     width: 42,
@@ -743,5 +996,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
   },
 
-  sendButtonDisabled: { backgroundColor: COLORS.offlineGray },
+  sendButtonDisabled: {
+    backgroundColor: COLORS.offlineGray,
+  },
 });
