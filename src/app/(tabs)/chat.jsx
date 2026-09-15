@@ -1,13 +1,13 @@
 import {
-  Dimensions,
-  FlatList,
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Dimensions,
+    FlatList,
+    Image,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
@@ -132,9 +132,17 @@ export default function ChatsScreen() {
     router.back();
   };
 
-  const handleOpenChat = (id) => {
-    router.push(`/chat/${id}`);
-  };
+  const handleOpenChatting = (chat) => {
+  router.push({
+    pathname: "/chatting",
+    params: {
+      id: chat.id,
+      name: chat.name,
+      profession: chat.profession,
+      online: chat.online ? "true" : "false",
+    },
+  });
+};
 
   const handleUpgrade = () => {
     router.push("/subscriptionplans");
@@ -153,6 +161,9 @@ export default function ChatsScreen() {
 
     return true;
   });
+
+
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -202,13 +213,17 @@ export default function ChatsScreen() {
         data={FILTERS}
         keyExtractor={(item) => item.key}
         showsHorizontalScrollIndicator={false}
+        style={styles.filtersList}
         contentContainerStyle={styles.filterRow}
         renderItem={({ item }) => {
           const active = activeFilter === item.key;
 
           return (
             <TouchableOpacity
-              style={[styles.filterChip, active && styles.filterChipActive]}
+              style={[
+                styles.filterChip,
+                active && styles.filterChipActive,
+              ]}
               onPress={() => setActiveFilter(item.key)}
               activeOpacity={0.8}
             >
@@ -248,7 +263,7 @@ export default function ChatsScreen() {
         contentContainerStyle={styles.chatList}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <ChatRow chat={item} onPress={() => handleOpenChat(item.id)} />
+          <ChatRow chat={item} onPress={() => handleOpenChatting(item.id)} />
         )}
         ListFooterComponent={
           <LinearGradient
@@ -357,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.md,
   },
 
   backButton: {
@@ -425,11 +440,10 @@ const styles = StyleSheet.create({
   /* ================= FILTER TABS ================= */
 
   filterRow: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
-    paddingBottom: SPACING.md,
-  },
-
+  paddingHorizontal: SPACING.md,
+  gap: SPACING.sm,
+  alignItems: "center",
+},
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -462,12 +476,17 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: "#FFFFFF",
   },
+  filtersList: {
+  height: 56,
+  flexGrow: 0,
+  flexShrink: 0,
+},
 
   /* ================= CHAT LIST ================= */
 
   chatList: {
     paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.xl,
+  
   },
 
   chatRow: {

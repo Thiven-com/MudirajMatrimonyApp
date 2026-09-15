@@ -74,7 +74,7 @@ const QUICK_STATS = [
     label: "Matches",
     icon: "people",
     color: COLORS.red,
-    route: "/matchesdetail",
+    route: "/family-details",
 
   },
   {
@@ -100,14 +100,14 @@ const QUICK_STATS = [
     icon: "chatbubble-ellipses",
     count: 5,
     color: COLORS.gold,
-    route:"/interests",
+    route: "/interests",
   },
   {
     id: "5",
     label: "Shortlist",
     icon: "star",
     color: COLORS.gold,
-    route:"/shortlist",
+    route: "/shortlist",
   },
 ];
 
@@ -151,6 +151,7 @@ const WHY_CHOOSE = [
     title: "100%",
     subtitle: "Verified Profiles",
     color: COLORS.red,
+    route: "/profilecompletion",
   },
   {
     id: "2",
@@ -158,6 +159,7 @@ const WHY_CHOOSE = [
     title: "Trusted",
     subtitle: "Community",
     color: COLORS.gold,
+    route: "/matchesdetail",
   },
   {
     id: "3",
@@ -165,6 +167,7 @@ const WHY_CHOOSE = [
     title: "Privacy",
     subtitle: "Protected",
     color: COLORS.red,
+    route: "/privacy-policy",
   },
   {
     id: "4",
@@ -172,6 +175,7 @@ const WHY_CHOOSE = [
     title: "Dedicated",
     subtitle: "Support",
     color: COLORS.gold,
+    route: "/help-support",
   },
 ];
 
@@ -183,19 +187,19 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const openNotifications = () => {
-    router.push("/privacy-policy");
+    router.push("/notifications");
   };
 
   const openPremium = () => {
-    router.push("/premium");
+    router.push("/profilecompletion");
   };
 
   const openPremiumBenefits = () => {
     router.push("/premium-benfits");
   };
 
-  const openMatches = () => {
-    router.push("/matches");
+  const openMatchesdetail = () => {
+    router.push("/matchesdetail");
   };
 
   const openRecommendedProfiles = () => {
@@ -338,7 +342,7 @@ export default function HomeScreen() {
 
         </View>
 
-       
+
         {/* =================================================
     PREMIUM HERO BANNER
 ================================================= */}
@@ -435,7 +439,7 @@ export default function HomeScreen() {
             <MatchCard
               key={match.id}
               match={match}
-              onPress={() => openProfile(match.id)}
+              onPress={() => openMatchesdetail(match.id)}
             />
           ))}
 
@@ -501,13 +505,11 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
         </LinearGradient>
-
         {/* =================================================
-            WHY CHOOSE
-        ================================================= */}
+    WHY CHOOSE
+================================================= */}
 
         <View style={styles.whyHeader}>
-
           <View style={styles.whyLine} />
 
           <Text style={styles.whyTitle}>
@@ -515,17 +517,16 @@ export default function HomeScreen() {
           </Text>
 
           <View style={styles.whyLine} />
-
         </View>
 
         <View style={styles.whyGrid}>
-
           {WHY_CHOOSE.map((item) => (
-            <View
+            <TouchableOpacity
               key={item.id}
               style={styles.whyCard}
+              activeOpacity={0.8}
+              onPress={() => router.push(item.route || "/privacy-policy")}
             >
-
               <View
                 style={[
                   styles.whyIcon,
@@ -537,13 +538,11 @@ export default function HomeScreen() {
                   },
                 ]}
               >
-
                 <Ionicons
                   name={item.icon}
                   size={30}
                   color={item.color}
                 />
-
               </View>
 
               <Text style={styles.whyCardTitle}>
@@ -553,12 +552,9 @@ export default function HomeScreen() {
               <Text style={styles.whyCardSubtitle}>
                 {item.subtitle}
               </Text>
-
-            </View>
+            </TouchableOpacity>
           ))}
-
         </View>
-
         {/* =================================================
             BOTTOM SPACE
         ================================================= */}
@@ -864,46 +860,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
- /* =================================================
-   PREMIUM HERO BANNER
-================================================= */
+  /* =================================================
+    PREMIUM HERO BANNER
+ ================================================= */
 
-heroCard: {
-  width: "100%",
+  heroCard: {
+    width: "100%",
 
-  height: width * 0.43,
+    height: width * 0.43,
 
-  borderRadius: 14,
+    borderRadius: 14,
 
-  overflow: "hidden",
+    overflow: "hidden",
 
-  marginTop: 2,
-  marginBottom: 10,
+    marginTop: 2,
+    marginBottom: 10,
 
-  backgroundColor: "#C90000",
+    backgroundColor: "#C90000",
 
-  shadowColor: "#8B0000",
+    shadowColor: "#8B0000",
 
-  shadowOffset: {
-    width: 0,
-    height: 3,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.22,
+
+    shadowRadius: 5,
+
+    elevation: 5,
   },
 
-  shadowOpacity: 0.22,
+  heroImage: {
+    width: "100%",
+    height: "100%",
 
-  shadowRadius: 5,
-
-  elevation: 5,
-},
-
-heroImage: {
-  width: "100%",
-  height: "100%",
-
-  position: "absolute",
-  top: 0,
-  left: 0,
-},
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
 
   /* =================================================
      QUICK STATS

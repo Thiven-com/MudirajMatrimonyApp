@@ -296,7 +296,7 @@ export default function SearchScreen() {
   const viewMatches = () => {
 
     router.push({
-      pathname: "/matches",
+      pathname: "/profilecompletion",
 
       params: {
         lookingFor: filters.lookingFor,

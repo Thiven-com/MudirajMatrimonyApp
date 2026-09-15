@@ -3,64 +3,110 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
 } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
-
+import { signup } from "../../utils/Functions";
+ 
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
+ 
 // Header wave geometry — reversed curve: edges dip down, center arches up
 // (same geometry used on the login / OTP screens)
 const HEADER_HEIGHT = 210;
 const EDGE_Y = HEADER_HEIGHT * 0.7;
 const PEAK_Y = HEADER_HEIGHT * 0.33;
 const CTRL_Y = HEADER_HEIGHT * 0.05;
-
+ 
 const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
-
+const ON_BEHALF_OPTIONS = [
+  { label: "For Myself", value: 0 },
+  { label: "For Someone Else", value: 1 },
+];
+ 
 export default function RegisterScreen() {
   const router = useRouter();
-
-  const [fullName, setFullName] = useState("");
+ 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
+  const [onBehalf, setOnBehalf] = useState(null);
   const [agreed, setAgreed] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
-
-  const handleRegister = () => {
-    console.log({
-      fullName,
-      mobile,
-      email,
-      dob,
-      gender,
-      agreed,
-    });
-    // TODO: validate + call your signup API, then:
-    // router.replace('/home');
+  const [onBehalfModalVisible, setOnBehalfModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+ 
+  const handleRegister = async () => {
+    if (
+  !firstName.trim() ||
+  !lastName.trim() ||
+  !mobile.trim() ||
+  !dob.trim() ||
+  !gender.trim() ||
+  onBehalf === null
+) {
+  setErrorText("Please fill all required fields");
+  return;
+}
+ 
+    setErrorText("");
+    setLoading(true);
+ 
+    try {
+      // signup() in utils/Functions.js handles mapping these fields
+      // (firstName -> first_name, mobile -> phone, dob -> date_of_birth,
+      // gender -> lowercase, onBehalf -> on_behalf as integer) to match
+      // the /api/signup contract.
+      const result = await signup({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        mobile: mobile.trim(),
+        email: email.trim(),
+        dob,
+        gender,
+        onBehalf,
+        agreed,
+      });
+ 
+      console.log("signup() raw result:", JSON.stringify(result));
+ 
+      if (result?.result === false || result?.success === 0) {
+        setErrorText(result?.message || "Unable to create account right now.");
+        return;
+      }
+ 
+      // Registration successful
+      router.replace("/login");
+    } catch (error) {
+      console.log("signup Error:", error);
+      setErrorText(error?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
-
+ 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
       <StatusBar
@@ -76,7 +122,7 @@ export default function RegisterScreen() {
         {/* ================= HEADER SECTION ================= */}
         <View style={styles.headerContainer}>
           <HeaderWave width={SCREEN_WIDTH} />
-
+ 
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -84,7 +130,7 @@ export default function RegisterScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
-
+ 
           <View style={styles.logoRing}>
             <Image
               source={LOGO}
@@ -93,7 +139,7 @@ export default function RegisterScreen() {
             />
           </View>
         </View>
-
+ 
         {/* ================= TITLE & TAGLINE ================= */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>MUDIRAJ WORLD</Text>
@@ -110,13 +156,13 @@ export default function RegisterScreen() {
             <View style={styles.flourishDot} />
           </View>
         </View>
-
+ 
         {/* ================= FORM HEADING ================= */}
         <Text style={styles.formHeading}>Create Your Account</Text>
         <Text style={styles.formSubtext}>
           Join Mudiraj World and find your perfect match
         </Text>
-
+ 
         {/* ================= FORM FIELDS ================= */}
         <View style={styles.fieldsContainer}>
           <FieldCard
@@ -127,10 +173,10 @@ export default function RegisterScreen() {
                 color={Colors.primaryRed}
               />
             }
-            label="Full Name"
-            placeholder="Enter your full name"
-            value={fullName}
-            onChangeText={setFullName}
+            label="First Name"
+            placeholder="Enter your first name"
+            value={firstName}
+            onChangeText={setFirstName}
             trailing={
               <Ionicons
                 name="person-outline"
@@ -139,7 +185,28 @@ export default function RegisterScreen() {
               />
             }
           />
-
+ 
+          <FieldCard
+            icon={
+              <Ionicons
+                name="person-outline"
+                size={18}
+                color={Colors.primaryRed}
+              />
+            }
+            label="Last Name"
+            placeholder="Enter your last name"
+            value={lastName}
+            onChangeText={setLastName}
+            trailing={
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={Colors.textMuted}
+              />
+            }
+          />
+ 
           <FieldCard
             icon={
               <Ionicons
@@ -164,7 +231,7 @@ export default function RegisterScreen() {
               </View>
             }
           />
-
+ 
           <FieldCard
             icon={
               <Ionicons
@@ -187,7 +254,7 @@ export default function RegisterScreen() {
               />
             }
           />
-
+ 
           <FieldCard
             icon={
               <Ionicons
@@ -197,6 +264,7 @@ export default function RegisterScreen() {
               />
             }
             label="Date of Birth"
+            type="date"
             placeholder="DD / MM / YYYY"
             value={dob}
             onChangeText={setDob}
@@ -211,7 +279,7 @@ export default function RegisterScreen() {
           />
           {/* For a real date picker, swap the TextInput above for
               @react-native-community/datetimepicker and format the result into `dob`. */}
-
+ 
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setGenderModalVisible(true)}
@@ -238,8 +306,41 @@ export default function RegisterScreen() {
               }
             />
           </TouchableOpacity>
+ 
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setOnBehalfModalVisible(true)}
+          >
+            <FieldCard
+              icon={
+                <Ionicons
+                  name="person-circle-outline"
+                  size={18}
+                  color={Colors.primaryRed}
+                />
+              }
+              label="Register For"
+              placeholder="Select option"
+              value={
+                onBehalf
+                  ? ON_BEHALF_OPTIONS.find(
+                      (o) => o.value === parseInt(onBehalf),
+                    )?.label
+                  : ""
+              }
+              editable={false}
+              pointerEvents="none"
+              trailing={
+                <Ionicons
+                  name="chevron-down"
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              }
+            />
+          </TouchableOpacity>
         </View>
-
+ 
         {/* ================= TERMS CHECKBOX ================= */}
         <TouchableOpacity
           style={styles.termsRow}
@@ -257,12 +358,24 @@ export default function RegisterScreen() {
             <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
         </TouchableOpacity>
-
+ 
+        {/* ================= ERROR MESSAGE ================= */}
+        {errorText.length > 0 && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={18} color={Colors.primaryRed} />
+            <Text style={styles.errorText}>{errorText}</Text>
+          </View>
+        )}
+ 
         {/* ================= REGISTER BUTTON ================= */}
         <TouchableOpacity
-          style={styles.registerButtonTouchable}
+          style={[
+            styles.registerButtonTouchable,
+            loading && styles.registerButtonDisabled,
+          ]}
           activeOpacity={0.85}
           onPress={handleRegister}
+          disabled={loading}
         >
           <LinearGradient
             colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
@@ -271,35 +384,37 @@ export default function RegisterScreen() {
             style={styles.registerButton}
           >
             <Ionicons
-              name="person-add-outline"
+              name={loading ? "hourglass-outline" : "person-add-outline"}
               size={20}
               color="#FFFFFF"
               style={{ marginRight: 8 }}
             />
-            <Text style={styles.registerButtonText}>REGISTER</Text>
+            <Text style={styles.registerButtonText}>
+              {loading ? "REGISTERING..." : "REGISTER"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
-
+ 
         {/* ================= OR DIVIDER ================= */}
         <View style={styles.orRow}>
           <View style={styles.orLine} />
           <Text style={styles.orText}>OR</Text>
           <View style={styles.orLine} />
         </View>
-
+ 
         {/* ================= SOCIAL BUTTONS ================= */}
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
             <FontAwesome name="google" size={18} color={Colors.google} />
             <Text style={styles.socialText}>Continue with Google</Text>
           </TouchableOpacity>
-
+ 
           <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
             <Ionicons name="logo-facebook" size={20} color={Colors.facebook} />
             <Text style={styles.socialText}>Continue with Facebook</Text>
           </TouchableOpacity>
         </View>
-
+ 
         {/* ================= LOGIN LINK ================= */}
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
@@ -310,13 +425,13 @@ export default function RegisterScreen() {
             <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
         </View>
-
+ 
         {/* ================= HERITAGE WATERMARK FOOTER ================= */}
         <View style={styles.skylineWrapper}>
           <HeritageSkyline />
         </View>
       </ScrollView>
-
+ 
       {/* ================= GENDER PICKER MODAL ================= */}
       <Modal
         visible={genderModalVisible}
@@ -353,10 +468,47 @@ export default function RegisterScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+ 
+      {/* ================= ON BEHALF PICKER MODAL ================= */}
+      <Modal
+        visible={onBehalfModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOnBehalfModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOnBehalfModalVisible(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Register For</Text>
+            {ON_BEHALF_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={styles.modalOption}
+                onPress={() => {
+                  setOnBehalf(String(option.value));
+                  setOnBehalfModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalOptionText}>{option.label}</Text>
+                {onBehalf === String(option.value) && (
+                  <Ionicons
+                    name="checkmark"
+                    size={18}
+                    color={Colors.primaryRed}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
-
+ 
 // ================= REUSABLE FORM FIELD CARD =================
 function FieldCard({
   icon,
@@ -392,14 +544,14 @@ function FieldCard({
     </View>
   );
 }
-
+ 
 // ================= HEADER WAVE (reversed: edges dip, center arches up) =================
 // Same geometry as the login / OTP screens' HeaderWave.
 function HeaderWave({ width }) {
   const w = width;
   const redPath = `M0,0 H${w} V${EDGE_Y} Q${w * 0.75},${CTRL_Y} ${w / 2},${PEAK_Y} Q${w * 0.25},${CTRL_Y} 0,${EDGE_Y} Z`;
   const goldPath = `M0,${EDGE_Y + 10} Q${w * 0.25},${CTRL_Y + 10} ${w / 2},${PEAK_Y + 10} Q${w * 0.75},${CTRL_Y + 10} ${w},${EDGE_Y + 10}`;
-
+ 
   return (
     <Svg
       width={w}
@@ -429,7 +581,7 @@ function HeaderWave({ width }) {
     </Svg>
   );
 }
-
+ 
 // ================= HERITAGE SKYLINE (shared motif) =================
 function HeritageSkyline() {
   return (
@@ -492,7 +644,7 @@ function HeritageSkyline() {
     </View>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -502,7 +654,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 20,
   },
-
+ 
   /* ===== HEADER ===== */
   headerContainer: {
     width: "100%",
@@ -545,7 +697,7 @@ const styles = StyleSheet.create({
     height: 112,
     borderRadius: 56,
   },
-
+ 
   /* ===== TITLE & TAGLINE ===== */
   titleContainer: {
     alignItems: "center",
@@ -591,7 +743,7 @@ const styles = StyleSheet.create({
     color: Colors.gold,
     fontSize: 9,
   },
-
+ 
   /* ===== FORM HEADING ===== */
   formHeading: {
     fontSize: FontSizes.welcome,
@@ -608,7 +760,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     textAlign: "center",
   },
-
+ 
   /* ===== FORM FIELDS ===== */
   fieldsContainer: {
     width: "90%",
@@ -662,7 +814,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginRight: 3,
   },
-
+ 
   /* ===== TERMS ===== */
   termsRow: {
     width: "90%",
@@ -697,7 +849,28 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
     fontFamily: Fonts.body.semiBold,
   },
-
+ 
+  /* ===== ERROR MESSAGE ===== */
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: "5%",
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primaryRed,
+  },
+  errorText: {
+    fontSize: FontSizes.label,
+    fontFamily: Fonts.body.regular,
+    color: Colors.primaryRed,
+    marginLeft: 8,
+    flex: 1,
+  },
+ 
   /* ===== REGISTER BUTTON ===== */
   registerButtonTouchable: {
     width: "90%",
@@ -709,6 +882,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
+  },
+  registerButtonDisabled: {
+    opacity: 0.6,
   },
   registerButton: {
     width: "100%",
@@ -723,7 +899,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body.bold,
     letterSpacing: 1.2,
   },
-
+ 
   /* ===== OR DIVIDER ===== */
   orRow: {
     width: "90%",
@@ -743,7 +919,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.5,
   },
-
+ 
   /* ===== SOCIAL BUTTONS ===== */
   socialRow: {
     width: "90%",
@@ -774,7 +950,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginLeft: 8,
   },
-
+ 
   /* ===== LOGIN ROW ===== */
   loginRow: {
     flexDirection: "row",
@@ -793,7 +969,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
   },
-
+ 
   /* ===== GENDER MODAL ===== */
   modalOverlay: {
     flex: 1,
@@ -827,7 +1003,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body.regular,
     color: Colors.textPrimary,
   },
-
+ 
   /* ===== BOTTOM SKYLINE WATERMARK ===== */
   skylineWrapper: {
     width: "100%",
@@ -931,3 +1107,4 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 13,
   },
 });
+ 

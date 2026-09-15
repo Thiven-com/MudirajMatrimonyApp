@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -21,6 +22,7 @@ import Svg, {
 } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
+import { login, verifyMobile } from "../../utils/Functions";
 
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -43,67 +45,159 @@ export default function OtpScreen() {
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const inputRefs = useRef([]);
 
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+  const isComplete = otp.every((digit) => digit !== "");
+  const formattedTimer = `00:${String(secondsLeft).padStart(2, "0")}`;
+
   useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    if (secondsLeft <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setSecondsLeft((current) => Math.max(current - 1, 0));
     }, 1000);
-    return () => clearInterval(interval);
+
+    return () => clearInterval(timer);
   }, [secondsLeft]);
 
-  const formattedTimer = `00:${String(secondsLeft).padStart(2, "0")}`;
-  const isComplete = otp.every((digit) => digit !== "");
+  const handleEditNumber = () => {
+    router.back();
+  };
 
   const handleChange = (text, index) => {
-    // Only allow single digits
-    const digit = text.replace(/[^0-9]/g, "").slice(-1);
-
-    const nextOtp = [...otp];
-    nextOtp[index] = digit;
-    setOtp(nextOtp);
+    const digit = text.replace(/\D/g, "").slice(-1);
+    setOtp((current) => {
+      const next = [...current];
+      next[index] = digit;
+      return next;
+    });
 
     if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyPress = ({ nativeEvent }, index) => {
-    if (nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+  const handleKeyPress = (event, index) => {
+    if (
+      event.nativeEvent.key === "Backspace" &&
+      !otp[index] &&
+      index > 0
+    ) {
       inputRefs.current[index - 1]?.focus();
-      const nextOtp = [...otp];
-      nextOtp[index - 1] = "";
-      setOtp(nextOtp);
     }
   };
 
-  const handleVerify = () => {
-    const code = otp.join("");
-    console.log({ mobile, code });
-    router.replace("/home");
-    // TODO: call your OTP verification API, then:
-    // router.replace('/home');
-  };
+  const handleResend = async () => {
+    if (secondsLeft > 0 || loading) return;
 
-  const openHome = () => {
-    handleVerify();
+    setErrorText("");
+    setLoading(true);
+
+    try {
+      await login(mobile);
+      setSecondsLeft(RESEND_SECONDS);
+      setOtp(Array(OTP_LENGTH).fill(""));
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      setErrorText(error?.message || "Unable to resend OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyWithWhatsapp = () => {
-    console.log("Verify with WhatsApp for", mobile);
-    // TODO: trigger WhatsApp-based verification flow
+    handleVerify();
   };
 
-  const handleResend = () => {
-    if (secondsLeft > 0) return;
-    setSecondsLeft(RESEND_SECONDS);
-    setOtp(Array(OTP_LENGTH).fill(""));
-    inputRefs.current[0]?.focus();
-    // TODO: call your resend-OTP API
+  /* =====================================================
+     API ERROR MESSAGE HELPER
+  ===================================================== */
+
+  const getApiErrorMessage = (message) => {
+    if (typeof message === "string") {
+      return message;
+    }
+
+    if (message && typeof message === "object") {
+      return Object.values(message)
+        .flat()
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    return "Invalid OTP. Please try again.";
   };
 
-  const handleEditNumber = () => {
-    router.back();
+  /* =====================================================
+     VERIFY OTP
+  ===================================================== */
+
+  const handleVerify = async () => {
+    if (loading) return;
+
+    const code = otp.join("");
+
+    if (code.length !== OTP_LENGTH) {
+      setErrorText(`Enter the ${OTP_LENGTH}-digit OTP`);
+      return;
+    }
+
+    const cleanedMobile = String(mobile || "")
+      .replace(/\D/g, "")
+      .slice(-10);
+
+    if (cleanedMobile.length !== 10) {
+      setErrorText("Invalid mobile number.");
+      return;
+    }
+
+    setErrorText("");
+    setLoading(true);
+
+    try {
+      console.log("=================================");
+      console.log("VERIFY OTP START");
+      console.log("PHONE:", cleanedMobile);
+      console.log("OTP:", code);
+      console.log("=================================");
+
+      
+const result = await verifyMobile(mobile, code);
+
+console.log(
+  "VERIFY MOBILE RESPONSE:",
+  JSON.stringify(result, null, 2)
+);
+
+// Save access token returned by API
+const accessToken =
+  result?.access_token ||
+  result?.data?.access_token ||
+  result?.user?.access_token;
+
+if (!accessToken) {
+  throw new Error("Access token was not returned by the API");
+}
+
+await AsyncStorage.setItem("access_token", String(accessToken));
+
+console.log("ACCESS TOKEN SAVED");
+
+router.replace("/home");
+
+
+    } catch (error) {
+      console.log("VERIFY OTP ERROR:", error);
+
+      setErrorText(
+        error?.message ||
+        "Unable to verify OTP. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
@@ -208,8 +302,8 @@ export default function OtpScreen() {
           !isComplete && styles.verifyButtonDisabled,
         ]}
         activeOpacity={0.85}
-        onPress={() => openHome()}
-        disabled={!isComplete}
+        onPress={handleVerify}
+        disabled={!isComplete || loading}
       >
         <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>
           <Defs>
@@ -231,7 +325,16 @@ export default function OtpScreen() {
             color={Colors.white}
             style={{ marginRight: 8 }}
           />
-          <Text style={styles.verifyButtonText}>VERIFY OTP</Text>
+
+
+          {errorText ? (
+            <Text style={styles.errorText}>
+              {errorText}
+            </Text>
+          ) : null}
+          <Text style={styles.verifyButtonText}>
+            {loading ? "VERIFYING..." : "VERIFY OTP"}
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -710,4 +813,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 13,
     borderTopRightRadius: 13,
   },
+
+
+  errorText: {
+  width: "90%",
+  textAlign: "center",
+  color: Colors.primaryRed,
+  fontSize: FontSizes.label,
+  fontFamily: Fonts.body.medium,
+  marginBottom: 12,
+},
 });

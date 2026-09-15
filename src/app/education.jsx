@@ -3,23 +3,30 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
+
+import {
+  updateMemberEducationStatus,
+} from "../utils/Functions";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -134,25 +141,135 @@ export default function EducationScreen() {
     // TODO: push a new education entry block onto the form state
   };
 
-  const handleSaveAndContinue = () => {
-    console.log("Saving education details...", {
-      qualification,
-      specialization,
-      university,
-      yearOfPassing,
-      modeOfStudy,
-      educationLevel,
-      stream,
-      markingSystem,
-      percentage,
-      grade,
-      certification,
-      otherSkills,
-      languages,
-    });
-    // TODO: submit to backend, then navigate to next onboarding step
-    // router.push("/onboarding/next-step");
-  };
+ const [educationId, setEducationId] = useState(1);
+const [saving, setSaving] = useState(false);
+
+
+
+const handleSaveAndContinue = async () => {
+  if (saving) {
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const accessToken =
+      await AsyncStorage.getItem("access_token");
+
+    console.log(
+      "================================="
+    );
+    console.log(
+      "EDUCATION STATUS SAVE CLICKED"
+    );
+    console.log(
+      "TOKEN EXISTS:",
+      !!accessToken
+    );
+    console.log(
+      "TOKEN LENGTH:",
+      accessToken?.length || 0
+    );
+    console.log(
+      "EDUCATION ID:",
+      educationId
+    );
+    console.log(
+      "STATUS:",
+      1
+    );
+    console.log(
+      "================================="
+    );
+
+    if (!accessToken) {
+      Alert.alert(
+        "Session Expired",
+        "Please login again."
+      );
+      return;
+    }
+
+    /*
+     * IMPORTANT:
+     * The education ID must come from the
+     * backend education record.
+     *
+     * Do not use a hard-coded ID such as 3.
+     */
+   console.log("EDUCATION ID:", educationId);
+
+if (!educationId) {
+  Alert.alert(
+    "Education ID Missing",
+    "Education record ID was not found."
+  );
+  return;
+}
+    const response =
+      await updateMemberEducationStatus(
+        accessToken,
+        educationId,
+        1
+      );
+
+    console.log(
+      "EDUCATION STATUS UPDATE RESULT:",
+      JSON.stringify(
+        response,
+        null,
+        2
+      )
+    );
+
+    /*
+     * Backend returned failure
+     */
+    if (
+      response?.result === false
+    ) {
+      Alert.alert(
+        "Update Failed",
+        response?.message ||
+          "Unable to update education status."
+      );
+
+      return;
+    }
+
+    /*
+     * Success
+     */
+    Alert.alert(
+      "Success",
+      response?.message ||
+        "Education status updated successfully.",
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            // Navigate if required
+            // router.push("/onboarding/next-step");
+          },
+        },
+      ]
+    );
+  } catch (error) {
+    console.error(
+      "SAVE EDUCATION STATUS ERROR:",
+      error
+    );
+
+    Alert.alert(
+      "Error",
+      error?.message ||
+        "Unable to update education status."
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
     <SafeAreaView

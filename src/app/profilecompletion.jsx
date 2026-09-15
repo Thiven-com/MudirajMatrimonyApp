@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
-    Dimensions,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -25,12 +25,14 @@ const COMPLETED_SECTIONS = [
     icon: "person-outline",
     title: "Basic Details",
     subtitle: "All set!",
+    route:"/onboarding/basic-details"
   },
   {
     key: "family-details",
     icon: "people-outline",
     title: "Family Details",
     subtitle: "All set!",
+    route:"/onboarding/family-details"
   },
   {
     key: "education",
@@ -46,28 +48,28 @@ const PENDING_SECTIONS = [
     icon: "briefcase-outline",
     title: "Career",
     subtitle: "Tell us about your professional life",
-    route: "/onboarding/career",
+    route: "/careers",
   },
   {
     key: "lifestyle",
     icon: "heart-outline",
     title: "Lifestyle",
     subtitle: "Help others know you better",
-    route: "/onboarding/lifestyle",
+    route: "/lifestyle",
   },
   {
     key: "partner-preference",
     icon: "people-circle-outline",
     title: "Partner Preference",
     subtitle: "Share your partner preferences",
-    route: "/onboarding/partner-preference",
+    route: "/partner-preference",
   },
   {
     key: "photos",
     icon: "image-outline",
     title: "Photos",
     subtitle: "Add your photos to your profile",
-    route: "/onboarding/photos",
+    route: "/photos",
   },
 ];
 

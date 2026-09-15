@@ -3,9 +3,11 @@ import {
   Ionicons,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
+
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+
 import {
   Dimensions,
   Image,
@@ -18,16 +20,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
- 
+import { login } from "../../utils/Functions";
+
+
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
  
@@ -37,16 +44,112 @@ const HEADER_HEIGHT = 210;
 const EDGE_Y = HEADER_HEIGHT * 0.7;
 const PEAK_Y = HEADER_HEIGHT * 0.33;
 const CTRL_Y = HEADER_HEIGHT * 0.05;
- 
+
+const MOBILE_LENGTH = 10;
+
 export default function LoginScreen() {
   const router = useRouter();
   const [mobile, setMobile] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
- 
-  const handleLogin = () => {
-    console.log({ mobile, rememberMe });
-    // router.replace('/home');
-  };
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+
+ const handleLogin = async () => {
+  if (loading) return;
+
+  // Remove spaces and non-numbers
+  const cleanedMobile = mobile
+    .replace(/\D/g, "")
+    .slice(-10);
+
+  if (cleanedMobile.length !== MOBILE_LENGTH) {
+    setErrorText(
+      `Enter a valid ${MOBILE_LENGTH}-digit mobile number`
+    );
+    return;
+  }
+
+  setErrorText("");
+  setLoading(true);
+
+  try {
+    console.log(
+      "Calling login API with phone:",
+      cleanedMobile
+    );
+
+    const result = await login(
+      cleanedMobile
+    );
+
+    console.log(
+      "login() result:",
+      JSON.stringify(result, null, 2)
+    );
+
+    // ==========================================
+    // API ERROR
+    // ==========================================
+
+    if (
+      result?.result === false ||
+      result?.success === 0
+    ) {
+      let message =
+        "Unable to login right now.";
+
+      if (
+        result?.message?.phone
+      ) {
+        message =
+          result.message.phone[0];
+      } else if (
+        typeof result?.message ===
+        "string"
+      ) {
+        message =
+          result.message;
+      } else if (
+        result?.message &&
+        typeof result.message ===
+          "object"
+      ) {
+        message =
+          Object.values(
+            result.message
+          )
+            .flat()
+            .join("\n");
+      }
+
+      setErrorText(message);
+      return;
+    }
+
+    // ==========================================
+    // SUCCESS
+    // ==========================================
+
+    router.push({
+      pathname: "/otp",
+      params: {
+        mobile: cleanedMobile,
+      },
+    });
+  } catch (error) {
+    console.log(
+      "Login API Error:",
+      error
+    );
+
+    setErrorText(
+      error?.message ||
+        "Something went wrong while logging in. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
  
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
@@ -146,16 +249,19 @@ export default function LoginScreen() {
         </View>
  
         {/* ================= LOGIN BUTTON ================= */}
+        {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+
         <TouchableOpacity
           style={styles.loginButtonTouchable}
           activeOpacity={0.85}
           onPress={handleLogin}
+          disabled={loading}
         >
           <LinearGradient
             colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.loginButton}
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           >
             <MaterialCommunityIcons
               name="login"
@@ -163,13 +269,9 @@ export default function LoginScreen() {
               color={Colors.white}
               style={{ marginRight: 8 }}
             />
- 
-            <TouchableOpacity
-              onPress={() => router.push("/otp")}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.loginButtonText}>SEND OTP </Text>
-            </TouchableOpacity>
+            <Text style={styles.loginButtonText}>
+              {loading ? "SENDING..." : "SEND OTP"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
  
