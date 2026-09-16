@@ -1,11 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
   Platform,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,13 +12,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+// React Native CLI icons
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Navigation
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
 import { verifyLoginOtp } from "../../utils/Functions";
@@ -37,8 +43,9 @@ const OTP_LENGTH = 4;
 const RESEND_SECONDS = 60;
 
 export default function OtpScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const params = route.params || {};
   const mobile = params?.mobile || "98765 43210";
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
@@ -100,7 +107,7 @@ export default function OtpScreen() {
       if (result?.userNotFound === true) {
         setErrorText("User account not found. Redirecting to registration...");
         setTimeout(() => {
-          router.replace("/register");
+          navigation.replace("Register");
         }, 1500);
         return;
       }
@@ -145,7 +152,7 @@ export default function OtpScreen() {
           return;
         }
 
-        router.replace("/home");
+        navigation.replace("Home");
         return;
       }
 
@@ -172,11 +179,11 @@ export default function OtpScreen() {
   };
 
   const handleEditNumber = () => {
-    router.back();
+    navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -189,7 +196,7 @@ export default function OtpScreen() {
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -352,7 +359,7 @@ export default function OtpScreen() {
         <TouchableOpacity
           style={styles.whatsappButton}
           activeOpacity={0.8}
-          onPress={() => router.replace("/login")}
+          onPress={() => navigation.replace("Login")}
         >
           <Ionicons name="arrow-back" size={18} color={Colors.primaryRed} />
           <Text style={styles.whatsappText}>Back to Login</Text>

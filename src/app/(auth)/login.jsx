@@ -1,26 +1,35 @@
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+// React Native CLI icons
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Native CLI gradient
+import LinearGradient from "react-native-linear-gradient";
+
+// React Navigation
+import { useNavigation } from "@react-navigation/native";
+
 import Svg, {
-    Defs,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts } from "../../constants/Fonts";
 import { sendLoginOtp } from "../../utils/Functions";
@@ -38,7 +47,7 @@ const CTRL_Y = HEADER_HEIGHT * 0.05;
 const MOBILE_LENGTH = 10;
 
 export default function LoginScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [mobile, setMobile] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
@@ -66,7 +75,7 @@ export default function LoginScreen() {
       ) {
         setErrorText("📝 No account found. Redirecting to registration...");
         setTimeout(() => {
-          router.replace("/register");
+          navigation.replace("Register");
         }, 2000);
         return;
       }
@@ -77,12 +86,9 @@ export default function LoginScreen() {
       }
 
       // OTP sent successfully
-      router.push({
-        pathname: "/otp",
-        params: {
-          mobile: cleanedMobile,
-          sessionToken: result?.sessionToken || "",
-        },
+      navigation.navigate("Otp", {
+        mobile: cleanedMobile,
+        sessionToken: result?.sessionToken || "",
       });
     } catch (error) {
       console.log("login Error:", error);
@@ -96,7 +102,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -127,7 +133,7 @@ export default function LoginScreen() {
 
           <View style={styles.tabRow}>
             <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
-            <TouchableOpacity onPress={() => router.push("/register")}>
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
               <Text style={styles.tabText}>Register</Text>
             </TouchableOpacity>
           </View>
@@ -207,7 +213,7 @@ export default function LoginScreen() {
               <Text style={styles.registerText}>
                 New to Mudiraj World Matrimony?{" "}
               </Text>
-              <TouchableOpacity onPress={() => router.push("/register")}>
+              <TouchableOpacity onPress={() => navigation.navigate("Register")}>
                 <Text style={styles.registerLink}>Register</Text>
               </TouchableOpacity>
             </View>

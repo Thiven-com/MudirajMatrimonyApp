@@ -1,12 +1,10 @@
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Dimensions,
   Image,
   Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,13 +13,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+// React Native CLI icons
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Native CLI gradient
+import LinearGradient from "react-native-linear-gradient";
+
+// React Navigation
+import { useNavigation } from "@react-navigation/native";
+
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
 import { signup } from "../../utils/Functions";
@@ -43,7 +52,7 @@ const ON_BEHALF_OPTIONS = [
 ];
 
 export default function RegisterScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -100,7 +109,7 @@ export default function RegisterScreen() {
       }
 
       // Registration successful
-      router.replace("/login");
+      navigation.replace("Login");
     } catch (error) {
       console.log("signup Error:", error);
       setErrorText(error?.message || "Something went wrong. Please try again.");
@@ -110,7 +119,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -127,7 +136,7 @@ export default function RegisterScreen() {
 
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -420,7 +429,7 @@ export default function RegisterScreen() {
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity
-            onPress={() => router.push("/login")}
+            onPress={() => navigation.navigate("Login")}
             activeOpacity={0.7}
           >
             <Text style={styles.loginLink}>Login</Text>
