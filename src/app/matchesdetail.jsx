@@ -74,6 +74,91 @@ const getToken = async () => {
 };
 
 /* =========================================================
+   TOLERANT STATUS / RESPONSE HELPERS
+   Backend responses for booleans/statuses aren't always the
+   exact shape we expect (1 vs true vs "1" vs "sent" vs an
+   object). These helpers normalize all the shapes we've seen
+   so state doesn't silently fail to restore after a reload.
+========================================================= */
+
+// Was interest sent to this member? Accepts many possible
+// backend representations of "yes, sent/pending/accepted".
+function isInterestSentStatus(status) {
+  if (status === null || status === undefined) return false;
+  if (typeof status === "boolean") return status;
+  if (typeof status === "number") return status === 1;
+  const s = String(status).toLowerCase().trim();
+  return [
+    "sent",
+    "1",
+    "true",
+    "pending",
+    "accepted",
+    "yes",
+    "requested",
+    "interest_sent",
+    "interest sent",
+  ].includes(s);
+}
+
+// Was interest rejected/declined for this member?
+function isInterestRejectedStatus(status) {
+  if (status === null || status === undefined) return false;
+  const s = String(status).toLowerCase().trim();
+  return [
+    "rejected",
+    "declined",
+    "reject",
+    "decline",
+    "0_rejected",
+    "no",
+  ].includes(s);
+}
+
+// Is this member currently shortlisted? Accepts booleans,
+// 1/0, "1"/"0", "true"/"false".
+function isShortlistedValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  const s = String(value).toLowerCase().trim();
+  return ["1", "true", "yes", "shortlisted"].includes(s);
+}
+
+// Generic "did this API call succeed" check. Backends are
+// inconsistent about success ? 1 : true : "success" etc, so
+// this checks every shape we've seen instead of one strict form.
+function isSuccessResponse(result) {
+  if (!result) return false;
+  const s = result.success;
+  const r = result.result;
+  const st = result.status;
+  if (s === 1 || s === true || s === "1" || s === "true") return true;
+  if (r === 1 || r === true || r === "1" || r === "true") return true;
+  if (typeof st === "string" && st.toLowerCase() === "success") return true;
+  if (st === 1 || st === true) return true;
+  return false;
+}
+
+// The backend returns a "failure" response with a message like
+// "Already Expressed The Interest" when interest was already sent
+// in a previous call. That's not actually a failure from the user's
+// point of view — it confirms the interest IS sent — so this lets
+// callers recognize it and update the UI to the "already done" state
+// instead of showing a retry-able error.
+function isAlreadyDoneMessage(message) {
+  if (!message || typeof message !== "string") return false;
+  const m = message.toLowerCase();
+  return (
+    m.includes("already") &&
+    (m.includes("interest") ||
+      m.includes("shortlist") ||
+      m.includes("expressed") ||
+      m.includes("reject"))
+  );
+}
+
+/* =========================================================
    API -> UI MAPPING
    Confirmed against a real /api/member/public-profile/:id
    response:
@@ -116,6 +201,27 @@ function mapProfile(api, routeId) {
   // "locked" state instead of just hiding the row entirely.
   const canViewContact = !!api.view_contact_check;
   const rawPhone = contact.phone ?? basic.phone ?? "";
+
+  // Widened field lookups: different endpoints (member-info vs
+  // public-profile) have been seen to use different key names for
+  // the same concept, and the "success" value shape isn't consistent
+  // either (1 vs true vs nested). Check every plausible key here;
+  // isInterestSentStatus / isShortlistedValue handle the value shape.
+  const rawInterestStatus =
+    api.interest_status ??
+    api.interest_sent_status ??
+    api.interestStatus ??
+    api.interest_sent ??
+    api?.interest?.status ??
+    api?.interest_details?.status ??
+    null;
+
+  const rawShortlisted =
+    api.is_shortlisted ??
+    api.shortlisted ??
+    api.is_shortlist ??
+    api?.shortlist?.status ??
+    null;
 
   return {
     id: api.id ?? api.user_id ?? basic.id ?? routeId ?? null,
@@ -165,8 +271,8 @@ function mapProfile(api, routeId) {
         : FALLBACK_PHOTO,
     // Whether THIS member is already shortlisted / has an interest
     // already sent to them, if the API tells us up front.
-    isShortlisted: !!(api.is_shortlisted ?? api.shortlisted),
-    interestStatus: api.interest_status ?? api.interest_sent_status ?? null,
+    isShortlisted: isShortlistedValue(rawShortlisted),
+    interestStatus: rawInterestStatus,
   };
 }
 
@@ -236,15 +342,13 @@ export default function ProfileDetailScreen() {
 
       // Confirmed shape: { result: true, data: {...} } — data is the
       // profile object directly, NOT nested under data.member.
-      const memberData =
-        memberResult?.success === 1 || memberResult?.result === true
-          ? (memberResult?.data?.member ?? memberResult?.data ?? null)
-          : null;
+      const memberData = isSuccessResponse(memberResult)
+        ? (memberResult?.data?.member ?? memberResult?.data ?? null)
+        : null;
 
-      const publicData =
-        publicResult?.success === 1 || publicResult?.result === true
-          ? (publicResult?.data?.member ?? publicResult?.data ?? null)
-          : null;
+      const publicData = isSuccessResponse(publicResult)
+        ? (publicResult?.data?.member ?? publicResult?.data ?? null)
+        : null;
 
       if (!memberData && !publicData) {
         setLoadError(
@@ -257,17 +361,40 @@ export default function ProfileDetailScreen() {
 
       // Merge: public profile as the base, member info overrides/fills in on top
       const merged = { ...publicData, ...memberData };
+
+      // DEBUG: if interest/shortlist state still doesn't persist after
+      // this fix, check this log for the actual field name/value your
+      // backend returns and add it to the lookups in mapProfile /
+      // the isInterestSentStatus / isShortlistedValue helpers above.
+      console.log(
+        "loadProfile interest/shortlist raw fields:",
+        JSON.stringify({
+          interest_status: merged.interest_status,
+          interest_sent_status: merged.interest_sent_status,
+          interest_sent: merged.interest_sent,
+          is_shortlisted: merged.is_shortlisted,
+          shortlisted: merged.shortlisted,
+        }),
+      );
+
       const mapped = mapProfile(merged, id);
 
       setProfile(mapped);
 
-      // Seed local toggle state from whatever the API already told us.
+      // Seed local toggle state from whatever the API already told us,
+      // using tolerant checks so differing backend value shapes don't
+      // silently fail to restore state after a reload/remount.
       setIsShortlisted(!!mapped.isShortlisted);
-      if (mapped.interestStatus === "sent" || mapped.interestStatus === 1) {
+
+      if (isInterestSentStatus(mapped.interestStatus)) {
         setInterestSent(true);
-      }
-      if (mapped.interestStatus === "rejected") {
+        setInterestRejected(false);
+      } else if (isInterestRejectedStatus(mapped.interestStatus)) {
         setInterestRejected(true);
+        setInterestSent(false);
+      } else {
+        setInterestSent(false);
+        setInterestRejected(false);
       }
     } catch (e) {
       console.log("loadProfile Error:", e);
@@ -320,9 +447,16 @@ export default function ProfileDetailScreen() {
       const result = await expressInterest(targetId, token);
       console.log("expressInterest result:", JSON.stringify(result));
 
-      if (result?.success === 1 || result?.result === true) {
+      if (isSuccessResponse(result)) {
         setInterestSent(true);
         setInterestRejected(false);
+      } else if (isAlreadyDoneMessage(result?.message)) {
+        // Backend says "already expressed" — this confirms interest
+        // WAS sent successfully before, so reflect that in the UI
+        // instead of surfacing it as an actionable error.
+        setInterestSent(true);
+        setInterestRejected(false);
+        setInterestError("");
       } else {
         setInterestError(result?.message || "Unable to send interest.");
       }
@@ -364,9 +498,13 @@ export default function ProfileDetailScreen() {
       const result = await rejectInterest(targetId, token);
       console.log("rejectInterest result:", JSON.stringify(result));
 
-      if (result?.success === 1 || result?.result === true) {
+      if (isSuccessResponse(result)) {
         setInterestRejected(true);
         setInterestSent(false);
+      } else if (isAlreadyDoneMessage(result?.message)) {
+        setInterestRejected(true);
+        setInterestSent(false);
+        setRejectError("");
       } else {
         setRejectError(result?.message || "Unable to reject interest.");
       }
@@ -411,8 +549,13 @@ export default function ProfileDetailScreen() {
 
       console.log("toggleShortlist result:", JSON.stringify(result));
 
-      if (result?.success === 1 || result?.result === true) {
+      if (isSuccessResponse(result)) {
         setIsShortlisted((prev) => !prev);
+      } else if (isAlreadyDoneMessage(result?.message)) {
+        // e.g. "Already shortlisted" — reflect the true end state
+        // rather than showing an actionable error.
+        setIsShortlisted(!isShortlisted ? true : isShortlisted);
+        setShortlistError("");
       } else {
         setShortlistError(result?.message || "Unable to update shortlist.");
       }

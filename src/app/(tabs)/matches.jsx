@@ -866,7 +866,14 @@ export default function MatchesScreen() {
                       style={styles.chatButton}
                       onPress={(event) => {
                         event.stopPropagation();
-                        console.log("Chat member:", item.id);
+                        // Route to the chat conversation screen for this
+                        // member, passing id (and name, for the chat
+                        // header) as route params — same pattern as the
+                        // card's own router.push to /matchesdetail above.
+                        router.push({
+                          pathname: "/chatconversion",
+                          params: { id: item.id, name: item.name },
+                        });
                       }}
                       activeOpacity={0.8}
                     >
