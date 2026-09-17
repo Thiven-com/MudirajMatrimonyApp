@@ -101,10 +101,14 @@ const FILTERS = [
 ];
 
 // ---- API response -> chat row model ----
+// Matches the real /api/member/chat-list response shape:
+// { id, user_id, active, blocked_by_user, unseen_message_count,
+//   last_message, last_message_time, member_name, member_package,
+//   member_photo }
 function mapChat(item) {
   return {
-    threadId: String(item.id ?? ""),
-    memberId: String(item.user_id ?? item.id ?? ""),
+    threadId: String(item.id ?? ""), // conversation/chat id, e.g. 1
+    memberId: String(item.user_id ?? item.id ?? ""), // other member's user id, e.g. 32
     name: item.member_name ?? "",
     profession: item.profession ?? "",
     lastMessage: item.last_message ?? "",
@@ -180,7 +184,8 @@ export default function ChatsScreen() {
     router.push({
       pathname: "/chatconversion",
       params: {
-        id: chat.memberId,
+        id: chat.threadId, // conversation/chat id — matches the API's `id` field (e.g. 1)
+        memberId: chat.memberId, // the other member's user id — matches the API's `user_id` field (e.g. 32)
         threadId: chat.threadId,
         name: chat.name,
         profession: chat.profession,

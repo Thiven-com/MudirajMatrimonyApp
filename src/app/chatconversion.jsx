@@ -27,6 +27,10 @@ const { width } = Dimensions.get("window");
 
 const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
 
+// Flip this to false once the sender_name/receiver_name mapping has been
+// confirmed against several real conversations and you're ready to ship.
+const DEBUG_SHOW_RAW_NAMES = true;
+
 const COLORS = {
   background: "#FAF7F3",
   white: "#FFFFFF",
@@ -45,49 +49,135 @@ const COLORS = {
   cardShadow: "#B8AAA0",
   bubbleSent: "#B70D09",
   bubbleReceived: "#FFFFFF",
+  debugBanner: "#FFE9A8",
 };
 
 const FALLBACK_AVATAR = require("../../assets/images/Match1.png");
 
-// Field names kept consistent with chat-list's convention
-// (member_name, member_photo). Confirm against real chat-view response
-// and adjust if it differs.
-function mapChatPartner(item, fallbackId) {
-  if (!item) return null;
+/**
+ * Maps the "partner" (other member of the chat) using the ACTUAL shape
+ * returned by getChatView:
+ *   {
+ *     receiver_name, receiver_photo,   <- despite the name, this is the
+ *                                          LOGGED-IN user in this endpoint
+ *     sender_name, auth_user_photo,    <- despite the name, this is the
+ *                                          OTHER member of the chat
+ *     messages: [...]
+ *   }
+ *
+ * Confirmed by comparing against the chat list, which correctly showed
+ * "harijana sony" as the other participant: the chat-view response had
+ * that name under `sender_name`, not `receiver_name`. So for the header
+ * we want `sender_name` / `auth_user_photo`, not `receiver_name` /
+ * `receiver_photo` as the field names would suggest.
+ *
+ * If the backend ever fixes/renames these fields, this is the only place
+ * that needs to change.
+ */
+function mapChatPartner(payload, fallbackId) {
+  if (!payload) return null;
   return {
-    id: String(item.user_id ?? item.id ?? fallbackId ?? ""),
-    name: item.member_name ?? item.name ?? "",
-    profession: item.profession ?? "",
-    online: item.active === 1 || !!item.online,
+    id: String(fallbackId ?? ""),
+    name: payload.sender_name ?? "",
+    profession: "",
+    // The API doesn't return an online/active flag in this response,
+    // default to false rather than guessing.
+    online: false,
     verified: true,
-    avatarUrl: item.member_photo ?? item.avatar ?? null,
+    avatarUrl: payload.auth_user_photo ?? null,
   };
 }
 
-function mapMessage(item) {
+/**
+ * Maps a single message using the ACTUAL fields returned:
+ *   { id, chat_thread_id, sender_user_id, message, attachment, seen }
+ *
+ * There's no `from_me` / `is_sender` flag and no timestamp field at all.
+ * Since this is always a 1-on-1 thread, we can derive direction by
+ * comparing sender_user_id against the OTHER member's id (receiverId,
+ * i.e. the routeMemberId / user_id passed in from the chat list):
+ *   sender_user_id === receiverId  -> message came from them
+ *   otherwise                      -> message is from the logged-in user
+ *
+ * Note: this is a different (and correctly-named) `sender_user_id` field
+ * on each message object — it is NOT related to the confusing
+ * `sender_name` / `receiver_name` naming on the chat-view payload above,
+ * so it does not need the same swap.
+ */
+function mapMessage(item, receiverId) {
+  const senderId = item.sender_user_id;
+  const fromMe =
+    receiverId != null && senderId != null
+      ? Number(senderId) !== Number(receiverId)
+      : false;
+
   return {
     id: String(item.id ?? item.message_id ?? `m${Math.random()}`),
-    fromMe: !!(item.from_me ?? item.is_sender ?? item.fromMe),
+    fromMe,
     text: item.message ?? item.text ?? item.body ?? "",
+    // No created_at field is returned by this endpoint — render blank
+    // rather than fabricating a time. Swap this for a real field name
+    // if/when the backend starts returning one (e.g. created_at_formatted).
     time: item.time ?? item.created_at_formatted ?? item.created_at ?? "",
-    status: item.status ?? undefined,
+    attachment: item.attachment ?? null,
+    // seen: 1 means the OTHER person has read a message we sent.
+    status: fromMe ? (item.seen === 1 ? "read" : "sent") : undefined,
   };
 }
 
 export default function ChatConversationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const memberId = params.id;
+
+  // These three can, in principle, all be different values:
+  //  - chatId: the conversation/thread's own id (API's `id` field)
+  //  - routeMemberId: the other member's user id (API's `sender_user_id`
+  //    value that identifies THEM, used to derive message direction)
+  //  - routeThreadId: same as chatId, sent explicitly for clarity
+  const chatId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const routeMemberId = Array.isArray(params.memberId)
+    ? params.memberId[0]
+    : params.memberId;
+
+  const routeThreadId = Array.isArray(params.threadId)
+    ? params.threadId[0]
+    : params.threadId;
+
+  // getChatView is keyed by the CONVERSATION's own id (the backend
+  // looks up a ChatThread record by this id) — NOT the other member's
+  // user id. Confirmed by the "No query results for model
+  // [App\Models\ChatThread] 32" error, which showed the backend was
+  // being passed the member's user id (32) instead of the thread id (1).
+  const resolvedChatId = chatId || routeThreadId;
+
+  // The other member's user id — used to figure out which side of the
+  // conversation a message belongs to (see mapMessage above), and as a
+  // fallback id for profile links.
+  const memberId = routeMemberId || chatId;
+
+  console.log("ChatConversationScreen params:", {
+    chatId,
+    routeMemberId,
+    routeThreadId,
+    resolvedChatId,
+    memberId,
+  });
 
   // threadId comes from ChatsScreen's nav params when available;
   // falls back to whatever chat-view returns if missing (e.g. deep link).
   const [chatThreadId, setChatThreadId] = useState(
-    params.threadId ? String(params.threadId) : null,
+    resolvedChatId ? String(resolvedChatId) : null,
   );
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [chat, setChat] = useState(null);
+
+  // Raw name fields from the last successful getChatView response, kept
+  // only so the debug banner can show both side by side. Safe to remove
+  // along with DEBUG_SHOW_RAW_NAMES once the mapping is verified.
+  const [debugNames, setDebugNames] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -100,7 +190,7 @@ export default function ChatConversationScreen() {
   /* ================= INITIAL LOAD ================= */
 
   const loadChatView = useCallback(async () => {
-    if (!memberId) {
+    if (!resolvedChatId) {
       setErrorMessage("No conversation selected.");
       setLoading(false);
       return;
@@ -111,8 +201,10 @@ export default function ChatConversationScreen() {
 
     try {
       const token = await getToken();
-      const result = await getChatView(memberId, token);
+      const result = await getChatView(resolvedChatId, token);
 
+      // This endpoint responds with `result: true` (not `success`), so
+      // check both to stay compatible with other endpoints too.
       const isSuccess =
         result?.success === 1 ||
         result?.success === true ||
@@ -121,19 +213,22 @@ export default function ChatConversationScreen() {
       if (isSuccess) {
         const payload = result?.data || result;
 
-        const partner = mapChatPartner(
-          payload?.member || payload?.user || payload?.partner || payload,
-          memberId,
-        );
+        const partner = mapChatPartner(payload, memberId);
 
-        const rawMessages =
-          payload?.messages || payload?.chats || payload?.data || [];
+        // API returns messages NEWEST-first (id 5, 4, 3, 2, 1). The
+        // FlatList expects oldest-first so it reads top-to-bottom and
+        // scrollToEnd() lands on the latest message — reverse here.
+        const rawMessages = Array.isArray(payload?.messages)
+          ? [...payload.messages].reverse()
+          : [];
 
         setChat(partner);
-        setMessages(
-          (Array.isArray(rawMessages) ? rawMessages : []).map(mapMessage),
-        );
+        setMessages(rawMessages.map((m) => mapMessage(m, memberId)));
         setHasMoreOlder(true);
+        setDebugNames({
+          receiver_name: payload?.receiver_name ?? null,
+          sender_name: payload?.sender_name ?? null,
+        });
 
         if (!chatThreadId) {
           setChatThreadId(
@@ -141,7 +236,7 @@ export default function ChatConversationScreen() {
               payload?.chat_thread_id ??
                 payload?.thread_id ??
                 payload?.id ??
-                "",
+                resolvedChatId,
             ),
           );
         }
@@ -159,7 +254,7 @@ export default function ChatConversationScreen() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [memberId]);
+  }, [resolvedChatId]);
 
   useEffect(() => {
     loadChatView();
@@ -180,13 +275,19 @@ export default function ChatConversationScreen() {
       const result = await getOldMessages(Number(firstMessageId), token);
       console.log("getOldMessages response:", JSON.stringify(result));
 
-      if (result.success === 1) {
+      const isSuccess = result?.success === 1 || result?.result === true;
+
+      if (isSuccess) {
         const rawOld = Array.isArray(result.data) ? result.data : [];
 
         if (rawOld.length === 0) {
           setHasMoreOlder(false);
         } else {
-          const olderMapped = rawOld.map(mapMessage);
+          // Same ordering caveat as the initial load: assume this page
+          // also comes back newest-first and reverse before prepending.
+          const olderMapped = [...rawOld]
+            .reverse()
+            .map((m) => mapMessage(m, memberId));
           setMessages((prev) => [...olderMapped, ...prev]);
         }
       } else {
@@ -197,7 +298,7 @@ export default function ChatConversationScreen() {
     } finally {
       setLoadingOlder(false);
     }
-  }, [loadingOlder, hasMoreOlder, messages]);
+  }, [loadingOlder, hasMoreOlder, messages, memberId]);
 
   /* ================= SEND MESSAGE ================= */
 
@@ -232,8 +333,9 @@ export default function ChatConversationScreen() {
     try {
       const token = await getToken();
       const result = await sendChatReply(chatThreadId, trimmed, token);
+      const isSuccess = result?.success === 1 || result?.result === true;
 
-      if (result.success === 1) {
+      if (isSuccess) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === optimisticId ? { ...m, status: "sent" } : m,
@@ -363,6 +465,19 @@ export default function ChatConversationScreen() {
         </View>
       </View>
 
+      {/* ================= DEBUG: RAW NAME FIELDS ================= */}
+      {/* Remove this block (and DEBUG_SHOW_RAW_NAMES) once you've
+          confirmed sender_name/auth_user_photo is the right pairing
+          across several real conversations, not just this one. */}
+      {DEBUG_SHOW_RAW_NAMES && debugNames && (
+        <View style={styles.debugBanner}>
+          <Text style={styles.debugText} numberOfLines={1}>
+            receiver_name: "{String(debugNames.receiver_name)}" | sender_name: "
+            {String(debugNames.sender_name)}" → using sender_name
+          </Text>
+        </View>
+      )}
+
       {/* ================= SAFETY NOTICE ================= */}
       <View style={styles.safetyBanner}>
         <Ionicons name="shield-checkmark" size={14} color={COLORS.green} />
@@ -458,7 +573,7 @@ export default function ChatConversationScreen() {
 /* ================================================= */
 
 function MessageBubble({ message }) {
-  const { fromMe, text, time, status } = message;
+  const { fromMe, text, time, status, attachment } = message;
 
   return (
     <View
@@ -473,18 +588,30 @@ function MessageBubble({ message }) {
           fromMe ? styles.bubbleSent : styles.bubbleReceived,
         ]}
       >
-        <Text
-          style={fromMe ? styles.bubbleTextSent : styles.bubbleTextReceived}
-        >
-          {text}
-        </Text>
+        {attachment ? (
+          <Image
+            source={{ uri: attachment }}
+            style={styles.bubbleAttachment}
+            resizeMode="cover"
+          />
+        ) : null}
+
+        {!!text && (
+          <Text
+            style={fromMe ? styles.bubbleTextSent : styles.bubbleTextReceived}
+          >
+            {text}
+          </Text>
+        )}
 
         <View style={styles.bubbleMeta}>
-          <Text
-            style={fromMe ? styles.bubbleTimeSent : styles.bubbleTimeReceived}
-          >
-            {time}
-          </Text>
+          {!!time && (
+            <Text
+              style={fromMe ? styles.bubbleTimeSent : styles.bubbleTimeReceived}
+            >
+              {time}
+            </Text>
+          )}
 
           {fromMe && status === "failed" ? (
             <Ionicons
@@ -615,6 +742,16 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
   },
 
+  /* ================= DEBUG BANNER ================= */
+
+  debugBanner: {
+    backgroundColor: COLORS.debugBanner,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 5,
+  },
+
+  debugText: { fontSize: 10, color: COLORS.text },
+
   /* ================= SAFETY BANNER ================= */
 
   safetyBanner: {
@@ -681,6 +818,13 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+
+  bubbleAttachment: {
+    width: width * 0.55,
+    height: width * 0.55,
+    borderRadius: 12,
+    marginBottom: SPACING.xs,
   },
 
   bubbleTextSent: { fontSize: 14, color: COLORS.white, lineHeight: 19 },

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +21,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
-    getMemberFamilyInfo,
-    updateMemberFamilyInfo,
+  getMemberFamilyInfo,
+  updateMemberFamilyInfo,
 } from "../utils/Functions";
 
 /* =========================================================
@@ -764,13 +764,13 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#FFFFFF",
 
-    borderRadius: 12,
+    borderRadius: 14,
 
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
 
-    paddingTop: 14,
+    paddingTop: 18,
 
-    paddingBottom: 20,
+    paddingBottom: 26,
 
     borderWidth: 1,
 
@@ -795,7 +795,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   header: {
-    minHeight: 38,
+    minHeight: 42,
 
     flexDirection: "row",
 
@@ -803,27 +803,27 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    width: 34,
+    width: 36,
 
-    height: 34,
+    height: 36,
 
-    borderRadius: 17,
+    borderRadius: 18,
 
     alignItems: "center",
 
     justifyContent: "center",
 
-    marginRight: 6,
+    marginRight: 10,
 
     backgroundColor: "#FFF5F6",
   },
 
   headerIconContainer: {
-    width: 30,
+    width: 32,
 
-    height: 30,
+    height: 32,
 
-    borderRadius: 15,
+    borderRadius: 16,
 
     alignItems: "center",
 
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#FFF0F2",
 
-    marginRight: 8,
+    marginRight: 10,
   },
 
   headerTitle: {
@@ -857,9 +857,9 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#F0F0F0",
 
-    marginTop: 10,
+    marginTop: 16,
 
-    marginBottom: 16,
+    marginBottom: 22,
   },
 
   /* =====================================================
@@ -873,19 +873,19 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#FFF1F2",
 
-    borderRadius: 8,
+    borderRadius: 10,
 
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
 
-    paddingVertical: 9,
+    paddingVertical: 12,
 
-    marginBottom: 14,
+    marginBottom: 20,
   },
 
   errorText: {
     flex: 1,
 
-    marginLeft: 7,
+    marginLeft: 8,
 
     fontSize: 12,
 
@@ -901,11 +901,11 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13,
 
-    lineHeight: 19,
+    lineHeight: 20,
 
     color: "#777777",
 
-    marginBottom: 18,
+    marginBottom: 26,
   },
 
   /* =====================================================
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   fieldContainer: {
-    marginBottom: 18,
+    marginBottom: 24,
   },
 
   fieldHeader: {
@@ -921,21 +921,21 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    marginBottom: 8,
+    marginBottom: 12,
   },
 
   iconCircle: {
-    width: 34,
+    width: 36,
 
-    height: 34,
+    height: 36,
 
-    borderRadius: 17,
+    borderRadius: 18,
 
     alignItems: "center",
 
     justifyContent: "center",
 
-    marginRight: 9,
+    marginRight: 12,
   },
 
   fieldLabel: {
@@ -948,20 +948,28 @@ const styles = StyleSheet.create({
 
   /* =====================================================
        INPUT
+       Fixed height on the wrapper (not minHeight) + centered
+       content + zero vertical padding on the TextInput itself
+       is what keeps this pixel-consistent across iOS and
+       Android. Android's TextInput adds its own invisible
+       font padding, which is why includeFontPadding/
+       textAlignVertical are reset below.
     ===================================================== */
 
   inputWrapper: {
-    minHeight: 46,
+    height: 52,
 
     borderWidth: 1,
 
     borderColor: "#E3E3E6",
 
-    borderRadius: 9,
+    borderRadius: 10,
 
     backgroundColor: "#FAFAFB",
 
     justifyContent: "center",
+
+    paddingHorizontal: 16,
   },
 
   selectedInputWrapper: {
@@ -971,15 +979,24 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    minHeight: 46,
-
-    paddingHorizontal: 13,
-
-    paddingVertical: 10,
+    flex: 1,
 
     fontSize: 14,
 
+    lineHeight: 18,
+
     color: "#222222",
+
+    padding: 0,
+
+    margin: 0,
+
+    ...Platform.select({
+      android: {
+        textAlignVertical: "center",
+        includeFontPadding: false,
+      },
+    }),
   },
 
   /* =====================================================
@@ -987,9 +1004,9 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   saveButton: {
-    height: 45,
+    height: 50,
 
-    borderRadius: 9,
+    borderRadius: 10,
 
     backgroundColor: "#D7192A",
 
@@ -999,7 +1016,7 @@ const styles = StyleSheet.create({
 
     justifyContent: "center",
 
-    marginTop: 4,
+    marginTop: 8,
 
     shadowColor: "#D7192A",
 
@@ -1021,7 +1038,7 @@ const styles = StyleSheet.create({
   },
 
   saveText: {
-    marginLeft: 7,
+    marginLeft: 8,
 
     fontSize: 14,
 
@@ -1035,13 +1052,13 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   cancelButton: {
-    height: 42,
+    height: 46,
 
     alignItems: "center",
 
     justifyContent: "center",
 
-    marginTop: 7,
+    marginTop: 8,
   },
 
   cancelText: {

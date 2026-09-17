@@ -872,7 +872,13 @@ export default function MatchesScreen() {
                         // card's own router.push to /matchesdetail above.
                         router.push({
                           pathname: "/chatconversion",
-                          params: { id: item.id, name: item.name },
+                          params: {
+                            id: String(item.id),
+                            name: item.name || "",
+                            threadId: item.chat_thread_id
+                              ? String(item.chat_thread_id)
+                              : "",
+                          },
                         });
                       }}
                       activeOpacity={0.8}

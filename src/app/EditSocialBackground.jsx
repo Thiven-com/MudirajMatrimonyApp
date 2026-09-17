@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -18,8 +18,8 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-    getMemberSpiritualBackground,
-    updateMemberSpiritualBackground,
+  getMemberSpiritualBackground,
+  updateMemberSpiritualBackground,
 } from "../utils/Functions";
 
 // =========================================================

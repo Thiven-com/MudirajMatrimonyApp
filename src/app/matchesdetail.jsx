@@ -786,7 +786,7 @@ export default function ProfileDetailScreen() {
         </View>
 
         {/* ================= QUICK ACTIONS ================= */}
-        <View style={styles.quickActionsCard}>
+        {/*<View style={styles.quickActionsCard}>
           <QuickAction
             icon={isShortlisted ? "heart" : "heart-outline"}
             label={isShortlisted ? "Shortlisted" : "Shortlist"}
@@ -821,7 +821,7 @@ export default function ProfileDetailScreen() {
             disabled={rejecting || interestRejected}
             loading={rejecting}
           />
-        </View>
+        </View>*/}
 
         {/* ================= TABS ================= */}
         <View style={styles.tabsRow}>
@@ -927,15 +927,19 @@ export default function ProfileDetailScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.bottomRedButton} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.bottomRedButton}
+          activeOpacity={0.85}
+          onPress={() => router.push("/chatconversion")}
+        >
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={18}
             color={Colors.white}
           />
+
           <Text style={styles.bottomRedText}>Message</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[
             styles.bottomGoldButton,

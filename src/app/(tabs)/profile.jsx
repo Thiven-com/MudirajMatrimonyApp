@@ -503,13 +503,29 @@ export default function ProfileDetails() {
   };
 
   /* =====================================================
-     INTEREST
+     INTEREST (send interest to this profile)
   ===================================================== */
 
   const handleInterest = () => {
     router.push("/interests");
 
     Alert.alert("Interest Sent", "Your interest has been sent successfully.");
+  };
+
+  /* =====================================================
+     INTERESTS (view interests list)
+  ===================================================== */
+
+  const handleInterests = () => {
+    router.push("/interests");
+  };
+
+  /* =====================================================
+     SHORTLISTS (view saved profiles)
+  ===================================================== */
+
+  const handleShortlists = () => {
+    router.push("/shortlist");
   };
 
   /* =====================================================
@@ -657,7 +673,7 @@ export default function ProfileDetails() {
 
   /* =====================================================
      UPDATE MEMBER BASIC INFO
-     
+
      POST /api/member/basic-info/update
   ===================================================== */
 
@@ -710,7 +726,7 @@ export default function ProfileDetails() {
 
   /* =========================================================
      GET MEMBER PRESENT ADDRESS
-     
+
      GET /api/member/present/address
   ========================================================= */
 
@@ -1478,6 +1494,50 @@ export default function ProfileDetails() {
         </View>
 
         {/* =================================================
+          INTERESTS & SHORTLISTS
+      ================================================= */}
+
+        <View style={styles.quickActionsContainer}>
+          {/* INTERESTS */}
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            activeOpacity={0.85}
+            onPress={handleInterests}
+          >
+            <View style={styles.interestIconCircle}>
+              <Ionicons name="heart" size={24} color="#C91E26" />
+            </View>
+
+            <View style={styles.quickActionTextContent}>
+              <Text style={styles.quickActionTitle}>Interests</Text>
+
+              <Text style={styles.quickActionSubtitle}>View interests</Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color="#999999" />
+          </TouchableOpacity>
+
+          {/* SHORTLISTS */}
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            activeOpacity={0.85}
+            onPress={handleShortlists}
+          >
+            <View style={styles.shortlistIconCircle}>
+              <Ionicons name="star" size={24} color="#D99A18" />
+            </View>
+
+            <View style={styles.quickActionTextContent}>
+              <Text style={styles.quickActionTitle}>Shortlists</Text>
+
+              <Text style={styles.quickActionSubtitle}>Saved profiles</Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color="#999999" />
+          </TouchableOpacity>
+        </View>
+
+        {/* =================================================
           ABOUT ME
       ================================================= */}
 
@@ -1935,6 +1995,68 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 9,
     fontWeight: "700",
+  },
+
+  quickActionsContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginHorizontal: 13,
+    marginTop: 14,
+  },
+
+  quickActionCard: {
+    flex: 1,
+    minHeight: 112,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F0E4DE",
+    padding: 12,
+    justifyContent: "space-between",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 7,
+    elevation: 2,
+  },
+
+  interestIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFF0F1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  shortlistIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFF7E3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  quickActionTextContent: {
+    marginTop: 10,
+    flex: 1,
+  },
+
+  quickActionTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#292929",
+  },
+
+  quickActionSubtitle: {
+    fontSize: 10,
+    color: "#777777",
+    marginTop: 3,
   },
 
   imageOnlineIndicator: {

@@ -997,7 +997,7 @@ export async function getInterestRequests(token) {
 // ==================== ACCEPT INTEREST API ====================
 // POST /api/member/interest-accept
 // payload: { interest_id }
-export async function acceptInterest(interestId, token) {
+export async function acceptInterest(token, interestId) {
   const URL = apiUrl("/api/member/interest-accept");
 
   const payload = {
@@ -1042,7 +1042,7 @@ export async function acceptInterest(interestId, token) {
 // ==================== REJECT INTEREST API ====================
 // POST /api/member/interest-reject
 // payload: { interest_id }
-export async function rejectInterest(interestId, token) {
+export async function rejectInterest(token, interestId) {
   const URL = apiUrl("/api/member/interest-reject");
 
   const payload = {
@@ -1478,10 +1478,6 @@ export async function updateMemberBasicInfo(accessToken, basicInfo = {}) {
     last_name: String(basicInfo.last_name || "").trim(),
 
     email: String(basicInfo.email || "").trim(),
-
-    phone: String(basicInfo.phone || "")
-      .replace(/\D/g, "")
-      .slice(-10),
 
     gender: Number(basicInfo.gender || 0),
 

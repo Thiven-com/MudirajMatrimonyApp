@@ -435,7 +435,7 @@ const PackageCard = ({ item, onPress }) => {
               onPress?.(item);
 
               router.push({
-                pathname: "/packagedetails",
+                pathname: "/payment",
                 params: { packageId: item.id },
               });
             }}

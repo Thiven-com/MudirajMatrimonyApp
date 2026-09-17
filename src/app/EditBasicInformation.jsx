@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -39,6 +40,51 @@ const COLORS = {
 };
 
 /* =========================================================
+   GET BASIC INFO ENDPOINT
+   ASSUMPTION: mirrors the update endpoint's naming
+   ("/api/member/basic-info/update"). If your backend exposes
+   the current profile under a different path, change this
+   one constant.
+========================================================= */
+
+const GET_BASIC_INFO_ENDPOINT = "/api/member/basic-info";
+
+/* =========================================================
+   ID <-> LABEL MAPS (kept in one place so load + save agree)
+========================================================= */
+
+const GENDER_LABELS = { 1: "Male", 2: "Female", 3: "Other" };
+const GENDER_IDS = { Male: 1, Female: 2, Other: 3 };
+
+const MARITAL_LABELS = {
+  1: "Never Married",
+  2: "Divorced",
+  3: "Widowed",
+  4: "Separated",
+};
+const MARITAL_IDS = {
+  "Never Married": 1,
+  Divorced: 2,
+  Widowed: 3,
+  Separated: 4,
+};
+
+const CHILDREN_LABELS = {
+  0: "No Children",
+  1: "1 Child",
+  2: "2 Children",
+  3: "3 Children",
+  4: "4+ Children",
+};
+const CHILDREN_IDS = {
+  "No Children": 0,
+  "1 Child": 1,
+  "2 Children": 2,
+  "3 Children": 3,
+  "4+ Children": 4,
+};
+
+/* =========================================================
    DATE FORMAT
    UI:  YYYY-MM-DD
    API: DD-MM-YYYY
@@ -66,6 +112,41 @@ const formatDateForApi = (date) => {
   return value;
 };
 
+const formatDateForUi = (date) => {
+  if (!date) {
+    return "";
+  }
+
+  const value = String(date).trim();
+
+  /* Already YYYY-MM-DD */
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  /* DD-MM-YYYY -> YYYY-MM-DD */
+  if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+    const [day, month, year] = value.split("-");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  return value;
+};
+
+/* =========================================================
+   API RESPONSE SUCCESS CHECK
+   Only treat a response as a failure when it explicitly says
+   so — an unrecognized-but-non-error shape should not be
+   silently treated as a failure.
+========================================================= */
+
+function isApiFailure(result) {
+  if (!result) return true;
+
+  return result.success === false || result.result === false;
+}
+
 /* =========================================================
    MAIN COMPONENT
 ========================================================= */
@@ -75,20 +156,13 @@ export default function EditBasicInformation() {
        BASIC INFORMATION STATES
     ======================================================= */
 
-  const [firstName, setFirstName] = useState("Gandhodi");
+  const [firstName, setFirstName] = useState("");
 
-  const [lastName, setLastName] = useState("Yashwanth");
+  const [lastName, setLastName] = useState("");
 
-  /*
-   * Email and phone are required by the API,
-   * but are not displayed in the reference UI.
-   *
-   * Replace these with your actual profile values
-   * if you already have them available.
-   */
-  const [email, setEmail] = useState("vasanth@gmail.com");
+  const [email, setEmail] = useState("");
 
-  const [phone, setPhone] = useState("9876543210");
+  const [phone, setPhone] = useState("");
 
   /* =======================================================
        GENDER
@@ -131,6 +205,13 @@ export default function EditBasicInformation() {
   const [showChildrenModal, setShowChildrenModal] = useState(false);
 
   /* =======================================================
+       LOADING (initial profile fetch)
+    ======================================================= */
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  /* =======================================================
        SAVING
     ======================================================= */
 
@@ -162,85 +243,102 @@ export default function EditBasicInformation() {
   ];
 
   /* =======================================================
-       GENDER -> API ID
+       LOAD EXISTING BASIC INFORMATION
+       Prefills the form with the member's current profile so:
+       (a) the screen doesn't just show hardcoded placeholder
+           values every time it's opened, and
+       (b) email/phone — required by the API but not otherwise
+           editable elsewhere in this flow — actually have real
+           values, so validation in handleSave can pass.
     ======================================================= */
 
-  const getGenderId = () => {
-    if (gender === "Male") {
-      return 1;
-    }
+  useEffect(() => {
+    const loadBasicInfo = async () => {
+      setLoading(true);
+      setLoadError("");
 
-    if (gender === "Female") {
-      return 2;
-    }
+      try {
+        const accessToken = await AsyncStorage.getItem("authToken");
 
-    if (gender === "Other") {
-      return 3;
-    }
+        if (!accessToken) {
+          setLoadError("Authentication token not found. Please login again.");
+          return;
+        }
 
-    return 0;
-  };
+        const apiUrl = `${BASE_URL}${GET_BASIC_INFO_ENDPOINT}`;
 
-  /* =======================================================
-       MARITAL STATUS -> API ID
-       
-       Assumption:
-       1 = Never Married
-       2 = Divorced
-       3 = Widowed
-       4 = Separated
-       
-       Your API example confirms marital_status is numeric
-       and shows 1, but does not provide the complete mapping.
-    ======================================================= */
+        console.log("====================================");
+        console.log("LOAD BASIC INFORMATION");
+        console.log("====================================");
+        console.log("GET URL:", apiUrl);
 
-  const getMaritalStatusId = () => {
-    if (maritalStatus === "Never Married") {
-      return 1;
-    }
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
 
-    if (maritalStatus === "Divorced") {
-      return 2;
-    }
+        const responseText = await response.text();
 
-    if (maritalStatus === "Widowed") {
-      return 3;
-    }
+        console.log("HTTP STATUS:", response.status);
+        console.log("RESPONSE TEXT:", responseText);
 
-    if (maritalStatus === "Separated") {
-      return 4;
-    }
+        let responseData = null;
 
-    return 0;
-  };
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          responseData = { message: responseText };
+        }
 
-  /* =======================================================
-       CHILDREN -> API ID
-    ======================================================= */
+        if (!response.ok || isApiFailure(responseData)) {
+          setLoadError(
+            responseData?.message ||
+              `Unable to load your profile (HTTP ${response.status}).`,
+          );
+          return;
+        }
 
-  const getChildrenId = () => {
-    if (children === "No Children") {
-      return 0;
-    }
+        // Some endpoints nest the profile under `data`, some return it
+        // directly — support both.
+        const profile = responseData?.data ?? responseData ?? {};
 
-    if (children === "1 Child") {
-      return 1;
-    }
+        if (profile.first_name != null)
+          setFirstName(String(profile.first_name));
+        if (profile.last_name != null) setLastName(String(profile.last_name));
+        if (profile.email != null) setEmail(String(profile.email));
+        if (profile.phone != null) setPhone(String(profile.phone));
 
-    if (children === "2 Children") {
-      return 2;
-    }
+        if (profile.gender != null) {
+          const label = GENDER_LABELS[Number(profile.gender)];
+          if (label) setGender(label);
+        }
 
-    if (children === "3 Children") {
-      return 3;
-    }
+        if (profile.date_of_birth) {
+          setDateOfBirth(formatDateForUi(profile.date_of_birth));
+        }
 
-    if (children === "4+ Children") {
-      return 4;
-    }
+        if (profile.marital_status != null) {
+          const label = MARITAL_LABELS[Number(profile.marital_status)];
+          if (label) setMaritalStatus(label);
+        }
 
-    return 0;
-  };
+        if (profile.children != null) {
+          const label = CHILDREN_LABELS[Number(profile.children)];
+          if (label) setChildren(label);
+        }
+      } catch (error) {
+        console.log("loadBasicInfo Error:", error);
+        setLoadError(error?.message || "Unable to load your profile.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBasicInfo();
+  }, []);
 
   /* =======================================================
        SAVE BASIC INFORMATION
@@ -311,49 +409,19 @@ export default function EditBasicInformation() {
       // GENDER
       // ============================================
 
-      let genderId = 0;
-
-      if (gender === "Male") {
-        genderId = 1;
-      } else if (gender === "Female") {
-        genderId = 2;
-      } else if (gender === "Other") {
-        genderId = 3;
-      }
+      const genderId = GENDER_IDS[gender] ?? 0;
 
       // ============================================
       // MARITAL STATUS
       // ============================================
 
-      let maritalStatusId = 0;
-
-      if (maritalStatus === "Never Married") {
-        maritalStatusId = 1;
-      } else if (maritalStatus === "Divorced") {
-        maritalStatusId = 2;
-      } else if (maritalStatus === "Widowed") {
-        maritalStatusId = 3;
-      } else if (maritalStatus === "Separated") {
-        maritalStatusId = 4;
-      }
+      const maritalStatusId = MARITAL_IDS[maritalStatus] ?? 0;
 
       // ============================================
       // CHILDREN
       // ============================================
 
-      let childrenId = 0;
-
-      if (children === "No Children") {
-        childrenId = 0;
-      } else if (children === "1 Child") {
-        childrenId = 1;
-      } else if (children === "2 Children") {
-        childrenId = 2;
-      } else if (children === "3 Children") {
-        childrenId = 3;
-      } else if (children === "4+ Children") {
-        childrenId = 4;
-      }
+      const childrenId = CHILDREN_IDS[children] ?? 0;
 
       // ============================================
       // DATE
@@ -362,15 +430,7 @@ export default function EditBasicInformation() {
       // API = DD-MM-YYYY
       // ============================================
 
-      let apiDate = "";
-
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-        const [year, month, day] = dateOfBirth.split("-");
-
-        apiDate = `${day}-${month}-${year}`;
-      } else {
-        apiDate = dateOfBirth;
-      }
+      const apiDate = formatDateForApi(dateOfBirth);
 
       // ============================================
       // REQUEST BODY
@@ -460,11 +520,8 @@ export default function EditBasicInformation() {
       // API SUCCESS CHECK
       // ============================================
 
-      if (
-        responseData &&
-        (responseData.success === false || responseData.result === false)
-      ) {
-        throw new Error(responseData.message || "API rejected the update.");
+      if (isApiFailure(responseData)) {
+        throw new Error(responseData?.message || "API rejected the update.");
       }
 
       // ============================================
@@ -578,6 +635,21 @@ export default function EditBasicInformation() {
   };
 
   /* =======================================================
+       LOADING STATE
+    ======================================================= */
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={COLORS.red} />
+          <Text style={styles.centerStateText}>Loading your profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
        SCREEN
     ======================================================= */
 
@@ -622,6 +694,20 @@ export default function EditBasicInformation() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scrollContent}
           >
+            {!!loadError && (
+              <View style={styles.loadErrorBanner}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={16}
+                  color={COLORS.red}
+                />
+                <Text style={styles.loadErrorText}>
+                  Couldn't load your existing details: {loadError}. You can
+                  still fill the form in manually below.
+                </Text>
+              </View>
+            )}
+
             {/* =========================================
                            FIRST NAME
                         ========================================= */}
@@ -658,6 +744,54 @@ export default function EditBasicInformation() {
                 placeholderTextColor={"#A0A0A0"}
                 style={styles.input}
                 autoCapitalize="words"
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* =========================================
+                           EMAIL
+                           Required by the API. Was previously
+                           missing from the UI entirely, which
+                           meant validation always failed and
+                           the update request was never sent.
+                        ========================================= */}
+
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Email <Text style={styles.required}>*</Text>
+              </Text>
+
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email Address"
+                placeholderTextColor={"#A0A0A0"}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* =========================================
+                           PHONE
+                           Required by the API. Same issue as
+                           Email above — now editable.
+                        ========================================= */}
+
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Phone <Text style={styles.required}>*</Text>
+              </Text>
+
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="10 digit mobile number"
+                placeholderTextColor={"#A0A0A0"}
+                style={styles.input}
+                keyboardType="phone-pad"
+                maxLength={10}
                 returnKeyType="next"
               />
             </View>
@@ -940,6 +1074,44 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F5F5",
+  },
+
+  /* =====================================================
+       CENTER STATE (loading)
+    ===================================================== */
+
+  centerState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  centerStateText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666666",
+  },
+
+  /* =====================================================
+       LOAD ERROR BANNER
+    ===================================================== */
+
+  loadErrorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FDECEC",
+    borderRadius: 6,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 6,
+    gap: 8,
+  },
+
+  loadErrorText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: "#B42318",
+    lineHeight: 15,
   },
 
   /* =====================================================
