@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -17,8 +17,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
-    getMemberAstronomic,
-    updateMemberAstronomic,
+  getMemberAstronomic,
+  updateMemberAstronomic,
 } from "../utils/Functions";
 
 const EditAstronomicInformation = () => {
@@ -129,7 +129,7 @@ const EditAstronomicInformation = () => {
       // GET TOKEN
       // -----------------------------------------------------
 
-      const accessToken = await AsyncStorage.getItem("access_token");
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       console.log("========================================");
 

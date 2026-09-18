@@ -2521,17 +2521,41 @@ export async function getMemberCareerById(accessToken, careerId) {
     throw error;
   }
 }
-
 // =========================================================
 // UPDATE SINGLE MEMBER CAREER
 // PUT /api/member/career/{id}
 //
-// Request:
+// NOTE ON METHOD:
+// The Laravel route only accepts GET, HEAD, PUT, PATCH, DELETE
+// (per the "The POST method is not supported..." error). This
+// function now sends the request with postMethod(), but includes
+// Laravel's method-spoofing field "_method": "PUT" in the body.
+// Laravel's framework-level middleware reads that field and
+// routes the request as if it were a real PUT — this is the
+// standard workaround when a client can't (or shouldn't) send a
+// raw PUT request directly.
+//
+// IMPORTANT CAVEAT: Laravel's method spoofing is only applied
+// automatically for form submissions
+// (application/x-www-form-urlencoded or multipart/form-data).
+// If postMethod() sends this body as raw JSON
+// (Content-Type: application/json), Laravel will NOT read
+// "_method" from a JSON body by default, and this will hit the
+// same 405 error again. If that happens, the real fix is either:
+//   (a) send this request as application/x-www-form-urlencoded
+//       instead of JSON, or
+//   (b) revert to putMethod() and instead fix why putMethod()
+//       was producing a POST request on the wire in the first
+//       place (that's almost certainly a bug inside
+//       APIServices.js's putMethod implementation).
+//
+// Request body sent to the server:
 // {
 //   "company": "ABC Technologies",
 //   "designation": "Software Developer",
 //   "start": 2024,
-//   "end": 2025
+//   "end": 2025,
+//   "_method": "PUT"
 // }
 // =========================================================
 
@@ -2602,6 +2626,10 @@ export async function updateMemberCareerById(
 
   // -------------------------------------------------------
   // REQUEST BODY
+  //
+  // "_method": "PUT" tells Laravel to route this POST request
+  // as a PUT (method spoofing). See the note above this
+  // function for the caveat about JSON vs form-encoded bodies.
   // -------------------------------------------------------
 
   const body = {
@@ -2609,6 +2637,7 @@ export async function updateMemberCareerById(
     designation: designationValue,
     start: startYear,
     end: endYear,
+    _method: "PUT",
   };
 
   const user = {
@@ -2623,7 +2652,7 @@ export async function updateMemberCareerById(
 
   console.log("UPDATE MEMBER CAREER API");
 
-  console.log("METHOD: PUT");
+  console.log("METHOD: POST (spoofed as PUT via _method)");
 
   console.log("URL:", URL);
 
@@ -2636,11 +2665,11 @@ export async function updateMemberCareerById(
   console.log("======================================");
 
   // -------------------------------------------------------
-  // PUT API CALL
+  // POST API CALL (was putMethod)
   // -------------------------------------------------------
 
   try {
-    const response = await putMethod(URL, user, body);
+    const response = await postMethod(URL, user, body);
 
     // -----------------------------------------------------
     // RESPONSE
@@ -3277,29 +3306,34 @@ export async function updateMemberFamilyInfo(accessToken, familyInfo = {}) {
   }
 }
 
+// =========================================================
+// GET MEMBER LANGUAGES
+// GET /api/member/language
+// =========================================================
+
 export async function getMemberLanguages(accessToken) {
+  if (!accessToken) {
+    throw new Error("Access token is missing.");
+  }
+
+  const URL = BASE_URL + "/api/member/language";
+
+  const user = {
+    token: accessToken,
+  };
+
+  console.log("========================================");
+  console.log("GET MEMBER LANGUAGES");
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("========================================");
+
   try {
-    console.log("========================================");
-    console.log("GET MEMBER LANGUAGES FUNCTION");
-    console.log("TOKEN EXISTS:", !!accessToken);
-    console.log("TOKEN LENGTH:", accessToken?.length);
-    console.log("========================================");
-
-    const URL = BASE_URL + "/api/member/languages";
-
-    const user = {
-      token: accessToken,
-    };
-
-    console.log("LANGUAGES GET URL:", URL);
-    console.log("LANGUAGES GET USER:", {
-      tokenExists: !!user.token,
-    });
-
     const response = await getMethod(URL, user);
 
     console.log("========================================");
-    console.log("GET MEMBER LANGUAGES RAW RESPONSE");
+    console.log("MEMBER LANGUAGES API RESPONSE");
     console.log(JSON.stringify(response, null, 2));
     console.log("========================================");
 
@@ -3308,14 +3342,6 @@ export async function getMemberLanguages(accessToken) {
     console.error("========================================");
     console.error("GET MEMBER LANGUAGES ERROR");
     console.error(error);
-
-    console.error("STATUS:", error?.response?.status);
-
-    console.error(
-      "ERROR DATA:",
-      JSON.stringify(error?.response?.data, null, 2),
-    );
-
     console.error("========================================");
 
     throw error;
@@ -3326,12 +3352,17 @@ export async function getMemberLanguages(accessToken) {
 // POST /api/member/language/update
 // =========================================================
 
+// =========================================================
+// UPDATE MEMBER LANGUAGES
+// POST /api/member/language/update
+// =========================================================
+
 export async function updateMemberLanguages(
   accessToken,
-  { mother_tongue, known_languages } = {},
+  { mothere_tongue, mother_tongue, known_languages = [] } = {},
 ) {
   if (!accessToken) {
-    throw new Error("Access token is missing. Please login again.");
+    throw new Error("Access token is missing.");
   }
 
   const URL = BASE_URL + "/api/member/language/update";
@@ -3340,64 +3371,88 @@ export async function updateMemberLanguages(
     token: accessToken,
   };
 
-  const cleanMotherTongue = String(mother_tongue ?? "").trim();
+  // Backend expects mother tongue ID
+  const motherTongueId = mothere_tongue ?? mother_tongue ?? null;
 
-  const cleanKnownLanguages = Array.isArray(known_languages)
-    ? [
-        ...new Map(
-          known_languages
-            .map((item) => String(item ?? "").trim())
-            .filter(Boolean)
-            .map((item) => [item.toLowerCase(), item]),
-        ).values(),
-      ]
+  // Backend expects known language IDs
+  const knownLanguageIds = Array.isArray(known_languages)
+    ? known_languages
+        .map((item) => {
+          if (typeof item === "object" && item !== null) {
+            return Number(item.id);
+          }
+
+          return Number(item);
+        })
+        .filter((id) => Number.isInteger(id) && id > 0)
     : [];
 
-  const body = {
-    mother_tongue: cleanMotherTongue,
+  const uniqueKnownLanguageIds = [...new Set(knownLanguageIds)];
 
-    known_languages: cleanKnownLanguages,
+  const body = {
+    mothere_tongue: Number(motherTongueId),
+    known_languages: uniqueKnownLanguageIds,
   };
 
   console.log("========================================");
-
   console.log("UPDATE MEMBER LANGUAGES");
-
-  console.log("METHOD:", "POST");
-
+  console.log("METHOD: POST");
   console.log("URL:", URL);
-
   console.log("TOKEN EXISTS:", !!accessToken);
-
   console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
   console.log("========================================");
 
   try {
     const response = await postMethod(URL, user, body);
 
     console.log("========================================");
-
     console.log("UPDATE MEMBER LANGUAGES RESPONSE");
-
     console.log(JSON.stringify(response, null, 2));
-
     console.log("========================================");
 
     return response;
   } catch (error) {
     console.error("========================================");
-
     console.error("UPDATE MEMBER LANGUAGES ERROR");
-
-    console.error("MESSAGE:", error?.message);
-
-    console.error("STATUS:", error?.response?.status);
-
-    console.error("RESPONSE:", JSON.stringify(error?.response?.data, null, 2));
-
+    console.error(error);
+    console.error(
+      "ERROR RESPONSE:",
+      JSON.stringify(error?.response?.data, null, 2),
+    );
     console.error("========================================");
 
+    throw error;
+  }
+}
+// =========================================================
+// GET ALL LANGUAGES
+// GET /api/get_languages
+// =========================================================
+
+export async function getLanguages(accessToken) {
+  if (!accessToken) {
+    throw new Error("Access token is missing.");
+  }
+
+  const URL = BASE_URL + "/api/get_languages";
+
+  const user = {
+    token: accessToken,
+  };
+
+  console.log("GET ALL LANGUAGES URL:", URL);
+
+  try {
+    const response = await getMethod(URL, user);
+
+    console.log(
+      "GET ALL LANGUAGES RESPONSE:",
+      JSON.stringify(response, null, 2),
+    );
+
+    return response;
+  } catch (error) {
+    console.error("GET ALL LANGUAGES ERROR:", error);
     throw error;
   }
 }

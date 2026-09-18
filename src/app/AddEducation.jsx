@@ -1,955 +1,807 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import {
+  addMemberEducation,
+  getMemberEducationById,
+  updateMemberEducation,
+} from "../utils/Functions";
 
-import { router } from "expo-router";
+/* =========================================================
+   STATIC OPTION LISTS
 
-import { addMemberEducation } from "../utils/Functions";
+   The API (Functions.js) only stores: degree, institution,
+   education_start, education_end. There is currently no
+   backend field for "education field / specialization",
+   "status", certifications, or other notes, so those from
+   the original mockup are not included here. Add them back
+   once the API supports them.
+
+   Replace this list with a real master-list API if/when one
+   is available (e.g. GET /education-levels).
+========================================================= */
+
+const DEGREE_OPTIONS = [
+  "10th",
+  "12th / Intermediate",
+  "Diploma",
+  "Bachelor's Degree",
+  "B.Tech",
+  "Master's Degree",
+  "Doctorate (PhD)",
+  "Other",
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+// Descending list, e.g. current+5 down to 1980
+const YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR + 5 - 1980 + 1 },
+  (_, i) => String(CURRENT_YEAR + 5 - i),
+);
+
+/* =========================================================
+   MAIN COMPONENT
+
+   Handles both:
+   - Add mode:  router.push("/AddEducation")
+   - Edit mode: router.push({ pathname: "/EditEducation", params: { id } })
+========================================================= */
 
 export default function AddEducation() {
-  // =========================================================
-  // STATES
-  // =========================================================
+  const { id } = useLocalSearchParams();
 
-  const [degree, setDegree] = useState("B.Tech");
+  const educationId = id ? Number(id) : null;
 
-  const [specialization, setSpecialization] = useState("Computer Science");
+  const isEditMode = Number.isInteger(educationId) && educationId > 0;
 
-  const [institution, setInstitution] = useState("Gates University");
+  /* =========================================================
+       STATE
+    ========================================================= */
 
-  const [startYear, setStartYear] = useState("2016");
+  const [degree, setDegree] = useState("");
+  const [institution, setInstitution] = useState("");
+  const [startYear, setStartYear] = useState("");
+  const [endYear, setEndYear] = useState("");
 
-  const [endYear, setEndYear] = useState("2020");
-
-  const [status, setStatus] = useState("Completed");
-
+  const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
 
-  const [showStartYears, setShowStartYears] = useState(false);
+  // Which dropdown modal is open: "degree" | "startYear" | "endYear" | null
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
-  const [showEndYears, setShowEndYears] = useState(false);
+  /* =========================================================
+       LOAD EXISTING RECORD (EDIT MODE ONLY)
+    ========================================================= */
 
-  // =========================================================
-  // YEAR DATA
-  // =========================================================
-
-  const years = [
-    "2015",
-    "2016",
-    "2017",
-    "2018",
-    "2019",
-    "2020",
-    "2021",
-    "2022",
-    "2023",
-    "2024",
-    "2025",
-    "2026",
-  ];
-
-  // =========================================================
-  // BACK
-  // =========================================================
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  // =========================================================
-  // START YEAR
-  // =========================================================
-
-  const handleStartYear = (year) => {
-    setStartYear(year);
-    setShowStartYears(false);
-  };
-
-  // =========================================================
-  // END YEAR
-  // =========================================================
-
-  const handleEndYear = (year) => {
-    setEndYear(year);
-    setShowEndYears(false);
-  };
-
-  // =========================================================
-  // SAVE EDUCATION
-  // =========================================================
-
-  const handleSave = async () => {
-    console.log("======================================");
-
-    console.log("SAVE EDUCATION BUTTON CLICKED");
-
-    // Prevent double click
-    if (saving) {
-      console.log("Already saving...");
+  const loadExistingEducation = useCallback(async () => {
+    if (!isEditMode) {
       return;
     }
 
     try {
-      // =====================================================
-      // VALIDATION
-      // =====================================================
+      setLoading(true);
 
-      const cleanDegree = String(degree || "").trim();
+      console.log("======================================");
 
-      const cleanInstitution = String(institution || "").trim();
-
-      const cleanStartYear = Number(startYear);
-
-      const cleanEndYear = Number(endYear);
-
-      console.log("DEGREE:", cleanDegree);
-
-      console.log("INSTITUTION:", cleanInstitution);
-
-      console.log("START YEAR:", cleanStartYear);
-
-      console.log("END YEAR:", cleanEndYear);
-
-      if (!cleanDegree) {
-        Alert.alert("Required", "Please enter Degree / Course.");
-
-        return;
-      }
-
-      if (!cleanInstitution) {
-        Alert.alert("Required", "Please enter Institution / College.");
-
-        return;
-      }
-
-      if (!Number.isInteger(cleanStartYear) || cleanStartYear <= 0) {
-        Alert.alert("Required", "Please select a valid Start Year.");
-
-        return;
-      }
-
-      if (!Number.isInteger(cleanEndYear) || cleanEndYear <= 0) {
-        Alert.alert("Required", "Please select a valid End Year.");
-
-        return;
-      }
-
-      if (cleanEndYear < cleanStartYear) {
-        Alert.alert("Invalid Year", "End Year cannot be before Start Year.");
-
-        return;
-      }
-
-      // =====================================================
-      // GET ACCESS TOKEN
-      // =====================================================
+      console.log("LOADING EDUCATION FOR EDIT, ID:", educationId);
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("TOKEN EXISTS:", !!accessToken);
-
       if (!accessToken) {
-        Alert.alert("Session Expired", "Please login again.");
+        Alert.alert("Login Required", "Please login again.");
 
         return;
       }
 
-      // =====================================================
-      // START LOADING
-      // =====================================================
+      const response = await getMemberEducationById(accessToken, educationId);
+
+      let data = {};
+
+      if (response?.data && typeof response.data === "object") {
+        data = response.data;
+      } else if (response?.result && typeof response.result === "object") {
+        data = response.result;
+      } else if (typeof response === "object") {
+        data = response;
+      }
+
+      setDegree(String(data?.degree ?? ""));
+      setInstitution(String(data?.institution ?? ""));
+      setStartYear(data?.education_start ? String(data.education_start) : "");
+      setEndYear(data?.education_end ? String(data.education_end) : "");
+    } catch (error) {
+      console.error("LOAD EDUCATION FOR EDIT ERROR:", error);
+
+      Alert.alert(
+        "Error",
+        error?.message || "Unable to load education details.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [isEditMode, educationId]);
+
+  useEffect(() => {
+    loadExistingEducation();
+  }, [loadExistingEducation]);
+
+  /* =========================================================
+       SAVE (ADD OR UPDATE)
+    ========================================================= */
+
+  const handleSave = async () => {
+    try {
+      console.log("======================================");
+
+      console.log(isEditMode ? "UPDATING EDUCATION" : "ADDING EDUCATION");
+
+      // ---------------------------------------------------
+      // CLIENT-SIDE CHECKS
+      //
+      // (Functions.js validates these too, but checking here
+      // first avoids an unnecessary network round trip.)
+      // ---------------------------------------------------
+
+      if (!degree.trim()) {
+        Alert.alert("Missing Information", "Please select Degree / Course.");
+
+        return;
+      }
+
+      if (!institution.trim()) {
+        Alert.alert(
+          "Missing Information",
+          "Please enter Institution / College.",
+        );
+
+        return;
+      }
+
+      if (!startYear) {
+        Alert.alert("Missing Information", "Please select a start year.");
+
+        return;
+      }
+
+      if (!endYear) {
+        Alert.alert("Missing Information", "Please select an end year.");
+
+        return;
+      }
+
+      if (Number(endYear) < Number(startYear)) {
+        Alert.alert("Invalid Years", "End year cannot be before start year.");
+
+        return;
+      }
 
       setSaving(true);
 
-      // =====================================================
-      // API REQUEST
-      // =====================================================
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      if (!accessToken) {
+        Alert.alert("Login Required", "Please login again.");
+
+        return;
+      }
 
       const payload = {
-        degree: cleanDegree,
-
-        institution: cleanInstitution,
-
-        education_start: cleanStartYear,
-
-        education_end: cleanEndYear,
+        degree: degree.trim(),
+        institution: institution.trim(),
+        education_start: Number(startYear),
+        education_end: Number(endYear),
       };
-
-      console.log("======================================");
-
-      console.log("CALLING ADD EDUCATION API");
 
       console.log("PAYLOAD:", JSON.stringify(payload, null, 2));
 
+      const response = isEditMode
+        ? await updateMemberEducation(accessToken, educationId, payload)
+        : await addMemberEducation(accessToken, payload);
+
+      console.log("SAVE RESPONSE:", JSON.stringify(response, null, 2));
+
       console.log("======================================");
 
-      const response = await addMemberEducation(accessToken, payload);
-
-      // =====================================================
-      // API RESPONSE
-      // =====================================================
-
-      console.log("ADD EDUCATION RESPONSE:", JSON.stringify(response, null, 2));
-
-      // =====================================================
-      // SUCCESS
-      // =====================================================
-
-      Alert.alert("Success", "Education saved successfully.", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.back();
-          },
-        },
-      ]);
+      router.back();
     } catch (error) {
-      console.error("======================================");
-
       console.error("SAVE EDUCATION ERROR:", error);
 
-      console.error("======================================");
-
-      // =====================================================
-      // ERROR MESSAGE
-      // =====================================================
-
-      const errorMessage =
-        error?.message || "Unable to save education. Please try again.";
-
-      Alert.alert("Error", errorMessage);
+      Alert.alert(
+        "Save Failed",
+        error?.message || "Unable to save education details.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  // =========================================================
-  // CANCEL
-  // =========================================================
+  /* =========================================================
+       DROPDOWN CONFIG
+    ========================================================= */
 
-  const handleCancel = () => {
-    router.back();
+  const dropdownFields = {
+    degree: {
+      label: "Degree / Course",
+      required: true,
+      icon: "school-outline",
+      value: degree,
+      setValue: setDegree,
+      options: DEGREE_OPTIONS,
+    },
+    startYear: {
+      label: "Start Year",
+      required: true,
+      icon: "calendar-outline",
+      value: startYear,
+      setValue: setStartYear,
+      options: YEAR_OPTIONS,
+    },
+    endYear: {
+      label: "End Year",
+      required: true,
+      icon: "calendar-outline",
+      value: endYear,
+      setValue: setEndYear,
+      options: YEAR_OPTIONS,
+    },
   };
+
+  const activeField = activeDropdown ? dropdownFields[activeDropdown] : null;
+
+  /* =========================================================
+       RENDER HELPERS
+    ========================================================= */
+
+  const renderDropdownField = (key) => {
+    const field = dropdownFields[key];
+
+    return (
+      <View style={styles.fieldBlock} key={key}>
+        <View style={styles.labelRow}>
+          <View style={styles.labelIconCircle}>
+            <Ionicons name={field.icon} size={16} color="#EF233C" />
+          </View>
+
+          <Text style={styles.fieldLabel}>
+            {field.label}
+            {field.required ? <Text style={styles.required}> *</Text> : null}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.selectBox}
+          activeOpacity={0.7}
+          onPress={() => setActiveDropdown(key)}
+        >
+          <Text
+            style={[
+              styles.selectValue,
+              !field.value && styles.selectPlaceholder,
+            ]}
+            numberOfLines={1}
+          >
+            {field.value || `Select ${field.label}`}
+          </Text>
+
+          <Ionicons name="chevron-down" size={18} color="#999999" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  /* =========================================================
+       RENDER
+    ========================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#D92332" />
 
-      <View style={styles.container}>
-        {/* =====================================================
-            HEADER
-        ===================================================== */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-        <View style={styles.header}>
-          {/* BACK */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          activeOpacity={0.7}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={19} color="#EF233C" />
-          </TouchableOpacity>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Education Information
+          </Text>
 
-          {/* TITLE */}
-
-          <Text style={styles.headerTitle}>Add Education</Text>
-
-          {/* MENU */}
-
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Ionicons name="ellipsis-vertical" size={19} color="#EF233C" />
-          </TouchableOpacity>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            Tell us about your educational background
+          </Text>
         </View>
 
-        {/* =====================================================
-            FORM
-        ===================================================== */}
+        <Ionicons
+          name="flower-outline"
+          size={30}
+          color="rgba(255,255,255,0.35)"
+          style={styles.headerLotus}
+        />
+      </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <ScrollView
-          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
-          {/* ===================================================
-              DEGREE / COURSE
-          =================================================== */}
+          {/* =============================================
+              INFO BANNER
+          ============================================= */}
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Degree / Course
-              <Text style={styles.required}> *</Text>
-            </Text>
+          <View style={styles.infoBanner}>
+            <View style={styles.infoIconCircle}>
+              <Ionicons name="school" size={24} color="#D92332" />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              value={degree}
-              onChangeText={setDegree}
-              placeholder="Enter degree / course"
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          {/* ===================================================
-              SPECIALIZATION
-          =================================================== */}
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Specialization</Text>
-
-            <TextInput
-              style={styles.input}
-              value={specialization}
-              onChangeText={setSpecialization}
-              placeholder="Enter specialization"
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          {/* ===================================================
-              INSTITUTION / COLLEGE
-          =================================================== */}
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Institution / College
-              <Text style={styles.required}> *</Text>
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              value={institution}
-              onChangeText={setInstitution}
-              placeholder="Enter institution / college"
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          {/* ===================================================
-              START YEAR + END YEAR
-          =================================================== */}
-
-          <View style={styles.yearRow}>
-            {/* START YEAR */}
-
-            <View
-              style={[
-                styles.yearColumn,
-                {
-                  marginRight: 12,
-                },
-              ]}
-            >
-              <Text style={styles.label}>
-                Start Year
-                <Text style={styles.required}> *</Text>
+            <View style={styles.infoTextWrap}>
+              <Text style={styles.infoTitle}>
+                Education builds brighter futures
               </Text>
 
-              <TouchableOpacity
-                style={styles.dropdown}
-                activeOpacity={0.7}
-                onPress={() => setShowStartYears(!showStartYears)}
-              >
-                <Text style={styles.dropdownText}>{startYear}</Text>
+              <Text style={styles.infoBody}>
+                Help us know more about your educational qualifications and
+                achievements.
+              </Text>
+            </View>
+          </View>
 
+          {loading ? (
+            <Text style={styles.loadingText}>Loading education details...</Text>
+          ) : (
+            <>
+              {/* =========================================
+                  FORM CARD
+              ========================================= */}
+
+              <View style={styles.formCard}>
+                {renderDropdownField("degree")}
+
+                <View style={styles.fieldBlock}>
+                  <View style={styles.labelRow}>
+                    <View style={styles.labelIconCircle}>
+                      <Ionicons
+                        name="business-outline"
+                        size={16}
+                        color="#EF233C"
+                      />
+                    </View>
+
+                    <Text style={styles.fieldLabel}>
+                      Institution / College
+                      <Text style={styles.required}> *</Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.selectBox}>
+                    <TextInput
+                      style={styles.textInput}
+                      value={institution}
+                      onChangeText={setInstitution}
+                      placeholder="JNTU Hyderabad"
+                      placeholderTextColor="#B0B0B0"
+                    />
+                  </View>
+                </View>
+
+                {renderDropdownField("startYear")}
+                {renderDropdownField("endYear")}
+              </View>
+
+              {/* =========================================
+                  SAVE BUTTON
+              ========================================= */}
+
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                activeOpacity={0.85}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                <Ionicons name="save-outline" size={18} color="#FFFFFF" />
+
+                <Text style={styles.saveButtonText}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Text>
+
+                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <View style={styles.footerRow}>
                 <Ionicons
-                  name={showStartYears ? "chevron-up" : "chevron-down"}
+                  name="lock-closed-outline"
                   size={13}
-                  color="#8B939E"
+                  color="#8A8A8A"
                 />
-              </TouchableOpacity>
 
-              {/* START YEAR LIST */}
-
-              {showStartYears && (
-                <View style={styles.dropdownList}>
-                  <ScrollView nestedScrollEnabled style={styles.dropdownScroll}>
-                    {years.map((year) => (
-                      <TouchableOpacity
-                        key={year}
-                        style={styles.dropdownOption}
-                        onPress={() => handleStartYear(year)}
-                      >
-                        <Text style={styles.optionText}>{year}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* END YEAR */}
-
-            <View style={styles.yearColumn}>
-              <Text style={styles.label}>
-                End Year
-                <Text style={styles.required}> *</Text>
-              </Text>
-
-              <TouchableOpacity
-                style={styles.dropdown}
-                activeOpacity={0.7}
-                onPress={() => setShowEndYears(!showEndYears)}
-              >
-                <Text style={styles.dropdownText}>{endYear}</Text>
-
-                <Ionicons
-                  name={showEndYears ? "chevron-up" : "chevron-down"}
-                  size={13}
-                  color="#8B939E"
-                />
-              </TouchableOpacity>
-
-              {/* END YEAR LIST */}
-
-              {showEndYears && (
-                <View style={styles.dropdownList}>
-                  <ScrollView nestedScrollEnabled style={styles.dropdownScroll}>
-                    {years.map((year) => (
-                      <TouchableOpacity
-                        key={year}
-                        style={styles.dropdownOption}
-                        onPress={() => handleEndYear(year)}
-                      >
-                        <Text style={styles.optionText}>{year}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* ===================================================
-              STATUS
-          =================================================== */}
-
-          <View style={styles.statusSection}>
-            <Text style={styles.label}>Status</Text>
-
-            <View style={styles.radioRow}>
-              {/* COMPLETED */}
-
-              <TouchableOpacity
-                style={styles.radioOption}
-                activeOpacity={0.7}
-                onPress={() => setStatus("Completed")}
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    status === "Completed" && styles.radioSelected,
-                  ]}
-                >
-                  {status === "Completed" && <View style={styles.radioInner} />}
-                </View>
-
-                <Text style={styles.radioText}>Completed</Text>
-              </TouchableOpacity>
-
-              {/* PURSUING */}
-
-              <TouchableOpacity
-                style={styles.radioOption}
-                activeOpacity={0.7}
-                onPress={() => setStatus("Pursuing")}
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    status === "Pursuing" && styles.radioSelected,
-                  ]}
-                >
-                  {status === "Pursuing" && <View style={styles.radioInner} />}
-                </View>
-
-                <Text style={styles.radioText}>Pursuing</Text>
-              </TouchableOpacity>
-
-              {/* DISCONTINUED */}
-
-              <TouchableOpacity
-                style={styles.radioOption}
-                activeOpacity={0.7}
-                onPress={() => setStatus("Discontinued")}
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    status === "Discontinued" && styles.radioSelected,
-                  ]}
-                >
-                  {status === "Discontinued" && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-
-                <Text style={styles.radioText}>Discontinued</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* ===================================================
-              BUTTONS
-          =================================================== */}
-
-          <View style={styles.buttonRow}>
-            {/* CANCEL */}
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancel}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-
-            {/* SAVE */}
-
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.saveText}>
-                {saving ? "Saving..." : "Save Education"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text style={styles.footerText}>
+                  Your information is safe with us
+                </Text>
+              </View>
+            </>
+          )}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
+
+      {/* =================================================
+          DROPDOWN MODAL
+      ================================================= */}
+
+      <Modal
+        visible={!!activeDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveDropdown(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setActiveDropdown(null)}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {activeField ? `Select ${activeField.label}` : ""}
+              </Text>
+
+              <TouchableOpacity onPress={() => setActiveDropdown(null)}>
+                <Ionicons name="close" size={22} color="#777777" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalOptionsList}>
+              {activeField?.options.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.modalOption}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    activeField.setValue(option);
+
+                    setActiveDropdown(null);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      activeField.value === option &&
+                        styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+
+                  {activeField.value === option ? (
+                    <Ionicons name="checkmark" size={18} color="#D92332" />
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-/* =============================================================
+/* =========================================================
    STYLES
-============================================================= */
+========================================================= */
 
 const styles = StyleSheet.create({
-  /* ===========================================================
-     MAIN
-  =========================================================== */
-
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F7F7",
   },
 
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-  /* ===========================================================
-     HEADER
-  =========================================================== */
+  // =======================================================
+  // HEADER
+  // =======================================================
 
   header: {
-    height: 53,
-
+    backgroundColor: "#D92332",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 18,
     flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    backgroundColor: "#FFFFFF",
-
-    borderBottomWidth: 1,
-
-    borderBottomColor: "#F0F0F0",
-
-    position: "relative",
+    alignItems: "flex-start",
   },
 
   backButton: {
-    position: "absolute",
-
-    left: 8,
-
-    width: 31,
-
-    height: 31,
-
-    borderRadius: 16,
-
-    alignItems: "center",
-
+    width: 34,
+    height: 34,
     justifyContent: "center",
+    alignItems: "center",
+  },
 
-    borderWidth: 1,
-
-    borderColor: "#EEEEEE",
-
-    backgroundColor: "#FFFFFF",
+  headerTextWrap: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 4,
   },
 
   headerTitle: {
-    fontSize: 18,
-
+    color: "#FFFFFF",
+    fontSize: 19,
     fontWeight: "700",
-
-    color: "#222222",
-
-    includeFontPadding: false,
+    textAlign: "center",
   },
 
-  menuButton: {
-    position: "absolute",
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
+  },
 
-    right: 7,
-
-    width: 30,
-
-    height: 32,
-
+  headerLotus: {
+    width: 34,
     alignItems: "center",
-
-    justifyContent: "center",
+    marginTop: 2,
   },
 
-  /* ===========================================================
-     SCROLL
-  =========================================================== */
-
-  scrollView: {
-    flex: 1,
-
-    backgroundColor: "#FFFFFF",
-  },
+  // =======================================================
+  // SCROLL / LAYOUT
+  // =======================================================
 
   scrollContent: {
-    paddingHorizontal: 21,
-
-    paddingTop: 8,
-
-    paddingBottom: 20,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 30,
   },
 
-  /* ===========================================================
-     FORM FIELD
-  =========================================================== */
-
-  fieldContainer: {
-    width: "100%",
-
-    marginBottom: 40,
-    marginTop: 20,
+  loadingText: {
+    textAlign: "center",
+    marginTop: 40,
+    fontSize: 13,
+    color: "#737B87",
   },
 
-  label: {
-    fontSize: 18,
+  // =======================================================
+  // INFO BANNER
+  // =======================================================
 
-    lineHeight: 11,
-
-    color: "#4B5563",
-
-    fontWeight: "400",
-
+  infoBanner: {
+    flexDirection: "row",
+    backgroundColor: "#FCF1DD",
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 16,
+  },
 
-    includeFontPadding: false,
+  infoIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FBE3C3",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  infoTextWrap: {
+    flex: 1,
+  },
+
+  infoTitle: {
+    color: "#D92332",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  infoBody: {
+    color: "#777777",
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+
+  // =======================================================
+  // FORM CARD
+  // =======================================================
+
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
+  fieldBlock: {
+    marginBottom: 20,
+  },
+
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  labelIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#FCE4E6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+
+  fieldLabel: {
+    color: "#222222",
+    fontSize: 15,
+    fontWeight: "700",
+    flexShrink: 1,
   },
 
   required: {
-    color: "#EF233C",
-
-    fontWeight: "700",
+    color: "#D92332",
   },
 
-  /* ===========================================================
-     INPUT
-  =========================================================== */
+  // ---- dropdown select box / text input box ----
 
-  input: {
-    width: "100%",
-
-    height: 30,
-
+  selectBox: {
+    height: 48,
     borderWidth: 1,
-
-    borderColor: "#E7EAEE",
-
-    borderRadius: 7,
-
-    backgroundColor: "#FFFFFF",
-
-    paddingHorizontal: 9,
-
-    paddingVertical: 0,
-
-    fontSize: 14,
-
-    color: "#4B5563",
-
-    includeFontPadding: false,
-  },
-
-  /* ===========================================================
-     YEAR ROW
-  =========================================================== */
-
-  yearRow: {
-    width: "100%",
-
+    borderColor: "#E2E2E2",
+    borderRadius: 8,
+    paddingHorizontal: 14,
     flexDirection: "row",
-
-    alignItems: "flex-start",
-
-    marginTop: 1,
-
-    marginBottom: 17,
-  },
-
-  yearColumn: {
-    flex: 1,
-
-    position: "relative",
-  },
-
-  /* ===========================================================
-     DROPDOWN
-  =========================================================== */
-
-  dropdown: {
-    height: 30,
-
-    width: "100%",
-
-    borderWidth: 1,
-
-    borderColor: "#E7EAEE",
-
-    borderRadius: 7,
-
-    backgroundColor: "#FFFFFF",
-
-    paddingHorizontal: 9,
-
-    flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "space-between",
   },
 
-  dropdownText: {
-    fontSize: 12,
-
-    color: "#4B5563",
-
-    includeFontPadding: false,
-  },
-
-  /* ===========================================================
-     DROPDOWN LIST
-  =========================================================== */
-
-  dropdownList: {
-    position: "absolute",
-
-    top: 47,
-
-    left: 0,
-
-    right: 0,
-
-    backgroundColor: "#FFFFFF",
-
-    borderWidth: 1,
-
-    borderColor: "#E4E7EB",
-
-    borderRadius: 7,
-
-    zIndex: 100,
-
-    elevation: 5,
-
-    overflow: "hidden",
-  },
-
-  dropdownScroll: {
-    maxHeight: 130,
-  },
-
-  dropdownOption: {
-    height: 27,
-
-    paddingHorizontal: 9,
-
-    justifyContent: "center",
-
-    borderBottomWidth: 1,
-
-    borderBottomColor: "#F4F4F4",
-  },
-
-  optionText: {
-    fontSize: 13,
-
-    color: "#4B5563",
-
-    includeFontPadding: false,
-  },
-
-  /* ===========================================================
-     STATUS
-  =========================================================== */
-
-  statusSection: {
-    width: "100%",
-
-    marginTop: 15,
-
-    marginBottom: 11,
-  },
-
-  radioRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "flex-start",
-  },
-
-  radioOption: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    marginRight: 14,
-  },
-
-  radioOuter: {
-    width: 16,
-
-    height: 16,
-
-    borderRadius: 7,
-
-    borderWidth: 1,
-
-    borderColor: "#D9DEE5",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    marginRight: 4,
-  },
-
-  radioSelected: {
-    borderColor: "#EF233C",
-  },
-
-  radioInner: {
-    width: 7,
-
-    height: 7,
-
-    borderRadius: 4,
-
-    backgroundColor: "#EF233C",
-  },
-
-  radioText: {
-    fontSize: 13,
-
-    color: "#555E6A",
-
-    includeFontPadding: false,
-  },
-
-  /* ===========================================================
-     BUTTON ROW
-  =========================================================== */
-
-  buttonRow: {
-    width: "100%",
-
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    marginTop: 30,
-  },
-
-  /* ===========================================================
-     CANCEL
-  =========================================================== */
-
-  cancelButton: {
+  selectValue: {
+    color: "#333333",
+    fontSize: 14.5,
     flex: 1,
-
-    height: 37,
-
-    borderRadius: 6,
-
-    backgroundColor: "#FFF0F2",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    marginRight: 8,
   },
 
-  cancelText: {
-    fontSize: 18,
-
-    fontWeight: "600",
-
-    color: "#E91E35",
-
-    includeFontPadding: false,
+  selectPlaceholder: {
+    color: "#B0B0B0",
   },
 
-  /* ===========================================================
-     SAVE
-  =========================================================== */
+  textInput: {
+    flex: 1,
+    height: "100%",
+    color: "#333333",
+    fontSize: 14.5,
+  },
+
+  // =======================================================
+  // SAVE BUTTON
+  // =======================================================
 
   saveButton: {
-    flex: 1.3,
-
-    height: 37,
-
-    borderRadius: 6,
-
-    backgroundColor: "#E91E35",
-
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: "#D92332",
+    marginTop: 20,
+    flexDirection: "row",
     alignItems: "center",
-
     justifyContent: "center",
+    shadowColor: "#D92332",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
   },
 
   saveButtonDisabled: {
     opacity: 0.6,
   },
 
-  saveText: {
-    fontSize: 18,
-
-    fontWeight: "700",
-
+  saveButtonText: {
     color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginHorizontal: 8,
+  },
 
-    includeFontPadding: false,
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+
+  footerText: {
+    color: "#8A8A8A",
+    fontSize: 12,
+    marginLeft: 6,
+  },
+
+  // =======================================================
+  // DROPDOWN MODAL
+  // =======================================================
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+
+  modalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: "60%",
+    paddingBottom: 20,
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#222222",
+    flexShrink: 1,
+    marginRight: 10,
+  },
+
+  modalOptionsList: {
+    paddingHorizontal: 18,
+  },
+
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+
+  modalOptionText: {
+    fontSize: 15,
+    color: "#333333",
+  },
+
+  modalOptionTextSelected: {
+    color: "#D92332",
+    fontWeight: "700",
   },
 });

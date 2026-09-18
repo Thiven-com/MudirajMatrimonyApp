@@ -56,7 +56,11 @@ export default function CareerInformation() {
 
   const loadCareer = useCallback(async () => {
     try {
-      const accessToken = await AsyncStorage.getItem("access_token");
+      // FIX: was "access_token" — every other screen in this app
+      // (Education, Profession, Social Background, Languages) stores
+      // the token under "authToken". "access_token" is never set,
+      // so this always returned null.
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       console.log("========================================");
 
@@ -233,7 +237,8 @@ export default function CareerInformation() {
                                GET TOKEN
                             ================================= */
 
-              const accessToken = await AsyncStorage.getItem("access_token");
+              // FIX: was "access_token" — same mismatch as loadCareer().
+              const accessToken = await AsyncStorage.getItem("authToken");
 
               console.log("ACCESS TOKEN EXISTS:", !!accessToken);
 
@@ -340,7 +345,8 @@ export default function CareerInformation() {
 
   const loadSingleCareer = async (careerId) => {
     try {
-      const accessToken = await AsyncStorage.getItem("access_token");
+      // FIX: was "access_token" — same mismatch as above.
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {
         Alert.alert("Session Expired", "Please login again.");

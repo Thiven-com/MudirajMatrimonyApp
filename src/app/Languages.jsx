@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
 
 import {
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -471,6 +471,9 @@ export default function Languages() {
 
       console.log("MOTHER TONGUE:", motherTongueValue);
 
+      console.log("KNOWN LANGUAGES:", knownLanguagesValue);
+      console.log("DISPLAY VALUES");
+      console.log("MOTHER TONGUE:", motherTongueValue);
       console.log("KNOWN LANGUAGES:", knownLanguagesValue);
 
       console.log("========================================");

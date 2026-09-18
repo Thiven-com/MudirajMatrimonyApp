@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -26,7 +27,11 @@ const SocialBackgroundScreen = () => {
 
   const [socialBackground, setSocialBackground] = useState({});
 
+  const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing] = useState(false);
+
+  const [loadError, setLoadError] = useState(null);
 
   // =========================================================
   // SAFE VALUE HELPER
@@ -46,20 +51,28 @@ const SocialBackgroundScreen = () => {
 
   const loadSpiritualBackground = useCallback(async () => {
     try {
+      setLoadError(null);
+
       console.log("======================================");
 
       console.log("LOADING SPIRITUAL BACKGROUND");
 
       // ---------------------------------------------------
       // GET TOKEN
+      //
+      // NOTE: this must use the same AsyncStorage key that
+      // the rest of the app (e.g. EditSocialBackground) uses
+      // to store the token, or this call is silently skipped.
       // ---------------------------------------------------
 
-      const accessToken = await AsyncStorage.getItem("access_token");
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
       if (!accessToken) {
         console.log("ACCESS TOKEN NOT FOUND");
+
+        setLoadError("You're not logged in. Please login again.");
 
         return;
       }
@@ -105,9 +118,15 @@ const SocialBackgroundScreen = () => {
       // SAVE DATA
       // ---------------------------------------------------
 
-      setSocialBackground(data);
+      setSocialBackground(data ?? {});
     } catch (error) {
       console.error("SPIRITUAL BACKGROUND SCREEN ERROR:", error);
+
+      setLoadError(
+        error?.message || "Unable to load your spiritual background.",
+      );
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -332,90 +351,128 @@ const SocialBackgroundScreen = () => {
           </View>
 
           {/* =================================================
-              DETAILS
+              LOADING
           ================================================= */}
 
-          <View style={styles.detailsContainer}>
-            {details.map((item, index) => (
-              <View
-                key={item.label}
-                style={[
-                  styles.row,
+          {loading ? (
+            <View style={styles.stateContainer}>
+              <ActivityIndicator size="small" color="#D92332" />
 
-                  index === details.length - 1 && styles.lastRow,
-                ]}
+              <Text style={styles.stateText}>Loading your details…</Text>
+            </View>
+          ) : loadError ? (
+            /* =================================================
+                ERROR
+            ================================================= */
+
+            <View style={styles.stateContainer}>
+              <Ionicons name="alert-circle-outline" size={22} color="#D92332" />
+
+              <Text style={[styles.stateText, styles.stateErrorText]}>
+                {loadError}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.retryButton}
+                activeOpacity={0.8}
+                onPress={loadSpiritualBackground}
               >
-                {/* =========================================
-                      LEFT ICON
-                  ========================================= */}
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {/* =================================================
+                  DETAILS
+              ================================================= */}
 
-                <View
-                  style={[
-                    styles.iconCircle,
+              <View style={styles.detailsContainer}>
+                {details.map((item, index) => (
+                  <View
+                    key={item.label}
+                    style={[
+                      styles.row,
 
-                    {
-                      backgroundColor: item.iconColor + "18",
-                    },
-                  ]}
-                >
-                  <Ionicons name={item.icon} size={18} color={item.iconColor} />
-                </View>
-
-                {/* =========================================
-                      LABEL
-                  ========================================= */}
-
-                <Text style={styles.label} numberOfLines={1}>
-                  {item.label}
-                </Text>
-
-                {/* =========================================
-                      VALUE
-                  ========================================= */}
-
-                <View style={styles.valueContainer}>
-                  <Text style={styles.value} numberOfLines={1}>
-                    {item.value}
-                  </Text>
-                </View>
-
-                {/* =========================================
-                      RIGHT ACTION
-                  ========================================= */}
-
-                {item.editable ? (
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    activeOpacity={0.7}
-                    onPress={() => handleItemEdit(item)}
+                      index === details.length - 1 && styles.lastRow,
+                    ]}
                   >
-                    <Ionicons name="pencil" size={12} color="#A7A7A7" />
-                  </TouchableOpacity>
-                ) : (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color="#999999"
-                    style={styles.arrow}
-                  />
-                )}
+                    {/* =========================================
+                          LEFT ICON
+                      ========================================= */}
+
+                    <View
+                      style={[
+                        styles.iconCircle,
+
+                        {
+                          backgroundColor: item.iconColor + "18",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={18}
+                        color={item.iconColor}
+                      />
+                    </View>
+
+                    {/* =========================================
+                          LABEL
+                      ========================================= */}
+
+                    <Text style={styles.label} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+
+                    {/* =========================================
+                          VALUE
+                      ========================================= */}
+
+                    <View style={styles.valueContainer}>
+                      <Text style={styles.value} numberOfLines={1}>
+                        {item.value}
+                      </Text>
+                    </View>
+
+                    {/* =========================================
+                          RIGHT ACTION
+                      ========================================= */}
+
+                    {item.editable ? (
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        activeOpacity={0.7}
+                        onPress={() => handleItemEdit(item)}
+                      >
+                        <Ionicons name="pencil" size={12} color="#A7A7A7" />
+                      </TouchableOpacity>
+                    ) : (
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color="#999999"
+                        style={styles.arrow}
+                      />
+                    )}
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
 
-          {/* =================================================
-              EDIT DETAILS BUTTON
-          ================================================= */}
+              {/* =================================================
+                  EDIT DETAILS BUTTON
+              ================================================= */}
 
-          <TouchableOpacity
-            style={styles.editButton}
-            activeOpacity={0.85}
-            onPress={handleEdit}
-          >
-            <Ionicons name="pencil" size={15} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.editButton}
+                activeOpacity={0.85}
+                onPress={handleEdit}
+              >
+                <Ionicons name="pencil" size={15} color="#FFFFFF" />
 
-            <Text style={styles.editButtonText}>Edit Details</Text>
-          </TouchableOpacity>
+                <Text style={styles.editButtonText}>Edit Details</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -512,6 +569,53 @@ const styles = StyleSheet.create({
     justifyContent: "center",
 
     alignItems: "center",
+  },
+
+  // =======================================================
+  // LOADING / ERROR STATE
+  // =======================================================
+
+  stateContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 50,
+    paddingBottom: 40,
+
+    alignItems: "center",
+  },
+
+  stateText: {
+    marginTop: 10,
+
+    color: "#8A8080",
+
+    fontSize: 13,
+
+    fontWeight: "500",
+
+    textAlign: "center",
+  },
+
+  stateErrorText: {
+    color: "#B23327",
+  },
+
+  retryButton: {
+    marginTop: 16,
+
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+
+    borderRadius: 7,
+
+    backgroundColor: "#D92332",
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: 13,
+
+    fontWeight: "700",
   },
 
   // =======================================================

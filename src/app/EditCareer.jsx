@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,8 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
-    getMemberCareerById,
-    updateMemberCareerById,
+  getMemberCareerById,
+  updateMemberCareerById,
 } from "../utils/Functions";
 
 // =========================================================
@@ -307,9 +307,15 @@ export default function EditCareer() {
 
       // -------------------------------------------------
       // GET TOKEN
+      //
+      // FIX: this previously read "access_token", which is
+      // never set anywhere in the app — loadCareer() above
+      // correctly reads "authToken", so the screen loaded
+      // fine but every save silently failed with a missing
+      // token. Now both use the same key.
       // -------------------------------------------------
 
-      const accessToken = await AsyncStorage.getItem("access_token");
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {
         Alert.alert("Session Expired", "Please login again.");
@@ -609,100 +615,6 @@ export default function EditCareer() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-}
-
-// =========================================================
-// UPDATE CAREER API
-// =========================================================
-//
-// IMPORTANT:
-//
-// You need to use the HTTP method provided by your backend
-// for updating:
-//
-// PUT /api/member/career/{id}
-// OR
-// PATCH /api/member/career/{id}
-// OR
-// POST /api/member/career/{id}
-//
-//
-//
-// Change this function's method if your API specifies
-// something different.
-// =========================================================
-
-async function updateCareerById(accessToken, careerId, body) {
-  // -----------------------------------------------
-  // IMPORT BASE URL dynamically
-  // -----------------------------------------------
-
-  const BASE_URL = require("../constants/AppUrls").default;
-
-  const id = Number(careerId);
-
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("Invalid career ID.");
-  }
-
-  const URL = `${BASE_URL}/api/member/career/${id}`;
-
-  console.log("======================================");
-
-  console.log("UPDATE MEMBER CAREER API");
-
-  console.log("METHOD: PUT");
-
-  console.log("URL:", URL);
-
-  console.log("BODY:", JSON.stringify(body, null, 2));
-
-  console.log("======================================");
-
-  const response = await fetch(URL, {
-    method: "PUT",
-
-    headers: {
-      Accept: "application/json",
-
-      "Content-Type": "application/json",
-
-      Authorization: `Bearer ${accessToken}`,
-    },
-
-    body: JSON.stringify(body),
-  });
-
-  const text = await response.text();
-
-  let data = {};
-
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = {
-      message: text,
-    };
-  }
-
-  console.log("UPDATE CAREER STATUS:", response.status);
-
-  console.log("UPDATE CAREER RESPONSE:", JSON.stringify(data, null, 2));
-
-  if (response.status >= 200 && response.status < 300) {
-    return {
-      success: true,
-      result: true,
-      statusCode: response.status,
-      data,
-    };
-  }
-
-  throw new Error(
-    data?.message ||
-      data?.error ||
-      `Career update failed with status ${response.status}`,
   );
 }
 

@@ -24,6 +24,55 @@ import {
   getMemberFamilyInfo,
   updateMemberFamilyInfo,
 } from "../utils/Functions";
+const InputField = ({
+  label,
+  value,
+  onChangeText,
+  inputRef,
+  icon,
+  iconColor,
+  placeholder,
+  keyboardType = "default",
+  autoCapitalize = "words",
+  isSelected = false,
+  editable = true,
+}) => {
+  return (
+    <View style={styles.fieldContainer}>
+      <View style={styles.fieldHeader}>
+        <View
+          style={[
+            styles.iconCircle,
+            {
+              backgroundColor: iconColor + "18",
+            },
+          ]}
+        >
+          <Ionicons name={icon} size={18} color={iconColor} />
+        </View>
+
+        <Text style={styles.fieldLabel}>{label}</Text>
+      </View>
+
+      <View
+        style={[styles.inputWrapper, isSelected && styles.selectedInputWrapper]}
+      >
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#AAAAAA"
+          style={styles.input}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          returnKeyType="next"
+          editable={editable}
+        />
+      </View>
+    </View>
+  );
+};
 
 /* =========================================================
    EDIT FAMILY INFORMATION
@@ -453,72 +502,6 @@ export default function EditFamilyInformation() {
     } finally {
       setSaving(false);
     }
-  };
-
-  /* =======================================================
-     INPUT COMPONENT
-  ======================================================= */
-
-  const InputField = ({
-    label,
-    value,
-    onChangeText,
-    inputRef,
-    icon,
-    iconColor,
-    placeholder,
-    keyboardType = "default",
-    autoCapitalize = "words",
-    fieldName,
-  }) => {
-    const isSelected = selectedField === fieldName;
-
-    return (
-      <View style={styles.fieldContainer}>
-        {/* ===============================================
-            LABEL
-        =============================================== */}
-
-        <View style={styles.fieldHeader}>
-          <View
-            style={[
-              styles.iconCircle,
-              {
-                backgroundColor: iconColor + "18",
-              },
-            ]}
-          >
-            <Ionicons name={icon} size={18} color={iconColor} />
-          </View>
-
-          <Text style={styles.fieldLabel}>{label}</Text>
-        </View>
-
-        {/* ===============================================
-            INPUT
-        =============================================== */}
-
-        <View
-          style={[
-            styles.inputWrapper,
-            isSelected && styles.selectedInputWrapper,
-          ]}
-        >
-          <TextInput
-            ref={inputRef}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="#AAAAAA"
-            style={styles.input}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            returnKeyType="next"
-            editable={!saving}
-          />
-        </View>
-      </View>
-    );
   };
 
   /* =======================================================
