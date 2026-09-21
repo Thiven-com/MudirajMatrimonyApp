@@ -1857,8 +1857,7 @@ export default function ProfileDetails() {
               </View>
 
 
-              {/* PROFESSION */}
-
+              {/* PROFESSION 
               <View style={styles.heroInfoRow}>
 
                 <Ionicons
@@ -1875,7 +1874,8 @@ export default function ProfileDetails() {
                 </Text>
 
               </View>
-
+                  */}
+               
 
               {/* LOCATION */}
 

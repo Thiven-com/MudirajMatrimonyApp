@@ -5,10 +5,10 @@ import {
 
 import {
     Alert,
-    KeyboardAvoidingView,
-    Platform,
+    FlatList,
+    Modal,
+    Pressable,
     SafeAreaView,
-    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
@@ -17,7 +17,9 @@ import {
     View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import {
+    Ionicons,
+} from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -33,69 +35,134 @@ import {
 } from "../utils/Functions";
 
 
-/* =========================================================
-   RESPONSE NORMALIZER
-========================================================= */
+const LANGUAGE_CACHE_KEY =
+  "member_languages_cache";
 
-const normalizeLanguageResponse = (response) => {
-  let data =
-    response?.data ??
-    response ??
-    {};
 
-  /*
-    Response example:
+const LANGUAGE_LIST = [
+  "Telugu",
+  "Hindi",
+  "English",
+  "Tamil",
+  "Kannada",
+  "Malayalam",
+  "Marathi",
+  "Bengali",
+  "Gujarati",
+  "Punjabi",
+  "Urdu",
+  "Odia",
+  "Assamese",
+  "Kashmiri",
+  "Konkani",
+  "Sanskrit",
+  "Sindhi",
+  "Nepali",
+  "Manipuri",
+  "Maithili",
+  "Bodo",
+  "Dogri",
+  "Santali",
+  "French",
+  "German",
+  "Spanish",
+  "Italian",
+  "Portuguese",
+  "Russian",
+  "Arabic",
+  "Chinese",
+  "Japanese",
+  "Korean",
+  "Other",
+];
 
-    {
-      success: 1,
-      result: true,
-      data: {
-        mother_tongue: "Telugu",
-        known_languages: [
-          "English",
-          "Hindi"
-        ]
+
+// =========================================================
+// HELPERS
+// =========================================================
+
+const normalizeKey = (key) =>
+  String(key || "")
+    .toLowerCase()
+    .replace(/[_\-\s]/g, "");
+
+
+const findValueDeep = (
+  data,
+  keys
+) => {
+
+  if (
+    !data ||
+    typeof data !== "object"
+  ) {
+    return undefined;
+  }
+
+  const wanted =
+    keys.map(
+      normalizeKey
+    );
+
+  for (
+    const key of Object.keys(data)
+  ) {
+
+    if (
+      wanted.includes(
+        normalizeKey(key)
+      )
+    ) {
+
+      if (
+        data[key] !== null &&
+        data[key] !== undefined
+      ) {
+        return data[key];
       }
     }
-  */
-
-  if (
-    data &&
-    typeof data === "object" &&
-    data.data &&
-    typeof data.data === "object" &&
-    !Array.isArray(data.data)
-  ) {
-    data = data.data;
   }
 
-  if (
-    data &&
-    typeof data === "object" &&
-    data.result &&
-    typeof data.result === "object" &&
-    !Array.isArray(data.result)
+  for (
+    const key of Object.keys(data)
   ) {
-    data = data.result;
+
+    const value =
+      data[key];
+
+    if (
+      value &&
+      typeof value === "object"
+    ) {
+
+      const found =
+        findValueDeep(
+          value,
+          keys
+        );
+
+      if (
+        found !== undefined
+      ) {
+        return found;
+      }
+    }
   }
 
-  return data || {};
+  return undefined;
 };
 
 
-/* =========================================================
-   LANGUAGE NAME
-========================================================= */
+const getLanguageName = (
+  item
+) => {
 
-const getLanguageName = (item) => {
   if (
     item === null ||
     item === undefined
   ) {
     return "";
   }
-
-  /* STRING / NUMBER */
 
   if (
     typeof item === "string" ||
@@ -104,225 +171,181 @@ const getLanguageName = (item) => {
     return String(item).trim();
   }
 
-  /* OBJECT */
-
   if (
-    typeof item === "object"
+    Array.isArray(item)
   ) {
-    return String(
-      item?.name ??
-      item?.language ??
-      item?.language_name ??
-      item?.languageName ??
-      item?.title ??
-      item?.value ??
-      ""
-    ).trim();
-  }
 
-  return "";
-};
-
-
-/* =========================================================
-   MOTHER TONGUE VALUE
-========================================================= */
-
-const getMotherTongueValue = (data) => {
-  let value =
-    data?.mother_tongue ??
-    data?.motherTongue ??
-    data?.mother_tongue_name ??
-    data?.motherTongueName ??
-    data?.mother_language ??
-    data?.motherLanguage ??
-    "";
-
-  if (
-    typeof value === "object"
-  ) {
-    value =
-      getLanguageName(value);
+    return item.length
+      ? getLanguageName(
+          item[0]
+        )
+      : "";
   }
 
   return String(
-    value ?? ""
+    item?.name ??
+    item?.language_name ??
+    item?.languageName ??
+    item?.language ??
+    item?.title ??
+    item?.label ??
+    item?.value ??
+    item?.text ??
+    ""
   ).trim();
 };
 
 
-/* =========================================================
-   KNOWN LANGUAGES VALUE
-========================================================= */
+const uniqueLanguages = (
+  values
+) => {
 
-const getKnownLanguagesValue = (data) => {
-  let value =
-    data?.known_languages ??
-    data?.knownLanguages ??
-    data?.languages ??
-    data?.language ??
-    [];
-
-
-  /* -----------------------------------------------
-     STRING
-  ------------------------------------------------ */
+  const result = [];
 
   if (
-    typeof value === "string"
+    !Array.isArray(values)
   ) {
-    return value
-      .split(",")
-      .map(
-        (item) =>
-          String(item).trim()
-      )
-      .filter(Boolean);
+    return result;
   }
 
+  values.forEach(
+    (item) => {
 
-  /* -----------------------------------------------
-     SINGLE OBJECT
-  ------------------------------------------------ */
+      const value =
+        getLanguageName(
+          item
+        );
 
-  if (
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value)
-  ) {
+      if (!value) {
+        return;
+      }
 
-    if (
-      value?.name ||
-      value?.language ||
-      value?.language_name
-    ) {
-      value = [value];
-    } else {
-      value = Object.values(value);
+      if (
+        !result.some(
+          (oldValue) =>
+            oldValue.toLowerCase() ===
+            value.toLowerCase()
+        )
+      ) {
+
+        result.push(
+          value
+        );
+      }
     }
+  );
+
+  return result;
+};
+
+
+const normalizeKnownLanguages = (
+  value
+) => {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return [];
   }
-
-
-  /* -----------------------------------------------
-     ARRAY
-  ------------------------------------------------ */
 
   if (
     Array.isArray(value)
   ) {
-    return value
-      .map(
-        getLanguageName
-      )
-      .map(
-        (item) =>
-          String(item).trim()
-      )
-      .filter(Boolean);
+    return uniqueLanguages(
+      value
+    );
   }
 
+  if (
+    typeof value === "string"
+  ) {
+
+    const text =
+      value.trim();
+
+    if (!text) {
+      return [];
+    }
+
+    if (
+      text.startsWith("[")
+    ) {
+
+      try {
+
+        return uniqueLanguages(
+          JSON.parse(text)
+        );
+
+      } catch (error) {}
+    }
+
+    if (
+      text.includes(",")
+    ) {
+
+      return uniqueLanguages(
+        text.split(",")
+      );
+    }
+
+    return [text];
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+
+    const nested =
+      value?.data ??
+      value?.items ??
+      value?.languages ??
+      value?.known_languages ??
+      value?.knownLanguages ??
+      value?.values ??
+      value?.list;
+
+    if (
+      nested !== undefined
+    ) {
+
+      return normalizeKnownLanguages(
+        nested
+      );
+    }
+
+    const single =
+      getLanguageName(
+        value
+      );
+
+    if (single) {
+      return [single];
+    }
+  }
 
   return [];
 };
 
 
-/* =========================================================
-   API SUCCESS CHECK
-========================================================= */
-
-const isApiSuccess = (response) => {
-
-  if (!response) {
-    return false;
-  }
-
-
-  /* success: true */
-
-  if (
-    response?.success === true ||
-    response?.success === 1 ||
-    response?.success === "1"
-  ) {
-    return true;
-  }
-
-
-  /* result: true */
-
-  if (
-    response?.result === true ||
-    response?.result === 1 ||
-    response?.result === "1"
-  ) {
-    return true;
-  }
-
-
-  /* nested success */
-
-  if (
-    response?.data?.success === true ||
-    response?.data?.success === 1 ||
-    response?.data?.success === "1"
-  ) {
-    return true;
-  }
-
-
-  /* nested result */
-
-  if (
-    response?.data?.result === true ||
-    response?.data?.result === 1 ||
-    response?.data?.result === "1"
-  ) {
-    return true;
-  }
-
-
-  return false;
-};
-
-
-/* =========================================================
-   EDIT LANGUAGES SCREEN
-========================================================= */
+// =========================================================
+// SCREEN
+// =========================================================
 
 export default function EditLanguages() {
 
   const params =
     useLocalSearchParams();
 
-
-  /* =======================================================
-     FIELD PARAMETER
-  ======================================================= */
-
   const field =
-    Array.isArray(params?.field)
-      ? params.field[0]
-      : params?.field;
+    params?.field || "";
 
-
-  /*
-    motherTongue
-      => Mother Tongue screen
-
-    knownLanguages
-      => Known Languages screen
-
-    undefined
-      => Known Languages by default
-  */
 
   const isMotherTongue =
     field === "motherTongue";
 
-
-  /* =======================================================
-     STATE
-  ======================================================= */
 
   const [
     motherTongue,
@@ -337,17 +360,26 @@ export default function EditLanguages() {
 
 
   const [
-    newLanguage,
-    setNewLanguage,
+    modalVisible,
+    setModalVisible,
+  ] = useState(false);
+
+
+  const [
+    modalType,
+    setModalType,
+  ] = useState(
+    isMotherTongue
+      ? "motherTongue"
+      : "knownLanguages"
+  );
+
+
+  const [
+    searchText,
+    setSearchText,
   ] = useState("");
 
-
-  /*
-    Saving state is ONLY used to prevent
-    double-clicking.
-
-    No loading UI is displayed.
-  */
 
   const [
     saving,
@@ -355,84 +387,67 @@ export default function EditLanguages() {
   ] = useState(false);
 
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+  // =======================================================
+  // LOAD CURRENT VALUES
+  // =======================================================
 
-
-  /* =======================================================
-     LOAD LANGUAGES
-     
-     NO LOADING UI
-  ======================================================= */
-
-  const loadLanguages =
+  const loadCurrentLanguages =
     useCallback(
       async () => {
 
         try {
 
-          setErrorMessage("");
+          // Cache first
+          const cached =
+            await AsyncStorage.getItem(
+              LANGUAGE_CACHE_KEY
+            );
+
+          if (cached) {
+
+            try {
+
+              const parsed =
+                JSON.parse(
+                  cached
+                );
+
+              setMotherTongue(
+                String(
+                  parsed?.mother_tongue ||
+                  ""
+                ).trim()
+              );
+
+              setKnownLanguages(
+                normalizeKnownLanguages(
+                  parsed?.known_languages
+                )
+              );
+
+            } catch (error) {}
+          }
 
 
-          /* ---------------------------------------------
-             GET TOKEN
-          --------------------------------------------- */
-
-          const accessToken =
+          // API
+          const token =
             await AsyncStorage.getItem(
               "access_token"
             );
 
-
-          console.log(
-            "========================================"
-          );
-
-          console.log(
-            "EDIT LANGUAGES - GET API"
-          );
-
-          console.log(
-            "TOKEN EXISTS:",
-            !!accessToken
-          );
-
-          console.log(
-            "========================================"
-          );
-
-
-          if (!accessToken) {
-
-            setErrorMessage(
-              "Access token is missing. Please login again."
-            );
-
+          if (!token) {
             return;
           }
 
 
-          /* ---------------------------------------------
-             GET API
-          --------------------------------------------- */
-
           const response =
             await getMemberLanguages(
-              accessToken
+              token
             );
 
 
           console.log(
-            "========================================"
-          );
-
-          console.log(
-            "EDIT LANGUAGES GET RESPONSE"
-          );
-
-          console.log(
+            "EDIT LANGUAGE GET RESPONSE:",
             JSON.stringify(
               response,
               null,
@@ -440,131 +455,73 @@ export default function EditLanguages() {
             )
           );
 
-          console.log(
-            "========================================"
-          );
 
-
-          /* ---------------------------------------------
-             NORMALIZE
-          --------------------------------------------- */
-
-          const data =
-            normalizeLanguageResponse(
-              response
+          const motherValue =
+            findValueDeep(
+              response,
+              [
+                "mother_tongue",
+                "mothere_tongue",
+                "motherTongue",
+                "mother_tongue_name",
+                "motherTongueName",
+                "mother_language",
+                "motherLanguage",
+              ]
             );
 
 
-          console.log(
-            "NORMALIZED DATA:",
-            JSON.stringify(
-              data,
-              null,
-              2
-            )
-          );
-
-
-          /* ---------------------------------------------
-             MOTHER TONGUE
-          --------------------------------------------- */
-
-          const motherTongueValue =
-            getMotherTongueValue(
-              data
+          const knownValue =
+            findValueDeep(
+              response,
+              [
+                "known_languages",
+                "knownLanguages",
+                "known_language",
+                "knownLanguage",
+                "languages_known",
+                "languagesKnown",
+              ]
             );
 
 
-          /* ---------------------------------------------
-             KNOWN LANGUAGES
-          --------------------------------------------- */
-
-          const knownLanguagesValue =
-            getKnownLanguagesValue(
-              data
+          const parsedMother =
+            getLanguageName(
+              motherValue
             );
 
 
-          /* ---------------------------------------------
-             REMOVE DUPLICATES
-          --------------------------------------------- */
-
-          const uniqueLanguages = [
-            ...new Map(
-              knownLanguagesValue.map(
-                (language) => [
-                  language
-                    .toLowerCase(),
-                  language,
-                ]
-              )
-            ).values(),
-          ];
+          const parsedKnown =
+            normalizeKnownLanguages(
+              knownValue
+            );
 
 
-          /* ---------------------------------------------
-             SET VALUES
-          --------------------------------------------- */
+          if (
+            parsedMother
+          ) {
 
-          setMotherTongue(
-            motherTongueValue
-          );
-
-
-          setKnownLanguages(
-            uniqueLanguages
-          );
+            setMotherTongue(
+              parsedMother
+            );
+          }
 
 
-          setErrorMessage("");
+          if (
+            parsedKnown.length
+          ) {
 
-
-          console.log(
-            "MOTHER TONGUE:",
-            motherTongueValue
-          );
-
-          console.log(
-            "KNOWN LANGUAGES:",
-            uniqueLanguages
-          );
-
+            setKnownLanguages(
+              parsedKnown
+            );
+          }
 
         } catch (error) {
 
-          console.error(
-            "========================================"
+          console.log(
+            "EDIT LANGUAGES LOAD ERROR:",
+            error
           );
-
-          console.error(
-            "EDIT LANGUAGES GET ERROR"
-          );
-
-          console.error(
-            "MESSAGE:",
-            error?.message
-          );
-
-          console.error(
-            "RESPONSE:",
-            JSON.stringify(
-              error?.response?.data,
-              null,
-              2
-            )
-          );
-
-          console.error(
-            "========================================"
-          );
-
-
-          setErrorMessage(
-            error?.response?.data?.message ||
-            error?.message ||
-            "Unable to load languages."
-          );
-
         }
 
       },
@@ -572,526 +529,523 @@ export default function EditLanguages() {
     );
 
 
-  /* =======================================================
-     LOAD WHEN SCREEN OPENS
-     
-     No loading screen.
-  ======================================================= */
-
   useFocusEffect(
     useCallback(
       () => {
-
-        loadLanguages();
-
+        loadCurrentLanguages();
       },
       [
-        loadLanguages,
+        loadCurrentLanguages,
       ]
     )
   );
 
 
-  /* =======================================================
-     ADD LANGUAGE
-  ======================================================= */
+  // =======================================================
+  // OPEN MODAL
+  // =======================================================
 
-  const handleAddLanguage =
-    useCallback(
-      () => {
+  const openMotherTongue =
+    () => {
 
-        const value =
-          String(
-            newLanguage || ""
-          ).trim();
+      setModalType(
+        "motherTongue"
+      );
 
+      setSearchText("");
 
-        /* ---------------------------------------------
-           EMPTY
-        --------------------------------------------- */
-
-        if (!value) {
-
-          Alert.alert(
-            "Enter Language",
-            "Please enter a language."
-          );
-
-          return;
-        }
+      setModalVisible(
+        true
+      );
+    };
 
 
-        /* ---------------------------------------------
-           DUPLICATE
-        --------------------------------------------- */
+  const openKnownLanguages =
+    () => {
 
-        const alreadyExists =
-          knownLanguages.some(
-            (item) =>
-              String(item)
-                .trim()
-                .toLowerCase() ===
-              value.toLowerCase()
-          );
+      setModalType(
+        "knownLanguages"
+      );
 
+      setSearchText("");
 
-        if (alreadyExists) {
-
-          Alert.alert(
-            "Already Added",
-            "This language is already added."
-          );
-
-          return;
-        }
+      setModalVisible(
+        true
+      );
+    };
 
 
-        /* ---------------------------------------------
-           ADD
-        --------------------------------------------- */
+  // =======================================================
+  // SELECT MOTHER TONGUE
+  // =======================================================
 
-        setKnownLanguages(
-          (previous) => [
+  const selectMotherTongue =
+    (language) => {
+
+      setMotherTongue(
+        language
+      );
+
+      setModalVisible(
+        false
+      );
+
+      setSearchText("");
+    };
+
+
+  // =======================================================
+  // SELECT KNOWN LANGUAGE
+  // =======================================================
+
+  const toggleKnownLanguage =
+    (language) => {
+
+      setKnownLanguages(
+        (previous) => {
+
+          const exists =
+            previous.some(
+              (item) =>
+                item.toLowerCase() ===
+                language.toLowerCase()
+            );
+
+          if (exists) {
+
+            return previous.filter(
+              (item) =>
+                item.toLowerCase() !==
+                language.toLowerCase()
+            );
+          }
+
+          return [
             ...previous,
-            value,
-          ]
-        );
+            language,
+          ];
+        }
+      );
+    };
 
 
-        setNewLanguage("");
+  // =======================================================
+  // REMOVE LANGUAGE
+  // =======================================================
 
-      },
-      [
-        newLanguage,
-        knownLanguages,
-      ]
-    );
+  const removeLanguage =
+    (language) => {
 
-
-  /* =======================================================
-     REMOVE LANGUAGE
-  ======================================================= */
-
-  const handleRemoveLanguage =
-    useCallback(
-      (index) => {
-
-        setKnownLanguages(
-          (previous) =>
-            previous.filter(
-              (_, itemIndex) =>
-                itemIndex !== index
-            )
-        );
-
-      },
-      []
-    );
+      setKnownLanguages(
+        (previous) =>
+          previous.filter(
+            (item) =>
+              item.toLowerCase() !==
+              language.toLowerCase()
+          )
+      );
+    };
 
 
-  /* =======================================================
-     SAVE / UPDATE LANGUAGES
-     
-     DIRECT API CALL
-     
-     NO LOADING UI
-  ======================================================= */
+  // =======================================================
+  // SAVE
+  // =======================================================
 
   const handleSave =
-    useCallback(
-      async () => {
+    async () => {
 
-        /*
-          Prevent double tap.
-        */
+      if (saving) {
+        return;
+      }
 
-        if (saving) {
+
+      const cleanMotherTongue =
+        String(
+          motherTongue || ""
+        ).trim();
+
+
+      const cleanKnownLanguages =
+        uniqueLanguages(
+          knownLanguages
+        );
+
+
+      if (
+        !cleanMotherTongue
+      ) {
+
+        Alert.alert(
+          "Required",
+          "Please select your mother tongue."
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setSaving(true);
+
+
+        const token =
+          await AsyncStorage.getItem(
+            "access_token"
+          );
+
+
+        if (!token) {
+
+          Alert.alert(
+            "Login Required",
+            "Access token is missing. Please login again."
+          );
+
           return;
         }
 
 
-        /* ===============================================
-           VALIDATION
-        =============================================== */
+        // -------------------------------------------------
+        // ALWAYS SEND BOTH VALUES
+        // -------------------------------------------------
 
-        if (isMotherTongue) {
+        const requestBody = {
 
-          if (
-            !String(
-              motherTongue || ""
-            ).trim()
-          ) {
+          mother_tongue:
+            cleanMotherTongue,
 
-            Alert.alert(
-              "Required",
-              "Please enter your mother tongue."
-            );
+          known_languages:
+            cleanKnownLanguages,
+        };
 
-            return;
-          }
 
-        } else {
+        console.log(
+          "========================================"
+        );
 
-          if (
-            !Array.isArray(
-              knownLanguages
-            ) ||
-            knownLanguages.length === 0
-          ) {
+        console.log(
+          "LANGUAGE UPDATE REQUEST"
+        );
 
-            Alert.alert(
-              "Required",
-              "Please add at least one known language."
-            );
+        console.log(
+          "METHOD: POST"
+        );
 
-            return;
-          }
+        console.log(
+          "ENDPOINT: /api/member/languages/update"
+        );
 
+        console.log(
+          "REQUEST BODY:",
+          JSON.stringify(
+            requestBody,
+            null,
+            2
+          )
+        );
+
+        console.log(
+          "========================================"
+        );
+
+
+        // -------------------------------------------------
+        // API
+        // -------------------------------------------------
+
+        const response =
+          await updateMemberLanguages(
+            token,
+            requestBody
+          );
+
+
+        console.log(
+          "========================================"
+        );
+
+        console.log(
+          "LANGUAGE UPDATE RESPONSE"
+        );
+
+        console.log(
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
+
+        console.log(
+          "========================================"
+        );
+
+
+        // -------------------------------------------------
+        // SUCCESS CHECK
+        //
+        // Important:
+        // postMethod may already return only the
+        // response body. Don't require statusCode
+        // if success/result is missing.
+        // -------------------------------------------------
+
+        const responseStatus =
+          response?.statusCode ??
+          response?.status ??
+          response?.data?.statusCode;
+
+
+        const explicitFailure =
+          response?.success === 0 ||
+          response?.success === false ||
+          response?.result === false;
+
+
+        const explicitSuccess =
+          response?.success === 1 ||
+          response?.success === true ||
+          response?.result === true ||
+          responseStatus === 200 ||
+          responseStatus === 201;
+
+
+        // If API returned a normal object without
+        // an explicit failure, treat it as successful.
+        const success =
+          !explicitFailure &&
+          (
+            explicitSuccess ||
+            response !== null &&
+            response !== undefined
+          );
+
+
+        if (!success) {
+
+          Alert.alert(
+            "Update Failed",
+            response?.message ||
+            response?.data?.message ||
+            "Unable to update languages."
+          );
+
+          return;
         }
 
 
-        try {
+        // -------------------------------------------------
+        // SAVE CACHE
+        //
+        // This guarantees that the new values are
+        // available immediately after router.back().
+        // -------------------------------------------------
 
-          /*
-            This state does NOT show any
-            spinner or loading section.
-          */
-
-          setSaving(true);
-
-
-          /* =============================================
-             TOKEN
-          ============================================= */
-
-          const accessToken =
-            await AsyncStorage.getItem(
-              "access_token"
-            );
-
-
-          console.log(
-            "========================================"
-          );
-
-          console.log(
-            "LANGUAGE UPDATE STARTED"
-          );
-
-          console.log(
-            "TOKEN EXISTS:",
-            !!accessToken
-          );
-
-          console.log(
-            "========================================"
-          );
-
-
-          if (!accessToken) {
-
-            throw new Error(
-              "Access token is missing. Please login again."
-            );
-          }
-
-
-          /* =============================================
-             CLEAN MOTHER TONGUE
-          ============================================= */
-
-          const cleanMotherTongue =
-            String(
-              motherTongue || ""
-            ).trim();
-
-
-          /* =============================================
-             CLEAN KNOWN LANGUAGES
-          ============================================= */
-
-          const cleanKnownLanguages =
-            Array.isArray(
-              knownLanguages
-            )
-              ? knownLanguages
-                  .map(
-                    (item) =>
-                      String(
-                        item || ""
-                      ).trim()
-                  )
-                  .filter(Boolean)
-              : [];
-
-
-          /* =============================================
-             REMOVE DUPLICATES
-          ============================================= */
-
-          const uniqueKnownLanguages = [
-            ...new Map(
-              cleanKnownLanguages.map(
-                (language) => [
-                  language.toLowerCase(),
-                  language,
-                ]
-              )
-            ).values(),
-          ];
-
-
-          /* =============================================
-             REQUEST BODY
-          ============================================= */
-
-          const requestBody = {
+        await AsyncStorage.setItem(
+          LANGUAGE_CACHE_KEY,
+          JSON.stringify({
             mother_tongue:
               cleanMotherTongue,
 
             known_languages:
-              uniqueKnownLanguages,
-          };
+              cleanKnownLanguages,
+          })
+        );
 
 
-          console.log(
-            "========================================"
-          );
+        console.log(
+          "LANGUAGE CACHE UPDATED:"
+        );
 
-          console.log(
-            "LANGUAGE UPDATE REQUEST"
-          );
+        console.log(
+          JSON.stringify(
+            {
+              mother_tongue:
+                cleanMotherTongue,
 
-          console.log(
-            "ENDPOINT:",
-            "/api/member/language/update"
-          );
-
-          console.log(
-            "REQUEST BODY:"
-          );
-
-          console.log(
-            JSON.stringify(
-              requestBody,
-              null,
-              2
-            )
-          );
-
-          console.log(
-            "========================================"
-          );
+              known_languages:
+                cleanKnownLanguages,
+            },
+            null,
+            2
+          )
+        );
 
 
-          /* =============================================
-             POST API
-          ============================================= */
+        // -------------------------------------------------
+        // RETURN TO LANGUAGES SCREEN
+        // -------------------------------------------------
 
-          const response =
-            await updateMemberLanguages(
-              accessToken,
-              requestBody
+        router.back();
+
+      } catch (error) {
+
+        console.error(
+          "========================================"
+        );
+
+        console.error(
+          "LANGUAGE UPDATE ERROR"
+        );
+
+        console.error(
+          error
+        );
+
+        console.error(
+          "ERROR RESPONSE:",
+          JSON.stringify(
+            error?.response?.data,
+            null,
+            2
+          )
+        );
+
+        console.error(
+          "========================================"
+        );
+
+
+        Alert.alert(
+          "Error",
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update languages."
+        );
+
+      } finally {
+
+        setSaving(false);
+      }
+    };
+
+
+  // =======================================================
+  // FILTER
+  // =======================================================
+
+  const filteredLanguages =
+    LANGUAGE_LIST.filter(
+      (language) =>
+        language
+          .toLowerCase()
+          .includes(
+            searchText
+              .toLowerCase()
+              .trim()
+          )
+    );
+
+
+  // =======================================================
+  // LANGUAGE ITEM
+  // =======================================================
+
+  const renderLanguageItem =
+    ({
+      item,
+    }) => {
+
+      const selected =
+        modalType ===
+        "motherTongue"
+          ? motherTongue
+              .toLowerCase() ===
+            item.toLowerCase()
+          : knownLanguages.some(
+              (language) =>
+                language.toLowerCase() ===
+                item.toLowerCase()
             );
 
 
-          /* =============================================
-             RESPONSE
-          ============================================= */
-
-          console.log(
-            "========================================"
-          );
-
-          console.log(
-            "LANGUAGE UPDATE RESPONSE"
-          );
-
-          console.log(
-            JSON.stringify(
-              response,
-              null,
-              2
-            )
-          );
-
-          console.log(
-            "========================================"
-          );
-
-
-          /* =============================================
-             SUCCESS
-          ============================================= */
-
-          if (
-            isApiSuccess(response)
-          ) {
-
-            const successMessage =
-              response?.message ||
-              response?.data?.message ||
-              "Languages updated successfully.";
-
-
-            /*
-              Show success message briefly,
-              then automatically return.
-
-              No Saving spinner.
-            */
-
-            Alert.alert(
-              "Success",
-              successMessage,
-              [
-                {
-                  text: "OK",
-
-                  onPress: () => {
-
-                    /*
-                      Return to Languages screen.
-
-                      Languages.jsx has
-                      useFocusEffect(), so it
-                      automatically calls GET again.
-                    */
-
-                    router.back();
-
-                  },
-                },
-              ],
-              {
-                cancelable: false,
-              }
-            );
-
-
-            return;
+      return (
+        <TouchableOpacity
+          style={
+            styles.languageOption
           }
+          onPress={() => {
+
+            if (
+              modalType ===
+              "motherTongue"
+            ) {
+
+              selectMotherTongue(
+                item
+              );
+
+            } else {
+
+              toggleKnownLanguage(
+                item
+              );
+            }
+
+          }}
+        >
+
+          <View
+            style={
+              styles.optionLeft
+            }
+          >
+
+            <View
+              style={
+                styles.optionIcon
+              }
+            >
+
+              <Ionicons
+                name="language-outline"
+                size={20}
+                color="#F44336"
+              />
+
+            </View>
 
 
-          /* =============================================
-             API FAILURE
-          ============================================= */
+            <Text
+              style={
+                styles.optionText
+              }
+            >
+              {item}
+            </Text>
 
-          const failureMessage =
-            response?.message ||
-            response?.data?.message ||
-            "Unable to update languages.";
-
-
-          console.log(
-            "LANGUAGE UPDATE FAILED:",
-            failureMessage
-          );
+          </View>
 
 
-          Alert.alert(
-            "Update Failed",
-            failureMessage
-          );
+          <View
+            style={[
+              styles.checkbox,
+              selected &&
+                styles.checkboxSelected,
+            ]}
+          >
+
+            {selected ? (
+              <Ionicons
+                name="checkmark"
+                size={17}
+                color="#FFFFFF"
+              />
+            ) : null}
+
+          </View>
+
+        </TouchableOpacity>
+      );
+    };
 
 
-        } catch (error) {
-
-          console.error(
-            "========================================"
-          );
-
-          console.error(
-            "LANGUAGE UPDATE ERROR"
-          );
-
-          console.error(
-            "MESSAGE:",
-            error?.message
-          );
-
-          console.error(
-            "STATUS:",
-            error?.response?.status
-          );
-
-          console.error(
-            "ERROR RESPONSE:",
-            JSON.stringify(
-              error?.response?.data,
-              null,
-              2
-            )
-          );
-
-          console.error(
-            "========================================"
-          );
-
-
-          const errorResponse =
-            error?.response?.data;
-
-
-          const message =
-            errorResponse?.message ||
-            error?.message ||
-            "Unable to update languages.";
-
-
-          Alert.alert(
-            "Update Failed",
-            message
-          );
-
-
-        } finally {
-
-          /*
-            Only used to unlock the button.
-            There is NO loading UI.
-          */
-
-          setSaving(false);
-
-        }
-
-      },
-      [
-        saving,
-        isMotherTongue,
-        motherTongue,
-        knownLanguages,
-      ]
-    );
-
-
-  /* =======================================================
-     RETRY
-     
-     Retry is only shown if GET failed.
-     No loading indicator.
-  ======================================================= */
-
-  const handleRetry =
-    useCallback(
-      () => {
-
-        loadLanguages();
-
-      },
-      [
-        loadLanguages,
-      ]
-    );
-
-
-  /* =======================================================
-     MAIN UI
-  ======================================================= */
+  // =======================================================
+  // UI
+  // =======================================================
 
   return (
-
     <SafeAreaView
       style={styles.safeArea}
     >
@@ -1102,22 +1056,17 @@ export default function EditLanguages() {
       />
 
 
-      {/* ===================================================
-          HEADER
-      =================================================== */}
+      {/* HEADER */}
 
       <View
         style={styles.header}
       >
 
         <TouchableOpacity
+          style={styles.backButton}
           onPress={() =>
             router.back()
           }
-          style={
-            styles.backButton
-          }
-          activeOpacity={0.7}
         >
 
           <Ionicons
@@ -1143,489 +1092,381 @@ export default function EditLanguages() {
       </View>
 
 
-      {/* ===================================================
-          CONTENT
-      =================================================== */}
+      {/* CONTENT */}
 
-      <KeyboardAvoidingView
-        style={
-          styles.keyboardContainer
-        }
-        behavior={
-          Platform.OS === "ios"
-            ? "padding"
-            : undefined
-        }
+      <View
+        style={styles.container}
       >
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={
-            styles.contentContainer
-          }
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={
-            false
+        {/* MOTHER TONGUE */}
+
+        <Text
+          style={styles.label}
+        >
+          Mother Tongue
+        </Text>
+
+
+        <TouchableOpacity
+          style={styles.dropdown}
+          onPress={
+            openMotherTongue
           }
         >
 
-          {/* =================================================
-              ERROR
-          ================================================= */}
+          <View
+            style={styles.dropdownLeft}
+          >
 
-          {errorMessage ? (
+            <Ionicons
+              name="language-outline"
+              size={22}
+              color="#F44336"
+            />
 
-            <View
-              style={
-                styles.errorContainer
-              }
+            <Text
+              style={[
+                styles.dropdownText,
+                !motherTongue &&
+                  styles.placeholder,
+              ]}
             >
+              {motherTongue ||
+                "Select Mother Tongue"}
+            </Text>
 
-              <View
-                style={
-                  styles.errorIcon
-                }
-              >
-
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={22}
-                  color="#D7192A"
-                />
-
-              </View>
+          </View>
 
 
-              <View
-                style={
-                  styles.errorContent
-                }
-              >
+          <Ionicons
+            name="chevron-down"
+            size={21}
+            color="#777777"
+          />
 
-                <Text
-                  style={
-                    styles.errorTitle
-                  }
-                >
-                  Unable to load languages
-                </Text>
+        </TouchableOpacity>
 
 
-                <Text
-                  style={
-                    styles.errorText
-                  }
-                >
-                  {errorMessage}
-                </Text>
+        {/* KNOWN LANGUAGES */}
+
+        <Text
+          style={[
+            styles.label,
+            {
+              marginTop: 22,
+            },
+          ]}
+        >
+          Known Languages
+        </Text>
 
 
-                <TouchableOpacity
-                  style={
-                    styles.retryButton
-                  }
-                  onPress={
-                    handleRetry
-                  }
-                  activeOpacity={0.8}
-                >
+        <TouchableOpacity
+          style={styles.dropdown}
+          onPress={
+            openKnownLanguages
+          }
+        >
 
-                  <Text
-                    style={
-                      styles.retryText
-                    }
-                  >
-                    Retry
-                  </Text>
+          <View
+            style={styles.dropdownLeft}
+          >
 
-                </TouchableOpacity>
+            <Ionicons
+              name="globe-outline"
+              size={22}
+              color="#F44336"
+            />
 
-              </View>
-
-            </View>
-
-          ) : null}
-
-
-          {/* =================================================
-              MOTHER TONGUE
-          ================================================= */}
-
-          {isMotherTongue && (
-
-            <View
-              style={styles.section}
+            <Text
+              style={[
+                styles.dropdownText,
+                knownLanguages.length === 0 &&
+                  styles.placeholder,
+              ]}
             >
+              {knownLanguages.length
+                ? `${knownLanguages.length} language${
+                    knownLanguages.length > 1
+                      ? "s"
+                      : ""
+                  } selected`
+                : "Select Known Languages"}
+            </Text>
 
-              <View
-                style={
-                  styles.labelRow
-                }
-              >
+          </View>
+
+
+          <Ionicons
+            name="chevron-down"
+            size={21}
+            color="#777777"
+          />
+
+        </TouchableOpacity>
+
+
+        {/* SELECTED CHIPS */}
+
+        {knownLanguages.length >
+        0 ? (
+
+          <View
+            style={
+              styles.selectedContainer
+            }
+          >
+
+            {knownLanguages.map(
+              (
+                language,
+                index
+              ) => (
 
                 <View
+                  key={
+                    `${language}-${index}`
+                  }
                   style={
-                    styles.iconBox
+                    styles.selectedChip
                   }
                 >
 
-                  <Ionicons
-                    name="language-outline"
-                    size={21}
-                    color="#D7192A"
-                  />
-
-                </View>
-
-
-                <View>
-
                   <Text
                     style={
-                      styles.label
+                      styles.selectedChipText
                     }
                   >
-                    Mother Tongue
+                    {language}
                   </Text>
 
-                  <Text
-                    style={
-                      styles.labelSubText
-                    }
-                  >
-                    Enter your mother tongue
-                  </Text>
 
-                </View>
-
-              </View>
-
-
-              <TextInput
-                value={
-                  motherTongue
-                }
-                onChangeText={
-                  setMotherTongue
-                }
-                placeholder="Enter mother tongue"
-                placeholderTextColor="#999999"
-                style={
-                  styles.input
-                }
-                autoCapitalize="words"
-                autoCorrect={false}
-                returnKeyType="done"
-              />
-
-
-              <Text
-                style={
-                  styles.helperText
-                }
-              >
-                Your mother tongue will be shown on your profile.
-              </Text>
-
-            </View>
-
-          )}
-
-
-          {/* =================================================
-              KNOWN LANGUAGES
-          ================================================= */}
-
-          {!isMotherTongue && (
-
-            <View
-              style={styles.section}
-            >
-
-              <View
-                style={
-                  styles.labelRow
-                }
-              >
-
-                <View
-                  style={
-                    styles.iconBox
-                  }
-                >
-
-                  <Ionicons
-                    name="chatbubbles-outline"
-                    size={21}
-                    color="#D7192A"
-                  />
-
-                </View>
-
-
-                <View>
-
-                  <Text
-                    style={
-                      styles.label
-                    }
-                  >
-                    Known Languages
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.labelSubText
-                    }
-                  >
-                    Add the languages you know
-                  </Text>
-
-                </View>
-
-              </View>
-
-
-              {/* -----------------------------------------
-                  EXISTING LANGUAGES
-              ------------------------------------------ */}
-
-              <View
-                style={
-                  styles.languagesContainer
-                }
-              >
-
-                {knownLanguages.length ===
-                0 ? (
-
-                  <View
-                    style={
-                      styles.emptyContainer
+                  <TouchableOpacity
+                    onPress={() =>
+                      removeLanguage(
+                        language
+                      )
                     }
                   >
 
                     <Ionicons
-                      name="language-outline"
-                      size={25}
-                      color="#AAAAAA"
+                      name="close-circle"
+                      size={19}
+                      color="#F44336"
                     />
 
-                    <Text
-                      style={
-                        styles.emptyText
-                      }
-                    >
-                      No known languages added
-                    </Text>
+                  </TouchableOpacity>
 
-                  </View>
+                </View>
 
-                ) : (
+              )
+            )}
 
-                  knownLanguages.map(
-                    (
-                      language,
-                      index
-                    ) => (
+          </View>
 
-                      <View
-                        key={
-                          `${language}-${index}`
-                        }
-                        style={
-                          styles.languageChip
-                        }
-                      >
-
-                        <View
-                          style={
-                            styles.chipIcon
-                          }
-                        >
-
-                          <Ionicons
-                            name="language-outline"
-                            size={14}
-                            color="#D7192A"
-                          />
-
-                        </View>
+        ) : null}
 
 
-                        <Text
-                          style={
-                            styles.languageChipText
-                          }
-                        >
-                          {language}
-                        </Text>
+        {/* SAVE */}
+
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            saving &&
+              styles.saveButtonDisabled,
+          ]}
+          onPress={
+            handleSave
+          }
+          disabled={saving}
+        >
+
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={21}
+            color="#FFFFFF"
+          />
+
+          <Text
+            style={
+              styles.saveButtonText
+            }
+          >
+            {saving
+              ? "Saving..."
+              : "Save Languages"}
+          </Text>
+
+        </TouchableOpacity>
+
+      </View>
 
 
-                        <TouchableOpacity
-                          onPress={() =>
-                            handleRemoveLanguage(
-                              index
-                            )
-                          }
-                          style={
-                            styles.removeButton
-                          }
-                          activeOpacity={0.7}
-                        >
+      {/* LANGUAGE MODAL */}
 
-                          <Ionicons
-                            name="close-circle"
-                            size={20}
-                            color="#D7192A"
-                          />
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setModalVisible(false)
+        }
+      >
 
-                        </TouchableOpacity>
+        <View
+          style={styles.modalOverlay}
+        >
 
-                      </View>
-
-                    )
-                  )
-
-                )}
-
-              </View>
+          <Pressable
+            style={styles.modalTop}
+            onPress={() =>
+              setModalVisible(
+                false
+              )
+            }
+          />
 
 
-              {/* -----------------------------------------
-                  ADD LANGUAGE
-              ------------------------------------------ */}
+          <View
+            style={styles.modalContainer}
+          >
 
-              <View
-                style={styles.addRow}
-              >
+            {/* MODAL HEADER */}
 
-                <TextInput
-                  value={
-                    newLanguage
-                  }
-                  onChangeText={
-                    setNewLanguage
-                  }
-                  placeholder="Enter language"
-                  placeholderTextColor="#999999"
-                  style={
-                    styles.addInput
-                  }
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                  returnKeyType="done"
-                  onSubmitEditing={
-                    handleAddLanguage
-                  }
-                />
-
-
-                <TouchableOpacity
-                  style={
-                    styles.addButton
-                  }
-                  onPress={
-                    handleAddLanguage
-                  }
-                  activeOpacity={0.8}
-                >
-
-                  <Ionicons
-                    name="add"
-                    size={25}
-                    color="#FFFFFF"
-                  />
-
-                </TouchableOpacity>
-
-              </View>
-
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
 
               <Text
                 style={
-                  styles.helperText
+                  styles.modalTitle
                 }
               >
-                Add all languages you know.
+                {modalType ===
+                "motherTongue"
+                  ? "Select Mother Tongue"
+                  : "Select Known Languages"}
               </Text>
+
+
+              <TouchableOpacity
+                onPress={() =>
+                  setModalVisible(
+                    false
+                  )
+                }
+              >
+
+                <Ionicons
+                  name="close"
+                  size={25}
+                  color="#222222"
+                />
+
+              </TouchableOpacity>
 
             </View>
 
-          )}
 
-        </ScrollView>
+            {/* SEARCH */}
 
-
-        {/* =================================================
-            SAVE BUTTON
-        ================================================= */}
-
-        <View
-          style={
-            styles.bottomContainer
-          }
-        >
-
-          <TouchableOpacity
-            style={
-              styles.saveButton
-            }
-            onPress={
-              handleSave
-            }
-
-            /*
-              Disable only while API request
-              is running.
-
-              No spinner.
-              No "Saving..." text.
-            */
-
-            disabled={
-              saving
-            }
-
-            activeOpacity={0.85}
-          >
-
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={22}
-              color="#FFFFFF"
-            />
-
-            <Text
+            <View
               style={
-                styles.saveButtonText
+                styles.searchBox
               }
             >
-              Save Changes
-            </Text>
 
-          </TouchableOpacity>
+              <Ionicons
+                name="search-outline"
+                size={20}
+                color="#888888"
+              />
+
+              <TextInput
+                value={
+                  searchText
+                }
+                onChangeText={
+                  setSearchText
+                }
+                placeholder="Search language"
+                placeholderTextColor="#999999"
+                style={
+                  styles.searchInput
+                }
+              />
+
+            </View>
+
+
+            {/* LIST */}
+
+            <FlatList
+              data={
+                filteredLanguages
+              }
+              keyExtractor={(
+                item
+              ) => item}
+              renderItem={
+                renderLanguageItem
+              }
+              showsVerticalScrollIndicator={
+                false
+              }
+              contentContainerStyle={{
+                paddingBottom: 25,
+              }}
+            />
+
+
+            {/* DONE */}
+
+            {modalType ===
+            "knownLanguages" ? (
+
+              <TouchableOpacity
+                style={
+                  styles.doneButton
+                }
+                onPress={() =>
+                  setModalVisible(
+                    false
+                  )
+                }
+              >
+
+                <Text
+                  style={
+                    styles.doneButtonText
+                  }
+                >
+                  Done
+                </Text>
+
+              </TouchableOpacity>
+
+            ) : null}
+
+          </View>
 
         </View>
 
-      </KeyboardAvoidingView>
+      </Modal>
 
     </SafeAreaView>
-
   );
 }
 
 
-/* =========================================================
-   STYLES
-========================================================= */
+// =========================================================
+// STYLES
+// =========================================================
 
 const styles =
   StyleSheet.create({
-
-    /* =====================================================
-       BASIC
-    ===================================================== */
 
     safeArea: {
       flex: 1,
@@ -1633,627 +1474,247 @@ const styles =
         "#FFFFFF",
     },
 
-
-    keyboardContainer: {
-      flex: 1,
-    },
-
-
-    scrollView: {
-      flex: 1,
-    },
-
-
-    /* =====================================================
-       HEADER
-    ===================================================== */
-
     header: {
-      height: 64,
-
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
+      height: 60,
+      flexDirection: "row",
+      alignItems: "center",
       justifyContent:
         "space-between",
-
-      paddingHorizontal:
-        18,
-
-      borderBottomWidth:
-        1,
-
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
       borderBottomColor:
         "#EEEEEE",
-
-      backgroundColor:
-        "#FFFFFF",
     },
-
 
     backButton: {
-      width: 42,
-      height: 42,
-
-      alignItems:
-        "center",
-
+      width: 40,
+      height: 40,
+      alignItems: "center",
       justifyContent:
         "center",
-
-      borderRadius:
-        21,
-
-      backgroundColor:
-        "#F8F8F8",
     },
-
 
     headerTitle: {
-      flex: 1,
-
-      marginLeft:
-        10,
-
-      fontSize:
-        20,
-
-      fontWeight:
-        "700",
-
-      color:
-        "#222222",
+      fontSize: 20,
+      fontWeight: "700",
+      color: "#222222",
     },
-
 
     headerRight: {
-      width: 42,
+      width: 40,
     },
 
-
-    /* =====================================================
-       CONTENT
-    ===================================================== */
-
-    contentContainer: {
-      paddingHorizontal:
-        20,
-
-      paddingTop:
-        25,
-
-      paddingBottom:
-        30,
+    container: {
+      flex: 1,
+      padding: 16,
     },
-
-
-    /* =====================================================
-       SECTION
-    ===================================================== */
-
-    section: {
-      width:
-        "100%",
-    },
-
-
-    labelRow: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      marginBottom:
-        15,
-    },
-
-
-    iconBox: {
-      width:
-        42,
-
-      height:
-        42,
-
-      borderRadius:
-        21,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      backgroundColor:
-        "#FFF1F2",
-
-      marginRight:
-        12,
-    },
-
 
     label: {
-      fontSize:
-        16,
-
-      fontWeight:
-        "700",
-
-      color:
-        "#222222",
+      fontSize: 15,
+      fontWeight: "600",
+      color: "#444444",
+      marginBottom: 8,
     },
 
-
-    labelSubText: {
-      marginTop:
-        3,
-
-      fontSize:
-        12,
-
-      color:
-        "#888888",
-    },
-
-
-    /* =====================================================
-       INPUT
-    ===================================================== */
-
-    input: {
-      width:
-        "100%",
-
-      minHeight:
-        54,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        "#DDDDDD",
-
-      borderRadius:
-        12,
-
-      paddingHorizontal:
-        16,
-
-      fontSize:
-        16,
-
-      color:
-        "#222222",
-
-      backgroundColor:
-        "#FAFAFA",
-    },
-
-
-    helperText: {
-      marginTop:
-        9,
-
-      fontSize:
-        13,
-
-      lineHeight:
-        19,
-
-      color:
-        "#888888",
-    },
-
-
-    /* =====================================================
-       KNOWN LANGUAGES
-    ===================================================== */
-
-    languagesContainer: {
-      flexDirection:
-        "row",
-
-      flexWrap:
-        "wrap",
-
-      marginBottom:
-        14,
-    },
-
-
-    languageChip: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      backgroundColor:
-        "#FFF7F7",
-
-      borderWidth:
-        1,
-
-      borderColor:
-        "#FFD5D8",
-
-      borderRadius:
-        22,
-
-      paddingLeft:
-        10,
-
-      paddingRight:
-        7,
-
-      paddingVertical:
-        8,
-
-      marginRight:
-        8,
-
-      marginBottom:
-        9,
-    },
-
-
-    chipIcon: {
-      width:
-        25,
-
-      height:
-        25,
-
-      borderRadius:
-        13,
-
-      alignItems:
-        "center",
-
+    dropdown: {
+      minHeight: 54,
+      borderWidth: 1,
+      borderColor: "#E2E2E2",
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
       justifyContent:
-        "center",
-
+        "space-between",
       backgroundColor:
         "#FFFFFF",
-
-      marginRight:
-        7,
     },
 
-
-    languageChipText: {
-      fontSize:
-        14,
-
-      fontWeight:
-        "600",
-
-      color:
-        "#333333",
-    },
-
-
-    removeButton: {
-      width:
-        26,
-
-      height:
-        26,
-
-      marginLeft:
-        5,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-    },
-
-
-    /* =====================================================
-       EMPTY
-    ===================================================== */
-
-    emptyContainer: {
-      width:
-        "100%",
-
-      minHeight:
-        70,
-
-      borderWidth:
-        1,
-
-      borderStyle:
-        "dashed",
-
-      borderColor:
-        "#DDDDDD",
-
-      borderRadius:
-        12,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      marginBottom:
-        14,
-
-      backgroundColor:
-        "#FAFAFA",
-    },
-
-
-    emptyText: {
-      marginTop:
-        5,
-
-      fontSize:
-        13,
-
-      color:
-        "#999999",
-    },
-
-
-    /* =====================================================
-       ADD LANGUAGE
-    ===================================================== */
-
-    addRow: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      width:
-        "100%",
-    },
-
-
-    addInput: {
+    dropdownLeft: {
+      flexDirection: "row",
+      alignItems: "center",
       flex: 1,
+    },
 
-      minHeight:
-        54,
+    dropdownText: {
+      fontSize: 15,
+      color: "#222222",
+      marginLeft: 10,
+      fontWeight: "500",
+    },
 
-      borderWidth:
-        1,
+    placeholder: {
+      color: "#999999",
+      fontWeight: "400",
+    },
 
-      borderColor:
-        "#DDDDDD",
+    selectedContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 12,
+    },
 
-      borderRadius:
-        12,
-
-      paddingHorizontal:
-        16,
-
-      fontSize:
-        16,
-
-      color:
-        "#222222",
-
+    selectedChip: {
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor:
-        "#FAFAFA",
+        "#FFF2F0",
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
     },
 
-
-    addButton: {
-      width:
-        54,
-
-      height:
-        54,
-
-      marginLeft:
-        10,
-
-      borderRadius:
-        12,
-
-      backgroundColor:
-        "#D7192A",
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
+    selectedChipText: {
+      color: "#F44336",
+      fontSize: 14,
+      fontWeight: "600",
+      marginRight: 7,
     },
-
-
-    /* =====================================================
-       ERROR
-    ===================================================== */
-
-    errorContainer: {
-      flexDirection:
-        "row",
-
-      width:
-        "100%",
-
-      padding:
-        14,
-
-      marginBottom:
-        20,
-
-      borderRadius:
-        12,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        "#FFD5D8",
-
-      backgroundColor:
-        "#FFF5F5",
-    },
-
-
-    errorIcon: {
-      width:
-        36,
-
-      height:
-        36,
-
-      borderRadius:
-        18,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      backgroundColor:
-        "#FFE8EA",
-    },
-
-
-    errorContent: {
-      flex: 1,
-
-      marginLeft:
-        10,
-    },
-
-
-    errorTitle: {
-      fontSize:
-        14,
-
-      fontWeight:
-        "700",
-
-      color:
-        "#D7192A",
-    },
-
-
-    errorText: {
-      marginTop:
-        4,
-
-      fontSize:
-        12,
-
-      lineHeight:
-        18,
-
-      color:
-        "#777777",
-    },
-
-
-    retryButton: {
-      alignSelf:
-        "flex-start",
-
-      marginTop:
-        9,
-
-      paddingHorizontal:
-        14,
-
-      paddingVertical:
-        7,
-
-      borderRadius:
-        8,
-
-      backgroundColor:
-        "#D7192A",
-    },
-
-
-    retryText: {
-      fontSize:
-        12,
-
-      fontWeight:
-        "700",
-
-      color:
-        "#FFFFFF",
-    },
-
-
-    /* =====================================================
-       BOTTOM
-    ===================================================== */
-
-    bottomContainer: {
-      paddingHorizontal:
-        20,
-
-      paddingTop:
-        12,
-
-      paddingBottom:
-        20,
-
-      borderTopWidth:
-        1,
-
-      borderTopColor:
-        "#EEEEEE",
-
-      backgroundColor:
-        "#FFFFFF",
-    },
-
 
     saveButton: {
-      width:
-        "100%",
-
-      height:
-        54,
-
-      borderRadius:
-        14,
-
+      height: 52,
+      borderRadius: 12,
       backgroundColor:
-        "#D7192A",
-
-      flexDirection:
-        "row",
-
-      alignItems:
+        "#F44336",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
         "center",
+      marginTop: 28,
+    },
 
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+
+    saveButtonText: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "700",
+      marginLeft: 8,
+    },
+
+    modalOverlay: {
+      flex: 1,
+      backgroundColor:
+        "rgba(0,0,0,0.35)",
+      justifyContent:
+        "flex-end",
+    },
+
+    modalTop: {
+      flex: 1,
+    },
+
+    modalContainer: {
+      height: "75%",
+      backgroundColor:
+        "#FFFFFF",
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      padding: 16,
+    },
+
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      marginBottom: 14,
+    },
+
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: "#222222",
+    },
+
+    searchBox: {
+      height: 48,
+      borderWidth: 1,
+      borderColor: "#E5E5E5",
+      borderRadius: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 12,
+      marginBottom: 10,
+    },
+
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: "#222222",
+      marginLeft: 8,
+    },
+
+    languageOption: {
+      minHeight: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      borderBottomWidth: 1,
+      borderBottomColor:
+        "#F2F2F2",
+    },
+
+    optionLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    optionIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor:
+        "#FFF2F0",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 10,
+    },
+
+    optionText: {
+      fontSize: 15,
+      color: "#222222",
+      fontWeight: "500",
+    },
+
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderWidth: 1.5,
+      borderColor: "#CCCCCC",
+      borderRadius: 6,
+      alignItems: "center",
       justifyContent:
         "center",
     },
 
+    checkboxSelected: {
+      backgroundColor:
+        "#F44336",
+      borderColor:
+        "#F44336",
+    },
 
-    saveButtonText: {
-      marginLeft:
-        8,
+    doneButton: {
+      height: 48,
+      borderRadius: 12,
+      backgroundColor:
+        "#F44336",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginTop: 10,
+    },
 
-      fontSize:
-        16,
-
-      fontWeight:
-        "700",
-
-      color:
-        "#FFFFFF",
+    doneButtonText: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "700",
     },
 
   });

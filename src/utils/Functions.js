@@ -6,10 +6,9 @@
 import BASE_URL from "../constants/AppUrls";
 
 import {
-  deleteMethod,
   getMethod,
   postMethod,
-  putMethod,
+  putMethod
 } from "./APIServices";
 // =========================================================
 // COMMON HELPERS
@@ -1757,95 +1756,226 @@ export async function updateMemberEducation(
 
 
 
-
-/* =========================================================
-   DELETE MEMBER EDUCATION
-   DELETE /api/member/education/{id}
-========================================================= */
+// =========================================================
+// DELETE MEMBER EDUCATION
+// DELETE /api/member/education/{id}
+// =========================================================
 
 export async function deleteMemberEducation(
-    accessToken,
-    educationId
+  accessToken,
+  educationId
 ) {
-    try {
-        const id = Number(educationId);
+  // -------------------------------------------------------
+  // VALIDATE TOKEN
+  // -------------------------------------------------------
 
-        if (!accessToken) {
-            throw new Error("Access token is missing.");
-        }
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
 
-        if (!Number.isInteger(id) || id <= 0) {
-            throw new Error(`Invalid education ID: ${educationId}`);
-        }
+  // -------------------------------------------------------
+  // VALIDATE EDUCATION ID
+  // -------------------------------------------------------
 
-        const url =
-            `${BASE_URL}/api/member/education/${id}`;
+  const id = Number(educationId);
 
-        console.log("================================");
-        console.log("DELETE API START");
-        console.log("URL:", url);
-        console.log("METHOD: DELETE");
-        console.log("ID:", id);
-        console.log("TOKEN:", accessToken ? "YES" : "NO");
-        console.log("================================");
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(
+      `Invalid education ID: ${educationId}`
+    );
+  }
 
-        const res = await fetch(url, {
-            method: "DELETE",
-            headers: {
-                "Accept": "application/json",
-                "Authorization": `Bearer ${accessToken}`,
-            },
-        });
+  // -------------------------------------------------------
+  // API URL
+  // -------------------------------------------------------
 
-        console.log("DELETE STATUS:", res.status);
+  const URL =
+    `${BASE_URL}/api/member/education/${id}`;
 
-        const text = await res.text();
+  console.log("========================================");
+  console.log("DELETE MEMBER EDUCATION API");
+  console.log("METHOD:", "DELETE");
+  console.log("URL:", URL);
+  console.log("EDUCATION ID:", id);
+  console.log(
+    "TOKEN EXISTS:",
+    !!accessToken
+  );
+  console.log("========================================");
 
-        console.log("DELETE RESPONSE TEXT:", text);
+  try {
+    // -----------------------------------------------------
+    // CALL DELETE API
+    // -----------------------------------------------------
 
-        let data = {};
+    const response = await fetch(URL, {
+      method: "DELETE",
 
-        if (text) {
-            try {
-                data = JSON.parse(text);
-            } catch {
-                data = {
-                    message: text,
-                };
-            }
-        }
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
+    console.log(
+      "DELETE HTTP STATUS:",
+      response.status
+    );
+
+    console.log(
+      "DELETE HTTP OK:",
+      response.ok
+    );
+
+    // -----------------------------------------------------
+    // READ RESPONSE
+    // -----------------------------------------------------
+
+    const responseText =
+      await response.text();
+
+    console.log(
+      "DELETE RESPONSE TEXT:",
+      responseText
+    );
+
+    // -----------------------------------------------------
+    // PARSE RESPONSE
+    // -----------------------------------------------------
+
+    let data = {};
+
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
         console.log(
-            "DELETE RESPONSE JSON:",
-            JSON.stringify(data, null, 2)
+          "DELETE RESPONSE IS NOT JSON"
         );
 
-        if (res.status >= 200 && res.status < 300) {
-            return {
-                success: true,
-                result: true,
-                statusCode: res.status,
-                data,
-            };
-        }
-
-        throw new Error(
-            data?.message ||
-            data?.error ||
-            `DELETE failed with status ${res.status}`
-        );
-
-    } catch (error) {
-
-        console.error(
-            "DELETE MEMBER EDUCATION ERROR:",
-            error
-        );
-
-        throw error;
+        data = {
+          message: responseText,
+        };
+      }
     }
-}
 
+    console.log(
+      "DELETE RESPONSE DATA:",
+      JSON.stringify(
+        data,
+        null,
+        2
+      )
+    );
+
+    // -----------------------------------------------------
+    // HANDLE API ERROR
+    // -----------------------------------------------------
+
+    if (!response.ok) {
+      const errorMessage =
+        data?.message ||
+        data?.msg ||
+        data?.error ||
+        `Education delete failed with status ${response.status}`;
+
+      console.error(
+        "DELETE EDUCATION FAILED:",
+        errorMessage
+      );
+
+      const error =
+        new Error(errorMessage);
+
+      error.response = {
+        status: response.status,
+        data: data,
+      };
+
+      throw error;
+    }
+
+    // -----------------------------------------------------
+    // SUCCESS
+    // -----------------------------------------------------
+
+    const successMessage =
+      data?.message ||
+      data?.msg ||
+      `Education ID ${id} deleted successfully.`;
+
+    console.log(
+      "========================================"
+    );
+
+    console.log(
+      "EDUCATION DELETE SUCCESS"
+    );
+
+    console.log(
+      "EDUCATION ID:",
+      id
+    );
+
+    console.log(
+      "STATUS:",
+      response.status
+    );
+
+    console.log(
+      "MESSAGE:",
+      successMessage
+    );
+
+    console.log(
+      "========================================"
+    );
+
+    // -----------------------------------------------------
+    // RETURN NORMALIZED RESPONSE
+    // -----------------------------------------------------
+
+    return {
+      success: true,
+      result: true,
+      statusCode: response.status,
+      message: successMessage,
+      data: data,
+    };
+
+  } catch (error) {
+    console.error(
+      "========================================"
+    );
+
+    console.error(
+      "DELETE MEMBER EDUCATION ERROR"
+    );
+
+    console.error(
+      "EDUCATION ID:",
+      id
+    );
+
+    console.error(
+      "ERROR MESSAGE:",
+      error?.message
+    );
+
+    console.error(
+      "ERROR RESPONSE:",
+      error?.response?.data
+    );
+
+    console.error(
+      "========================================"
+    );
+
+    throw error;
+  }
+}
 
 // =========================================================
 // GET MEMBER CAREER
@@ -2494,57 +2624,41 @@ export async function deleteMemberCareerById(
     accessToken,
     careerId
 ) {
-
-    console.log(
-        "========================================"
-    );
-
-    console.log(
-        "DELETE MEMBER CAREER FUNCTION"
-    );
-
-    console.log(
-        "CAREER ID RECEIVED:",
-        careerId
-    );
-
-    console.log(
-        "TOKEN EXISTS:",
-        !!accessToken
-    );
-
-    console.log(
-        "========================================"
-    );
-
+    // -------------------------------------------------------
+    // TOKEN VALIDATION
+    // -------------------------------------------------------
 
     if (!accessToken) {
-
         throw new Error(
             "Access token is missing. Please login again."
         );
     }
 
+    // -------------------------------------------------------
+    // ID VALIDATION
+    // -------------------------------------------------------
 
-    const id =
-        Number(careerId);
-
+    const id = Number(careerId);
 
     if (
         !Number.isInteger(id) ||
         id <= 0
     ) {
-
         throw new Error(
             `Invalid career ID: ${careerId}`
         );
     }
 
+    // -------------------------------------------------------
+    // URL
+    // -------------------------------------------------------
 
     const URL =
-        BASE_URL +
-        `/api/member/career/${id}`;
+        `${BASE_URL}/api/member/career/${id}`;
 
+    // -------------------------------------------------------
+    // DEBUG
+    // -------------------------------------------------------
 
     console.log(
         "========================================"
@@ -2570,59 +2684,198 @@ export async function deleteMemberCareerById(
     );
 
     console.log(
+        "TOKEN EXISTS:",
+        !!accessToken
+    );
+
+    console.log(
+        "TOKEN LENGTH:",
+        accessToken?.length || 0
+    );
+
+    console.log(
         "========================================"
     );
 
-
     try {
+        // ---------------------------------------------------
+        // DIRECT DELETE REQUEST
+        // ---------------------------------------------------
 
-        const response =
-            await deleteMethod(
-                URL,
-                {
-                    token:
-                        accessToken,
-                }
-            );
+        const response = await fetch(
+            URL,
+            {
+                method: "DELETE",
 
+                headers: {
+                    Accept:
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${accessToken}`,
+                },
+            }
+        );
+
+        // ---------------------------------------------------
+        // HTTP STATUS
+        // ---------------------------------------------------
 
         console.log(
-            "========================================"
+            "DELETE HTTP STATUS:",
+            response.status
         );
 
         console.log(
-            "DELETE MEMBER CAREER RESPONSE"
+            "DELETE HTTP OK:",
+            response.ok
         );
 
+        // ---------------------------------------------------
+        // READ RESPONSE
+        // ---------------------------------------------------
+
+        const responseText =
+            await response.text();
+
         console.log(
+            "DELETE RESPONSE TEXT:",
+            responseText
+        );
+
+        // ---------------------------------------------------
+        // PARSE JSON
+        // ---------------------------------------------------
+
+        let data = {};
+
+        if (responseText) {
+            try {
+                data =
+                    JSON.parse(
+                        responseText
+                    );
+            } catch (parseError) {
+                console.log(
+                    "DELETE RESPONSE IS NOT JSON"
+                );
+
+                data = {
+                    message:
+                        responseText,
+                };
+            }
+        }
+
+        console.log(
+            "DELETE RESPONSE DATA:",
             JSON.stringify(
-                response,
+                data,
                 null,
                 2
             )
         );
 
+        // ---------------------------------------------------
+        // HTTP FAILURE
+        // ---------------------------------------------------
+
+        if (
+            !response.ok
+        ) {
+            const errorMessage =
+                data?.message ||
+                data?.msg ||
+                data?.error ||
+                `Delete failed with status ${response.status}`;
+
+            console.error(
+                "DELETE CAREER FAILED:",
+                errorMessage
+            );
+
+            const error =
+                new Error(
+                    errorMessage
+                );
+
+            error.response = {
+                status:
+                    response.status,
+
+                data:
+                    data,
+            };
+
+            throw error;
+        }
+
+        // ---------------------------------------------------
+        // SUCCESS
+        // ---------------------------------------------------
+
+        const successMessage =
+            data?.message ||
+            data?.msg ||
+            `Career ID ${id} deleted successfully.`;
+
         console.log(
-            "STATUS CODE:",
-            response?.statusCode
+            "========================================"
+        );
+
+        console.log(
+            "CAREER DELETE SUCCESS"
+        );
+
+        console.log(
+            "CAREER ID:",
+            id
+        );
+
+        console.log(
+            "STATUS:",
+            response.status
         );
 
         console.log(
             "MESSAGE:",
-            response?.message
+            successMessage
         );
 
         console.log(
             "========================================"
         );
 
+        // ---------------------------------------------------
+        // RETURN NORMALIZED RESPONSE
+        // ---------------------------------------------------
 
-        return response;
+        return {
+            success: true,
+            result: true,
+            statusCode:
+                response.status,
+
+            message:
+                successMessage,
+
+            data:
+                data,
+        };
 
     } catch (error) {
 
         console.error(
+            "========================================"
+        );
+
+        console.error(
             "DELETE MEMBER CAREER ERROR"
+        );
+
+        console.error(
+            "CAREER ID:",
+            id
         );
 
         console.error(
@@ -2632,13 +2885,25 @@ export async function deleteMemberCareerById(
 
         console.error(
             "STATUS:",
-            error?.status
+            error?.response?.status
+        );
+
+        console.error(
+            "RESPONSE:",
+            JSON.stringify(
+                error?.response?.data,
+                null,
+                2
+            )
+        );
+
+        console.error(
+            "========================================"
         );
 
         throw error;
     }
 }
-
 
 
 // =========================================================
@@ -2649,60 +2914,35 @@ export async function deleteMemberCareerById(
 export async function getMemberSpiritualBackground(
   accessToken
 ) {
-  // -------------------------------------------------------
-  // TOKEN VALIDATION
-  // -------------------------------------------------------
-
   if (!accessToken) {
     throw new Error(
       "Access token is missing. Please login again."
     );
   }
 
-  // -------------------------------------------------------
-  // URL
-  // -------------------------------------------------------
-
   const URL =
     BASE_URL +
     "/api/member/spiritual-background";
-
-  // -------------------------------------------------------
-  // TOKEN
-  // -------------------------------------------------------
 
   const user = {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG
-  // -------------------------------------------------------
-
   console.log(
-    "======================================"
+    "========================================"
   );
-
   console.log(
     "GET MEMBER SPIRITUAL BACKGROUND API"
   );
-
   console.log("METHOD:", "GET");
-
   console.log("URL:", URL);
-
   console.log(
     "TOKEN EXISTS:",
     !!accessToken
   );
-
   console.log(
-    "======================================"
+    "========================================"
   );
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
 
   try {
     const response = await getMethod(
@@ -2710,16 +2950,204 @@ export async function getMemberSpiritualBackground(
       user
     );
 
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
+    console.log(
+      "========================================"
+    );
+    console.log(
+      "FULL SPIRITUAL BACKGROUND RESPONSE"
+    );
+    console.log(
+      JSON.stringify(
+        response,
+        null,
+        2
+      )
+    );
+    console.log(
+      "========================================"
+    );
+
+    return response;
+  } catch (error) {
+    console.error(
+      "========================================"
+    );
+    console.error(
+      "SPIRITUAL BACKGROUND API ERROR"
+    );
+    console.error(
+      "MESSAGE:",
+      error?.message
+    );
+    console.error(
+      "STATUS:",
+      error?.response?.status
+    );
+    console.error(
+      "RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ?? {},
+        null,
+        2
+      )
+    );
+    console.error(
+      "========================================"
+    );
+
+    throw error;
+  }
+}
+
+
+// =========================================================
+// UPDATE MEMBER SPIRITUAL & SOCIAL BACKGROUND
+// POST /api/member/spiritual-background/update
+// =========================================================
+
+export async function updateMemberSpiritualBackground(
+  accessToken,
+  spiritualBackground = {}
+) {
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  const URL =
+    BASE_URL +
+    "/api/member/spiritual-background/update";
+
+  const religionId = Number(
+    spiritualBackground.religion_id
+  );
+
+  const casteId = Number(
+    spiritualBackground.caste_id
+  );
+
+  const subCasteId = Number(
+    spiritualBackground.sub_caste_id
+  );
+
+  const familyValueId = Number(
+    spiritualBackground.family_value_id
+  );
+
+  if (
+    !Number.isInteger(religionId) ||
+    religionId <= 0
+  ) {
+    throw new Error(
+      "Valid religion ID is required."
+    );
+  }
+
+  if (
+    !Number.isInteger(casteId) ||
+    casteId <= 0
+  ) {
+    throw new Error(
+      "Valid caste ID is required."
+    );
+  }
+
+  if (
+    !Number.isInteger(subCasteId) ||
+    subCasteId <= 0
+  ) {
+    throw new Error(
+      "Valid sub-caste ID is required."
+    );
+  }
+
+  if (
+    !Number.isInteger(familyValueId) ||
+    familyValueId <= 0
+  ) {
+    throw new Error(
+      "Valid family value ID is required."
+    );
+  }
+
+  const body = {
+    religion_id: religionId,
+    caste_id: casteId,
+    sub_caste_id: subCasteId,
+
+    ethnicity: String(
+      spiritualBackground.ethnicity ?? ""
+    ).trim(),
+
+    personal_value: String(
+      spiritualBackground.personal_value ?? ""
+    ).trim(),
+
+    family_value_id: familyValueId,
+
+    community_value: String(
+      spiritualBackground.community_value ?? ""
+    ).trim(),
+  };
+
+  const user = {
+    token: accessToken,
+  };
+
+  console.log(
+    "========================================"
+  );
+
+  console.log(
+    "UPDATE MEMBER SPIRITUAL BACKGROUND API"
+  );
+
+  console.log(
+    "METHOD:",
+    "POST"
+  );
+
+  console.log(
+    "URL:",
+    URL
+  );
+
+  console.log(
+    "TOKEN EXISTS:",
+    !!accessToken
+  );
+
+  console.log(
+    "REQUEST BODY:"
+  );
+
+  console.log(
+    JSON.stringify(
+      body,
+      null,
+      2
+    )
+  );
+
+  console.log(
+    "========================================"
+  );
+
+  try {
+    const response =
+      await postMethod(
+        URL,
+        user,
+        body
+      );
 
     console.log(
-      "======================================"
+      "========================================"
     );
 
     console.log(
-      "SPIRITUAL BACKGROUND API RESPONSE"
+      "UPDATE SPIRITUAL BACKGROUND RESPONSE"
     );
 
     console.log(
@@ -2731,122 +3159,45 @@ export async function getMemberSpiritualBackground(
     );
 
     console.log(
-      "======================================"
+      "========================================"
     );
 
     return response;
-
   } catch (error) {
     console.error(
-      "======================================"
+      "========================================"
     );
 
     console.error(
-      "SPIRITUAL BACKGROUND API ERROR"
+      "UPDATE SPIRITUAL BACKGROUND ERROR"
     );
 
-    console.error(error);
+    console.error(
+      "MESSAGE:",
+      error?.message
+    );
 
     console.error(
-      "======================================"
+      "STATUS:",
+      error?.response?.status
+    );
+
+    console.error(
+      "RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ?? {},
+        null,
+        2
+      )
+    );
+
+    console.error(
+      "========================================"
     );
 
     throw error;
   }
 }
-
-
-
-
-
-// =========================================================
-// UPDATE MEMBER SPIRITUAL & SOCIAL BACKGROUND
-// POST /api/member/spiritual-background/update
-//
-// Request:
-// {
-//   "religion_id": 1,
-//   "caste_id": 2,
-//   "sub_caste_id": 3,
-//   "ethnicity": "American Indians",
-//   "personal_value": "Yes",
-//   "family_value_id": 1,
-//   "community_value": "Yes"
-// }
-// =========================================================
-export async function updateMemberSpiritualBackground(
-  accessToken,
-  spiritualBackground
-) {
-  if (!accessToken) {
-    throw new Error(
-      "Access token is missing."
-    );
-  }
-
-  const URL =
-    BASE_URL +
-    "/api/member/spiritual-background/update";
-
-  const body = {
-    religion_id: Number(
-      spiritualBackground.religion_id
-    ),
-
-    caste_id: Number(
-      spiritualBackground.caste_id
-    ),
-
-    sub_caste_id: Number(
-      spiritualBackground.sub_caste_id
-    ),
-
-    ethnicity: String(
-      spiritualBackground.ethnicity || ""
-    ).trim(),
-
-    personal_value: String(
-      spiritualBackground.personal_value || ""
-    ).trim(),
-
-    family_value_id: Number(
-      spiritualBackground.family_value_id
-    ),
-
-    community_value: String(
-      spiritualBackground.community_value || ""
-    ).trim(),
-  };
-
-  console.log(
-    "========== SPIRITUAL UPDATE API =========="
-  );
-
-  console.log("URL:", URL);
-
-  console.log("METHOD: POST");
-
-  console.log(
-    "BODY:",
-    JSON.stringify(body, null, 2)
-  );
-
-  console.log(
-    "==========================================="
-  );
-
-  const user = {
-    token: accessToken,
-  };
-
-  return await postMethod(
-    URL,
-    user,
-    body
-  );
-}
-
-
 
 // =========================================================
 // GET MEMBER ASTRONOMIC INFORMATION
@@ -3187,7 +3538,6 @@ export async function updateMemberAstronomic(
   }
 }
 
-
 // =========================================================
 // GET MEMBER FAMILY INFORMATION
 // GET /api/member/family-info
@@ -3196,38 +3546,19 @@ export async function updateMemberAstronomic(
 export async function getMemberFamilyInfo(
   accessToken
 ) {
-  // -------------------------------------------------------
-  // TOKEN VALIDATION
-  // -------------------------------------------------------
-
   if (!accessToken) {
     throw new Error(
       "Access token is missing. Please login again."
     );
   }
 
-
-  // -------------------------------------------------------
-  // URL
-  // -------------------------------------------------------
-
   const URL =
     BASE_URL +
     "/api/member/family-info";
 
-
-  // -------------------------------------------------------
-  // AUTH USER
-  // -------------------------------------------------------
-
   const user = {
     token: accessToken,
   };
-
-
-  // -------------------------------------------------------
-  // DEBUG REQUEST
-  // -------------------------------------------------------
 
   console.log(
     "========================================"
@@ -3261,23 +3592,12 @@ export async function getMemberFamilyInfo(
     "========================================"
   );
 
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
-
     const response =
       await getMethod(
         URL,
         user
       );
-
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
 
     console.log(
       "========================================"
@@ -3299,11 +3619,8 @@ export async function getMemberFamilyInfo(
       "========================================"
     );
 
-
     return response;
-
   } catch (error) {
-
     console.error(
       "========================================"
     );
@@ -3315,6 +3632,11 @@ export async function getMemberFamilyInfo(
     console.error(
       "MESSAGE:",
       error?.message
+    );
+
+    console.error(
+      "STATUS:",
+      error?.response?.status
     );
 
     console.error(
@@ -3338,90 +3660,64 @@ export async function getMemberFamilyInfo(
 // =========================================================
 // UPDATE MEMBER FAMILY INFORMATION
 // POST /api/member/family-info/update
-//
-// Request:
-// {
-//   "father": "Sudhakar",
-//   "mother": "Swaroopa",
-//   "sibling": "2"
-// }
 // =========================================================
 
 export async function updateMemberFamilyInfo(
   accessToken,
   familyInfo = {}
 ) {
-  // -------------------------------------------------------
-  // TOKEN VALIDATION
-  // -------------------------------------------------------
-
   if (!accessToken) {
     throw new Error(
       "Access token is missing. Please login again."
     );
   }
 
-  // -------------------------------------------------------
-  // URL
-  // -------------------------------------------------------
-
   const URL =
     BASE_URL +
     "/api/member/family-info/update";
-
-  // -------------------------------------------------------
-  // AUTH USER
-  // -------------------------------------------------------
 
   const user = {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // CLEAN VALUES
-  // -------------------------------------------------------
+  const fatherValue =
+    String(
+      familyInfo.father ?? ""
+    ).trim();
 
-  const fatherValue = String(
-    familyInfo.father ?? ""
-  ).trim();
+  const motherValue =
+    String(
+      familyInfo.mother ?? ""
+    ).trim();
 
-  const motherValue = String(
-    familyInfo.mother ?? ""
-  ).trim();
-
-  const siblingValue = String(
-    familyInfo.sibling ?? ""
-  ).trim();
-
-  // -------------------------------------------------------
-  // VALIDATION
-  // -------------------------------------------------------
+  const siblingValue =
+    String(
+      familyInfo.sibling ?? ""
+    ).trim();
 
   if (!fatherValue) {
-    throw new Error("Father name is required.");
+    throw new Error(
+      "Father name is required."
+    );
   }
 
   if (!motherValue) {
-    throw new Error("Mother name is required.");
+    throw new Error(
+      "Mother name is required."
+    );
   }
 
   if (!siblingValue) {
-    throw new Error("Sibling information is required.");
+    throw new Error(
+      "Sibling information is required."
+    );
   }
-
-  // -------------------------------------------------------
-  // REQUEST BODY
-  // -------------------------------------------------------
 
   const body = {
     father: fatherValue,
     mother: motherValue,
     sibling: siblingValue,
   };
-
-  // -------------------------------------------------------
-  // DEBUG LOG
-  // -------------------------------------------------------
 
   console.log(
     "========================================"
@@ -3464,10 +3760,6 @@ export async function updateMemberFamilyInfo(
     "========================================"
   );
 
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response =
       await postMethod(
@@ -3475,10 +3767,6 @@ export async function updateMemberFamilyInfo(
         user,
         body
       );
-
-    // -----------------------------------------------------
-    // RESPONSE LOG
-    // -----------------------------------------------------
 
     console.log(
       "========================================"
@@ -3501,9 +3789,7 @@ export async function updateMemberFamilyInfo(
     );
 
     return response;
-
   } catch (error) {
-
     console.error(
       "========================================"
     );
@@ -3513,12 +3799,13 @@ export async function updateMemberFamilyInfo(
     );
 
     console.error(
-      error
+      "MESSAGE:",
+      error?.message
     );
 
     console.error(
-      "MESSAGE:",
-      error?.message
+      "STATUS:",
+      error?.response?.status
     );
 
     console.error(
@@ -3537,75 +3824,65 @@ export async function updateMemberFamilyInfo(
     throw error;
   }
 }
-
+// =========================================================
+// GET MEMBER LANGUAGES
+// GET /api/member/languages
+// =========================================================
 
 export async function getMemberLanguages(accessToken) {
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  const URL =
+    BASE_URL + "/api/member/languages";
+
+  const user = {
+    token: accessToken,
+  };
+
+  console.log("========================================");
+  console.log("GET MEMBER LANGUAGES API");
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("========================================");
+
   try {
-    console.log("========================================");
-    console.log("GET MEMBER LANGUAGES FUNCTION");
-    console.log("TOKEN EXISTS:", !!accessToken);
-    console.log("TOKEN LENGTH:", accessToken?.length);
-    console.log("========================================");
-
-    const URL =
-      BASE_URL + "/api/member/languages";
-
-    const user = {
-      token: accessToken,
-    };
-
-    console.log("LANGUAGES GET URL:", URL);
-    console.log(
-      "LANGUAGES GET USER:",
-      {
-        tokenExists: !!user.token,
-      }
+    const response = await getMethod(
+      URL,
+      user
     );
 
-    const response =
-      await getMethod(
-        URL,
-        user
-      );
-
     console.log("========================================");
-    console.log("GET MEMBER LANGUAGES RAW RESPONSE");
+    console.log("MEMBER LANGUAGES API RESPONSE");
     console.log(
-      JSON.stringify(
-        response,
-        null,
-        2
-      )
+      JSON.stringify(response, null, 2)
     );
     console.log("========================================");
 
     return response;
-
   } catch (error) {
-
     console.error("========================================");
     console.error("GET MEMBER LANGUAGES ERROR");
-    console.error(error);
-
+    console.error("MESSAGE:", error?.message);
     console.error(
-      "STATUS:",
-      error?.response?.status
-    );
-
-    console.error(
-      "ERROR DATA:",
+      "RESPONSE:",
       JSON.stringify(
         error?.response?.data,
         null,
         2
       )
     );
-
     console.error("========================================");
 
     throw error;
   }
 }
+
+
 // =========================================================
 // UPDATE MEMBER LANGUAGES
 // POST /api/member/language/update
@@ -3624,6 +3901,8 @@ export async function updateMemberLanguages(
     );
   }
 
+  // IMPORTANT:
+  // singular "language", NOT "languages"
   const URL =
     BASE_URL +
     "/api/member/language/update";
@@ -3632,36 +3911,22 @@ export async function updateMemberLanguages(
     token: accessToken,
   };
 
-  const cleanMotherTongue =
-    String(
-      mother_tongue ?? ""
-    ).trim();
-
-  const cleanKnownLanguages =
-    Array.isArray(known_languages)
-      ? [
-          ...new Map(
-            known_languages
-              .map((item) =>
-                String(
-                  item ?? ""
-                ).trim()
-              )
-              .filter(Boolean)
-              .map((item) => [
-                item.toLowerCase(),
-                item,
-              ])
-          ).values(),
-        ]
-      : [];
-
   const body = {
     mother_tongue:
-      cleanMotherTongue,
+      String(
+        mother_tongue ?? ""
+      ).trim(),
 
     known_languages:
-      cleanKnownLanguages,
+      Array.isArray(
+        known_languages
+      )
+        ? known_languages
+            .map((item) =>
+              String(item ?? "").trim()
+            )
+            .filter(Boolean)
+        : [],
   };
 
   console.log(
@@ -3669,22 +3934,16 @@ export async function updateMemberLanguages(
   );
 
   console.log(
-    "UPDATE MEMBER LANGUAGES"
+    "UPDATE MEMBER LANGUAGES API"
   );
 
   console.log(
-    "METHOD:",
-    "POST"
+    "METHOD: POST"
   );
 
   console.log(
     "URL:",
     URL
-  );
-
-  console.log(
-    "TOKEN EXISTS:",
-    !!accessToken
   );
 
   console.log(
@@ -3697,10 +3956,16 @@ export async function updateMemberLanguages(
   );
 
   console.log(
+    "TOKEN EXISTS:",
+    !!accessToken
+  );
+
+  console.log(
     "========================================"
   );
 
   try {
+
     const response =
       await postMethod(
         URL,
@@ -3746,11 +4011,6 @@ export async function updateMemberLanguages(
     );
 
     console.error(
-      "STATUS:",
-      error?.response?.status
-    );
-
-    console.error(
       "RESPONSE:",
       JSON.stringify(
         error?.response?.data,
@@ -3762,6 +4022,359 @@ export async function updateMemberLanguages(
     console.error(
       "========================================"
     );
+
+    throw error;
+  }
+}
+
+
+
+// =========================================================
+// GET MEMBER RELIGIONS
+// GET /api/member/religions
+// =========================================================
+
+export async function getMemberReligions(accessToken) {
+  // -------------------------------------------------------
+  // TOKEN VALIDATION
+  // -------------------------------------------------------
+
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  // -------------------------------------------------------
+  // URL
+  // -------------------------------------------------------
+
+  const URL =
+    BASE_URL + "/api/member/religions";
+
+  // -------------------------------------------------------
+  // TOKEN
+  // -------------------------------------------------------
+
+  const user = {
+    token: accessToken,
+  };
+
+  // -------------------------------------------------------
+  // DEBUG
+  // -------------------------------------------------------
+
+  console.log(
+    "======================================"
+  );
+
+  console.log(
+    "GET MEMBER RELIGIONS API"
+  );
+
+  console.log(
+    "METHOD:",
+    "GET"
+  );
+
+  console.log(
+    "URL:",
+    URL
+  );
+
+  console.log(
+    "TOKEN EXISTS:",
+    !!accessToken
+  );
+
+  console.log(
+    "======================================"
+  );
+
+  // -------------------------------------------------------
+  // API CALL
+  // -------------------------------------------------------
+
+  try {
+    const response = await getMethod(
+      URL,
+      user
+    );
+
+    // -----------------------------------------------------
+    // RESPONSE
+    // -----------------------------------------------------
+
+    console.log(
+      "======================================"
+    );
+
+    console.log(
+      "RELIGIONS API RESPONSE"
+    );
+
+    console.log(
+      JSON.stringify(
+        response,
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "======================================"
+    );
+
+    return response;
+
+  } catch (error) {
+    console.error(
+      "======================================"
+    );
+
+    console.error(
+      "RELIGIONS API ERROR"
+    );
+
+    console.error(error);
+
+    console.error(
+      "ERROR RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ??
+          error,
+        null,
+        2
+      )
+    );
+
+    console.error(
+      "======================================"
+    );
+
+    throw error;
+  }
+}
+
+
+
+export async function getMemberCasts(
+  accessToken,
+  religionId
+) {
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  const id = Number(religionId);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    throw new Error(
+      `Invalid religion ID: ${religionId}`
+    );
+  }
+
+  const URL =
+    BASE_URL +
+    `/api/member/casts/${id}`;
+
+  console.log(
+    "========================================"
+  );
+  console.log("GET MEMBER CASTS");
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("RELIGION ID:", id);
+  console.log(
+    "========================================"
+  );
+
+  try {
+    const response =
+      await getMethod(
+        URL,
+        {
+          token: accessToken,
+        }
+      );
+
+    console.log(
+      "CAST API RESPONSE:"
+    );
+
+    console.log(
+      JSON.stringify(
+        response,
+        null,
+        2
+      )
+    );
+
+    return response;
+  } catch (error) {
+    console.error(
+      "CAST API ERROR:",
+      error
+    );
+
+    console.error(
+      "CAST API ERROR RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ?? {},
+        null,
+        2
+      )
+    );
+
+    throw error;
+  }
+}
+
+
+export async function getMemberSubCasts(
+  accessToken,
+  casteId
+) {
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  const id = Number(casteId);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    throw new Error(
+      `Invalid caste ID: ${casteId}`
+    );
+  }
+
+  const URL =
+    BASE_URL +
+    `/api/member/sub-casts/${id}`;
+
+  console.log(
+    "========================================"
+  );
+  console.log(
+    "GET MEMBER SUB CASTES API"
+  );
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("CASTE ID:", id);
+  console.log(
+    "========================================"
+  );
+
+  try {
+    const response =
+      await getMethod(
+        URL,
+        {
+          token: accessToken,
+        }
+      );
+
+    console.log(
+      "SUB CASTES API RESPONSE:"
+    );
+
+    console.log(
+      JSON.stringify(
+        response,
+        null,
+        2
+      )
+    );
+
+    return response;
+  } catch (error) {
+    console.error(
+      "SUB CASTES API ERROR:",
+      error
+    );
+
+    console.error(
+      "RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ?? {},
+        null,
+        2
+      )
+    );
+
+    throw error;
+  }
+}
+
+
+
+
+// =========================================================
+// GET MEMBER FAMILY VALUES
+// GET /api/member/family-values
+// =========================================================
+
+export async function getMemberFamilyValues(accessToken) {
+  if (!accessToken) {
+    throw new Error(
+      "Access token is missing. Please login again."
+    );
+  }
+
+  const URL =
+    BASE_URL + "/api/member/family-values";
+
+  const user = {
+    token: accessToken,
+  };
+
+  console.log("========================================");
+  console.log("GET MEMBER FAMILY VALUES");
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("========================================");
+
+  try {
+    const response = await getMethod(
+      URL,
+      user
+    );
+
+    console.log("========================================");
+    console.log("FAMILY VALUES API RESPONSE");
+    console.log(
+      JSON.stringify(response, null, 2)
+    );
+    console.log("========================================");
+
+    return response;
+  } catch (error) {
+    console.error("========================================");
+    console.error("FAMILY VALUES API ERROR");
+    console.error("MESSAGE:", error?.message);
+    console.error(
+      "STATUS:",
+      error?.response?.status
+    );
+    console.error(
+      "RESPONSE:",
+      JSON.stringify(
+        error?.response?.data ?? {},
+        null,
+        2
+      )
+    );
+    console.error("========================================");
 
     throw error;
   }

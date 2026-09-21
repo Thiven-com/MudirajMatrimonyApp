@@ -1,13 +1,7 @@
-
 import Requestmake from "./RequestMake";
 
 /**
  * Build common request headers
- *
- * Expected user object:
- * {
- *   token: "your-access-token"
- * }
  */
 function buildHeaders(user) {
   const headers = {
@@ -23,18 +17,20 @@ function buildHeaders(user) {
 }
 
 /**
- * GET API
- *
- * Usage:
- * const result = await getMethod(url, user, params);
+ * =========================================================
+ * GET METHOD
+ * =========================================================
  */
-export async function getMethod(url, user = null, params = undefined) {
+export async function getMethod(
+  url,
+  user = null,
+  params = undefined
+) {
   const requestOptions = {
     method: "GET",
     headers: buildHeaders(user),
   };
 
-  // Add params only when provided
   if (params) {
     requestOptions.params = params;
   }
@@ -43,45 +39,38 @@ export async function getMethod(url, user = null, params = undefined) {
   console.log("GET REQUEST");
   console.log("URL:", url);
   console.log(
-    "HEADERS:",
-    JSON.stringify(
-      {
-        ...requestOptions.headers,
-        Authorization: user?.token
-          ? "Bearer ***TOKEN***"
-          : undefined,
-      },
-      null,
-      2
-    )
+    "TOKEN EXISTS:",
+    !!user?.token
   );
 
-  if (params) {
-    console.log("PARAMS:", JSON.stringify(params, null, 2));
-  }
-
-  console.log("=================================");
-
   try {
-    const result = await Requestmake(url, requestOptions);
+    const result = await Requestmake(
+      url,
+      requestOptions
+    );
 
     console.log("GET RESPONSE:");
-    console.log(JSON.stringify(result, null, 2));
+    console.log(
+      JSON.stringify(result, null, 2)
+    );
 
     return result;
   } catch (error) {
-    console.log("GET ERROR:", error);
+    console.error("GET ERROR:", error);
     throw error;
   }
 }
 
 /**
- * POST API
- *
- * Usage:
- * const result = await postMethod(url, user, data);
+ * =========================================================
+ * POST METHOD
+ * =========================================================
  */
-export async function postMethod(url, user = null, data = {}) {
+export async function postMethod(
+  url,
+  user = null,
+  data = {}
+) {
   const requestOptions = {
     method: "POST",
     headers: buildHeaders(user),
@@ -92,39 +81,37 @@ export async function postMethod(url, user = null, data = {}) {
   console.log("POST REQUEST");
   console.log("URL:", url);
   console.log(
-    "HEADERS:",
-    JSON.stringify(
-      {
-        ...requestOptions.headers,
-        Authorization: user?.token
-          ? "Bearer ***TOKEN***"
-          : undefined,
-      },
-      null,
-      2
-    )
+    "TOKEN EXISTS:",
+    !!user?.token
   );
-  console.log("BODY:", JSON.stringify(data, null, 2));
-  console.log("=================================");
+  console.log(
+    "BODY:",
+    JSON.stringify(data, null, 2)
+  );
 
   try {
-    const result = await Requestmake(url, requestOptions);
+    const result = await Requestmake(
+      url,
+      requestOptions
+    );
 
     console.log("POST RESPONSE:");
-    console.log(JSON.stringify(result, null, 2));
+    console.log(
+      JSON.stringify(result, null, 2)
+    );
 
     return result;
   } catch (error) {
-    console.log("POST ERROR:", error);
+    console.error("POST ERROR:", error);
     throw error;
   }
 }
 
-
-// =========================================================
-// PUT METHOD
-// =========================================================
-
+/**
+ * =========================================================
+ * PUT METHOD
+ * =========================================================
+ */
 export async function putMethod(
   URL,
   user = null,
@@ -165,7 +152,9 @@ export async function putMethod(
     let data = {};
 
     try {
-      data = text ? JSON.parse(text) : {};
+      data = text
+        ? JSON.parse(text)
+        : {};
     } catch (parseError) {
       data = {
         message: text,
@@ -194,7 +183,6 @@ export async function putMethod(
     }
 
     return data;
-
   } catch (error) {
     console.error(
       "PUT API ERROR:",
@@ -204,155 +192,169 @@ export async function putMethod(
     throw error;
   }
 }
-// =========================================================
-// DELETE METHOD
-// =========================================================
 
-export async function deleteMemberCareerById(
-    accessToken,
-    careerId
+/**
+ * =========================================================
+ * DELETE METHOD
+ * =========================================================
+ *
+ * Generic DELETE API
+ *
+ * Usage:
+ *
+ * const response = await deleteMethod(
+ *   url,
+ *   { token: accessToken }
+ * );
+ */
+export async function deleteMethod(
+  URL,
+  user = null
 ) {
-
+  try {
+    console.log("=================================");
+    console.log("DELETE API REQUEST");
+    console.log("URL:", URL);
     console.log(
-        "========================================"
+      "TOKEN EXISTS:",
+      !!user?.token
     );
+    console.log("=================================");
 
-    console.log(
-        "DELETE MEMBER CAREER FUNCTION"
-    );
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
 
-    console.log(
-        "CAREER ID RECEIVED:",
-        careerId
-    );
-
-    console.log(
-        "TOKEN EXISTS:",
-        !!accessToken
-    );
-
-    console.log(
-        "========================================"
-    );
-
-
-    if (!accessToken) {
-
-        throw new Error(
-            "Access token is missing. Please login again."
-        );
+    if (user?.token) {
+      headers.Authorization =
+        `Bearer ${user.token}`;
     }
 
+    console.log(
+      "DELETE HEADERS:",
+      JSON.stringify(
+        {
+          Accept: headers.Accept,
+          "Content-Type":
+            headers["Content-Type"],
+          Authorization: user?.token
+            ? "Bearer ***TOKEN***"
+            : undefined,
+        },
+        null,
+        2
+      )
+    );
 
-    const id =
-        Number(careerId);
+    const response = await fetch(URL, {
+      method: "DELETE",
+      headers,
+    });
 
+    console.log(
+      "DELETE HTTP STATUS:",
+      response.status
+    );
 
-    if (
-        !Number.isInteger(id) ||
-        id <= 0
-    ) {
+    console.log(
+      "DELETE HTTP OK:",
+      response.ok
+    );
 
-        throw new Error(
-            `Invalid career ID: ${careerId}`
-        );
+    const text = await response.text();
+
+    console.log(
+      "DELETE RESPONSE TEXT:",
+      text
+    );
+
+    let data = {};
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        data = {
+          message: text,
+        };
+      }
     }
 
-
-    const URL =
-        BASE_URL +
-        `/api/member/career/${id}`;
-
-
+    console.log("=================================");
+    console.log("DELETE API RESPONSE");
     console.log(
-        "========================================"
+      JSON.stringify(data, null, 2)
     );
+    console.log("=================================");
 
-    console.log(
-        "DELETE MEMBER CAREER API"
-    );
+    /**
+     * DELETE successful:
+     *
+     * 200
+     * 202
+     * 204
+     * etc.
+     */
+    if (!response.ok) {
+      const errorMessage =
+        data?.message ||
+        data?.msg ||
+        data?.error ||
+        `Delete request failed with status ${response.status}`;
 
-    console.log(
-        "METHOD:",
-        "DELETE"
-    );
+      const error = new Error(
+        errorMessage
+      );
 
-    console.log(
-        "URL:",
-        URL
-    );
+      error.status = response.status;
+      error.response = data;
 
-    console.log(
-        "CAREER ID:",
-        id
-    );
-
-    console.log(
-        "========================================"
-    );
-
-
-    try {
-
-        const response =
-            await deleteMethod(
-                URL,
-                {
-                    token:
-                        accessToken,
-                }
-            );
-
-
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "DELETE MEMBER CAREER RESPONSE"
-        );
-
-        console.log(
-            JSON.stringify(
-                response,
-                null,
-                2
-            )
-        );
-
-        console.log(
-            "STATUS CODE:",
-            response?.statusCode
-        );
-
-        console.log(
-            "MESSAGE:",
-            response?.message
-        );
-
-        console.log(
-            "========================================"
-        );
-
-
-        return response;
-
-    } catch (error) {
-
-        console.error(
-            "DELETE MEMBER CAREER ERROR"
-        );
-
-        console.error(
-            "MESSAGE:",
-            error?.message
-        );
-
-        console.error(
-            "STATUS:",
-            error?.status
-        );
-
-        throw error;
+      throw error;
     }
+
+    /**
+     * Normalize response
+     */
+    return {
+      ...data,
+
+      success:
+        data?.success !== undefined
+          ? data.success
+          : true,
+
+      result:
+        data?.result !== undefined
+          ? data.result
+          : true,
+
+      statusCode:
+        data?.statusCode !== undefined
+          ? data.statusCode
+          : response.status,
+
+      message:
+        data?.message ||
+        data?.msg ||
+        `Deleted successfully.`,
+    };
+  } catch (error) {
+    console.error(
+      "DELETE API ERROR:",
+      error
+    );
+
+    console.error(
+      "DELETE ERROR MESSAGE:",
+      error?.message
+    );
+
+    console.error(
+      "DELETE ERROR STATUS:",
+      error?.status
+    );
+
+    throw error;
+  }
 }

@@ -1,10 +1,9 @@
-import {
-    useCallback,
-    useState
-} from "react";
+import { useCallback, useState } from "react";
 
 import {
+    ActivityIndicator,
     Alert,
+    Platform,
     SafeAreaView,
     ScrollView,
     StatusBar,
@@ -15,9 +14,7 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { router, useFocusEffect } from "expo-router";
 
 import {
@@ -26,18 +23,11 @@ import {
 } from "../utils/Functions";
 
 
-/* =========================================================
-   MAIN COMPONENT
-========================================================= */
-
 export default function EducationInformation() {
 
     const [educationList, setEducationList] = useState([]);
-
     const [loading, setLoading] = useState(true);
-
     const [error, setError] = useState("");
-
     const [deletingId, setDeletingId] = useState(null);
 
 
@@ -46,128 +36,54 @@ export default function EducationInformation() {
     ========================================================= */
 
     const loadEducation = useCallback(async () => {
-
         try {
-
             setLoading(true);
-
             setError("");
 
-            console.log(
-                "======================================"
-            );
-
-            console.log(
-                "GET EDUCATION API"
-            );
-
             const accessToken =
-                await AsyncStorage.getItem(
-                    "access_token"
-                );
+                await AsyncStorage.getItem("access_token");
 
             console.log(
-                "TOKEN EXISTS:",
+                "GET EDUCATION TOKEN EXISTS:",
                 !!accessToken
             );
 
             if (!accessToken) {
-
                 setEducationList([]);
-
                 setError(
                     "Access token not found. Please login again."
                 );
-
                 return;
             }
 
-
             const response =
-                await getMemberEducation(
-                    accessToken
-                );
-
+                await getMemberEducation(accessToken);
 
             console.log(
-                "GET EDUCATION RESPONSE:"
+                "GET EDUCATION RESPONSE:",
+                JSON.stringify(response, null, 2)
             );
-
-            console.log(
-                JSON.stringify(
-                    response,
-                    null,
-                    2
-                )
-            );
-
-
-            /* =================================================
-               EXTRACT ARRAY
-            ================================================= */
 
             let educationData = [];
 
-
-            if (
-                Array.isArray(response)
+            if (Array.isArray(response)) {
+                educationData = response;
+            } else if (Array.isArray(response?.data)) {
+                educationData = response.data;
+            } else if (
+                Array.isArray(response?.data?.data)
             ) {
-
-                educationData =
-                    response;
-
-            }
-
-            else if (
-                Array.isArray(
-                    response?.data
-                )
+                educationData = response.data.data;
+            } else if (Array.isArray(response?.result)) {
+                educationData = response.result;
+            } else if (
+                Array.isArray(response?.data?.result)
             ) {
-
-                educationData =
-                    response.data;
-
+                educationData = response.data.result;
             }
-
-            else if (
-                Array.isArray(
-                    response?.data?.data
-                )
-            ) {
-
-                educationData =
-                    response.data.data;
-
-            }
-
-            else if (
-                Array.isArray(
-                    response?.result
-                )
-            ) {
-
-                educationData =
-                    response.result;
-
-            }
-
-            else if (
-                Array.isArray(
-                    response?.data?.result
-                )
-            ) {
-
-                educationData =
-                    response.data.result;
-
-            }
-
 
             console.log(
-                "EDUCATION ARRAY:"
-            );
-
-            console.log(
+                "EDUCATION ARRAY:",
                 JSON.stringify(
                     educationData,
                     null,
@@ -175,145 +91,91 @@ export default function EducationInformation() {
                 )
             );
 
-
-            /* =================================================
-               FORMAT DATA
-            ================================================= */
-
             const formattedEducation =
                 educationData
                     .filter(
-                        item =>
+                        (item) =>
                             item &&
-                            typeof item ===
-                            "object"
+                            typeof item === "object"
                     )
-                    .map(
-                        item => {
+                    .map((item) => {
 
-                            /*
-                             * IMPORTANT:
-                             * Only use real database ID.
-                             */
+                        const rawId =
+                            item.id ??
+                            item.education_id ??
+                            item.educationId ??
+                            null;
 
-                            const rawId =
-                                item.id ??
-                                item.education_id ??
-                                item.educationId ??
-                                null;
+                        const id =
+                            rawId !== null
+                                ? Number(rawId)
+                                : null;
 
+                        const degree =
+                            item.degree ??
+                            item.degree_name ??
+                            item.degreeName ??
+                            item.qualification ??
+                            item.qualification_name ??
+                            item.education ??
+                            "";
 
-                            const id =
-                                rawId !== null &&
-                                rawId !== undefined
-                                    ? Number(rawId)
-                                    : null;
+                        const field =
+                            item.field ??
+                            item.field_of_study ??
+                            item.fieldOfStudy ??
+                            item.specialization ??
+                            item.specialisation ??
+                            item.course ??
+                            item.course_name ??
+                            item.courseName ??
+                            "";
 
+                        const university =
+                            item.university ??
+                            item.university_name ??
+                            item.universityName ??
+                            item.institution ??
+                            item.institution_name ??
+                            item.institutionName ??
+                            item.college ??
+                            item.college_name ??
+                            item.collegeName ??
+                            "";
 
-                            const degree =
-                                item.degree ??
-                                item.degree_name ??
-                                item.degreeName ??
-                                item.qualification ??
-                                item.qualification_name ??
-                                item.education ??
-                                "";
+                        const startYear =
+                            item.start_year ??
+                            item.startYear ??
+                            item.from_year ??
+                            item.fromYear ??
+                            item.from ??
+                            "";
 
+                        const endYear =
+                            item.end_year ??
+                            item.endYear ??
+                            item.to_year ??
+                            item.toYear ??
+                            item.to ??
+                            "";
 
-                            const field =
-                                item.field ??
-                                item.field_of_study ??
-                                item.fieldOfStudy ??
-                                item.specialization ??
-                                item.specialisation ??
-                                item.course ??
-                                item.course_name ??
-                                item.courseName ??
-                                "";
-
-
-                            const university =
-                                item.university ??
-                                item.university_name ??
-                                item.universityName ??
-                                item.institution ??
-                                item.institution_name ??
-                                item.institutionName ??
-                                item.college ??
-                                item.college_name ??
-                                item.collegeName ??
-                                "";
-
-
-                            const startYear =
-                                item.start_year ??
-                                item.startYear ??
-                                item.from_year ??
-                                item.fromYear ??
-                                item.from ??
-                                "";
-
-
-                            const endYear =
-                                item.end_year ??
-                                item.endYear ??
-                                item.to_year ??
-                                item.toYear ??
-                                item.to ??
-                                "";
-
-
-                            return {
-
-                                id,
-
-                                degree:
-                                    String(
-                                        degree
-                                    ),
-
-                                field:
-                                    String(
-                                        field
-                                    ),
-
-                                university:
-                                    String(
-                                        university
-                                    ),
-
-                                startYear:
-                                    String(
-                                        startYear
-                                    ),
-
-                                endYear:
-                                    String(
-                                        endYear
-                                    ),
-
-                            };
-
-                        }
-                    )
-                    /*
-                     * Do not display records without
-                     * a real database ID.
-                     */
+                        return {
+                            id,
+                            degree: String(degree),
+                            field: String(field),
+                            university: String(university),
+                            startYear: String(startYear),
+                            endYear: String(endYear),
+                        };
+                    })
                     .filter(
-                        item =>
-                            Number.isInteger(
-                                item.id
-                            ) &&
+                        (item) =>
+                            Number.isInteger(item.id) &&
                             item.id > 0
                     );
 
-
             console.log(
-                "FORMATTED EDUCATION:"
-            );
-
-            console.log(
+                "FORMATTED EDUCATION:",
                 JSON.stringify(
                     formattedEducation,
                     null,
@@ -321,372 +183,348 @@ export default function EducationInformation() {
                 )
             );
 
+            setEducationList(formattedEducation);
 
-            setEducationList(
-                formattedEducation
-            );
-
-
-        } catch (error) {
+        } catch (err) {
 
             console.error(
                 "GET EDUCATION ERROR:",
-                error
+                err
             );
 
             setEducationList([]);
 
             setError(
-                error?.message ||
+                err?.message ||
                 "Unable to load education information."
             );
 
         } finally {
-
             setLoading(false);
-
         }
 
     }, []);
 
 
     /* =========================================================
-       LOAD WHEN SCREEN GETS FOCUS
+       LOAD WHEN SCREEN FOCUSES
     ========================================================= */
 
     useFocusEffect(
         useCallback(() => {
-
             loadEducation();
-
         }, [loadEducation])
     );
 
+/* =========================================================
+   DELETE EDUCATION
+========================================================= */
 
-    /* =========================================================
-       DELETE EDUCATION
-    ========================================================= */
+const handleDeleteEducation = (educationId) => {
+    console.log("======================================");
+    console.log("DELETE BUTTON CLICKED");
+    console.log("RAW EDUCATION ID:", educationId);
 
-    const handleDeleteEducation = async (
-        educationId
-    ) => {
+    const numericId = Number(educationId);
 
-        const numericId =
-            Number(educationId);
+    console.log(
+        "NUMERIC EDUCATION ID:",
+        numericId
+    );
 
+    // -----------------------------------------------------
+    // VALIDATE ID
+    // -----------------------------------------------------
 
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "DELETE BUTTON CLICKED"
-        );
-
-        console.log(
-            "EDUCATION ID:",
+    if (
+        !Number.isInteger(numericId) ||
+        numericId <= 0
+    ) {
+        console.error(
+            "INVALID EDUCATION ID:",
             educationId
         );
 
+        Alert.alert(
+            "Delete Failed",
+            "Invalid education ID."
+        );
+
+        return;
+    }
+
+    // -----------------------------------------------------
+    // PREVENT MULTIPLE DELETE REQUESTS
+    // -----------------------------------------------------
+
+    if (deletingId !== null) {
         console.log(
-            "NUMERIC ID:",
+            "DELETE ALREADY IN PROGRESS:",
+            deletingId
+        );
+
+        return;
+    }
+
+    // -----------------------------------------------------
+    // WEB
+    // -----------------------------------------------------
+
+    if (Platform.OS === "web") {
+        console.log(
+            "WEB PLATFORM - CALLING DELETE API"
+        );
+
+        performDelete(numericId);
+
+        return;
+    }
+
+    // -----------------------------------------------------
+    // ANDROID / IOS
+    // -----------------------------------------------------
+
+    Alert.alert(
+        "Delete Education",
+        "Are you sure you want to delete this education?",
+        [
+            {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => {
+                    console.log(
+                        "DELETE CANCELLED"
+                    );
+                },
+            },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => {
+                    console.log(
+                        "DELETE CONFIRMED - CALLING API"
+                    );
+
+                    performDelete(numericId);
+                },
+            },
+        ]
+    );
+};
+/* =========================================================
+   PERFORM DELETE
+========================================================= */
+
+const performDelete = async (numericId) => {
+    try {
+        console.log("======================================");
+        console.log("PERFORM DELETE CALLED");
+        console.log(
+            "EDUCATION ID:",
             numericId
         );
 
+        setDeletingId(numericId);
+
+        // -------------------------------------------------
+        // GET ACCESS TOKEN
+        // -------------------------------------------------
+
+        const accessToken =
+            await AsyncStorage.getItem(
+                "access_token"
+            );
+
         console.log(
+            "ACCESS TOKEN EXISTS:",
+            !!accessToken
+        );
+
+        if (!accessToken) {
+            Alert.alert(
+                "Login Required",
+                "Your session has expired. Please login again."
+            );
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // CALL DELETE API
+        // -------------------------------------------------
+
+        console.log(
+            "CALLING deleteMemberEducation..."
+        );
+
+        const response =
+            await deleteMemberEducation(
+                accessToken,
+                numericId
+            );
+
+        console.log(
+            "DELETE API RESPONSE:",
+            JSON.stringify(
+                response,
+                null,
+                2
+            )
+        );
+
+        // -------------------------------------------------
+        // CHECK RESPONSE
+        // -------------------------------------------------
+
+        const statusCode = Number(
+            response?.statusCode ??
+            response?.status ??
+            0
+        );
+
+        const success =
+            response?.success === true ||
+            response?.result === true ||
+            (
+                statusCode >= 200 &&
+                statusCode < 300
+            );
+
+        console.log(
+            "DELETE STATUS:",
+            statusCode
+        );
+
+        console.log(
+            "DELETE SUCCESS:",
+            success
+        );
+
+        // -------------------------------------------------
+        // SUCCESS
+        // -------------------------------------------------
+
+        if (success) {
+            console.log(
+                "======================================"
+            );
+
+            console.log(
+                "EDUCATION DELETE SUCCESS"
+            );
+
+            console.log(
+                "DELETED EDUCATION ID:",
+                numericId
+            );
+
+            // Remove from screen
+            setEducationList(
+                (previousList) =>
+                    previousList.filter(
+                        (item) =>
+                            Number(item.id) !==
+                            Number(numericId)
+                    )
+            );
+
+            // Show success message
+            if (Platform.OS === "web") {
+                window.alert(
+                    response?.message ||
+                    "Education deleted successfully."
+                );
+            } else {
+                Alert.alert(
+                    "Success",
+                    response?.message ||
+                    "Education deleted successfully."
+                );
+            }
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // FAILURE
+        // -------------------------------------------------
+
+        const message =
+            response?.message ||
+            response?.data?.message ||
+            response?.data?.error ||
+            "Education could not be deleted.";
+
+        if (Platform.OS === "web") {
+            window.alert(
+                `Delete Failed: ${message}`
+            );
+        } else {
+            Alert.alert(
+                "Delete Failed",
+                message
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
             "======================================"
         );
 
-
-        /* =====================================================
-           VALIDATE ID
-        ===================================================== */
-
-        if (
-            !Number.isInteger(
-                numericId
-            ) ||
-            numericId <= 0
-        ) {
-         console.log(
-            "Delete Failed : Invalid education ID.",
-            numericId
+        console.error(
+            "DELETE EDUCATION ERROR:",
+            error
         );
+
+        console.error(
+            "ERROR MESSAGE:",
+            error?.message
+        );
+
+        console.error(
+            "ERROR STATUS:",
+            error?.response?.status
+        );
+
+        console.error(
+            "ERROR DATA:",
+            error?.response?.data
+        );
+
+        const message =
+            error?.response?.data?.message ||
+            error?.response?.data?.msg ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Unable to delete education.";
+
+        if (Platform.OS === "web") {
+            window.alert(
+                `Delete Failed: ${message}`
+            );
+        } else {
             Alert.alert(
                 "Delete Failed",
-                "Invalid education ID."
+                String(message)
             );
-
-            return;
         }
 
-
-        /* =====================================================
-           PREVENT DOUBLE DELETE
-        ===================================================== */
-
-        if (
-            deletingId !== null
-        ) {
-
-            console.log(
-                "DELETE ALREADY IN PROGRESS"
-            );
-
-            return;
-        }
-
- console.log(
-           "Are you sure you want to delete this education?",
-            numericId
-        );
-        Alert.alert(
-            "Delete Education",
-            "Are you sure you want to delete this education?",
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel",
-                },
-
-                {
-                    text: "Delete",
-                    style: "destructive",
-
-                    onPress: async () => {
-
-                        try {
-
-                            setDeletingId(
-                                numericId
-                            );
-
-
-                            /* =================================
-                               TOKEN
-                            ================================= */
-
-                            const accessToken =
-                                await AsyncStorage.getItem(
-                                    "access_token"
-                                );
-
-
-                            if (!accessToken) {
-
-                                Alert.alert(
-                                    "Login Required",
-                                    "Please login again."
-                                );
-
-                                return;
-                            }
-
-
-                            /* =================================
-                               LOG REQUEST
-                            ================================= */
-
-                            console.log(
-                                "======================================"
-                            );
-
-                            console.log(
-                                "DELETE EDUCATION REQUEST"
-                            );
-
-                            console.log(
-                                "METHOD: DELETE"
-                            );
-
-                            console.log(
-                                "ID:",
-                                numericId
-                            );
-
-                            console.log(
-                                "TOKEN EXISTS:",
-                                !!accessToken
-                            );
-
-                            console.log(
-                                "======================================"
-                            );
-
-
-                            /* =================================
-                               CALL DELETE API
-                            ================================= */
-
-                            const response =
-                                await deleteMemberEducation(
-                                    accessToken,
-                                    numericId
-                                );
-
-
-                            console.log(
-                                "======================================"
-                            );
-
-                            console.log(
-                                "DELETE API RESPONSE"
-                            );
-
-                            console.log(
-                                JSON.stringify(
-                                    response,
-                                    null,
-                                    2
-                                )
-                            );
-
-                            console.log(
-                                "======================================"
-                            );
-
-
-                            /*
-                             * IMPORTANT
-                             *
-                             * deleteMemberEducation()
-                             * should return:
-                             *
-                             * {
-                             *    success: true,
-                             *    statusCode: 200
-                             * }
-                             *
-                             * OR
-                             *
-                             * {
-                             *    success: true,
-                             *    statusCode: 204
-                             * }
-                             *
-                             * Any HTTP 2xx should be treated
-                             * as successful.
-                             */
-
-
-                            const apiSuccess =
-                                response?.success === true ||
-                                response?.success === 1 ||
-                                response?.result === true ||
-                                response?.statusCode === 200 ||
-                                response?.statusCode === 201 ||
-                                response?.statusCode === 202 ||
-                                response?.statusCode === 204 ||
-                                response === true;
-
-
-                            if (
-                                apiSuccess
-                            ) {
-
-                                /* =============================
-                                   REMOVE FROM SCREEN IMMEDIATELY
-                                ============================= */
-
-                                setEducationList(
-                                    previousList =>
-                                        previousList.filter(
-                                            item =>
-                                                Number(
-                                                    item.id
-                                                ) !==
-                                                numericId
-                                        )
-                                );
-
-
-                                Alert.alert(
-                                    "Success",
-                                    "Education deleted successfully."
-                                );
-
-
-                                /*
-                                 * Reload from backend after
-                                 * successful deletion.
-                                 */
-
-                                setTimeout(
-                                    () => {
-                                        loadEducation();
-                                    },
-                                    300
-                                );
-
-
-                                return;
-                            }
-
-
-                            Alert.alert(
-                                "Delete Failed",
-                                response?.message ||
-                                response?.error ||
-                                "Education could not be deleted."
-                            );
-
-
-                        } catch (error) {
-
-                            console.error(
-                                "======================================"
-                            );
-
-                            console.error(
-                                "DELETE EDUCATION ERROR"
-                            );
-
-                            console.error(
-                                error
-                            );
-
-                            console.error(
-                                "MESSAGE:",
-                                error?.message
-                            );
-
-                            console.error(
-                                "======================================"
-                            );
-
-
-                            Alert.alert(
-                                "Delete Failed",
-                                error?.message ||
-                                "Unable to delete education."
-                            );
-
-                        } finally {
-
-                            setDeletingId(
-                                null
-                            );
-
-                        }
-
-                    },
-                },
-            ]
+    } finally {
+        console.log(
+            "DELETE PROCESS FINISHED"
         );
 
-    };
-
+        setDeletingId(null);
+    }
+};
 
     /* =========================================================
        ADD EDUCATION
     ========================================================= */
 
     const handleAddEducation = () => {
-
-        router.push(
-            "/AddEducation"
-        );
-
+        router.push("/AddEducation");
     };
 
 
@@ -694,39 +532,29 @@ export default function EducationInformation() {
        EDIT EDUCATION
     ========================================================= */
 
-    const handleEdit = (
-        item
-    ) => {
+    const handleEdit = (item) => {
 
-        if (
-            !item?.id
-        ) {
+        if (!item?.id) {
 
-            console.log(
-                "Education ID missing:",
-                item
+            Alert.alert(
+                "Error",
+                "Education ID is missing."
             );
 
             return;
         }
-
 
         console.log(
             "EDIT EDUCATION ID:",
             item.id
         );
 
-
         router.push({
-            pathname:
-                "/EditEducation",
-
+            pathname: "/EditEducation",
             params: {
-                id:
-                    String(item.id),
+                id: String(item.id),
             },
         });
-
     };
 
 
@@ -735,9 +563,7 @@ export default function EducationInformation() {
     ========================================================= */
 
     const handleBack = () => {
-
         router.back();
-
     };
 
 
@@ -746,12 +572,10 @@ export default function EducationInformation() {
     ========================================================= */
 
     const handleMenu = () => {
-
         Alert.alert(
             "Menu",
             "More options"
         );
-
     };
 
 
@@ -760,7 +584,6 @@ export default function EducationInformation() {
     ========================================================= */
 
     return (
-
         <SafeAreaView
             style={styles.safeArea}
         >
@@ -770,41 +593,27 @@ export default function EducationInformation() {
                 backgroundColor="#FFFFFF"
             />
 
+            <View style={styles.container}>
 
-            <View
-                style={styles.container}
-            >
+                {/* HEADER */}
 
-
-                {/* ============================================
-                    HEADER
-                ============================================ */}
-
-                <View
-                    style={styles.header}
-                >
+                <View style={styles.header}>
 
                     <TouchableOpacity
                         style={styles.backButton}
                         activeOpacity={0.7}
-                        onPress={
-                            handleBack
-                        }
+                        onPress={handleBack}
                     >
-
                         <Ionicons
                             name="chevron-back"
                             size={22}
                             color="#EF233C"
                         />
-
                     </TouchableOpacity>
 
 
                     <Text
-                        style={
-                            styles.headerTitle
-                        }
+                        style={styles.headerTitle}
                     >
                         Education Information
                     </Text>
@@ -813,87 +622,71 @@ export default function EducationInformation() {
                     <TouchableOpacity
                         style={styles.menuButton}
                         activeOpacity={0.7}
-                        onPress={
-                            handleMenu
-                        }
+                        onPress={handleMenu}
                     >
-
                         <Ionicons
                             name="ellipsis-vertical"
                             size={20}
                             color="#EF233C"
                         />
-
                     </TouchableOpacity>
 
                 </View>
 
 
-                {/* ============================================
-                    CONTENT
-                ============================================ */}
+                {/* CONTENT */}
 
                 <ScrollView
-                    style={
-                        styles.scrollView
-                    }
+                    style={styles.scrollView}
                     contentContainerStyle={
                         styles.scrollContent
                     }
-                    showsVerticalScrollIndicator={
-                        false
-                    }
+                    showsVerticalScrollIndicator={false}
                 >
 
-
-                    {/* ========================================
-                        ERROR
-                    ======================================== */}
+                    {/* ERROR */}
 
                     {error !== "" && (
-
                         <Text
-                            style={
-                                styles.errorText
-                            }
+                            style={styles.errorText}
                         >
-                            {error}
+                            {String(error)}
                         </Text>
-
                     )}
 
 
-                    {/* ========================================
-                        LOADING
-                    ======================================== */}
+                    {/* LOADING */}
 
                     {loading && (
-
-                        <Text
-                            style={
-                                styles.loadingText
-                            }
+                        <View
+                            style={styles.loadingContainer}
                         >
-                            Loading education...
-                        </Text>
+                            <ActivityIndicator
+                                size="small"
+                                color="#EF233C"
+                            />
 
+                            <Text
+                                style={styles.loadingText}
+                            >
+                                Loading education...
+                            </Text>
+                        </View>
                     )}
 
 
-                    {/* ========================================
-                        EDUCATION LIST
-                    ======================================== */}
+                    {/* EDUCATION LIST */}
 
                     {!loading &&
-                        educationList.map(
-                            item => (
+                        educationList.map((item) => {
 
+                            const isDeleting =
+                                deletingId ===
+                                Number(item.id);
+
+                            return (
                                 <View
-                                    key={
-                                        String(
-                                            item.id
-                                        )
-                                    }
+                                    key={String(item.id)}
                                     style={
                                         styles.educationCard
                                     }
@@ -906,13 +699,11 @@ export default function EducationInformation() {
                                             styles.educationIconCircle
                                         }
                                     >
-
                                         <Ionicons
                                             name="school-outline"
                                             size={27}
                                             color="#EF233C"
                                         />
-
                                     </View>
 
 
@@ -928,9 +719,7 @@ export default function EducationInformation() {
                                             style={
                                                 styles.degreeText
                                             }
-                                            numberOfLines={
-                                                1
-                                            }
+                                            numberOfLines={1}
                                         >
                                             {item.degree}
                                         </Text>
@@ -940,9 +729,7 @@ export default function EducationInformation() {
                                             style={
                                                 styles.fieldText
                                             }
-                                            numberOfLines={
-                                                1
-                                            }
+                                            numberOfLines={1}
                                         >
                                             {item.field}
                                         </Text>
@@ -952,9 +739,7 @@ export default function EducationInformation() {
                                             style={
                                                 styles.universityText
                                             }
-                                            numberOfLines={
-                                                1
-                                            }
+                                            numberOfLines={1}
                                         >
                                             {item.university}
                                         </Text>
@@ -973,82 +758,55 @@ export default function EducationInformation() {
                                     </View>
 
 
-                                    {/* EDIT */}
+                                    {/* EDIT BUTTON */}
 
                                     <TouchableOpacity
                                         style={
                                             styles.editCircle
                                         }
-                                        activeOpacity={
-                                            0.7
+                                        activeOpacity={0.7}
+                                        disabled={
+                                            deletingId !== null
                                         }
                                         onPress={() =>
-                                            handleEdit(
-                                                item
-                                            )
+                                            handleEdit(item)
                                         }
                                     >
-
                                         <Ionicons
                                             name="pencil-outline"
                                             size={17}
                                             color="#64748B"
                                         />
-
                                     </TouchableOpacity>
 
 
-                                    {/* DELETE */}
+                                    {/* DELETE BUTTON */}
 
                                     <TouchableOpacity
                                         style={[
                                             styles.deleteCircle,
-
-                                            deletingId ===
-                                                Number(
-                                                    item.id
-                                                ) &&
-                                                {
-                                                    opacity:
-                                                        0.4,
-                                                },
+                                            deletingId === Number(item.id) &&
+                                            styles.deleteDisabled,
                                         ]}
-                                        activeOpacity={
-                                            0.7
-                                        }
-
-                                        disabled={
-                                            deletingId !==
-                                            null
-                                        }
-
-                                        onPress={() =>
-                                            handleDeleteEducation(
-                                                item.id
-                                            )
-                                        }
+                                        activeOpacity={0.7}
+                                        disabled={deletingId !== null}
+                                        onPress={() => handleDeleteEducation(item.id)}
                                     >
-
                                         <Ionicons
                                             name="trash-outline"
                                             size={17}
                                             color="#EF233C"
                                         />
-
                                     </TouchableOpacity>
 
                                 </View>
+                            );
+                        })}
 
-                            )
-                        )}
 
-
-                    {/* ========================================
-                        ADD EDUCATION
-                    ======================================== */}
+                    {/* ADD EDUCATION */}
 
                     {!loading && (
-
                         <View
                             style={
                                 styles.addEducationSection
@@ -1060,13 +818,11 @@ export default function EducationInformation() {
                                     styles.centerIconCircle
                                 }
                             >
-
                                 <Ionicons
                                     name="briefcase-outline"
                                     size={32}
                                     color="#EF233C"
                                 />
-
                             </View>
 
 
@@ -1093,9 +849,7 @@ export default function EducationInformation() {
                                 style={
                                     styles.addEducationButton
                                 }
-                                activeOpacity={
-                                    0.85
-                                }
+                                activeOpacity={0.85}
                                 onPress={
                                     handleAddEducation
                                 }
@@ -1118,7 +872,6 @@ export default function EducationInformation() {
                             </TouchableOpacity>
 
                         </View>
-
                     )}
 
                 </ScrollView>
@@ -1134,233 +887,242 @@ export default function EducationInformation() {
    STYLES
 ========================================================= */
 
-const styles =
-    StyleSheet.create({
+const styles = StyleSheet.create({
 
-        safeArea: {
-            flex: 1,
-            backgroundColor: "#FFFFFF",
-        },
+    safeArea: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
 
-        container: {
-            flex: 1,
-            backgroundColor: "#FFFFFF",
-        },
+    container: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
 
-        header: {
-            height: 53,
-            width: "100%",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#FFFFFF",
-            borderBottomWidth: 1,
-            borderBottomColor: "#EEEEEE",
-            position: "relative",
-        },
+    header: {
+        height: 53,
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderBottomWidth: 1,
+        borderBottomColor: "#EEEEEE",
+        position: "relative",
+    },
 
-        backButton: {
-            position: "absolute",
-            left: 8,
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#FFFFFF",
-            borderWidth: 1,
-            borderColor: "#ECEFF1",
-        },
+    backButton: {
+        position: "absolute",
+        left: 8,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#ECEFF1",
+    },
 
-        headerTitle: {
-            fontSize: 18,
-            lineHeight: 16,
-            fontWeight: "700",
-            color: "#171717",
-            includeFontPadding: false,
-            textAlign: "center",
-        },
+    headerTitle: {
+        fontSize: 18,
+        lineHeight: 20,
+        fontWeight: "700",
+        color: "#171717",
+        includeFontPadding: false,
+        textAlign: "center",
+    },
 
-        menuButton: {
-            position: "absolute",
-            right: 7,
-            width: 30,
-            height: 32,
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    menuButton: {
+        position: "absolute",
+        right: 7,
+        width: 30,
+        height: 32,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        scrollView: {
-            flex: 1,
-            backgroundColor: "#FFFFFF",
-        },
+    scrollView: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
 
-        scrollContent: {
-            paddingHorizontal: 8,
-            paddingTop: 5,
-            paddingBottom: 30,
-        },
+    scrollContent: {
+        paddingHorizontal: 8,
+        paddingTop: 5,
+        paddingBottom: 30,
+    },
 
-        loadingText: {
-            textAlign: "center",
-            marginTop: 30,
-            fontSize: 12,
-            color: "#737B87",
-        },
+    loadingContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 30,
+    },
 
-        errorText: {
-            textAlign: "center",
-            marginTop: 15,
-            marginBottom: 10,
-            fontSize: 11,
-            color: "#EF233C",
-        },
+    loadingText: {
+        textAlign: "center",
+        marginTop: 8,
+        fontSize: 12,
+        color: "#737B87",
+    },
 
-        educationCard: {
-            width: "100%",
-            height: 84,
-            backgroundColor: "#FFFFFF",
-            borderWidth: 1,
-            borderColor: "#E9ECEF",
-            borderRadius: 9,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 9,
-            paddingVertical: 7,
-            elevation: 1,
-            marginBottom:20,
-            marginTop:10,
-        },
+    errorText: {
+        textAlign: "center",
+        marginTop: 15,
+        marginBottom: 10,
+        fontSize: 11,
+        color: "#EF233C",
+    },
 
-        educationIconCircle: {
-            width: 48,
-            height: 48,
-            borderRadius: 22,
-            backgroundColor: "#FFF0F2",
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 9,
-        },
+    educationCard: {
+        width: "100%",
+        minHeight: 84,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E9ECEF",
+        borderRadius: 9,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 9,
+        paddingVertical: 7,
+        elevation: 1,
+        marginBottom: 20,
+        marginTop: 10,
+    },
 
-        educationDetails: {
-            flex: 1,
-            justifyContent: "center",
-            minWidth: 0,
-        },
+    educationIconCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: "#FFF0F2",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 9,
+    },
 
-        degreeText: {
-            fontSize: 15,
-            lineHeight: 14,
-            fontWeight: "700",
-            color: "#292929",
-            marginBottom: 1,
-            includeFontPadding: false,
-        },
+    educationDetails: {
+        flex: 1,
+        justifyContent: "center",
+        minWidth: 0,
+    },
 
-        fieldText: {
-            fontSize: 13,
-            lineHeight: 12,
-            fontWeight: "400",
-            color: "#737B87",
-            marginBottom: 1,
-            includeFontPadding: false,
-        },
+    degreeText: {
+        fontSize: 15,
+        lineHeight: 17,
+        fontWeight: "700",
+        color: "#292929",
+        marginBottom: 1,
+        includeFontPadding: false,
+    },
 
-        universityText: {
-            fontSize: 12,
-            lineHeight: 12,
-            fontWeight: "700",
-            color: "#737B87",
-            marginBottom: 1,
-            includeFontPadding: false,
-        },
+    fieldText: {
+        fontSize: 13,
+        lineHeight: 15,
+        fontWeight: "400",
+        color: "#737B87",
+        marginBottom: 1,
+        includeFontPadding: false,
+    },
 
-        yearText: {
-            fontSize: 12,
-            lineHeight: 12,
-            fontWeight: "400",
-            color: "#737B87",
-            includeFontPadding: false,
-        },
+    universityText: {
+        fontSize: 12,
+        lineHeight: 14,
+        fontWeight: "700",
+        color: "#737B87",
+        marginBottom: 1,
+        includeFontPadding: false,
+    },
 
-        editCircle: {
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: "#F4F6F8",
-            alignItems: "center",
-            justifyContent: "center",
-            marginLeft: 4,
-            marginRight: 6,
-        },
+    yearText: {
+        fontSize: 12,
+        lineHeight: 14,
+        fontWeight: "400",
+        color: "#737B87",
+        includeFontPadding: false,
+    },
 
-        deleteCircle: {
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: "#FFF0F2",
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    editCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#F4F6F8",
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 4,
+        marginRight: 6,
+    },
 
-        addEducationSection: {
-            width: "100%",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 80,
-            paddingHorizontal: 15,
-        },
+    deleteCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#FFF0F2",
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        centerIconCircle: {
-            width: 51,
-            height: 51,
-            borderRadius: 26,
-            backgroundColor: "#fcf7f8",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 14,
-        },
+    deleteDisabled: {
+        opacity: 0.4,
+    },
 
-        addEducationTitle: {
-            fontSize: 15,
-            lineHeight: 15,
-            fontWeight: "700",
-            color: "#405064",
-            textAlign: "center",
-            includeFontPadding: false,
-            marginBottom: 5,
-        },
+    addEducationSection: {
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingTop: 80,
+        paddingHorizontal: 15,
+    },
 
-        addEducationDescription: {
-            fontSize: 12,
-            lineHeight: 13,
-            fontWeight: "400",
-            color: "#7D8795",
-            textAlign: "center",
-            includeFontPadding: false,
-            marginBottom: 15,
-            maxWidth: 290,
-        },
+    centerIconCircle: {
+        width: 51,
+        height: 51,
+        borderRadius: 26,
+        backgroundColor: "#FCF7F8",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 14,
+    },
 
-        addEducationButton: {
-            height: 50,
-            minWidth: 120,
-            paddingHorizontal: 13,
-            borderRadius: 7,
-            backgroundColor: "#E91E35",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            elevation: 1,
-        },
+    addEducationTitle: {
+        fontSize: 15,
+        lineHeight: 18,
+        fontWeight: "700",
+        color: "#405064",
+        textAlign: "center",
+        includeFontPadding: false,
+        marginBottom: 5,
+    },
 
-        addEducationButtonText: {
-            color: "#FFFFFF",
-            fontSize: 15,
-            lineHeight: 13,
-            fontWeight: "700",
-            includeFontPadding: false,
-            marginLeft: 5,
-        },
+    addEducationDescription: {
+        fontSize: 12,
+        lineHeight: 16,
+        fontWeight: "400",
+        color: "#7D8795",
+        textAlign: "center",
+        includeFontPadding: false,
+        marginBottom: 15,
+        maxWidth: 290,
+    },
 
-    });
+    addEducationButton: {
+        height: 50,
+        minWidth: 120,
+        paddingHorizontal: 13,
+        borderRadius: 7,
+        backgroundColor: "#E91E35",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 1,
+    },
+
+    addEducationButtonText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        lineHeight: 18,
+        fontWeight: "700",
+        includeFontPadding: false,
+        marginLeft: 5,
+    },
+
+});

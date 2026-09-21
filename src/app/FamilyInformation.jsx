@@ -1,11 +1,9 @@
 import {
   useCallback,
-  useEffect,
   useState,
 } from "react";
 
 import {
-  ActivityIndicator,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -14,95 +12,273 @@ import {
   View,
 } from "react-native";
 
-import {
-  Ionicons,
-} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   router,
+  useFocusEffect,
 } from "expo-router";
 
 import {
   getMemberFamilyInfo,
 } from "../utils/Functions";
 
-
-/* =========================================================
-   FAMILY INFORMATION SCREEN
-========================================================= */
+const FAMILY_CACHE_KEY = "member_family_info_cache";
 
 export default function FamilyInformation() {
-
-  /* =======================================================
-     FAMILY STATE
-  ======================================================= */
-
-  const [
-    familyData,
-    setFamilyData,
-  ] = useState({
-
+  const [familyData, setFamilyData] = useState({
     father: "",
-
     mother: "",
-
     sibling: "",
-
   });
 
+  const [errorMessage, setErrorMessage] = useState("");
 
-  /* =======================================================
-     LOADING
-  ======================================================= */
+  // -------------------------------------------------------
+  // CLEAN VALUE
+  // -------------------------------------------------------
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const cleanValue = useCallback((value) => {
+    if (
+      value === null ||
+      value === undefined
+    ) {
+      return "";
+    }
 
+    return String(value).trim();
+  }, []);
 
-  /* =======================================================
-     ERROR
-  ======================================================= */
+  // -------------------------------------------------------
+  // EXTRACT FAMILY DATA
+  // Handles:
+  // response
+  // response.data
+  // response.data.data
+  // response.result
+  // response.result.data
+  // -------------------------------------------------------
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+  const extractFamilyData = useCallback(
+    (response) => {
+      console.log(
+        "========== FAMILY RAW RESPONSE =========="
+      );
 
+      console.log(
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
 
-  /* =======================================================
-     GET FAMILY INFORMATION
-  ======================================================= */
+      let data = response;
+
+      // Axios-like response
+      if (
+        data?.data &&
+        typeof data.data === "object"
+      ) {
+        data = data.data;
+      }
+
+      // Another nested data
+      if (
+        data?.data &&
+        typeof data.data === "object"
+      ) {
+        data = data.data;
+      }
+
+      // result object
+      if (
+        data?.result &&
+        typeof data.result === "object" &&
+        !Array.isArray(data.result)
+      ) {
+        data = data.result;
+      }
+
+      // result.data
+      if (
+        data?.data &&
+        typeof data.data === "object"
+      ) {
+        data = data.data;
+      }
+
+      console.log(
+        "========== FAMILY EXTRACTED DATA =========="
+      );
+
+      console.log(
+        JSON.stringify(
+          data,
+          null,
+          2
+        )
+      );
+
+      const father =
+        data?.father ??
+        data?.father_name ??
+        data?.fatherName ??
+        "";
+
+      const mother =
+        data?.mother ??
+        data?.mother_name ??
+        data?.motherName ??
+        "";
+
+      const sibling =
+        data?.sibling ??
+        data?.siblings ??
+        data?.sibling_count ??
+        data?.siblings_count ??
+        data?.siblingCount ??
+        "";
+
+      return {
+        father: cleanValue(father),
+        mother: cleanValue(mother),
+        sibling: cleanValue(sibling),
+      };
+    },
+    [cleanValue]
+  );
+
+  // -------------------------------------------------------
+  // LOAD CACHE
+  // NO LOADING SCREEN
+  // -------------------------------------------------------
+
+  const loadCache = useCallback(
+    async () => {
+      try {
+        const cached =
+          await AsyncStorage.getItem(
+            FAMILY_CACHE_KEY
+          );
+
+        if (!cached) {
+          return false;
+        }
+
+        const parsed =
+          JSON.parse(cached);
+
+        if (
+          !parsed ||
+          typeof parsed !== "object"
+        ) {
+          return false;
+        }
+
+        const cachedData = {
+          father: cleanValue(
+            parsed.father
+          ),
+          mother: cleanValue(
+            parsed.mother
+          ),
+          sibling: cleanValue(
+            parsed.sibling
+          ),
+        };
+
+        setFamilyData(cachedData);
+
+        console.log(
+          "========== FAMILY CACHE =========="
+        );
+
+        console.log(
+          JSON.stringify(
+            cachedData,
+            null,
+            2
+          )
+        );
+
+        return true;
+      } catch (error) {
+        console.log(
+          "FAMILY CACHE ERROR:",
+          error?.message
+        );
+
+        return false;
+      }
+    },
+    [cleanValue]
+  );
+
+  // -------------------------------------------------------
+  // SAVE CACHE
+  // -------------------------------------------------------
+
+  const saveCache = useCallback(
+    async (data) => {
+      try {
+        const cacheData = {
+          father: cleanValue(
+            data?.father
+          ),
+          mother: cleanValue(
+            data?.mother
+          ),
+          sibling: cleanValue(
+            data?.sibling
+          ),
+        };
+
+        await AsyncStorage.setItem(
+          FAMILY_CACHE_KEY,
+          JSON.stringify(cacheData)
+        );
+
+        console.log(
+          "FAMILY CACHE SAVED:",
+          JSON.stringify(
+            cacheData,
+            null,
+            2
+          )
+        );
+      } catch (error) {
+        console.log(
+          "FAMILY CACHE SAVE ERROR:",
+          error?.message
+        );
+      }
+    },
+    [cleanValue]
+  );
+
+  // -------------------------------------------------------
+  // GET FAMILY INFORMATION
+  // -------------------------------------------------------
 
   const loadFamilyInformation =
     useCallback(async () => {
-
       try {
-
-        setLoading(true);
-
         setErrorMessage("");
-
-
-        /* =================================================
-           GET ACCESS TOKEN
-        ================================================= */
 
         const accessToken =
           await AsyncStorage.getItem(
             "access_token"
           );
 
-
         console.log(
           "========================================"
         );
 
         console.log(
-          "FAMILY INFORMATION SCREEN"
+          "GET MEMBER FAMILY INFORMATION"
         );
 
         console.log(
@@ -111,16 +287,15 @@ export default function FamilyInformation() {
         );
 
         console.log(
+          "TOKEN LENGTH:",
+          accessToken?.length || 0
+        );
+
+        console.log(
           "========================================"
         );
 
-
-        /* =================================================
-           TOKEN CHECK
-        ================================================= */
-
         if (!accessToken) {
-
           setErrorMessage(
             "Please login again."
           );
@@ -128,23 +303,21 @@ export default function FamilyInformation() {
           return;
         }
 
-
-        /* =================================================
-           CALL GET API
-        ================================================= */
+        // -------------------------------------------------
+        // GET API
+        // -------------------------------------------------
 
         const response =
           await getMemberFamilyInfo(
             accessToken
           );
 
-
         console.log(
           "========================================"
         );
 
         console.log(
-          "FAMILY API FULL RESPONSE:"
+          "FAMILY API RESPONSE RECEIVED"
         );
 
         console.log(
@@ -159,117 +332,59 @@ export default function FamilyInformation() {
           "========================================"
         );
 
-
-        /* =================================================
-           RESPONSE DATA
-        ================================================= */
-
-        let data =
-          response?.data;
-
-
-        /*
-         * Handle possible response:
-         *
-         * {
-         *   data: {
-         *     father: "...",
-         *     mother: "...",
-         *     sibling: "..."
-         *   }
-         * }
-         *
-         * Also handles:
-         *
-         * {
-         *   data: {
-         *     data: {...}
-         *   }
-         * }
-         */
-
-
-        if (
-          data &&
-          typeof data === "object" &&
-          data.data &&
-          typeof data.data === "object"
-        ) {
-
-          data =
-            data.data;
-
-        }
-
-
-        /* =================================================
-           RESULT OBJECT
-        ================================================= */
-
-        if (
-          data &&
-          typeof data === "object" &&
-          data.result &&
-          typeof data.result === "object"
-        ) {
-
-          data =
-            data.result;
-
-        }
-
+        const newData =
+          extractFamilyData(
+            response
+          );
 
         console.log(
-          "FAMILY DATA USED BY SCREEN:",
+          "FAMILY DATA FOR SCREEN:",
           JSON.stringify(
-            data,
+            newData,
             null,
             2
           )
         );
 
+        const hasData =
+          newData.father !== "" ||
+          newData.mother !== "" ||
+          newData.sibling !== "";
 
-        /* =================================================
-           SET FAMILY DATA
-        ================================================= */
+        if (hasData) {
+          setFamilyData(
+            newData
+          );
 
-        setFamilyData({
-
-          father:
-            data?.father ??
-            data?.father_name ??
-            "",
-
-          mother:
-            data?.mother ??
-            data?.mother_name ??
-            "",
-
-          sibling:
-            data?.sibling ??
-            data?.siblings ??
-            data?.sibling_count ??
-            "",
-
-        });
-
-
+          await saveCache(
+            newData
+          );
+        } else {
+          console.log(
+            "FAMILY API RETURNED EMPTY DATA"
+          );
+        }
       } catch (error) {
-
         console.error(
           "========================================"
         );
 
         console.error(
-          "FAMILY INFORMATION SCREEN ERROR"
+          "FAMILY INFORMATION GET ERROR"
         );
 
         console.error(
-          error
+          "MESSAGE:",
+          error?.message
         );
 
         console.error(
-          "ERROR RESPONSE:",
+          "STATUS:",
+          error?.response?.status
+        );
+
+        console.error(
+          "RESPONSE:",
           JSON.stringify(
             error?.response?.data,
             null,
@@ -281,246 +396,152 @@ export default function FamilyInformation() {
           "========================================"
         );
 
-
-        const message =
+        // Do NOT remove cached values
+        setErrorMessage(
           error?.response?.data?.message ||
           error?.message ||
-          "Unable to load family information.";
-
-
-        setErrorMessage(
-          message
+          "Unable to load family information."
         );
-
-
-      } finally {
-
-        setLoading(false);
-
       }
+    }, [
+      extractFamilyData,
+      saveCache,
+    ]);
 
-    }, []);
+  // -------------------------------------------------------
+  // SCREEN FOCUS
+  // -------------------------------------------------------
 
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-  /* =======================================================
-     LOAD API WHEN SCREEN OPENS
-  ======================================================= */
+      const refreshFamily = async () => {
+        // Show saved data immediately
+        await loadCache();
 
-  useEffect(() => {
+        if (!mounted) {
+          return;
+        }
 
-    loadFamilyInformation();
+        // Get latest server data
+        await loadFamilyInformation();
+      };
 
-  }, [
-    loadFamilyInformation,
-  ]);
+      refreshFamily();
 
+      return () => {
+        mounted = false;
+      };
+    }, [
+      loadCache,
+      loadFamilyInformation,
+    ])
+  );
 
-  /* =======================================================
-     EDIT SINGLE FIELD
-  ======================================================= */
+  // -------------------------------------------------------
+  // EDIT FIELD
+  // -------------------------------------------------------
 
-  const handleEdit =
+  const handleEdit = useCallback(
     (field) => {
-
       console.log(
         "EDIT FAMILY FIELD:",
         field
       );
 
-
       router.push({
-
         pathname:
           "/EditFamilyInformation",
-
         params: {
           field,
         },
-
       });
+    },
+    []
+  );
 
-    };
-
-
-  /* =======================================================
-     EDIT DETAILS
-  ======================================================= */
+  // -------------------------------------------------------
+  // EDIT ALL
+  // -------------------------------------------------------
 
   const handleEditDetails =
-    () => {
-
-      console.log(
-        "EDIT FAMILY DETAILS CLICKED"
-      );
-
-
+    useCallback(() => {
       router.push(
         "/EditFamilyInformation"
       );
+    }, []);
 
-    };
+  // -------------------------------------------------------
+  // MORE
+  // -------------------------------------------------------
 
-
-  /* =======================================================
-     MORE BUTTON
-  ======================================================= */
-
-  const handleMore =
-    () => {
-
-      console.log(
-        "FAMILY INFORMATION MORE CLICKED"
-      );
-
-    };
-
-
-  /* =======================================================
-     LOADING SCREEN
-  ======================================================= */
-
-  if (loading) {
-
-    return (
-
-      <SafeAreaView
-        style={styles.safeArea}
-      >
-
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor="#F5F6F8"
-        />
-
-
-        <View
-          style={styles.loadingContainer}
-        >
-
-          <ActivityIndicator
-            size="large"
-            color="#D7192A"
-          />
-
-
-          <Text
-            style={styles.loadingText}
-          >
-            Loading family information...
-          </Text>
-
-        </View>
-
-      </SafeAreaView>
-
+  const handleMore = () => {
+    console.log(
+      "FAMILY INFORMATION MORE CLICKED"
     );
+  };
 
-  }
-
-
-  /* =======================================================
-     MAIN SCREEN
-  ======================================================= */
+  // -------------------------------------------------------
+  // UI
+  // NO LOADING
+  // -------------------------------------------------------
 
   return (
-
     <SafeAreaView
       style={styles.safeArea}
     >
-
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#F5F6F8"
       />
 
+      <View style={styles.screen}>
+        <View style={styles.card}>
 
-      <View
-        style={styles.screen}
-      >
+          {/* HEADER */}
 
-
-        {/* =================================================
-            CARD
-        ================================================= */}
-
-        <View
-          style={styles.card}
-        >
-
-
-          {/* ===============================================
-              HEADER
-          =============================================== */}
-
-          <View
-            style={styles.header}
-          >
-
-
-            {/* HEADER ICON */}
-
+          <View style={styles.header}>
             <View
               style={
                 styles.headerIconContainer
               }
             >
-
               <Ionicons
                 name="people-outline"
                 size={17}
                 color="#D7192A"
               />
-
             </View>
-
-
-            {/* TITLE */}
 
             <Text
               style={styles.headerTitle}
+              numberOfLines={1}
             >
               Family Information
             </Text>
-
-
-            {/* MORE */}
 
             <TouchableOpacity
               style={styles.moreButton}
               onPress={handleMore}
               activeOpacity={0.7}
             >
-
               <Ionicons
                 name="ellipsis-vertical"
                 size={19}
                 color="#D7192A"
               />
-
             </TouchableOpacity>
-
           </View>
 
+          <View style={styles.divider} />
 
-          {/* ===============================================
-              DIVIDER
-          =============================================== */}
-
-          <View
-            style={styles.divider}
-          />
-
-
-          {/* ===============================================
-              ERROR
-          =============================================== */}
+          {/* ERROR */}
 
           {errorMessage ? (
-
             <View
               style={styles.errorBox}
             >
-
               <Ionicons
                 name="alert-circle-outline"
                 size={18}
@@ -532,15 +553,10 @@ export default function FamilyInformation() {
               >
                 {errorMessage}
               </Text>
-
             </View>
-
           ) : null}
 
-
-          {/* ===============================================
-              FATHER
-          =============================================== */}
+          {/* FATHER */}
 
           <TouchableOpacity
             style={styles.row}
@@ -549,33 +565,27 @@ export default function FamilyInformation() {
               handleEdit("father")
             }
           >
-
             <View
               style={[
                 styles.personIcon,
                 styles.fatherIcon,
               ]}
             >
-
               <Ionicons
                 name="person-outline"
                 size={15}
                 color="#4A9BE8"
               />
-
             </View>
-
 
             <View
               style={styles.textContainer}
             >
-
               <Text
                 style={styles.label}
               >
                 Father
               </Text>
-
 
               <Text
                 style={styles.value}
@@ -584,18 +594,20 @@ export default function FamilyInformation() {
                 {familyData.father ||
                   "Not added"}
               </Text>
-
             </View>
 
-
-
-
+            <View
+              style={styles.editIconButton}
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                color="#777777"
+              />
+            </View>
           </TouchableOpacity>
 
-
-          {/* ===============================================
-              MOTHER
-          =============================================== */}
+          {/* MOTHER */}
 
           <TouchableOpacity
             style={styles.row}
@@ -604,33 +616,27 @@ export default function FamilyInformation() {
               handleEdit("mother")
             }
           >
-
             <View
               style={[
                 styles.personIcon,
                 styles.motherIcon,
               ]}
             >
-
               <Ionicons
                 name="person-outline"
                 size={15}
                 color="#E65A91"
               />
-
             </View>
-
 
             <View
               style={styles.textContainer}
             >
-
               <Text
                 style={styles.label}
               >
                 Mother
               </Text>
-
 
               <Text
                 style={styles.value}
@@ -639,18 +645,20 @@ export default function FamilyInformation() {
                 {familyData.mother ||
                   "Not added"}
               </Text>
-
             </View>
 
-
-           
-
+            <View
+              style={styles.editIconButton}
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                color="#777777"
+              />
+            </View>
           </TouchableOpacity>
 
-
-          {/* ===============================================
-              SIBLING
-          =============================================== */}
+          {/* SIBLING */}
 
           <TouchableOpacity
             style={styles.row}
@@ -659,33 +667,27 @@ export default function FamilyInformation() {
               handleEdit("sibling")
             }
           >
-
             <View
               style={[
                 styles.personIcon,
                 styles.siblingIcon,
               ]}
             >
-
               <Ionicons
                 name="people-outline"
                 size={15}
                 color="#4CAF78"
               />
-
             </View>
-
 
             <View
               style={styles.textContainer}
             >
-
               <Text
                 style={styles.label}
               >
                 Sibling
               </Text>
-
 
               <Text
                 style={styles.value}
@@ -694,18 +696,20 @@ export default function FamilyInformation() {
                 {familyData.sibling ||
                   "Not added"}
               </Text>
-
             </View>
 
-
-            
-
+            <View
+              style={styles.editIconButton}
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                color="#777777"
+              />
+            </View>
           </TouchableOpacity>
 
-
-          {/* ===============================================
-              EDIT DETAILS
-          =============================================== */}
+          {/* EDIT DETAILS */}
 
           <TouchableOpacity
             style={
@@ -716,13 +720,11 @@ export default function FamilyInformation() {
             }
             activeOpacity={0.85}
           >
-
             <Ionicons
               name="create-outline"
               size={16}
               color="#FFFFFF"
             />
-
 
             <Text
               style={
@@ -731,395 +733,179 @@ export default function FamilyInformation() {
             >
               Edit Details
             </Text>
-
           </TouchableOpacity>
 
-
         </View>
-
       </View>
-
     </SafeAreaView>
-
   );
-
 }
 
-
-/* =========================================================
-   STYLES
-========================================================= */
-
-const styles =
-  StyleSheet.create({
-
-    /* =====================================================
-       SAFE AREA
-    ===================================================== */
-
-    safeArea: {
-      flex: 1,
-      backgroundColor: "#F5F6F8",
-    },
-
-
-    /* =====================================================
-       SCREEN
-    ===================================================== */
-
-    screen: {
-      flex: 1,
-
-      backgroundColor:
-        "#F5F6F8",
-
-      paddingHorizontal: 12,
-
-      paddingTop: 12,
-      paddingLeft: 6,
-      paddingRight:6,
-    },
-
-
-    /* =====================================================
-       LOADING
-    ===================================================== */
-
-    loadingContainer: {
-      flex: 1,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      backgroundColor:
-        "#F5F6F8",
-    },
-
-
-    loadingText: {
-      marginTop: 12,
-
-      fontSize: 13,
-
-      color: "#777777",
-    },
-
-
-    /* =====================================================
-       CARD
-    ===================================================== */
-
-    card: {
-      width: "100%",
-
-      backgroundColor:
-        "#FFFFFF",
-
-      borderRadius: 12,
-
-      paddingHorizontal: 10,
-
-      paddingTop: 10,
-
-      paddingBottom: 370,
-
-      borderWidth: 1,
-
-      borderColor: "#ECECF0",
-
-      shadowColor: "#000000",
-
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-
-      shadowOpacity: 0.08,
-
-      shadowRadius: 6,
-
-      elevation: 3,
-    },
-
-
-    /* =====================================================
-       HEADER
-    ===================================================== */
-
-    header: {
-      minHeight: 32,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-
-      marginBottom: 30,
-    },
-
-
-    /* =====================================================
-       HEADER ICON
-    ===================================================== */
-
-    headerIconContainer: {
-      width: 30,
-
-      height: 30,
-
-      borderRadius: 15,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      backgroundColor:
-        "#FFF0F2",
-
-      marginRight: 9,
-    },
-
-
-    /* =====================================================
-       HEADER TITLE
-    ===================================================== */
-
-    headerTitle: {
-      flex: 1,
-
-      fontSize: 17,
-
-      fontWeight: "700",
-
-      color: "#222222",
-    },
-
-
-    /* =====================================================
-       MORE
-    ===================================================== */
-
-    moreButton: {
-      width: 30,
-
-      height: 30,
-
-      borderRadius: 15,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      backgroundColor:
-        "#FFF7F8",
-    },
-
-
-    /* =====================================================
-       DIVIDER
-    ===================================================== */
-
-    divider: {
-      height: 1,
-
-      backgroundColor:
-        "#F0F0F0",
-
-      marginBottom: 30,
-    },
-
-
-    /* =====================================================
-       ERROR
-    ===================================================== */
-
-    errorBox: {
-      flexDirection: "row",
-
-      alignItems: "center",
-
-      backgroundColor:
-        "#FFF1F2",
-
-      borderRadius: 8,
-
-      paddingHorizontal: 10,
-
-      paddingVertical: 8,
-
-      marginBottom: 50,
-    },
-
-
-    errorText: {
-      flex: 1,
-
-      marginLeft: 7,
-
-      fontSize: 12,
-
-      color: "#D7192A",
-    },
-
-
-    /* =====================================================
-       ROW
-    ===================================================== */
-
-    row: {
-      minHeight: 60,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-
-      borderBottomWidth: 1,
-
-      borderBottomColor:
-        "#F5F5F5",
-    },
-
-
-    /* =====================================================
-       PERSON ICON
-    ===================================================== */
-
-    personIcon: {
-      width: 32,
-
-      height: 32,
-
-      borderRadius: 16,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      marginRight: 11,
-    },
-
-
-    fatherIcon: {
-      backgroundColor:
-        "#EAF5FF",
-    },
-
-
-    motherIcon: {
-      backgroundColor:
-        "#FFF0F6",
-    },
-
-
-    siblingIcon: {
-      backgroundColor:
-        "#EAF8F0",
-    },
-
-
-    /* =====================================================
-       TEXT
-    ===================================================== */
-
-    textContainer: {
-      flex: 1,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-    },
-
-
-    label: {
-      width: 65,
-
-      fontSize: 13,
-
-      fontWeight: "600",
-
-      color: "#444444",
-    },
-
-
-    value: {
-      flex: 1,
-
-      fontSize: 13,
-
-      color: "#777777",
-
-      marginLeft: 8,
-    },
-
-
-    /* =====================================================
-       EDIT ICON
-    ===================================================== */
-
-    editIconButton: {
-      width: 29,
-
-      height: 29,
-
-      borderRadius: 15,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      backgroundColor:
-        "#F5F5F6",
-
-      marginLeft: 8,
-    },
-
-
-    /* =====================================================
-       EDIT DETAILS
-    ===================================================== */
-
-    editDetailsButton: {
-      height: 43,
-
-      width: "100%",
-
-      marginTop: 90,
-
-      borderRadius: 9,
-
-      backgroundColor:
-        "#D7192A",
-
-      flexDirection: "row",
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      shadowColor:
-        "#D7192A",
-
-      shadowOffset: {
-        width: 0,
-        height: 3,
-      },
-
-      shadowOpacity: 0.18,
-
-      shadowRadius: 5,
-
-      elevation: 2,
-    },
-
-
-    editDetailsText: {
-      marginLeft: 7,
-
-      fontSize: 14,
-
-      fontWeight: "700",
-
-      color: "#FFFFFF",
-    },
-
-  });
+// =========================================================
+// STYLES
+// =========================================================
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F6F8",
+  },
+
+  screen: {
+    flex: 1,
+    backgroundColor: "#F5F6F8",
+    paddingHorizontal: 6,
+    paddingTop: 12,
+  },
+
+  card: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 30,
+    borderWidth: 1,
+    borderColor: "#ECECF0",
+    boxShadow:
+      "0px 2px 6px rgba(0,0,0,0.08)",
+    elevation: 3,
+  },
+
+  header: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  headerIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF0F2",
+    marginRight: 9,
+  },
+
+  headerTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#222222",
+  },
+
+  moreButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF7F8",
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginBottom: 20,
+  },
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF1F2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 15,
+  },
+
+  errorText: {
+    flex: 1,
+    marginLeft: 7,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#D7192A",
+  },
+
+  row: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+
+  personIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+
+  fatherIcon: {
+    backgroundColor: "#EAF5FF",
+  },
+
+  motherIcon: {
+    backgroundColor: "#FFF0F6",
+  },
+
+  siblingIcon: {
+    backgroundColor: "#EAF8F0",
+  },
+
+  textContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  label: {
+    width: 65,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#444444",
+  },
+
+  value: {
+    flex: 1,
+    fontSize: 13,
+    color: "#777777",
+    marginLeft: 8,
+  },
+
+  editIconButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5F5F6",
+    marginLeft: 8,
+  },
+
+  editDetailsButton: {
+    height: 45,
+    width: "100%",
+    marginTop: 25,
+    borderRadius: 9,
+    backgroundColor: "#D7192A",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow:
+      "0px 3px 5px rgba(215,25,42,0.18)",
+    elevation: 2,
+  },
+
+  editDetailsText: {
+    marginLeft: 7,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+});

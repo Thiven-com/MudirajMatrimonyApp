@@ -1,405 +1,1217 @@
 import {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useRef,
+  useState,
 } from "react";
 
 import {
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+
+import {
+  useFocusEffect,
+  useRouter,
+} from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-    getMemberSpiritualBackground,
+  getMemberSpiritualBackground,
 } from "../utils/Functions";
 
 
-const SocialBackgroundScreen = () => {
+// ======================================================
+// CACHE KEY
+// ======================================================
 
-  const router = useRouter();
-
-  // =========================================================
-  // STATE
-  // =========================================================
-
-  const [socialBackground, setSocialBackground] =
-    useState({});
-
-  const [refreshing, setRefreshing] =
-    useState(false);
+const SOCIAL_BACKGROUND_CACHE =
+  "SOCIAL_BACKGROUND_CACHE";
 
 
-  // =========================================================
-  // SAFE VALUE HELPER
-  // =========================================================
+// ======================================================
+// SAFE STRING
+// ======================================================
 
-  const getValue = (
-    value,
-    fallback = "-"
+const safeString = (value) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+
+  return "";
+};
+
+
+// ======================================================
+// GET OBJECT NAME
+// ======================================================
+
+const getObjectName = (value) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+    return String(
+      value?.name ??
+        value?.religion_name ??
+        value?.caste_name ??
+        value?.sub_caste_name ??
+        value?.family_value_name ??
+        value?.label ??
+        value?.title ??
+        value?.value ??
+        ""
+    ).trim();
+  }
+
+  return "";
+};
+
+
+// ======================================================
+// CHECK SPIRITUAL DATA
+// ======================================================
+
+const hasSpiritualFields = (object) => {
+  if (
+    !object ||
+    typeof object !== "object" ||
+    Array.isArray(object)
+  ) {
+    return false;
+  }
+
+  const keys = [
+    "religion_id",
+    "religionId",
+    "religion",
+    "religion_name",
+    "religionName",
+
+    "caste_id",
+    "casteId",
+    "caste",
+    "caste_name",
+    "casteName",
+
+    "sub_caste_id",
+    "subCasteId",
+    "sub_caste",
+    "subCaste",
+    "sub_caste_name",
+    "subCasteName",
+
+    "ethnicity",
+
+    "personal_value",
+    "personalValue",
+
+    "family_value_id",
+    "familyValueId",
+    "family_value",
+    "familyValue",
+    "family_value_name",
+    "familyValueName",
+
+    "community_value",
+    "communityValue",
+  ];
+
+  return keys.some(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(
+        object,
+        key
+      )
+  );
+};
+
+
+// ======================================================
+// EXTRACT RESPONSE DATA
+// ======================================================
+
+const extractResponseData = (
+  response
+) => {
+  if (
+    !response ||
+    typeof response !== "object"
+  ) {
+    return {};
+  }
+
+  const visited =
+    new Set();
+
+
+  const search = (
+    object,
+    depth = 0
   ) => {
+
     if (
-      value === null ||
-      value === undefined ||
-      value === ""
+      !object ||
+      typeof object !== "object" ||
+      Array.isArray(object) ||
+      depth > 10
     ) {
-      return fallback;
+      return null;
     }
 
-    return String(value);
+
+    if (
+      visited.has(object)
+    ) {
+      return null;
+    }
+
+
+    visited.add(object);
+
+
+    // ----------------------------------------------
+    // Current object
+    // ----------------------------------------------
+
+    if (
+      hasSpiritualFields(object)
+    ) {
+      return object;
+    }
+
+
+    // ----------------------------------------------
+    // result
+    // ----------------------------------------------
+
+    if (
+      object.result &&
+      typeof object.result === "object" &&
+      !Array.isArray(object.result)
+    ) {
+
+      const resultData =
+        search(
+          object.result,
+          depth + 1
+        );
+
+      if (resultData) {
+        return resultData;
+      }
+    }
+
+
+    // ----------------------------------------------
+    // data
+    // ----------------------------------------------
+
+    if (
+      object.data &&
+      typeof object.data === "object" &&
+      !Array.isArray(object.data)
+    ) {
+
+      const data =
+        search(
+          object.data,
+          depth + 1
+        );
+
+      if (data) {
+        return data;
+      }
+    }
+
+
+    // ----------------------------------------------
+    // response
+    // ----------------------------------------------
+
+    if (
+      object.response &&
+      typeof object.response === "object" &&
+      !Array.isArray(object.response)
+    ) {
+
+      const responseData =
+        search(
+          object.response,
+          depth + 1
+        );
+
+      if (responseData) {
+        return responseData;
+      }
+    }
+
+
+    return null;
   };
 
 
-  // =========================================================
-  // GET SPIRITUAL BACKGROUND API
-  // =========================================================
+  return (
+    search(response) || {}
+  );
+};
+
+
+// ======================================================
+// GET FIELD VALUE
+// ======================================================
+
+const getFieldValue = (
+  data,
+  keys
+) => {
+
+  if (
+    !data ||
+    typeof data !== "object"
+  ) {
+    return "-";
+  }
+
+
+  for (
+    const key of keys
+  ) {
+
+    const value =
+      data?.[key];
+
+
+    if (
+      value !== null &&
+      value !== undefined &&
+      value !== ""
+    ) {
+
+      const text =
+        getObjectName(value);
+
+
+      if (text) {
+        return text;
+      }
+    }
+  }
+
+
+  return "-";
+};
+
+
+// ======================================================
+// SCREEN
+// ======================================================
+
+const SocialBackgroundScreen = () => {
+
+  const router =
+    useRouter();
+
+
+  // ====================================================
+  // STATE
+  // ====================================================
+
+  const [
+    socialBackground,
+    setSocialBackground,
+  ] = useState({});
+
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+
+  const [
+    refreshing,
+    setRefreshing,
+  ] = useState(false);
+
+
+  const loadingRef =
+    useRef(false);
+
+
+  // ====================================================
+  // GET TOKEN
+  // ====================================================
+
+  const getToken =
+    useCallback(
+      async () => {
+
+        const tokenKeys = [
+          "access_token",
+          "accessToken",
+          "token",
+          "userToken",
+        ];
+
+
+        for (
+          const key of tokenKeys
+        ) {
+
+          const token =
+            await AsyncStorage.getItem(
+              key
+            );
+
+
+          if (token) {
+            return token;
+          }
+        }
+
+
+        return null;
+      },
+      []
+    );
+
+
+  // ====================================================
+  // LOAD SPIRITUAL BACKGROUND
+  // ====================================================
 
   const loadSpiritualBackground =
-    useCallback(async () => {
+    useCallback(
+      async (showLoader = true) => {
 
-      try {
-
-        console.log(
-          "======================================"
-        );
-
-        console.log(
-          "LOADING SPIRITUAL BACKGROUND"
-        );
-
-        // ---------------------------------------------------
-        // GET TOKEN
-        // ---------------------------------------------------
-
-        const accessToken =
-          await AsyncStorage.getItem(
-            "access_token"
-          );
-
-        console.log(
-          "TOKEN EXISTS:",
-          !!accessToken
-        );
-
-        if (!accessToken) {
-
-          console.log(
-            "ACCESS TOKEN NOT FOUND"
-          );
-
+        if (
+          loadingRef.current
+        ) {
           return;
         }
 
 
-        // ---------------------------------------------------
-        // CALL API
-        // ---------------------------------------------------
+        loadingRef.current = true;
 
-        const response =
-          await getMemberSpiritualBackground(
-            accessToken
+
+        if (showLoader) {
+          setLoading(true);
+        }
+
+
+        try {
+
+          console.log(
+            "======================================"
+          );
+
+          console.log(
+            "SOCIAL BACKGROUND SCREEN FOCUSED"
+          );
+
+          console.log(
+            "LOADING LATEST DATA..."
+          );
+
+          console.log(
+            "======================================"
           );
 
 
-        // ---------------------------------------------------
-        // LOG RESPONSE
-        // ---------------------------------------------------
+          // ------------------------------------------
+          // TOKEN
+          // ------------------------------------------
+
+          const token =
+            await getToken();
+
+
+          if (!token) {
+
+            console.log(
+              "TOKEN NOT FOUND"
+            );
+
+
+            Alert.alert(
+              "Session Expired",
+              "Please login again."
+            );
+
+
+            return;
+          }
+
+
+          console.log(
+            "TOKEN EXISTS: true"
+          );
+
+
+          // ------------------------------------------
+          // GET API
+          // ------------------------------------------
+
+          console.log(
+            "======================================"
+          );
+
+          console.log(
+            "GET SPIRITUAL BACKGROUND API"
+          );
+
+          console.log(
+            "ENDPOINT: /api/member/spiritual-background"
+          );
+
+          console.log(
+            "======================================"
+          );
+
+
+          const response =
+            await getMemberSpiritualBackground(
+              token
+            );
+
+
+          console.log(
+            "FULL SPIRITUAL BACKGROUND RESPONSE:"
+          );
+
+
+          console.log(
+            JSON.stringify(
+              response,
+              null,
+              2
+            )
+          );
+
+
+          // ------------------------------------------
+          // EXTRACT API DATA
+          // ------------------------------------------
+
+          const apiData =
+            extractResponseData(
+              response
+            );
+
+
+          console.log(
+            "EXTRACTED SPIRITUAL DATA:"
+          );
+
+
+          console.log(
+            JSON.stringify(
+              apiData,
+              null,
+              2
+            )
+          );
+
+
+          // ------------------------------------------
+          // GET CACHE
+          // ------------------------------------------
+
+          let cachedData = {};
+
+
+          try {
+
+            const cacheString =
+              await AsyncStorage.getItem(
+                SOCIAL_BACKGROUND_CACHE
+              );
+
+
+            if (cacheString) {
+
+              cachedData =
+                JSON.parse(
+                  cacheString
+                );
+
+
+              console.log(
+                "======================================"
+              );
+
+              console.log(
+                "SOCIAL BACKGROUND CACHE:"
+              );
+
+
+              console.log(
+                JSON.stringify(
+                  cachedData,
+                  null,
+                  2
+                )
+              );
+
+              console.log(
+                "======================================"
+              );
+            }
+
+          } catch (cacheError) {
+
+            console.error(
+              "CACHE PARSE ERROR:",
+              cacheError
+            );
+
+
+            cachedData = {};
+          }
+
+
+          // ------------------------------------------
+          // MERGE API + CACHE
+          // ------------------------------------------
+
+          const finalData = {
+
+            // RELIGION ID
+
+            religion_id:
+              apiData?.religion_id ||
+              apiData?.religionId ||
+              cachedData?.religion_id ||
+              "",
+
+
+            // RELIGION NAME
+
+            religion_name:
+              apiData?.religion_name ||
+              apiData?.religionName ||
+              (
+                typeof apiData?.religion ===
+                "string"
+                  ? apiData.religion
+                  : ""
+              ) ||
+              (
+                typeof apiData?.religion ===
+                "object"
+                  ? getObjectName(
+                      apiData.religion
+                    )
+                  : ""
+              ) ||
+              cachedData?.religion_name ||
+              "",
+
+
+            // CASTE ID
+
+            caste_id:
+              apiData?.caste_id ||
+              apiData?.casteId ||
+              cachedData?.caste_id ||
+              "",
+
+
+            // CASTE NAME
+
+            caste_name:
+              apiData?.caste_name ||
+              apiData?.casteName ||
+              (
+                typeof apiData?.caste ===
+                "string"
+                  ? apiData.caste
+                  : ""
+              ) ||
+              (
+                typeof apiData?.caste ===
+                "object"
+                  ? getObjectName(
+                      apiData.caste
+                    )
+                  : ""
+              ) ||
+              cachedData?.caste_name ||
+              "",
+
+
+            // SUB CASTE ID
+
+            sub_caste_id:
+              apiData?.sub_caste_id ||
+              apiData?.subCasteId ||
+              cachedData?.sub_caste_id ||
+              "",
+
+
+            // SUB CASTE NAME
+
+            sub_caste_name:
+              apiData?.sub_caste_name ||
+              apiData?.subCasteName ||
+              (
+                typeof apiData?.sub_caste ===
+                "string"
+                  ? apiData.sub_caste
+                  : ""
+              ) ||
+              (
+                typeof apiData?.sub_caste ===
+                "object"
+                  ? getObjectName(
+                      apiData.sub_caste
+                    )
+                  : ""
+              ) ||
+              (
+                typeof apiData?.subCaste ===
+                "string"
+                  ? apiData.subCaste
+                  : ""
+              ) ||
+              (
+                typeof apiData?.subCaste ===
+                "object"
+                  ? getObjectName(
+                      apiData.subCaste
+                    )
+                  : ""
+              ) ||
+              cachedData?.sub_caste_name ||
+              "",
+
+
+            // ETHNICITY
+
+            ethnicity:
+              apiData?.ethnicity ||
+              cachedData?.ethnicity ||
+              "",
+
+
+            // PERSONAL VALUE
+
+            personal_value:
+              apiData?.personal_value ||
+              apiData?.personalValue ||
+              cachedData?.personal_value ||
+              "",
+
+
+            // FAMILY VALUE ID
+
+            family_value_id:
+              (
+                apiData?.family_value_id &&
+                !isNaN(
+                  Number(
+                    apiData.family_value_id
+                  )
+                )
+              )
+                ? apiData.family_value_id
+                : cachedData?.family_value_id ||
+                  "",
+
+
+            // FAMILY VALUE NAME
+
+            family_value_name:
+              apiData?.family_value_name ||
+              apiData?.familyValueName ||
+              (
+                typeof apiData?.family_value ===
+                "string" &&
+                isNaN(
+                  Number(
+                    apiData.family_value
+                  )
+                )
+                  ? apiData.family_value
+                  : ""
+              ) ||
+              (
+                typeof apiData?.family_value ===
+                "object"
+                  ? getObjectName(
+                      apiData.family_value
+                    )
+                  : ""
+              ) ||
+              (
+                typeof apiData?.familyValue ===
+                "string" &&
+                isNaN(
+                  Number(
+                    apiData.familyValue
+                  )
+                )
+                  ? apiData.familyValue
+                  : ""
+              ) ||
+              cachedData?.family_value_name ||
+              "",
+
+
+            // COMMUNITY VALUE
+
+            community_value:
+              apiData?.community_value ||
+              apiData?.communityValue ||
+              cachedData?.community_value ||
+              "",
+          };
+
+
+          // ------------------------------------------
+          // LOG FINAL DATA
+          // ------------------------------------------
+
+          console.log(
+            "======================================"
+          );
+
+          console.log(
+            "FINAL SOCIAL BACKGROUND DATA:"
+          );
+
+
+          console.log(
+            JSON.stringify(
+              finalData,
+              null,
+              2
+            )
+          );
+
+
+          console.log(
+            "======================================"
+          );
+
+
+          // ------------------------------------------
+          // UPDATE SCREEN
+          // ------------------------------------------
+
+          setSocialBackground(
+            finalData
+          );
+
+
+          // ------------------------------------------
+          // SAVE MERGED DATA
+          // ------------------------------------------
+
+          await AsyncStorage.setItem(
+            SOCIAL_BACKGROUND_CACHE,
+            JSON.stringify(
+              finalData
+            )
+          );
+
+
+          console.log(
+            "SOCIAL BACKGROUND SCREEN UPDATED"
+          );
+
+        } catch (error) {
+
+          console.error(
+            "======================================"
+          );
+
+          console.error(
+            "SPIRITUAL BACKGROUND SCREEN ERROR:",
+            error
+          );
+
+
+          console.error(
+            "ERROR RESPONSE:",
+            JSON.stringify(
+              error?.response?.data ??
+                error,
+              null,
+              2
+            )
+          );
+
+
+          console.error(
+            "======================================"
+          );
+
+
+          // ----------------------------------------
+          // CACHE FALLBACK
+          // ----------------------------------------
+
+          try {
+
+            const cacheString =
+              await AsyncStorage.getItem(
+                SOCIAL_BACKGROUND_CACHE
+              );
+
+
+            if (cacheString) {
+
+              const cachedData =
+                JSON.parse(
+                  cacheString
+                );
+
+
+              console.log(
+                "USING CACHE FALLBACK"
+              );
+
+
+              console.log(
+                JSON.stringify(
+                  cachedData,
+                  null,
+                  2
+                )
+              );
+
+
+              setSocialBackground(
+                cachedData
+              );
+            }
+
+          } catch (cacheError) {
+
+            console.error(
+              "CACHE FALLBACK ERROR:",
+              cacheError
+            );
+          }
+
+        } finally {
+
+          setLoading(false);
+
+          setRefreshing(false);
+
+          loadingRef.current = false;
+        }
+
+      },
+      [getToken]
+    );
+
+
+  // ====================================================
+  // SCREEN FOCUS
+  // ====================================================
+
+  useFocusEffect(
+    useCallback(
+      () => {
 
         console.log(
-          "======================================"
-        );
-
-        console.log(
-          "SPIRITUAL BACKGROUND SCREEN RESPONSE"
-        );
-
-        console.log(
-          JSON.stringify(
-            response,
-            null,
-            2
-          )
-        );
-
-        console.log(
-          "======================================"
+          "SOCIAL BACKGROUND SCREEN FOCUS"
         );
 
 
-        // ---------------------------------------------------
-        // FIND DATA
-        // ---------------------------------------------------
+        loadSpiritualBackground(
+          true
+        );
 
-        let data = {};
+
+        return () => {
+
+          console.log(
+            "SOCIAL BACKGROUND SCREEN BLURRED"
+          );
+
+        };
+
+      },
+      [
+        loadSpiritualBackground,
+      ]
+    )
+  );
+
+
+  // ====================================================
+  // REFRESH
+  // ====================================================
+
+  const handleRefresh =
+    useCallback(
+      async () => {
 
         if (
-          response?.data &&
-          typeof response.data === "object"
+          loadingRef.current
         ) {
-          data = response.data;
-        }
-        else if (
-          response?.result &&
-          typeof response.result === "object"
-        ) {
-          data = response.result;
-        }
-        else if (
-          response?.result?.data &&
-          typeof response.result.data === "object"
-        ) {
-          data = response.result.data;
-        }
-        else if (
-          typeof response === "object"
-        ) {
-          data = response;
+          return;
         }
 
 
-        // ---------------------------------------------------
-        // SAVE DATA
-        // ---------------------------------------------------
+        setRefreshing(true);
 
-        setSocialBackground(data);
 
-      } catch (error) {
-
-        console.error(
-          "SPIRITUAL BACKGROUND SCREEN ERROR:",
-          error
+        await loadSpiritualBackground(
+          false
         );
 
-      }
-
-    }, []);
-
-
-  // =========================================================
-  // INITIAL API CALL
-  // =========================================================
-
-  useEffect(() => {
-
-    loadSpiritualBackground();
-
-  }, [
-    loadSpiritualBackground,
-  ]);
+      },
+      [
+        loadSpiritualBackground,
+      ]
+    );
 
 
-  // =========================================================
-  // REFRESH
-  // =========================================================
-
-  const handleRefresh = async () => {
-
-    try {
-
-      setRefreshing(true);
-
-      await loadSpiritualBackground();
-
-    } finally {
-
-      setRefreshing(false);
-
-    }
-  };
-
-
-  // =========================================================
-  // API VALUE HELPERS
-  //
-  // Supports different possible API key names.
-  // =========================================================
+  // ====================================================
+  // DISPLAY VALUES
+  // ====================================================
 
   const religion =
-    socialBackground?.religion ??
-    socialBackground?.religion_name ??
-    socialBackground?.religion?.name ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "religion_name",
+        "religionName",
+        "religion",
+      ]
+    );
 
 
   const caste =
-    socialBackground?.caste ??
-    socialBackground?.caste_name ??
-    socialBackground?.caste?.name ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "caste_name",
+        "casteName",
+        "caste",
+      ]
+    );
 
 
   const subCaste =
-    socialBackground?.sub_caste ??
-    socialBackground?.sub_caste_name ??
-    socialBackground?.subCaste ??
-    socialBackground?.sub_caste?.name ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "sub_caste_name",
+        "subCasteName",
+        "sub_caste",
+        "subCaste",
+      ]
+    );
 
 
   const ethnicity =
-    socialBackground?.ethnicity ??
-    socialBackground?.ethnicity_name ??
-    socialBackground?.ethnicity?.name ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "ethnicity",
+      ]
+    );
 
 
-  const personalValues =
-    socialBackground?.personal_values ??
-    socialBackground?.personal_value ??
-    socialBackground?.personalValues ??
-    "-";
+  const personalValue =
+    getFieldValue(
+      socialBackground,
+      [
+        "personal_value",
+        "personalValue",
+      ]
+    );
 
 
   const familyValue =
-    socialBackground?.family_value ??
-    socialBackground?.family_values ??
-    socialBackground?.familyValue ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "family_value_name",
+        "familyValueName",
+        "family_value",
+        "familyValue",
+      ]
+    );
 
 
   const communityValue =
-    socialBackground?.community_value ??
-    socialBackground?.community_values ??
-    socialBackground?.communityValue ??
-    "-";
+    getFieldValue(
+      socialBackground,
+      [
+        "community_value",
+        "communityValue",
+      ]
+    );
 
 
-  // =========================================================
+  // ====================================================
   // DETAILS
-  // =========================================================
+  // ====================================================
 
   const details = [
-
     {
       label: "Religion",
-      value: getValue(religion),
+      value: religion,
       icon: "flower-outline",
-      iconColor: "#E83E75",
-      editable: true,
     },
 
     {
       label: "Caste",
-      value: getValue(caste),
+      value: caste,
       icon: "people-outline",
-      iconColor: "#F4B83F",
-      editable: true,
     },
 
     {
       label: "Sub Caste",
-      value: getValue(subCaste),
+      value: subCaste,
       icon: "planet-outline",
-      iconColor: "#8D5BE8",
-      editable: false,
-      arrow: true,
     },
 
     {
       label: "Ethnicity",
-      value: getValue(ethnicity),
+      value: ethnicity,
       icon: "globe-outline",
-      iconColor: "#4E9BE8",
-      editable: false,
-      arrow: true,
     },
 
     {
       label: "Personal Values",
-      value: getValue(personalValues),
+      value: personalValue,
       icon: "star-outline",
-      iconColor: "#F0B63D",
-      editable: false,
-      arrow: true,
     },
 
     {
       label: "Family Value",
-      value: getValue(familyValue),
+      value: familyValue,
       icon: "home-outline",
-      iconColor: "#63B85A",
-      editable: false,
-      arrow: true,
     },
 
     {
       label: "Community Value",
-      value: getValue(communityValue),
+      value: communityValue,
       icon: "people-circle-outline",
-      iconColor: "#E84887",
-      editable: false,
-      arrow: true,
     },
-
   ];
 
 
-  // =========================================================
-  // EDIT DETAILS
-  // =========================================================
+  // ====================================================
+  // EDIT
+  // ====================================================
 
- const handleEdit = () => {
-  console.log("EDIT DETAILS CLICKED");
+  const handleEdit =
+    useCallback(
+      () => {
 
-  router.push("/EditSocialBackground");
-
-    /*
-      Change this route name to your actual
-      edit screen route.
-
-      Example:
-
-      navigation.navigate(
-        "EditSocialBackground"
-      );
-    */
-
-  };
+        console.log(
+          "OPENING EDIT SOCIAL BACKGROUND"
+        );
 
 
-  // =========================================================
-  // INDIVIDUAL EDIT
-  // =========================================================
+        router.push(
+          "/EditSocialBackground"
+        );
 
-  const handleItemEdit = (
-    item
-  ) => {
-
-    console.log(
-      "EDIT ITEM:",
-      item.label
+      },
+      [router]
     );
 
-    /*
-      If required:
 
-      navigation.navigate(
-        "EditSocialBackground",
-        {
-          field: item.label,
-          data: socialBackground,
-        }
-      );
-    */
+  // ====================================================
+  // LOADING
+  // ====================================================
 
-  };
+  if (
+    loading &&
+    !refreshing
+  ) {
+
+    return (
+      <SafeAreaView
+        style={styles.safeArea}
+      >
+
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="#FFFFFF"
+        />
 
 
-  // =========================================================
-  // RENDER
-  // =========================================================
+        <View
+          style={
+            styles.loadingContainer
+          }
+        >
+
+          <ActivityIndicator
+            size="large"
+          />
+
+
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
+            Loading...
+          </Text>
+
+        </View>
+
+      </SafeAreaView>
+    );
+  }
+
+
+  // ====================================================
+  // UI
+  // ====================================================
 
   return (
-
     <SafeAreaView
       style={styles.safeArea}
     >
@@ -411,35 +1223,38 @@ const SocialBackgroundScreen = () => {
 
 
       <ScrollView
-
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={
           styles.scrollContent
         }
-
-        showsVerticalScrollIndicator={false}
-
-        refreshing={refreshing}
-
-        onRefresh={handleRefresh}
-
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
       >
 
-        <View style={styles.card}>
+        <View
+          style={styles.card}
+        >
 
-          {/* =================================================
+          {/* ==========================================
               HEADER
-          ================================================= */}
+          =========================================== */}
 
-          <View style={styles.header}>
+          <View
+            style={styles.header}
+          >
 
             <TouchableOpacity
-
-              style={styles.backButton}
-
+              style={
+                styles.backButton
+              }
               activeOpacity={0.7}
-
-              onPress={() => router.back()}
-
+              onPress={() =>
+                router.back()
+              }
             >
 
               <Ionicons
@@ -452,7 +1267,9 @@ const SocialBackgroundScreen = () => {
 
 
             <Text
-              style={styles.headerTitle}
+              style={
+                styles.headerTitle
+              }
               numberOfLines={1}
             >
               Spiritual & Social Background
@@ -460,17 +1277,11 @@ const SocialBackgroundScreen = () => {
 
 
             <TouchableOpacity
-
-              style={styles.menuButton}
-
-              activeOpacity={0.7}
-
-              onPress={() =>
-                console.log(
-                  "MENU CLICKED"
-                )
+              style={
+                styles.menuButton
               }
-
+              activeOpacity={0.7}
+              onPress={handleEdit}
             >
 
               <Ionicons
@@ -484,9 +1295,9 @@ const SocialBackgroundScreen = () => {
           </View>
 
 
-          {/* =================================================
+          {/* ==========================================
               DETAILS
-          ================================================= */}
+          =========================================== */}
 
           <View
             style={
@@ -495,69 +1306,48 @@ const SocialBackgroundScreen = () => {
           >
 
             {details.map(
-              (
-                item,
-                index
-              ) => (
+              (item, index) => (
 
                 <View
-
                   key={item.label}
-
                   style={[
                     styles.row,
-
                     index ===
                       details.length - 1 &&
                       styles.lastRow,
                   ]}
-
                 >
 
-                  {/* =========================================
-                      LEFT ICON
-                  ========================================= */}
+                  {/* ICON */}
 
                   <View
-
-                    style={[
-                      styles.iconCircle,
-
-                      {
-                        backgroundColor:
-                          item.iconColor +
-                          "18",
-                      },
-                    ]}
-
+                    style={
+                      styles.iconCircle
+                    }
                   >
 
                     <Ionicons
                       name={item.icon}
                       size={18}
-                      color={
-                        item.iconColor
-                      }
+                      color="#D92332"
                     />
 
                   </View>
 
 
-                  {/* =========================================
-                      LABEL
-                  ========================================= */}
+                  {/* LABEL */}
 
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                     numberOfLines={1}
                   >
                     {item.label}
                   </Text>
 
 
-                  {/* =========================================
-                      VALUE
-                  ========================================= */}
+                  {/* VALUE */}
 
                   <View
                     style={
@@ -566,66 +1356,24 @@ const SocialBackgroundScreen = () => {
                   >
 
                     <Text
-                      style={styles.value}
-                      numberOfLines={1}
+                      style={
+                        styles.value
+                      }
+                      numberOfLines={2}
                     >
-                      {item.value}
+                      {item.value || "-"}
                     </Text>
 
                   </View>
 
 
-                  {/* =========================================
-                      RIGHT ACTION
-                  ========================================= */}
+                  {/* ARROW */}
 
-                  {item.editable ? (
-
-                    <TouchableOpacity
-
-                      style={
-                        styles.actionButton
-                      }
-
-                      activeOpacity={0.7}
-
-                      onPress={() =>
-                        handleItemEdit(
-                          item
-                        )
-                      }
-
-                    >
-
-                      <Ionicons
-
-                        name="pencil"
-
-                        size={12}
-
-                        color="#A7A7A7"
-
-                      />
-
-                    </TouchableOpacity>
-
-                  ) : (
-
-                    <Ionicons
-
-                      name="chevron-forward"
-
-                      size={14}
-
-                      color="#999999"
-
-                      style={
-                        styles.arrow
-                      }
-
-                    />
-
-                  )}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color="#999999"
+                  />
 
                 </View>
 
@@ -635,28 +1383,22 @@ const SocialBackgroundScreen = () => {
           </View>
 
 
-          {/* =================================================
-              EDIT DETAILS BUTTON
-          ================================================= */}
+          {/* ==========================================
+              EDIT BUTTON
+          =========================================== */}
 
           <TouchableOpacity
-
-            style={styles.editButton}
-
+            style={
+              styles.editButton
+            }
             activeOpacity={0.85}
-
             onPress={handleEdit}
-
           >
 
             <Ionicons
-
               name="pencil"
-
               size={15}
-
               color="#FFFFFF"
-
             />
 
 
@@ -682,9 +1424,9 @@ const SocialBackgroundScreen = () => {
 export default SocialBackgroundScreen;
 
 
-// =========================================================
+// ======================================================
 // STYLES
-// =========================================================
+// ======================================================
 
 const styles = StyleSheet.create({
 
@@ -698,7 +1440,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 4,
     paddingTop: 2,
-    paddingBottom: 0,
+    paddingBottom: 20,
   },
 
 
@@ -706,29 +1448,10 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
-
     paddingTop: 20,
-
-    paddingBottom: 210,
-
-    shadowColor: "#000",
-
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    shadowOpacity: 0.08,
-
-    shadowRadius: 6,
-
-    elevation: 3,
+    paddingBottom: 40,
   },
 
-
-  // =======================================================
-  // HEADER
-  // =======================================================
 
   header: {
     height: 48,
@@ -750,7 +1473,6 @@ const styles = StyleSheet.create({
     height: 30,
 
     justifyContent: "center",
-
     alignItems: "center",
   },
 
@@ -775,14 +1497,9 @@ const styles = StyleSheet.create({
     height: 30,
 
     justifyContent: "center",
-
     alignItems: "center",
   },
 
-
-  // =======================================================
-  // DETAILS
-  // =======================================================
 
   detailsContainer: {
     paddingHorizontal: 12,
@@ -800,9 +1517,9 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    borderBottomWidth: 3,
+    borderBottomWidth: 1,
 
-    borderBottomColor: "#F5F5F5",
+    borderBottomColor: "#F1F1F1",
   },
 
 
@@ -812,10 +1529,13 @@ const styles = StyleSheet.create({
 
 
   iconCircle: {
-    width: 20,
-    height: 20,
+    width: 32,
 
-    borderRadius: 10,
+    height: 32,
+
+    borderRadius: 16,
+
+    backgroundColor: "#FFF1F2",
 
     justifyContent: "center",
 
@@ -839,9 +1559,9 @@ const styles = StyleSheet.create({
   valueContainer: {
     flex: 1,
 
-    paddingLeft: 50,
+    paddingLeft: 25,
 
-    paddingRight: 4,
+    paddingRight: 8,
   },
 
 
@@ -854,37 +1574,12 @@ const styles = StyleSheet.create({
   },
 
 
-  actionButton: {
-    width: 22,
-    height: 22,
-
-    borderRadius: 11,
-
-    backgroundColor: "#F2F2F2",
-
-    justifyContent: "center",
-
-    alignItems: "center",
-  },
-
-
-  arrow: {
-    width: 25,
-
-    textAlign: "center",
-  },
-
-
-  // =======================================================
-  // EDIT BUTTON
-  // =======================================================
-
   editButton: {
-    height: 37,
+    height: 40,
 
     marginHorizontal: 12,
 
-    marginTop: 80,
+    marginTop: 20,
 
     borderRadius: 7,
 
@@ -895,19 +1590,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     justifyContent: "center",
-
-    shadowColor: "#D92332",
-
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    shadowOpacity: 0.15,
-
-    shadowRadius: 4,
-
-    elevation: 2,
   },
 
 
@@ -919,6 +1601,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
 
     marginLeft: 6,
+  },
+
+
+  loadingContainer: {
+    flex: 1,
+
+    justifyContent: "center",
+
+    alignItems: "center",
+
+    backgroundColor: "#F7F7F7",
+  },
+
+
+  loadingText: {
+    marginTop: 10,
+
+    fontSize: 15,
+
+    color: "#666666",
   },
 
 });
