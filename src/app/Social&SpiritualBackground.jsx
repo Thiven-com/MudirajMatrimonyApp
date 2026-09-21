@@ -5,7 +5,6 @@ import {
 } from "react";
 
 import {
-  ActivityIndicator,
   Alert,
   RefreshControl,
   SafeAreaView,
@@ -14,7 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -1161,51 +1160,6 @@ const SocialBackgroundScreen = () => {
     );
 
 
-  // ====================================================
-  // LOADING
-  // ====================================================
-
-  if (
-    loading &&
-    !refreshing
-  ) {
-
-    return (
-      <SafeAreaView
-        style={styles.safeArea}
-      >
-
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor="#FFFFFF"
-        />
-
-
-        <View
-          style={
-            styles.loadingContainer
-          }
-        >
-
-          <ActivityIndicator
-            size="large"
-          />
-
-
-          <Text
-            style={
-              styles.loadingText
-            }
-          >
-            Loading...
-          </Text>
-
-        </View>
-
-      </SafeAreaView>
-    );
-  }
-
 
   // ====================================================
   // UI
@@ -1604,23 +1558,5 @@ const styles = StyleSheet.create({
   },
 
 
-  loadingContainer: {
-    flex: 1,
-
-    justifyContent: "center",
-
-    alignItems: "center",
-
-    backgroundColor: "#F7F7F7",
-  },
-
-
-  loadingText: {
-    marginTop: 10,
-
-    fontSize: 15,
-
-    color: "#666666",
-  },
-
+ 
 });

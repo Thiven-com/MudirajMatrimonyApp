@@ -1,34 +1,35 @@
 import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {
-    router,
-    useLocalSearchParams,
+  router,
+  useLocalSearchParams,
 } from "expo-router";
 
 import {
-    getMemberFamilyInfo,
-    updateMemberFamilyInfo,
+  getMemberFamilyInfo,
+  updateMemberFamilyInfo,
 } from "../utils/Functions";
 
 /* =========================================================
@@ -38,14 +39,10 @@ import {
 const FAMILY_CACHE_KEY = "member_family_info_cache";
 
 /* =========================================================
-   EDIT FAMILY INFORMATION
+   SCREEN
 ========================================================= */
 
 export default function EditFamilyInformation() {
-  /* =======================================================
-     ROUTER PARAMS
-  ======================================================= */
-
   const params = useLocalSearchParams();
 
   const selectedField = String(
@@ -62,9 +59,6 @@ export default function EditFamilyInformation() {
 
   /* =======================================================
      SCREEN STATES
-
-     IMPORTANT:
-     No loading state is used.
   ======================================================= */
 
   const [saving, setSaving] = useState(false);
@@ -82,7 +76,7 @@ export default function EditFamilyInformation() {
      HELPERS
   ======================================================= */
 
-  const cleanString = (value) => {
+  const cleanString = useCallback((value) => {
     if (
       value === null ||
       value === undefined
@@ -91,110 +85,87 @@ export default function EditFamilyInformation() {
     }
 
     return String(value).trim();
-  };
-
-  /* =======================================================
-     EXTRACT API DATA
-  ======================================================= */
-
-  const extractFamilyData = useCallback((response) => {
-    let data = response;
-
-    /*
-      Possible structures:
-
-      {
-        data: {
-          father: "...",
-          mother: "...",
-          sibling: "..."
-        }
-      }
-
-      OR
-
-      {
-        data: {
-          data: {
-            father: "...",
-            mother: "...",
-            sibling: "..."
-          }
-        }
-      }
-
-      OR
-
-      {
-        result: {
-          father: "...",
-          mother: "...",
-          sibling: "..."
-        }
-      }
-    */
-
-    if (
-      data?.data &&
-      typeof data.data === "object" &&
-      !Array.isArray(data.data)
-    ) {
-      data = data.data;
-    }
-
-    if (
-      data?.data &&
-      typeof data.data === "object" &&
-      !Array.isArray(data.data)
-    ) {
-      data = data.data;
-    }
-
-    if (
-      data?.result &&
-      typeof data.result === "object" &&
-      !Array.isArray(data.result)
-    ) {
-      data = data.result;
-    }
-
-    if (
-      data?.result?.data &&
-      typeof data.result.data === "object" &&
-      !Array.isArray(data.result.data)
-    ) {
-      data = data.result.data;
-    }
-
-    const fatherValue =
-      data?.father ??
-      data?.father_name ??
-      data?.fatherName ??
-      "";
-
-    const motherValue =
-      data?.mother ??
-      data?.mother_name ??
-      data?.motherName ??
-      "";
-
-    const siblingValue =
-      data?.sibling ??
-      data?.siblings ??
-      data?.sibling_count ??
-      data?.siblings_count ??
-      data?.siblingCount ??
-      "";
-
-    return {
-      father: cleanString(fatherValue),
-      mother: cleanString(motherValue),
-      sibling: cleanString(siblingValue),
-    };
   }, []);
 
   /* =======================================================
-     APPLY DATA TO INPUTS
+     EXTRACT FAMILY DATA
+  ======================================================= */
+
+  const extractFamilyData = useCallback(
+    (response) => {
+      let data = response;
+
+      /*
+        Handle:
+        response.data
+        response.data.data
+        response.result
+        response.result.data
+      */
+
+      if (
+        data?.data &&
+        typeof data.data === "object" &&
+        !Array.isArray(data.data)
+      ) {
+        data = data.data;
+      }
+
+      if (
+        data?.data &&
+        typeof data.data === "object" &&
+        !Array.isArray(data.data)
+      ) {
+        data = data.data;
+      }
+
+      if (
+        data?.result &&
+        typeof data.result === "object" &&
+        !Array.isArray(data.result)
+      ) {
+        data = data.result;
+      }
+
+      if (
+        data?.result?.data &&
+        typeof data.result.data === "object" &&
+        !Array.isArray(data.result.data)
+      ) {
+        data = data.result.data;
+      }
+
+      const fatherValue =
+        data?.father ??
+        data?.father_name ??
+        data?.fatherName ??
+        "";
+
+      const motherValue =
+        data?.mother ??
+        data?.mother_name ??
+        data?.motherName ??
+        "";
+
+      const siblingValue =
+        data?.sibling ??
+        data?.siblings ??
+        data?.sibling_count ??
+        data?.siblings_count ??
+        data?.siblingCount ??
+        "";
+
+      return {
+        father: cleanString(fatherValue),
+        mother: cleanString(motherValue),
+        sibling: cleanString(siblingValue),
+      };
+    },
+    [cleanString]
+  );
+
+  /* =======================================================
+     APPLY DATA
   ======================================================= */
 
   const applyFamilyData = useCallback(
@@ -203,41 +174,27 @@ export default function EditFamilyInformation() {
         return;
       }
 
-      if (
-        data.father !== undefined &&
-        data.father !== null
-      ) {
-        setFather(
-          cleanString(data.father)
-        );
-      }
+      setFather(
+        cleanString(data.father)
+      );
 
-      if (
-        data.mother !== undefined &&
-        data.mother !== null
-      ) {
-        setMother(
-          cleanString(data.mother)
-        );
-      }
+      setMother(
+        cleanString(data.mother)
+      );
 
-      if (
-        data.sibling !== undefined &&
-        data.sibling !== null
-      ) {
-        setSibling(
-          cleanString(data.sibling)
-        );
-      }
+      setSibling(
+        cleanString(data.sibling)
+      );
     },
-    []
+    [cleanString]
   );
 
   /* =======================================================
      LOAD FAMILY INFORMATION
-
-     No loading UI.
-     API runs in background.
+     
+     IMPORTANT:
+     No loading state is used.
+     Cache is loaded first so inputs can appear immediately.
   ======================================================= */
 
   const loadFamilyInformation =
@@ -245,41 +202,9 @@ export default function EditFamilyInformation() {
       try {
         setErrorMessage("");
 
-        const accessToken =
-          await AsyncStorage.getItem(
-            "access_token"
-          );
-
-        console.log(
-          "========================================"
-        );
-
-        console.log(
-          "EDIT FAMILY INFORMATION - GET"
-        );
-
-        console.log(
-          "TOKEN EXISTS:",
-          !!accessToken
-        );
-
-        console.log(
-          "========================================"
-        );
-
-        if (!accessToken) {
-          setErrorMessage(
-            "Please login again."
-          );
-          return;
-        }
-
-        /*
-          --------------------------------------------------
-          FIRST: LOAD CACHE
-          --------------------------------------------------
-          This makes the inputs show immediately.
-        */
+        /* -----------------------------------------------
+           LOAD CACHE FIRST
+        ------------------------------------------------ */
 
         try {
           const cached =
@@ -293,27 +218,41 @@ export default function EditFamilyInformation() {
 
             console.log(
               "FAMILY CACHE:",
-              JSON.stringify(
-                parsed,
-                null,
-                2
-              )
+              parsed
             );
 
             applyFamilyData(parsed);
           }
         } catch (cacheError) {
           console.log(
-            "FAMILY CACHE READ ERROR:",
+            "CACHE READ ERROR:",
             cacheError?.message
           );
         }
 
-        /*
-          --------------------------------------------------
-          SECOND: GET LATEST API DATA
-          --------------------------------------------------
-        */
+        /* -----------------------------------------------
+           GET TOKEN
+        ------------------------------------------------ */
+
+        const accessToken =
+          await AsyncStorage.getItem(
+            "access_token"
+          );
+
+        if (!accessToken) {
+          setErrorMessage(
+            "Please login again."
+          );
+          return;
+        }
+
+        /* -----------------------------------------------
+           GET API
+        ------------------------------------------------ */
+
+        console.log(
+          "GET FAMILY INFORMATION"
+        );
 
         const response =
           await getMemberFamilyInfo(
@@ -321,14 +260,7 @@ export default function EditFamilyInformation() {
           );
 
         console.log(
-          "========================================"
-        );
-
-        console.log(
-          "EDIT FAMILY API RESPONSE"
-        );
-
-        console.log(
+          "FAMILY GET RESPONSE:",
           JSON.stringify(
             response,
             null,
@@ -336,25 +268,21 @@ export default function EditFamilyInformation() {
           )
         );
 
-        console.log(
-          "========================================"
-        );
+        /* -----------------------------------------------
+           EXTRACT DATA
+        ------------------------------------------------ */
 
         const familyData =
           extractFamilyData(response);
 
         console.log(
           "EXTRACTED FAMILY DATA:",
-          JSON.stringify(
-            familyData,
-            null,
-            2
-          )
+          familyData
         );
 
         /*
-          Only replace values when API actually
-          contains a value.
+          Only update the UI when the API actually
+          returned at least one family value.
         */
 
         const hasApiValue =
@@ -367,10 +295,6 @@ export default function EditFamilyInformation() {
             familyData
           );
 
-          /*
-            Save latest API values into cache.
-          */
-
           await AsyncStorage.setItem(
             FAMILY_CACHE_KEY,
             JSON.stringify(
@@ -380,38 +304,12 @@ export default function EditFamilyInformation() {
         }
       } catch (error) {
         console.error(
-          "========================================"
-        );
-
-        console.error(
-          "GET FAMILY INFORMATION ERROR"
-        );
-
-        console.error(
+          "GET FAMILY INFORMATION ERROR:",
           error
         );
 
-        console.error(
-          "MESSAGE:",
-          error?.message
-        );
-
-        console.error(
-          "RESPONSE:",
-          JSON.stringify(
-            error?.response?.data,
-            null,
-            2
-          )
-        );
-
-        console.error(
-          "========================================"
-        );
-
         /*
-          Don't destroy existing input values if
-          GET fails.
+          Do not clear already loaded values.
         */
 
         setErrorMessage(
@@ -437,27 +335,28 @@ export default function EditFamilyInformation() {
 
   /* =======================================================
      AUTO FOCUS
-
-     No loading dependency.
   ======================================================= */
 
   useEffect(() => {
-    const timer =
-      setTimeout(() => {
-        if (
-          selectedField === "father"
-        ) {
-          fatherRef.current?.focus();
-        } else if (
-          selectedField === "mother"
-        ) {
-          motherRef.current?.focus();
-        } else if (
-          selectedField === "sibling"
-        ) {
-          siblingRef.current?.focus();
-        }
-      }, 350);
+    const timer = setTimeout(() => {
+      if (
+        selectedField === "father"
+      ) {
+        fatherRef.current?.focus();
+      }
+
+      if (
+        selectedField === "mother"
+      ) {
+        motherRef.current?.focus();
+      }
+
+      if (
+        selectedField === "sibling"
+      ) {
+        siblingRef.current?.focus();
+      }
+    }, 350);
 
     return () => {
       clearTimeout(timer);
@@ -465,7 +364,7 @@ export default function EditFamilyInformation() {
   }, [selectedField]);
 
   /* =======================================================
-     SAVE FAMILY INFORMATION
+     SAVE
   ======================================================= */
 
   const handleSave = async () => {
@@ -473,126 +372,110 @@ export default function EditFamilyInformation() {
       return;
     }
 
+    setErrorMessage("");
+
+    const fatherValue =
+      father.trim();
+
+    const motherValue =
+      mother.trim();
+
+    const siblingValue =
+      sibling.trim();
+
+    /* -----------------------------------------------
+       VALIDATION
+    ------------------------------------------------ */
+
+    if (!fatherValue) {
+      Alert.alert(
+        "Required",
+        "Please enter father's name.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              fatherRef.current?.focus();
+            },
+          },
+        ]
+      );
+
+      return;
+    }
+
+    if (!motherValue) {
+      Alert.alert(
+        "Required",
+        "Please enter mother's name.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              motherRef.current?.focus();
+            },
+          },
+        ]
+      );
+
+      return;
+    }
+
+    if (!siblingValue) {
+      Alert.alert(
+        "Required",
+        "Please enter sibling information.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              siblingRef.current?.focus();
+            },
+          },
+        ]
+      );
+
+      return;
+    }
+
+    if (!/^\d+$/.test(siblingValue)) {
+      Alert.alert(
+        "Invalid Value",
+        "Sibling must contain numbers only.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              siblingRef.current?.focus();
+            },
+          },
+        ]
+      );
+
+      return;
+    }
+
+    /* -----------------------------------------------
+       TOKEN
+    ------------------------------------------------ */
+
+    const accessToken =
+      await AsyncStorage.getItem(
+        "access_token"
+      );
+
+    if (!accessToken) {
+      Alert.alert(
+        "Login Required",
+        "Your session has expired. Please login again."
+      );
+
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      setErrorMessage("");
-
-      /*
-        Clean input values.
-      */
-
-      const fatherValue =
-        String(father || "").trim();
-
-      const motherValue =
-        String(mother || "").trim();
-
-      const siblingValue =
-        String(sibling || "").trim();
-
-      /* ===================================================
-         VALIDATION
-      =================================================== */
-
-      if (!fatherValue) {
-        Alert.alert(
-          "Required",
-          "Please enter father's name.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                fatherRef.current?.focus();
-              },
-            },
-          ]
-        );
-
-        return;
-      }
-
-      if (!motherValue) {
-        Alert.alert(
-          "Required",
-          "Please enter mother's name.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                motherRef.current?.focus();
-              },
-            },
-          ]
-        );
-
-        return;
-      }
-
-      if (!siblingValue) {
-        Alert.alert(
-          "Required",
-          "Please enter sibling information.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                siblingRef.current?.focus();
-              },
-            },
-          ]
-        );
-
-        return;
-      }
-
-      /*
-        Sibling must be a number.
-      */
-
-      if (!/^\d+$/.test(siblingValue)) {
-        Alert.alert(
-          "Invalid Value",
-          "Sibling must contain numbers only.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                siblingRef.current?.focus();
-              },
-            },
-          ]
-        );
-
-        return;
-      }
-
-      /* ===================================================
-         TOKEN
-      =================================================== */
-
-      const accessToken =
-        await AsyncStorage.getItem(
-          "access_token"
-        );
-
-      if (!accessToken) {
-        Alert.alert(
-          "Login Required",
-          "Your session has expired. Please login again."
-        );
-
-        return;
-      }
-
-      /* ===================================================
-         SET SAVING
-      =================================================== */
-
-      setSaving(true);
-
-      /* ===================================================
-         REQUEST BODY
-      =================================================== */
-
       const body = {
         father: fatherValue,
         mother: motherValue,
@@ -604,21 +487,19 @@ export default function EditFamilyInformation() {
       );
 
       console.log(
-        "SAVE FAMILY INFORMATION"
+        "UPDATE FAMILY INFORMATION"
       );
 
       console.log(
-        "METHOD:",
-        "POST"
+        "METHOD: POST"
       );
 
       console.log(
-        "ENDPOINT:",
-        "/api/member/family-info/update"
+        "ENDPOINT: /api/member/family-info/update"
       );
 
       console.log(
-        "REQUEST BODY:",
+        "BODY:",
         JSON.stringify(
           body,
           null,
@@ -627,17 +508,12 @@ export default function EditFamilyInformation() {
       );
 
       console.log(
-        "TOKEN EXISTS:",
-        !!accessToken
-      );
-
-      console.log(
         "========================================"
       );
 
-      /* ===================================================
+      /* -----------------------------------------------
          UPDATE API
-      =================================================== */
+      ------------------------------------------------ */
 
       const response =
         await updateMemberFamilyInfo(
@@ -646,14 +522,7 @@ export default function EditFamilyInformation() {
         );
 
       console.log(
-        "========================================"
-      );
-
-      console.log(
-        "FAMILY UPDATE RESPONSE"
-      );
-
-      console.log(
+        "FAMILY UPDATE RESPONSE:",
         JSON.stringify(
           response,
           null,
@@ -661,16 +530,15 @@ export default function EditFamilyInformation() {
         )
       );
 
-      console.log(
-        "========================================"
-      );
-
-      /* ===================================================
-         RESPONSE CHECK
-      =================================================== */
+      /* -----------------------------------------------
+         RESPONSE HANDLING
+      ------------------------------------------------ */
 
       const responseData =
-        response?.data;
+        response?.data &&
+        typeof response.data === "object"
+          ? response.data
+          : response;
 
       const responseStatus =
         response?.statusCode ??
@@ -679,64 +547,46 @@ export default function EditFamilyInformation() {
         responseData?.status;
 
       const explicitFailure =
-        response?.success === 0 ||
         response?.success === false ||
+        response?.success === 0 ||
         response?.result === false ||
-        responseData?.success === 0 ||
         responseData?.success === false ||
+        responseData?.success === 0 ||
         responseData?.result === false;
-
-      const explicitSuccess =
-        response?.success === 1 ||
-        response?.success === true ||
-        response?.result === true ||
-        responseData?.success === 1 ||
-        responseData?.success === true ||
-        responseData?.result === true ||
-        responseStatus === 200 ||
-        responseStatus === 201;
-
-      /*
-        Axios/API wrapper may return an object
-        without success:true.
-
-        Therefore don't reject a normal non-null
-        response unless the server explicitly says
-        failure.
-      */
 
       const success =
         !explicitFailure &&
         (
-          explicitSuccess ||
-          (
-            response !== null &&
-            response !== undefined
-          )
+          responseStatus === 200 ||
+          responseStatus === 201 ||
+          responseStatus === 204 ||
+          response?.success === true ||
+          response?.success === 1 ||
+          responseData?.success === true ||
+          responseData?.success === 1 ||
+          response !== null
         );
 
       const message =
         response?.message ||
         responseData?.message ||
+        responseData?.msg ||
         "Family information updated successfully.";
 
-      /* ===================================================
+      /* -----------------------------------------------
          SUCCESS
-      =================================================== */
+      ------------------------------------------------ */
 
       if (success) {
-        /*
-          IMPORTANT:
-          Save the exact values locally immediately.
-          The Family Information screen can use this
-          while the GET API refreshes.
-        */
-
         const updatedFamilyData = {
           father: fatherValue,
           mother: motherValue,
           sibling: siblingValue,
         };
+
+        /*
+          Update cache immediately.
+        */
 
         await AsyncStorage.setItem(
           FAMILY_CACHE_KEY,
@@ -745,19 +595,13 @@ export default function EditFamilyInformation() {
           )
         );
 
-        console.log(
-          "FAMILY CACHE UPDATED:",
-          JSON.stringify(
-            updatedFamilyData,
-            null,
-            2
-          )
-        );
-
         /*
-          Small delay gives AsyncStorage time to
-          complete before going back.
+          Keep the current screen values immediately.
         */
+
+        setFather(fatherValue);
+        setMother(motherValue);
+        setSibling(siblingValue);
 
         Alert.alert(
           "Success",
@@ -776,32 +620,18 @@ export default function EditFamilyInformation() {
         );
       } else {
         setErrorMessage(
-          message ||
-          "Unable to update family information."
+          message
         );
 
         Alert.alert(
           "Update Failed",
-          message ||
-          "Unable to update family information."
+          message
         );
       }
     } catch (error) {
       console.error(
-        "========================================"
-      );
-
-      console.error(
-        "SAVE FAMILY INFORMATION ERROR"
-      );
-
-      console.error(
+        "SAVE FAMILY INFORMATION ERROR:",
         error
-      );
-
-      console.error(
-        "ERROR MESSAGE:",
-        error?.message
       );
 
       console.error(
@@ -813,12 +643,9 @@ export default function EditFamilyInformation() {
         )
       );
 
-      console.error(
-        "========================================"
-      );
-
       const message =
         error?.response?.data?.message ||
+        error?.response?.data?.msg ||
         error?.message ||
         "Unable to update family information.";
 
@@ -836,107 +663,7 @@ export default function EditFamilyInformation() {
   };
 
   /* =======================================================
-     INPUT FIELD
-  ======================================================= */
-
-  const InputField = ({
-    label,
-    value,
-    onChangeText,
-    inputRef,
-    icon,
-    iconColor,
-    placeholder,
-    keyboardType = "default",
-    autoCapitalize = "words",
-    fieldName,
-    maxLength,
-  }) => {
-    const isSelected =
-      selectedField === fieldName;
-
-    return (
-      <View
-        style={styles.fieldContainer}
-      >
-        {/* LABEL */}
-
-        <View
-          style={styles.fieldHeader}
-        >
-          <View
-            style={[
-              styles.iconCircle,
-              {
-                backgroundColor:
-                  `${iconColor}18`,
-              },
-            ]}
-          >
-            <Ionicons
-              name={icon}
-              size={18}
-              color={iconColor}
-            />
-          </View>
-
-          <Text
-            style={styles.fieldLabel}
-          >
-            {label}
-          </Text>
-        </View>
-
-        {/* INPUT */}
-
-        <View
-          style={[
-            styles.inputWrapper,
-            isSelected &&
-              styles.selectedInputWrapper,
-          ]}
-        >
-          <TextInput
-            ref={inputRef}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="#A5A5A5"
-            style={styles.input}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={false}
-            editable={!saving}
-            returnKeyType={
-              fieldName === "sibling"
-                ? "done"
-                : "next"
-            }
-            blurOnSubmit={
-              fieldName === "sibling"
-            }
-            maxLength={maxLength}
-            onSubmitEditing={() => {
-              if (
-                fieldName === "father"
-              ) {
-                motherRef.current?.focus();
-              } else if (
-                fieldName === "mother"
-              ) {
-                siblingRef.current?.focus();
-              }
-            }}
-          />
-        </View>
-      </View>
-    );
-  };
-
-  /* =======================================================
      MAIN UI
-
-     NO LOADING SECTION
   ======================================================= */
 
   return (
@@ -958,7 +685,7 @@ export default function EditFamilyInformation() {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           keyboardDismissMode="on-drag"
           contentContainerStyle={
             styles.scrollContent
@@ -980,6 +707,7 @@ export default function EditFamilyInformation() {
                     router.back();
                   }
                 }}
+                disabled={saving}
               >
                 <Ionicons
                   name="chevron-back"
@@ -1048,65 +776,187 @@ export default function EditFamilyInformation() {
 
             {/* FATHER */}
 
-            <InputField
-              label="Father"
-              value={father}
-              onChangeText={setFather}
-              inputRef={fatherRef}
-              icon="person-outline"
-              iconColor="#4A9BE8"
-              placeholder="Enter father's name"
-              autoCapitalize="words"
-              fieldName="father"
-              maxLength={100}
-            />
+            <View
+              style={styles.fieldContainer}
+            >
+              <View
+                style={styles.fieldHeader}
+              >
+                <View
+                  style={[
+                    styles.iconCircle,
+                    {
+                      backgroundColor:
+                        "#4A9BE818",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color="#4A9BE8"
+                  />
+                </View>
+
+                <Text
+                  style={styles.fieldLabel}
+                >
+                  Father
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.inputWrapper,
+                  selectedField === "father" &&
+                    styles.selectedInputWrapper,
+                ]}
+              >
+                <TextInput
+                  ref={fatherRef}
+                  value={father}
+                  onChangeText={setFather}
+                  placeholder="Enter father's name"
+                  placeholderTextColor="#A5A5A5"
+                  style={styles.input}
+                  keyboardType="default"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!saving}
+                  returnKeyType="next"
+                  onSubmitEditing={() => {
+                    motherRef.current?.focus();
+                  }}
+                />
+              </View>
+            </View>
 
             {/* MOTHER */}
 
-            <InputField
-              label="Mother"
-              value={mother}
-              onChangeText={setMother}
-              inputRef={motherRef}
-              icon="person-outline"
-              iconColor="#E65A91"
-              placeholder="Enter mother's name"
-              autoCapitalize="words"
-              fieldName="mother"
-              maxLength={100}
-            />
+            <View
+              style={styles.fieldContainer}
+            >
+              <View
+                style={styles.fieldHeader}
+              >
+                <View
+                  style={[
+                    styles.iconCircle,
+                    {
+                      backgroundColor:
+                        "#E65A9118",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color="#E65A91"
+                  />
+                </View>
+
+                <Text
+                  style={styles.fieldLabel}
+                >
+                  Mother
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.inputWrapper,
+                  selectedField === "mother" &&
+                    styles.selectedInputWrapper,
+                ]}
+              >
+                <TextInput
+                  ref={motherRef}
+                  value={mother}
+                  onChangeText={setMother}
+                  placeholder="Enter mother's name"
+                  placeholderTextColor="#A5A5A5"
+                  style={styles.input}
+                  keyboardType="default"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!saving}
+                  returnKeyType="next"
+                  onSubmitEditing={() => {
+                    siblingRef.current?.focus();
+                  }}
+                />
+              </View>
+            </View>
 
             {/* SIBLING */}
 
-            <InputField
-              label="Sibling"
-              value={sibling}
-              onChangeText={(text) => {
-                /*
-                  Only allow numbers.
-                */
+            <View
+              style={styles.fieldContainer}
+            >
+              <View
+                style={styles.fieldHeader}
+              >
+                <View
+                  style={[
+                    styles.iconCircle,
+                    {
+                      backgroundColor:
+                        "#4CAF7818",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={18}
+                    color="#4CAF78"
+                  />
+                </View>
 
-                const numbersOnly =
-                  String(text || "").replace(
-                    /[^0-9]/g,
-                    ""
-                  );
+                <Text
+                  style={styles.fieldLabel}
+                >
+                  Sibling
+                </Text>
+              </View>
 
-                setSibling(
-                  numbersOnly
-                );
-              }}
-              inputRef={siblingRef}
-              icon="people-outline"
-              iconColor="#4CAF78"
-              placeholder="Enter number of siblings"
-              keyboardType="number-pad"
-              autoCapitalize="none"
-              fieldName="sibling"
-              maxLength={3}
-            />
+              <View
+                style={[
+                  styles.inputWrapper,
+                  selectedField === "sibling" &&
+                    styles.selectedInputWrapper,
+                ]}
+              >
+                <TextInput
+                  ref={siblingRef}
+                  value={sibling}
+                  onChangeText={(text) => {
+                    const numbersOnly =
+                      String(text || "").replace(
+                        /[^0-9]/g,
+                        ""
+                      );
 
-            {/* SAVE BUTTON */}
+                    setSibling(
+                      numbersOnly
+                    );
+                  }}
+                  placeholder="Enter number of siblings"
+                  placeholderTextColor="#A5A5A5"
+                  style={styles.input}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!saving}
+                  returnKeyType="done"
+                  maxLength={3}
+                  onSubmitEditing={() => {
+                    siblingRef.current?.blur();
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* SAVE */}
 
             <TouchableOpacity
               style={[
@@ -1166,252 +1016,206 @@ export default function EditFamilyInformation() {
    STYLES
 ========================================================= */
 
-const styles =
-  StyleSheet.create({
-    /* =====================================================
-       BASIC
-    ===================================================== */
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
 
-    flex: {
-      flex: 1,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F6F8",
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 30,
+  },
+
+  card: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 20,
+
+    borderWidth: 1,
+    borderColor: "#ECECF0",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
 
-    safeArea: {
-      flex: 1,
-      backgroundColor: "#F5F6F8",
+  header: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+    backgroundColor: "#FFF5F6",
+  },
+
+  headerIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF0F2",
+    marginRight: 8,
+  },
+
+  headerTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#222222",
+  },
+
+  headerRight: {
+    width: 10,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginTop: 10,
+    marginBottom: 16,
+  },
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF1F2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginBottom: 14,
+  },
+
+  errorText: {
+    flex: 1,
+    marginLeft: 7,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#D7192A",
+  },
+
+  description: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#777777",
+    marginBottom: 20,
+  },
+
+  fieldContainer: {
+    marginBottom: 18,
+  },
+
+  fieldHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  iconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 9,
+  },
+
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333333",
+  },
+
+  inputWrapper: {
+    width: "100%",
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: "#E3E3E6",
+    borderRadius: 9,
+    backgroundColor: "#FAFAFB",
+    justifyContent: "center",
+  },
+
+  selectedInputWrapper: {
+    borderColor: "#D7192A",
+    backgroundColor: "#FFF9FA",
+  },
+
+  input: {
+    width: "100%",
+    minHeight: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#222222",
+  },
+
+  saveButton: {
+    width: "100%",
+    height: 48,
+    borderRadius: 9,
+    backgroundColor: "#D7192A",
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginTop: 4,
+
+    shadowColor: "#D7192A",
+    shadowOffset: {
+      width: 0,
+      height: 3,
     },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 2,
+  },
 
-    /* =====================================================
-       SCROLL
-    ===================================================== */
+  disabledButton: {
+    opacity: 0.65,
+  },
 
-    scrollContent: {
-      flexGrow: 1,
-      paddingHorizontal: 12,
-      paddingTop: 12,
-      paddingBottom: 30,
-    },
+  saveText: {
+    marginLeft: 7,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 
-    /* =====================================================
-       CARD
-    ===================================================== */
+  cancelButton: {
+    width: "100%",
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 7,
+  },
 
-    card: {
-      width: "100%",
-      backgroundColor: "#FFFFFF",
-      borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingTop: 14,
-      paddingBottom: 20,
-
-      borderWidth: 1,
-      borderColor: "#ECECF0",
-
-      shadowColor: "#000000",
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.08,
-      shadowRadius: 6,
-      elevation: 3,
-    },
-
-    /* =====================================================
-       HEADER
-    ===================================================== */
-
-    header: {
-      minHeight: 40,
-      flexDirection: "row",
-      alignItems: "center",
-    },
-
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 6,
-      backgroundColor: "#FFF5F6",
-    },
-
-    headerIconContainer: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#FFF0F2",
-      marginRight: 8,
-    },
-
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: "700",
-      color: "#222222",
-    },
-
-    headerRight: {
-      width: 10,
-    },
-
-    /* =====================================================
-       DIVIDER
-    ===================================================== */
-
-    divider: {
-      height: 1,
-      backgroundColor: "#F0F0F0",
-      marginTop: 10,
-      marginBottom: 16,
-    },
-
-    /* =====================================================
-       ERROR
-    ===================================================== */
-
-    errorBox: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: "#FFF1F2",
-      borderRadius: 8,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      marginBottom: 14,
-    },
-
-    errorText: {
-      flex: 1,
-      marginLeft: 7,
-      fontSize: 12,
-      lineHeight: 17,
-      color: "#D7192A",
-    },
-
-    /* =====================================================
-       DESCRIPTION
-    ===================================================== */
-
-    description: {
-      fontSize: 13,
-      lineHeight: 19,
-      color: "#777777",
-      marginBottom: 20,
-    },
-
-    /* =====================================================
-       FIELD
-    ===================================================== */
-
-    fieldContainer: {
-      marginBottom: 18,
-    },
-
-    fieldHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 8,
-    },
-
-    iconCircle: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 9,
-    },
-
-    fieldLabel: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#333333",
-    },
-
-    /* =====================================================
-       INPUT
-    ===================================================== */
-
-    inputWrapper: {
-      width: "100%",
-      minHeight: 50,
-      borderWidth: 1,
-      borderColor: "#E3E3E6",
-      borderRadius: 9,
-      backgroundColor: "#FAFAFB",
-      justifyContent: "center",
-    },
-
-    selectedInputWrapper: {
-      borderColor: "#D7192A",
-      backgroundColor: "#FFF9FA",
-    },
-
-    input: {
-      width: "100%",
-      minHeight: 50,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      fontSize: 15,
-      color: "#222222",
-      includeFontPadding: false,
-    },
-
-    /* =====================================================
-       SAVE
-    ===================================================== */
-
-    saveButton: {
-      width: "100%",
-      height: 48,
-      borderRadius: 9,
-      backgroundColor: "#D7192A",
-
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-
-      marginTop: 4,
-
-      shadowColor: "#D7192A",
-      shadowOffset: {
-        width: 0,
-        height: 3,
-      },
-      shadowOpacity: 0.18,
-      shadowRadius: 5,
-      elevation: 2,
-    },
-
-    disabledButton: {
-      opacity: 0.65,
-    },
-
-    saveText: {
-      marginLeft: 7,
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#FFFFFF",
-    },
-
-    /* =====================================================
-       CANCEL
-    ===================================================== */
-
-    cancelButton: {
-      width: "100%",
-      height: 42,
-      alignItems: "center",
-      justifyContent: "center",
-      marginTop: 7,
-    },
-
-    cancelText: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: "#777777",
-    },
-  });
+  cancelText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#777777",
+  },
+});

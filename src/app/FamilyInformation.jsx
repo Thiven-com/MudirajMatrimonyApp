@@ -596,15 +596,7 @@ export default function FamilyInformation() {
               </Text>
             </View>
 
-            <View
-              style={styles.editIconButton}
-            >
-              <Ionicons
-                name="create-outline"
-                size={15}
-                color="#777777"
-              />
-            </View>
+            
           </TouchableOpacity>
 
           {/* MOTHER */}
@@ -647,15 +639,7 @@ export default function FamilyInformation() {
               </Text>
             </View>
 
-            <View
-              style={styles.editIconButton}
-            >
-              <Ionicons
-                name="create-outline"
-                size={15}
-                color="#777777"
-              />
-            </View>
+           
           </TouchableOpacity>
 
           {/* SIBLING */}
@@ -698,15 +682,7 @@ export default function FamilyInformation() {
               </Text>
             </View>
 
-            <View
-              style={styles.editIconButton}
-            >
-              <Ionicons
-                name="create-outline"
-                size={15}
-                color="#777777"
-              />
-            </View>
+            
           </TouchableOpacity>
 
           {/* EDIT DETAILS */}

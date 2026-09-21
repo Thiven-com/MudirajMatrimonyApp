@@ -356,6 +356,14 @@ const FamilyItem = ({ item }) => {
 
 export default function ProfileDetails() {
 
+  const Logout = async () => {
+    await AsyncStorage.multiRemove([
+      "access_token",
+      "accessToken",
+    ]);
+    router.replace("/login");
+  };
+
   const [liked, setLiked] = useState(false);
   const [shortlisted, setShortlisted] = useState(false);
 
@@ -1875,7 +1883,7 @@ export default function ProfileDetails() {
 
               </View>
                   */}
-               
+
 
               {/* LOCATION */}
 
@@ -1887,7 +1895,7 @@ export default function ProfileDetails() {
                   color="#FFFFFF"
                 />
 
-               <Text
+                <Text
                   style={styles.heroInfoText}
                   numberOfLines={2}
                 >
@@ -2203,8 +2211,8 @@ export default function ProfileDetails() {
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
-            onPress={() =>{
-               console.log("Languages Clicked");
+            onPress={() => {
+              console.log("Languages Clicked");
               router.push("/Languages");
               Alert.alert(
                 "Language",
@@ -2291,7 +2299,7 @@ export default function ProfileDetails() {
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
-            onPress={() =>{
+            onPress={() => {
               console.log("Astronomic Information clicked");
               router.push("/AstronomicInformation");
               Alert.alert(
@@ -2337,8 +2345,8 @@ export default function ProfileDetails() {
               styles.lastProfileRow,
             ]}
             activeOpacity={0.8}
-            onPress={() =>{
-               console.log("Family Information Clicked");
+            onPress={() => {
+              console.log("Family Information Clicked");
               router.push("/FamilyInformation");
               Alert.alert(
                 "Family Information",
@@ -2372,6 +2380,47 @@ export default function ProfileDetails() {
 
           </TouchableOpacity>
         </View>
+
+
+
+        {/* =================================================
+    LOGOUT
+================================================= */}
+
+        <TouchableOpacity
+          style={[
+            styles.profileRow,
+            styles.logoutRow,
+          ]}
+          activeOpacity={0.8}
+          onPress={Logout}
+        >
+          <View
+            style={[
+              styles.rowIcon,
+              {
+                backgroundColor: "#faf8f8",
+              },
+            ]}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={21}
+              color="#e60f28"
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.rowTitle,
+              styles.logoutText,
+            ]}
+          >
+            Logout
+          </Text>
+
+         
+        </TouchableOpacity>
 
         {/* =================================================
           PROFILE VERIFICATION
@@ -3033,5 +3082,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
+
+logoutRow: {
+  borderBottomWidth: 0,
+   marginBottom: 14,
+},
+
+logoutText: {
+  color: "#D3263A",
+  fontSize: 19,
+  fontWeight: "700",
+ 
+},
 
 });
