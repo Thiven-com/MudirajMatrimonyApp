@@ -161,46 +161,40 @@ const SocialBackgroundScreen = () => {
   const religion =
     socialBackground?.religion ??
     socialBackground?.religion_name ??
-    socialBackground?.religion?.name ??
+    socialBackground?.religion_id ??
     "-";
 
   const caste =
     socialBackground?.caste ??
     socialBackground?.caste_name ??
-    socialBackground?.caste?.name ??
+    socialBackground?.caste_id ??
     "-";
 
   const subCaste =
     socialBackground?.sub_caste ??
     socialBackground?.sub_caste_name ??
-    socialBackground?.subCaste ??
-    socialBackground?.sub_caste?.name ??
+    socialBackground?.sub_caste_id ??
     "-";
 
   const ethnicity =
-    socialBackground?.ethnicity ??
-    socialBackground?.ethnicity_name ??
-    socialBackground?.ethnicity?.name ??
-    "-";
+    socialBackground?.ethnicity_name ?? socialBackground?.ethnicity ?? "-";
 
   const personalValues =
     socialBackground?.personal_values ??
     socialBackground?.personal_value ??
-    socialBackground?.personalValues ??
     "-";
 
   const familyValue =
     socialBackground?.family_value ??
     socialBackground?.family_values ??
-    socialBackground?.familyValue ??
+    socialBackground?.family_value_id ??
     "-";
 
   const communityValue =
     socialBackground?.community_value ??
     socialBackground?.community_values ??
-    socialBackground?.communityValue ??
+    socialBackground?.community_value ??
     "-";
-
   // =========================================================
   // DETAILS
   // =========================================================

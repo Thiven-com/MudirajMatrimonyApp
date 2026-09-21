@@ -285,7 +285,7 @@ export default function EditEducation() {
       // GET TOKEN
       // ---------------------------------------------------
 
-      const accessToken = await AsyncStorage.getItem("access_token");
+      const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {
         Alert.alert(

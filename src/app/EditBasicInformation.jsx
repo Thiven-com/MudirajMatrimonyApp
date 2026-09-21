@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
   Image,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -20,6 +21,10 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { router } from "expo-router";
+
+// Namespace import so the file still loads if one of the optional
+// "get profile" functions below does not exist in your Functions.js.
+import * as Api from "../utils/Functions";
 
 import BASE_URL from "../constants/AppUrls";
 
@@ -40,48 +45,145 @@ const COLORS = {
 };
 
 /* =========================================================
-   GET BASIC INFO ENDPOINT
-   ASSUMPTION: mirrors the update endpoint's naming
-   ("/api/member/basic-info/update"). If your backend exposes
-   the current profile under a different path, change this
-   one constant.
+   CONFIG
+   Functions tried (in this order) to load the member's
+   existing basic information. Called as fn(token).
+   Put your real function name first if you have one.
 ========================================================= */
 
-const GET_BASIC_INFO_ENDPOINT = "/api/member/basic-info";
+const PROFILE_FUNCTIONS = [
+  "getMemberBasicInfo",
+  "getMemberBasicInformation",
+  "getBasicInfo",
+  "getMemberProfile",
+  "getMemberDetails",
+  "getMyProfile",
+  "getProfile",
+];
 
 /* =========================================================
-   ID <-> LABEL MAPS (kept in one place so load + save agree)
+   OPTIONS  (fixed dropdown choices - these are UI options,
+   not user data)
 ========================================================= */
 
-const GENDER_LABELS = { 1: "Male", 2: "Female", 3: "Other" };
-const GENDER_IDS = { Male: 1, Female: 2, Other: 3 };
+const MARITAL_PLACEHOLDER = "Nothing selected";
 
-const MARITAL_LABELS = {
+const CHILDREN_PLACEHOLDER = "Not specified";
+
+const maritalOptions = [
+  MARITAL_PLACEHOLDER,
+  "Never Married",
+  "Divorced",
+  "Widowed",
+  "Separated",
+];
+
+const childrenOptions = [
+  CHILDREN_PLACEHOLDER,
+  "No Children",
+  "1 Child",
+  "2 Children",
+  "3 Children",
+  "4+ Children",
+];
+
+/*
+ * Label <-> API id maps.
+ *
+ * Assumption (unchanged from before):
+ *   marital_status: 1 Never Married, 2 Divorced, 3 Widowed, 4 Separated
+ *   gender:         1 Male, 2 Female, 3 Other
+ *   children:       0 none ... 4 = "4+"
+ */
+const GENDER_MAP = { 1: "Male", 2: "Female", 3: "Other" };
+
+const MARITAL_MAP = {
   1: "Never Married",
   2: "Divorced",
   3: "Widowed",
   4: "Separated",
 };
-const MARITAL_IDS = {
-  "Never Married": 1,
-  Divorced: 2,
-  Widowed: 3,
-  Separated: 4,
-};
 
-const CHILDREN_LABELS = {
+const CHILDREN_MAP = {
   0: "No Children",
   1: "1 Child",
   2: "2 Children",
   3: "3 Children",
   4: "4+ Children",
 };
-const CHILDREN_IDS = {
-  "No Children": 0,
-  "1 Child": 1,
-  "2 Children": 2,
-  "3 Children": 3,
-  "4+ Children": 4,
+
+const idFromLabel = (map, label) => {
+  const entry = Object.entries(map).find(([, value]) => value === label);
+
+  return entry ? Number(entry[0]) : null;
+};
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+// Safe string for any API value (handles { id, name } objects).
+const toText = (value) => {
+  if (value == null) return "";
+
+  if (Array.isArray(value)) {
+    return value.map(toText).filter(Boolean).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return toText(
+      value.name ?? value.label ?? value.title ?? value.value ?? value.text,
+    );
+  }
+
+  return String(value).trim();
+};
+
+const firstText = (source, keys) => {
+  for (const key of keys) {
+    const text = toText(source?.[key]);
+
+    if (text) return text;
+  }
+
+  return "";
+};
+
+// 1 / "1" / "Male" / { id: 1, name: "Male" }  ->  "Male"
+const resolveLabel = (value, map, fallback = "") => {
+  if (value == null || value === "") return fallback;
+
+  if (typeof value === "object" && value.id != null) {
+    const byId = map[toText(value.id)];
+
+    if (byId) return byId;
+  }
+
+  const text = toText(value);
+
+  if (!text) return fallback;
+
+  if (map[text] !== undefined) return map[text];
+
+  const found = Object.values(map).find(
+    (label) => label.toLowerCase() === text.toLowerCase(),
+  );
+
+  return found ?? fallback;
+};
+
+const toUri = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "string") return value;
+
+  if (typeof value === "object") {
+    return toText(
+      value.url ?? value.photo_url ?? value.photo ?? value.path ?? value.src,
+    );
+  }
+
+  return "";
 };
 
 /* =========================================================
@@ -112,40 +214,144 @@ const formatDateForApi = (date) => {
   return value;
 };
 
-const formatDateForUi = (date) => {
-  if (!date) {
-    return "";
+// API value (DD-MM-YYYY, YYYY-MM-DD or ISO) -> YYYY-MM-DD for the input
+const formatDateForUi = (value) => {
+  const text = toText(value);
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
+    return text.slice(0, 10);
   }
 
-  const value = String(date).trim();
-
-  /* Already YYYY-MM-DD */
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
-  }
-
-  /* DD-MM-YYYY -> YYYY-MM-DD */
-  if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
-    const [day, month, year] = value.split("-");
+  if (/^\d{2}-\d{2}-\d{4}/.test(text)) {
+    const [day, month, year] = text.slice(0, 10).split("-");
 
     return `${year}-${month}-${day}`;
   }
 
-  return value;
+  return text;
+};
+
+// Alert.alert / confirm dialogs do nothing on Expo Web.
+const notify = (title, message, onOk) => {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.alert(`${title}\n\n${message}`);
+    }
+
+    if (onOk) onOk();
+
+    return;
+  }
+
+  Alert.alert(title, message, [{ text: "OK", onPress: onOk }]);
 };
 
 /* =========================================================
-   API RESPONSE SUCCESS CHECK
-   Only treat a response as a failure when it explicitly says
-   so — an unrecognized-but-non-error shape should not be
-   silently treated as a failure.
+   TOKEN
 ========================================================= */
 
-function isApiFailure(result) {
-  if (!result) return true;
+// Read token from all commonly used storage keys.
+// Some projects store authToken as a plain string,
+// while others store a JSON object.
+const getAccessToken = async () => {
+  const tokenKeys = [
+    "authToken",
+    "access_token",
+    "accessToken",
+    "token",
+    "userToken",
+    "auth_token",
+  ];
 
-  return result.success === false || result.result === false;
-}
+  for (const key of tokenKeys) {
+    const storedValue = await AsyncStorage.getItem(key);
+
+    if (!storedValue) continue;
+
+    let accessToken = null;
+
+    try {
+      const parsedValue = JSON.parse(storedValue);
+
+      if (typeof parsedValue === "object" && parsedValue !== null) {
+        accessToken =
+          parsedValue.token ||
+          parsedValue.access_token ||
+          parsedValue.authToken ||
+          parsedValue.accessToken ||
+          parsedValue.userToken ||
+          null;
+      } else if (typeof parsedValue === "string") {
+        accessToken = parsedValue;
+      }
+    } catch {
+      accessToken = storedValue;
+    }
+
+    if (accessToken) return accessToken;
+  }
+
+  return null;
+};
+
+/* =========================================================
+   PROFILE LOADING
+========================================================= */
+
+// Pull the member object out of many possible response shapes.
+const extractProfile = (response) => {
+  if (!response || typeof response !== "object") return null;
+
+  let profile =
+    response?.data?.basic_info ??
+    response?.data?.basicInfo ??
+    response?.data?.member ??
+    response?.data?.user ??
+    response?.data ??
+    response?.member ??
+    response?.user ??
+    response;
+
+  if (Array.isArray(profile)) profile = profile[0];
+
+  if (!profile || typeof profile !== "object") return null;
+
+  const looksLikeProfile = [
+    "first_name",
+    "last_name",
+    "firstName",
+    "lastName",
+    "name",
+    "email",
+    "phone",
+  ].some((key) => profile[key] != null);
+
+  return looksLikeProfile ? profile : null;
+};
+
+// Last resort: the user object saved at login time.
+const readStoredUser = async () => {
+  for (const key of ["userdata", "user", "user_data"]) {
+    try {
+      const stored = await AsyncStorage.getItem(key);
+
+      if (!stored) continue;
+
+      const parsed = JSON.parse(stored);
+
+      const candidate =
+        parsed?.data?.user ?? parsed?.user ?? parsed?.data ?? parsed;
+
+      const profile = extractProfile({ data: candidate });
+
+      if (profile) return profile;
+    } catch (error) {
+      console.log(`readStoredUser(${key}) error:`, error);
+    }
+  }
+
+  return null;
+};
 
 /* =========================================================
    MAIN COMPONENT
@@ -153,199 +359,188 @@ function isApiFailure(result) {
 
 export default function EditBasicInformation() {
   /* =======================================================
-       BASIC INFORMATION STATES
+       FORM STATE  (all start EMPTY - filled from the API)
     ======================================================= */
 
   const [firstName, setFirstName] = useState("");
 
   const [lastName, setLastName] = useState("");
 
+  /*
+   * Email and phone are required by the API but are not part of the
+   * reference UI. They are loaded from the member's profile. If they
+   * cannot be loaded, two extra fields appear so the member can enter
+   * them (we never send made-up values).
+   */
   const [email, setEmail] = useState("");
 
   const [phone, setPhone] = useState("");
 
-  /* =======================================================
-       GENDER
-    ======================================================= */
+  const [contactMissing, setContactMissing] = useState(false);
 
-  const [gender, setGender] = useState("Male");
+  const [gender, setGender] = useState("");
 
-  /* =======================================================
-       DATE OF BIRTH
-    ======================================================= */
+  const [dateOfBirth, setDateOfBirth] = useState("");
 
-  const [dateOfBirth, setDateOfBirth] = useState("2000-04-23");
+  const [maritalStatus, setMaritalStatus] = useState(MARITAL_PLACEHOLDER);
 
-  /* =======================================================
-       MARITAL STATUS
-    ======================================================= */
+  const [children, setChildren] = useState(CHILDREN_PLACEHOLDER);
 
-  const [maritalStatus, setMaritalStatus] = useState("Nothing selected");
+  // "on behalf" comes from the profile; 1 = myself (API default)
+  const [onBehalf, setOnBehalf] = useState(1);
 
-  /* =======================================================
-       CHILDREN
-    ======================================================= */
-
-  const [children, setChildren] = useState("Not specified");
-
-  /* =======================================================
-       PHOTO
-    ======================================================= */
-
-  const [photo, setPhoto] = useState(true);
-
-  const PROFILE_IMAGE = require("../../assets/images/Match6.png");
-
-  /* =======================================================
-       MODALS
-    ======================================================= */
+  const [photoUrl, setPhotoUrl] = useState("");
 
   const [showMaritalModal, setShowMaritalModal] = useState(false);
 
   const [showChildrenModal, setShowChildrenModal] = useState(false);
 
-  /* =======================================================
-       LOADING (initial profile fetch)
-    ======================================================= */
-
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-
-  /* =======================================================
-       SAVING
-    ======================================================= */
 
   const [saving, setSaving] = useState(false);
 
   /* =======================================================
-       MARITAL OPTIONS
+       LOAD MEMBER'S REAL DATA
     ======================================================= */
 
-  const maritalOptions = [
-    "Nothing selected",
-    "Never Married",
-    "Divorced",
-    "Widowed",
-    "Separated",
-  ];
+  const applyProfile = useCallback((p) => {
+    const joinedName = firstText(p, ["name", "full_name"]);
 
-  /* =======================================================
-       CHILDREN OPTIONS
-    ======================================================= */
+    const [nameFirst = "", ...nameRest] = joinedName.split(" ");
 
-  const childrenOptions = [
-    "Not specified",
-    "No Children",
-    "1 Child",
-    "2 Children",
-    "3 Children",
-    "4+ Children",
-  ];
+    const first = firstText(p, ["first_name", "firstName"]) || nameFirst;
 
-  /* =======================================================
-       LOAD EXISTING BASIC INFORMATION
-       Prefills the form with the member's current profile so:
-       (a) the screen doesn't just show hardcoded placeholder
-           values every time it's opened, and
-       (b) email/phone — required by the API but not otherwise
-           editable elsewhere in this flow — actually have real
-           values, so validation in handleSave can pass.
-    ======================================================= */
+    const last =
+      firstText(p, ["last_name", "lastName"]) || nameRest.join(" ").trim();
 
-  useEffect(() => {
-    const loadBasicInfo = async () => {
+    const emailValue = firstText(p, ["email", "email_address"]);
+
+    const phoneValue = firstText(p, [
+      "phone",
+      "mobile",
+      "phone_number",
+      "mobile_number",
+    ]);
+
+    setFirstName(first);
+
+    setLastName(last);
+
+    setEmail(emailValue);
+
+    setPhone(phoneValue);
+
+    setContactMissing(!emailValue || phoneValue.replace(/\D/g, "").length < 10);
+
+    setGender(resolveLabel(p.gender, GENDER_MAP, ""));
+
+    setDateOfBirth(
+      formatDateForUi(p.date_of_birth ?? p.dob ?? p.birth_date ?? ""),
+    );
+
+    setMaritalStatus(
+      resolveLabel(p.marital_status, MARITAL_MAP, MARITAL_PLACEHOLDER),
+    );
+
+    setChildren(resolveLabel(p.children, CHILDREN_MAP, CHILDREN_PLACEHOLDER));
+
+    const behalf = Number(toText(p.on_behalf));
+
+    setOnBehalf(Number.isFinite(behalf) && behalf > 0 ? behalf : 1);
+
+    const photo = [p.photo_url, p.photo, p.profile_photo, p.image, p.avatar]
+      .map(toUri)
+      .find(Boolean);
+
+    setPhotoUrl(photo || "");
+  }, []);
+
+  const loadProfile = useCallback(async () => {
+    try {
       setLoading(true);
-      setLoadError("");
 
-      try {
-        const accessToken = await AsyncStorage.getItem("authToken");
+      const token = await getAccessToken();
 
-        if (!accessToken) {
-          setLoadError("Authentication token not found. Please login again.");
-          return;
-        }
+      if (!token) {
+        console.log("EditBasicInformation: no token, nothing to load");
 
-        const apiUrl = `${BASE_URL}${GET_BASIC_INFO_ENDPOINT}`;
+        return;
+      }
 
-        console.log("====================================");
-        console.log("LOAD BASIC INFORMATION");
-        console.log("====================================");
-        console.log("GET URL:", apiUrl);
+      let profile = null;
 
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+      /* ---------- 1. your Functions.js ---------- */
 
-        const responseText = await response.text();
-
-        console.log("HTTP STATUS:", response.status);
-        console.log("RESPONSE TEXT:", responseText);
-
-        let responseData = null;
+      for (const name of PROFILE_FUNCTIONS) {
+        if (typeof Api[name] !== "function") continue;
 
         try {
-          responseData = JSON.parse(responseText);
-        } catch (parseError) {
-          responseData = { message: responseText };
+          const response = await Api[name](token);
+
+          console.log(`${name} response:`, JSON.stringify(response));
+
+          profile = extractProfile(response);
+
+          if (profile) break;
+        } catch (error) {
+          console.log(`${name} error:`, error);
         }
-
-        if (!response.ok || isApiFailure(responseData)) {
-          setLoadError(
-            responseData?.message ||
-              `Unable to load your profile (HTTP ${response.status}).`,
-          );
-          return;
-        }
-
-        // Some endpoints nest the profile under `data`, some return it
-        // directly — support both.
-        const profile = responseData?.data ?? responseData ?? {};
-
-        if (profile.first_name != null)
-          setFirstName(String(profile.first_name));
-        if (profile.last_name != null) setLastName(String(profile.last_name));
-        if (profile.email != null) setEmail(String(profile.email));
-        if (profile.phone != null) setPhone(String(profile.phone));
-
-        if (profile.gender != null) {
-          const label = GENDER_LABELS[Number(profile.gender)];
-          if (label) setGender(label);
-        }
-
-        if (profile.date_of_birth) {
-          setDateOfBirth(formatDateForUi(profile.date_of_birth));
-        }
-
-        if (profile.marital_status != null) {
-          const label = MARITAL_LABELS[Number(profile.marital_status)];
-          if (label) setMaritalStatus(label);
-        }
-
-        if (profile.children != null) {
-          const label = CHILDREN_LABELS[Number(profile.children)];
-          if (label) setChildren(label);
-        }
-      } catch (error) {
-        console.log("loadBasicInfo Error:", error);
-        setLoadError(error?.message || "Unable to load your profile.");
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadBasicInfo();
-  }, []);
+      /* ---------- 2. GET the same resource the update route uses ---------- */
+
+      if (!profile) {
+        try {
+          const response = await fetch(`${BASE_URL}/api/member/basic-info`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          console.log("GET basic-info status:", response.status);
+
+          if (response.ok) {
+            profile = extractProfile(await response.json());
+          }
+        } catch (error) {
+          console.log("GET basic-info error:", error);
+        }
+      }
+
+      /* ---------- 3. user object saved at login ---------- */
+
+      if (!profile) {
+        profile = await readStoredUser();
+      }
+
+      if (profile) {
+        console.log("BASIC INFO LOADED:", JSON.stringify(profile));
+
+        applyProfile(profile);
+      } else {
+        console.log("BASIC INFO: nothing found, starting with empty form");
+
+        // Could not load anything -> let the member type email / phone.
+        setContactMissing(true);
+      }
+    } catch (error) {
+      console.log("loadProfile error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [applyProfile]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   /* =======================================================
        SAVE BASIC INFORMATION
     ======================================================= */
 
   const handleSave = async () => {
-    if (saving) {
+    if (saving || loading) {
       return;
     }
 
@@ -356,7 +551,8 @@ export default function EditBasicInformation() {
       // TOKEN
       // ============================================
 
-      const accessToken = await AsyncStorage.getItem("authToken");
+      const accessToken = await getAccessToken();
+
       console.log("====================================");
       console.log("UPDATE BASIC INFORMATION");
       console.log("====================================");
@@ -364,10 +560,7 @@ export default function EditBasicInformation() {
       console.log("TOKEN EXISTS:", !!accessToken);
 
       if (!accessToken) {
-        Alert.alert(
-          "Login Required",
-          "Access token not found. Please login again.",
-        );
+        notify("Login Required", "Access token not found. Please login again.");
         return;
       }
 
@@ -386,51 +579,46 @@ export default function EditBasicInformation() {
         .slice(-10);
 
       if (!cleanFirstName) {
-        Alert.alert("Validation", "First name is required.");
+        notify("Validation", "First name is required.");
         return;
       }
 
       if (!cleanLastName) {
-        Alert.alert("Validation", "Last name is required.");
+        notify("Validation", "Last name is required.");
+        return;
+      }
+
+      const genderId = idFromLabel(GENDER_MAP, gender);
+
+      if (!genderId) {
+        notify("Validation", "Please select gender.");
+        return;
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateOfBirth || "").trim())) {
+        notify("Validation", "Enter date of birth as YYYY-MM-DD.");
+        return;
+      }
+
+      const maritalStatusId = idFromLabel(MARITAL_MAP, maritalStatus);
+
+      if (!maritalStatusId) {
+        notify("Validation", "Please select marital status.");
         return;
       }
 
       if (!cleanEmail) {
-        Alert.alert("Validation", "Email is required.");
+        notify("Validation", "Email is required.");
         return;
       }
 
       if (cleanPhone.length !== 10) {
-        Alert.alert("Validation", "Enter a valid 10 digit phone number.");
+        notify("Validation", "Enter a valid 10 digit phone number.");
         return;
       }
 
-      // ============================================
-      // GENDER
-      // ============================================
-
-      const genderId = GENDER_IDS[gender] ?? 0;
-
-      // ============================================
-      // MARITAL STATUS
-      // ============================================
-
-      const maritalStatusId = MARITAL_IDS[maritalStatus] ?? 0;
-
-      // ============================================
-      // CHILDREN
-      // ============================================
-
-      const childrenId = CHILDREN_IDS[children] ?? 0;
-
-      // ============================================
-      // DATE
-      //
-      // UI = YYYY-MM-DD
-      // API = DD-MM-YYYY
-      // ============================================
-
-      const apiDate = formatDateForApi(dateOfBirth);
+      // "Not specified" -> 0, same as before
+      const childrenId = idFromLabel(CHILDREN_MAP, children) ?? 0;
 
       // ============================================
       // REQUEST BODY
@@ -442,8 +630,8 @@ export default function EditBasicInformation() {
         email: cleanEmail,
         phone: cleanPhone,
         gender: genderId,
-        on_behalf: 1,
-        date_of_birth: apiDate,
+        on_behalf: onBehalf,
+        date_of_birth: formatDateForApi(String(dateOfBirth).trim()),
         marital_status: maritalStatusId,
         children: childrenId,
       };
@@ -509,33 +697,43 @@ export default function EditBasicInformation() {
           responseData?.errors ||
           `Server returned HTTP ${response.status}`;
 
-        throw new Error(
+        const readableMessage =
           typeof serverMessage === "string"
             ? serverMessage
-            : JSON.stringify(serverMessage),
-        );
+            : typeof serverMessage === "object"
+              ? Object.values(serverMessage)
+                  .flat()
+                  .map((item) => String(item))
+                  .join("\n")
+              : String(serverMessage);
+
+        throw new Error(readableMessage);
       }
 
       // ============================================
       // API SUCCESS CHECK
       // ============================================
 
-      if (isApiFailure(responseData)) {
-        throw new Error(responseData?.message || "API rejected the update.");
+      if (
+        responseData &&
+        (responseData.success === false ||
+          responseData.result === false ||
+          responseData.status === false)
+      ) {
+        throw new Error(
+          responseData.message ||
+            responseData.error ||
+            "API rejected the update.",
+        );
       }
 
       // ============================================
       // SUCCESS
       // ============================================
 
-      Alert.alert("Success", "Basic information updated successfully.", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.back();
-          },
-        },
-      ]);
+      notify("Success", "Basic information updated successfully.", () => {
+        router.back();
+      });
     } catch (error) {
       console.error("====================================");
 
@@ -545,7 +743,7 @@ export default function EditBasicInformation() {
 
       console.error("====================================");
 
-      Alert.alert(
+      notify(
         "Update Failed",
         error?.message || "Unable to update basic information.",
       );
@@ -559,6 +757,17 @@ export default function EditBasicInformation() {
     ======================================================= */
 
   const handleRemovePhoto = () => {
+    if (Platform.OS === "web") {
+      if (
+        typeof window !== "undefined" &&
+        window.confirm("Are you sure you want to remove this photo?")
+      ) {
+        setPhotoUrl("");
+      }
+
+      return;
+    }
+
     Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
       {
         text: "Cancel",
@@ -568,7 +777,7 @@ export default function EditBasicInformation() {
         text: "Remove",
         style: "destructive",
         onPress: () => {
-          setPhoto(false);
+          setPhotoUrl("");
         },
       },
     ]);
@@ -579,7 +788,7 @@ export default function EditBasicInformation() {
     ======================================================= */
 
   const handleUploadPhoto = () => {
-    Alert.alert(
+    notify(
       "Upload Photo",
       "Connect your image picker here to select a profile photo.",
     );
@@ -635,21 +844,6 @@ export default function EditBasicInformation() {
   };
 
   /* =======================================================
-       LOADING STATE
-    ======================================================= */
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={COLORS.red} />
-          <Text style={styles.centerStateText}>Loading your profile...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  /* =======================================================
        SCREEN
     ======================================================= */
 
@@ -689,293 +883,294 @@ export default function EditBasicInformation() {
                 ================================================= */}
 
         <View style={styles.card}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollContent}
-          >
-            {!!loadError && (
-              <View style={styles.loadErrorBanner}>
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={16}
-                  color={COLORS.red}
-                />
-                <Text style={styles.loadErrorText}>
-                  Couldn't load your existing details: {loadError}. You can
-                  still fill the form in manually below.
-                </Text>
-              </View>
-            )}
+          {loading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={COLORS.red} />
 
-            {/* =========================================
+              <Text style={styles.loaderText}>Loading your details...</Text>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* =========================================
                            FIRST NAME
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                First Name <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  First Name <Text style={styles.required}>*</Text>
+                </Text>
 
-              <TextInput
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="First Name"
-                placeholderTextColor={"#A0A0A0"}
-                style={styles.input}
-                autoCapitalize="words"
-                returnKeyType="next"
-              />
-            </View>
+                <TextInput
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="First Name"
+                  placeholderTextColor={"#A0A0A0"}
+                  style={styles.input}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+              </View>
 
-            {/* =========================================
+              {/* =========================================
                            LAST NAME
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Last Name <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  Last Name <Text style={styles.required}>*</Text>
+                </Text>
 
-              <TextInput
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Last Name"
-                placeholderTextColor={"#A0A0A0"}
-                style={styles.input}
-                autoCapitalize="words"
-                returnKeyType="next"
-              />
-            </View>
+                <TextInput
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Last Name"
+                  placeholderTextColor={"#A0A0A0"}
+                  style={styles.input}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+              </View>
 
-            {/* =========================================
-                           EMAIL
-                           Required by the API. Was previously
-                           missing from the UI entirely, which
-                           meant validation always failed and
-                           the update request was never sent.
+              {/* =========================================
+                           EMAIL + PHONE
+                           (only when they could not be loaded)
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Email <Text style={styles.required}>*</Text>
-              </Text>
+              {contactMissing && (
+                <>
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.label}>
+                      Email <Text style={styles.required}>*</Text>
+                    </Text>
 
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email Address"
-                placeholderTextColor={"#A0A0A0"}
-                style={styles.input}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                returnKeyType="next"
-              />
-            </View>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email"
+                      placeholderTextColor={"#A0A0A0"}
+                      style={styles.input}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      returnKeyType="next"
+                    />
+                  </View>
 
-            {/* =========================================
-                           PHONE
-                           Required by the API. Same issue as
-                           Email above — now editable.
-                        ========================================= */}
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.label}>
+                      Phone <Text style={styles.required}>*</Text>
+                    </Text>
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Phone <Text style={styles.required}>*</Text>
-              </Text>
+                    <TextInput
+                      value={phone}
+                      onChangeText={(text) =>
+                        setPhone(text.replace(/\D/g, "").slice(0, 10))
+                      }
+                      placeholder="10 digit phone number"
+                      placeholderTextColor={"#A0A0A0"}
+                      style={styles.input}
+                      keyboardType="number-pad"
+                      maxLength={10}
+                      returnKeyType="next"
+                    />
+                  </View>
+                </>
+              )}
 
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="10 digit mobile number"
-                placeholderTextColor={"#A0A0A0"}
-                style={styles.input}
-                keyboardType="phone-pad"
-                maxLength={10}
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* =========================================
+              {/* =========================================
                            GENDER
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Gender <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  Gender <Text style={styles.required}>*</Text>
+                </Text>
 
-              <View style={styles.genderRow}>
-                <RadioButton label="Male" value="Male" />
+                <View style={styles.genderRow}>
+                  <RadioButton label="Male" value="Male" />
 
-                <RadioButton label="Female" value="Female" />
+                  <RadioButton label="Female" value="Female" />
 
-                <RadioButton label="Other" value="Other" />
+                  <RadioButton label="Other" value="Other" />
+                </View>
               </View>
-            </View>
 
-            {/* =========================================
+              {/* =========================================
                            DATE OF BIRTH
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Date of Birth <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  Date of Birth <Text style={styles.required}>*</Text>
+                </Text>
 
-              <View style={styles.dateInputContainer}>
-                <TextInput
-                  value={dateOfBirth}
-                  onChangeText={setDateOfBirth}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={"#A0A0A0"}
-                  style={styles.dateInput}
-                  maxLength={10}
-                  keyboardType="numbers-and-punctuation"
-                />
+                <View style={styles.dateInputContainer}>
+                  <TextInput
+                    value={dateOfBirth}
+                    onChangeText={setDateOfBirth}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={"#A0A0A0"}
+                    style={styles.dateInput}
+                    maxLength={10}
+                    keyboardType="numbers-and-punctuation"
+                  />
 
-                <TouchableOpacity
-                  style={styles.calendarButton}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="calendar-outline" size={14} color="#555555" />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.calendarButton}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={14}
+                      color="#555555"
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
 
-            {/* =========================================
+              {/* =========================================
                            MARITAL STATUS
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Marital Status <Text style={styles.required}>*</Text>
-              </Text>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.dropdown}
-                onPress={() => setShowMaritalModal(true)}
-              >
-                <Text
-                  style={[
-                    styles.dropdownText,
-                    maritalStatus === "Nothing selected" &&
-                      styles.placeholderText,
-                  ]}
-                >
-                  {maritalStatus}
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  Marital Status <Text style={styles.required}>*</Text>
                 </Text>
 
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={17}
-                  color="#777777"
-                />
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.dropdown}
+                  onPress={() => setShowMaritalModal(true)}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      maritalStatus === MARITAL_PLACEHOLDER &&
+                        styles.placeholderText,
+                    ]}
+                  >
+                    {maritalStatus}
+                  </Text>
 
-            {/* =========================================
+                  <Ionicons
+                    name="chevron-down-outline"
+                    size={17}
+                    color="#777777"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* =========================================
                            NUMBER OF CHILDREN
                         ========================================= */}
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Number of Children</Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Number of Children</Text>
 
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.dropdown}
-                onPress={() => setShowChildrenModal(true)}
-              >
-                <Text
-                  style={[
-                    styles.dropdownText,
-                    children === "Not specified" && styles.placeholderText,
-                  ]}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.dropdown}
+                  onPress={() => setShowChildrenModal(true)}
                 >
-                  {children}
-                </Text>
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      children === CHILDREN_PLACEHOLDER &&
+                        styles.placeholderText,
+                    ]}
+                  >
+                    {children}
+                  </Text>
 
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={17}
-                  color="#777777"
-                />
-              </TouchableOpacity>
-            </View>
+                  <Ionicons
+                    name="chevron-down-outline"
+                    size={17}
+                    color="#777777"
+                  />
+                </TouchableOpacity>
+              </View>
 
-            {/* =========================================
+              {/* =========================================
                            UPLOAD PHOTO
                         ========================================= */}
 
-            <View style={styles.photoSection}>
-              <Text style={styles.label}>Upload Photo</Text>
+              <View style={styles.photoSection}>
+                <Text style={styles.label}>Upload Photo</Text>
 
-              <View style={styles.photoRow}>
-                {/* PROFILE PHOTO */}
+                <View style={styles.photoRow}>
+                  {/* PROFILE PHOTO */}
 
-                <View style={styles.profilePhotoContainer}>
-                  {photo ? (
-                    <Image source={PROFILE_IMAGE} style={styles.profilePhoto} />
-                  ) : (
-                    <View style={styles.emptyPhoto}>
-                      <Ionicons
-                        name="person-outline"
-                        size={22}
-                        color="#B5B5B5"
+                  <View style={styles.profilePhotoContainer}>
+                    {photoUrl ? (
+                      <Image
+                        source={{ uri: photoUrl }}
+                        style={styles.profilePhoto}
                       />
-                    </View>
-                  )}
+                    ) : (
+                      <View style={styles.emptyPhoto}>
+                        <Ionicons
+                          name="person-outline"
+                          size={22}
+                          color="#B5B5B5"
+                        />
+                      </View>
+                    )}
 
-                  {/* REMOVE */}
+                    {/* REMOVE */}
 
-                  {photo && (
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      activeOpacity={0.8}
-                      onPress={handleRemovePhoto}
-                    >
-                      <Ionicons name="close" size={10} color={COLORS.red} />
-                    </TouchableOpacity>
-                  )}
+                    {!!photoUrl && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        activeOpacity={0.8}
+                        onPress={handleRemovePhoto}
+                      >
+                        <Ionicons name="close" size={10} color={COLORS.red} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* UPLOAD BOX */}
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.uploadBox}
+                    onPress={handleUploadPhoto}
+                  >
+                    <Ionicons
+                      name="camera-outline"
+                      size={18}
+                      color={COLORS.red}
+                      style={styles.cameraIcon}
+                    />
+
+                    <Text style={styles.uploadTitle}>
+                      Upload Photo (800x800)
+                    </Text>
+
+                    <Text style={styles.uploadSubText}>JPG, PNG (Max 5MB)</Text>
+                  </TouchableOpacity>
                 </View>
-
-                {/* UPLOAD BOX */}
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={styles.uploadBox}
-                  onPress={handleUploadPhoto}
-                >
-                  <Ionicons
-                    name="camera-outline"
-                    size={18}
-                    color={COLORS.red}
-                    style={styles.cameraIcon}
-                  />
-
-                  <Text style={styles.uploadTitle}>Upload Photo (800x800)</Text>
-
-                  <Text style={styles.uploadSubText}>JPG, PNG (Max 5MB)</Text>
-                </TouchableOpacity>
               </View>
-            </View>
 
-            {/* =========================================
+              {/* =========================================
                            SAVE BUTTON
                         ========================================= */}
 
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              <Text style={styles.saveButtonText}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
         </View>
       </View>
 
@@ -1074,44 +1269,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F5F5",
-  },
-
-  /* =====================================================
-       CENTER STATE (loading)
-    ===================================================== */
-
-  centerState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  centerStateText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#666666",
-  },
-
-  /* =====================================================
-       LOAD ERROR BANNER
-    ===================================================== */
-
-  loadErrorBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#FDECEC",
-    borderRadius: 6,
-    padding: 10,
-    marginTop: 10,
-    marginBottom: 6,
-    gap: 8,
-  },
-
-  loadErrorText: {
-    flex: 1,
-    fontSize: 11.5,
-    color: "#B42318",
-    lineHeight: 15,
   },
 
   /* =====================================================
@@ -1226,6 +1383,25 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 5,
 
     overflow: "hidden",
+  },
+
+  /* =====================================================
+       LOADER
+    ===================================================== */
+
+  loaderContainer: {
+    flex: 1,
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loaderText: {
+    marginTop: 10,
+
+    fontSize: 13,
+
+    color: "#777777",
   },
 
   /* =====================================================

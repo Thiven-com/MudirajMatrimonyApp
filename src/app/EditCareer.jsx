@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -17,7 +20,7 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -31,20 +34,258 @@ import {
 // =========================================================
 
 const COLORS = {
-  background: "#F5F6F8",
+  background: "#FFFFFF",
   white: "#FFFFFF",
 
-  text: "#222222",
+  text: "#1F1F1F",
+  label: "#6B6B6B",
   secondary: "#666666",
-  lightText: "#888888",
+  placeholder: "#A0A0A0",
 
-  border: "#E5E5E5",
+  border: "#E6E6E6",
+  fieldBg: "#FAFAFA",
 
-  red: "#ED1B2F",
-  lightRed: "#FFF0F2",
+  red: "#EF3340",
+  iconBg: "#FDEDEE",
+  bannerBg: "#FDEFF0",
+  bannerIconBg: "#FBE1E3",
+  clearBg: "#FDE9EB",
+  backBg: "#F1F1F3",
 
-  inputBackground: "#FFFFFF",
+  overlay: "rgba(0,0,0,0.4)",
 };
+
+// =========================================================
+// DROPDOWN OPTIONS
+// (replace with your API / master data when available)
+// =========================================================
+
+const OCCUPATION_OPTIONS = [
+  "Software Engineer",
+  "Doctor",
+  "Teacher",
+  "Accountant",
+  "Civil Engineer",
+  "Mechanical Engineer",
+  "Business Owner",
+  "Government Employee",
+  "Lawyer",
+  "Designer",
+  "Other",
+];
+
+const INDUSTRY_OPTIONS = [
+  "Information Technology",
+  "Healthcare",
+  "Education",
+  "Banking & Finance",
+  "Manufacturing",
+  "Construction",
+  "Retail",
+  "Government",
+  "Media & Entertainment",
+  "Other",
+];
+
+const LOCATION_OPTIONS = [
+  "Bengaluru, Karnataka",
+  "Hyderabad, Telangana",
+  "Chennai, Tamil Nadu",
+  "Mumbai, Maharashtra",
+  "Pune, Maharashtra",
+  "Delhi, NCR",
+  "Kolkata, West Bengal",
+  "Ahmedabad, Gujarat",
+  "Kochi, Kerala",
+  "Visakhapatnam, Andhra Pradesh",
+];
+
+const WORK_MODE_OPTIONS = ["On-site", "Remote", "Hybrid"];
+
+const INCOME_OPTIONS = [
+  "Below 3 LPA",
+  "3 - 5 LPA",
+  "5 - 10 LPA",
+  "10 - 15 LPA",
+  "15 - 25 LPA",
+  "25 - 50 LPA",
+  "Above 50 LPA",
+];
+
+const ABOUT_MAX_LENGTH = 500;
+
+// =========================================================
+// FIELD ROW  (icon circle + label + control)
+// =========================================================
+
+function FieldRow({ icon, label, required, children }) {
+  return (
+    <View style={styles.fieldRow}>
+      <View style={styles.iconCircle}>{icon}</View>
+
+      <View style={styles.fieldBody}>
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.required}> *</Text> : null}
+        </Text>
+
+        {children}
+      </View>
+    </View>
+  );
+}
+
+// =========================================================
+// SELECT FIELD  (dropdown that opens a bottom sheet)
+// =========================================================
+
+function SelectField({
+  value,
+  placeholder,
+  options,
+  onSelect,
+  title,
+  disabled = false,
+  searchable = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  // If the saved value isn't in the list, still show it as an option
+  const allOptions = useMemo(() => {
+    if (value && !options.includes(value)) {
+      return [value, ...options];
+    }
+
+    return options;
+  }, [options, value]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return allOptions;
+
+    return allOptions.filter((item) =>
+      item.toLowerCase().includes(query.trim().toLowerCase()),
+    );
+  }, [allOptions, query]);
+
+  const close = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.inputBox}
+        activeOpacity={0.8}
+        disabled={disabled}
+        onPress={() => setOpen(true)}
+      >
+        <Text
+          style={[styles.inputText, !value && styles.placeholderText]}
+          numberOfLines={1}
+        >
+          {value || placeholder}
+        </Text>
+
+        <Ionicons name="chevron-down" size={20} color={COLORS.text} />
+      </TouchableOpacity>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="slide"
+        onRequestClose={close}
+      >
+        <Pressable style={styles.modalOverlay} onPress={close}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+
+            <Text style={styles.sheetTitle}>{title}</Text>
+
+            {searchable && (
+              <View style={styles.searchBox}>
+                <Ionicons name="search" size={18} color={COLORS.placeholder} />
+
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={query}
+                  onChangeText={setQuery}
+                />
+              </View>
+            )}
+
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                const selected = item === value;
+
+                return (
+                  <TouchableOpacity
+                    style={styles.optionRow}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      onSelect(item);
+                      close();
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selected && styles.optionTextSelected,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+
+                    {selected && (
+                      <Ionicons name="checkmark" size={20} color={COLORS.red} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No results found</Text>
+              }
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+// =========================================================
+// TEXT FIELD WITH CLEAR (X) BUTTON
+// =========================================================
+
+function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
+  return (
+    <View style={styles.inputBox}>
+      <TextInput
+        style={[styles.inputText, styles.textInputFlex]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.placeholder}
+        editable={editable}
+      />
+
+      {!!value && editable && (
+        <TouchableOpacity
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() => onChangeText("")}
+        >
+          <Ionicons name="close" size={22} color="#555555" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
 
 // =========================================================
 // EDIT CAREER
@@ -63,10 +304,24 @@ export default function EditCareer() {
   // STATE
   // =====================================================
 
+  const [occupation, setOccupation] = useState("");
+
+  const [industry, setIndustry] = useState("");
+
   const [company, setCompany] = useState("");
+
+  const [jobLocation, setJobLocation] = useState("");
+
+  const [workMode, setWorkMode] = useState("");
 
   const [designation, setDesignation] = useState("");
 
+  const [annualIncome, setAnnualIncome] = useState("");
+
+  const [about, setAbout] = useState("");
+
+  // Not shown in this UI, but the existing API body still uses them,
+  // so we keep the loaded values and send them back unchanged.
   const [start, setStart] = useState("");
 
   const [end, setEnd] = useState("");
@@ -116,7 +371,8 @@ export default function EditCareer() {
       }
 
       // -----------------------------------------
-      // DEBUG
+      // GET SINGLE CAREER
+      // GET /api/member/career/{id}
       // -----------------------------------------
 
       console.log("======================================");
@@ -125,24 +381,13 @@ export default function EditCareer() {
 
       console.log("CAREER ID:", careerId);
 
-      console.log("CALLING GET CAREER BY ID");
-
       console.log("======================================");
-
-      // -----------------------------------------
-      // GET SINGLE CAREER
-      // GET /api/member/career/{id}
-      // -----------------------------------------
 
       const response = await getMemberCareerById(accessToken, careerId);
-
-      console.log("======================================");
 
       console.log("GET SINGLE CAREER RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("======================================");
 
       // -----------------------------------------
       // NORMALIZE RESPONSE
@@ -160,15 +405,19 @@ export default function EditCareer() {
         careerData = response;
       }
 
-      console.log("NORMALIZED CAREER:", JSON.stringify(careerData, null, 2));
-
       if (!careerData) {
         throw new Error("Career details not found.");
       }
 
       // -----------------------------------------
       // SET FORM VALUES
+      // (new field names are best-guess fallbacks —
+      //  adjust to match your API response)
       // -----------------------------------------
+
+      setOccupation(String(careerData?.occupation || ""));
+
+      setIndustry(String(careerData?.industry || ""));
 
       setCompany(
         String(
@@ -179,6 +428,12 @@ export default function EditCareer() {
         ),
       );
 
+      setJobLocation(
+        String(careerData?.job_location || careerData?.jobLocation || ""),
+      );
+
+      setWorkMode(String(careerData?.work_mode || careerData?.workMode || ""));
+
       setDesignation(
         String(
           careerData?.designation ||
@@ -187,6 +442,17 @@ export default function EditCareer() {
             careerData?.position ||
             careerData?.role ||
             "",
+        ),
+      );
+
+      setAnnualIncome(
+        String(careerData?.annual_income || careerData?.annualIncome || ""),
+      );
+
+      setAbout(
+        String(careerData?.about || careerData?.description || "").slice(
+          0,
+          ABOUT_MAX_LENGTH,
         ),
       );
 
@@ -226,10 +492,38 @@ export default function EditCareer() {
     loadCareer();
   }, [loadCareer]);
 
-  // =========================================================
+  // =====================================================
+  // CLEAR FORM  (header "Clear" button)
+  // Only empties the fields on screen — nothing is deleted
+  // until the user taps Save Changes.
+  // =====================================================
+
+  const handleClear = () => {
+    Alert.alert("Clear Form", "Clear all the details on this screen?", [
+      { text: "Cancel", style: "cancel" },
+
+      {
+        text: "Clear",
+        style: "destructive",
+
+        onPress: () => {
+          setOccupation("");
+          setIndustry("");
+          setCompany("");
+          setJobLocation("");
+          setWorkMode("");
+          setDesignation("");
+          setAnnualIncome("");
+          setAbout("");
+        },
+      },
+    ]);
+  };
+
+  // =====================================================
   // SAVE / UPDATE CAREER
   // PUT /api/member/career/{id}
-  // =========================================================
+  // =====================================================
 
   const handleSave = async () => {
     if (saving) {
@@ -244,16 +538,24 @@ export default function EditCareer() {
 
     const cleanDesignation = String(designation || "").trim();
 
-    const cleanStart = String(start || "").trim();
-
-    const cleanEnd = String(end || "").trim();
+    const cleanAbout = String(about || "").trim();
 
     // -----------------------------------------------------
-    // VALIDATION
+    // VALIDATION  (fields marked * in the UI)
     // -----------------------------------------------------
 
-    if (!cleanCompany) {
-      Alert.alert("Required", "Please enter company name.");
+    if (!occupation) {
+      Alert.alert("Required", "Please select occupation.");
+      return;
+    }
+
+    if (!industry) {
+      Alert.alert("Required", "Please select industry.");
+      return;
+    }
+
+    if (!jobLocation) {
+      Alert.alert("Required", "Please select job location.");
       return;
     }
 
@@ -262,32 +564,8 @@ export default function EditCareer() {
       return;
     }
 
-    if (!cleanStart) {
-      Alert.alert("Required", "Please enter start year.");
-      return;
-    }
-
-    if (!cleanEnd) {
-      Alert.alert("Required", "Please enter end year.");
-      return;
-    }
-
-    const startYear = Number(cleanStart);
-
-    const endYear = Number(cleanEnd);
-
-    if (!Number.isInteger(startYear) || startYear <= 0) {
-      Alert.alert("Invalid Year", "Please enter a valid start year.");
-      return;
-    }
-
-    if (!Number.isInteger(endYear) || endYear <= 0) {
-      Alert.alert("Invalid Year", "Please enter a valid end year.");
-      return;
-    }
-
-    if (endYear < startYear) {
-      Alert.alert("Invalid Year", "End year cannot be before start year.");
+    if (!annualIncome) {
+      Alert.alert("Required", "Please select annual income.");
       return;
     }
 
@@ -307,12 +585,6 @@ export default function EditCareer() {
 
       // -------------------------------------------------
       // GET TOKEN
-      //
-      // FIX: this previously read "access_token", which is
-      // never set anywhere in the app — loadCareer() above
-      // correctly reads "authToken", so the screen loaded
-      // fine but every save silently failed with a missing
-      // token. Now both use the same key.
       // -------------------------------------------------
 
       const accessToken = await AsyncStorage.getItem("authToken");
@@ -327,14 +599,33 @@ export default function EditCareer() {
       // REQUEST BODY
       // -------------------------------------------------
 
+      const startYear = Number(start);
+
+      const endYear = Number(end);
+
       const body = {
+        occupation,
+
+        industry,
+
         company: cleanCompany,
+
+        job_location: jobLocation,
+
+        work_mode: workMode,
 
         designation: cleanDesignation,
 
-        start: startYear,
+        annual_income: annualIncome,
 
-        end: endYear,
+        about: cleanAbout,
+
+        // keep existing years unchanged
+        ...(Number.isInteger(startYear) && startYear > 0
+          ? { start: startYear }
+          : {}),
+
+        ...(Number.isInteger(endYear) && endYear > 0 ? { end: endYear } : {}),
       };
 
       // -------------------------------------------------
@@ -346,8 +637,6 @@ export default function EditCareer() {
       console.log("UPDATE CAREER BUTTON CLICKED");
 
       console.log("METHOD: PUT");
-
-      console.log("CAREER ID:", id);
 
       console.log("URL:", `/api/member/career/${id}`);
 
@@ -361,17 +650,9 @@ export default function EditCareer() {
 
       const response = await updateMemberCareerById(accessToken, id, body);
 
-      // -------------------------------------------------
-      // RESPONSE
-      // -------------------------------------------------
-
-      console.log("======================================");
-
       console.log("CAREER UPDATE RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("======================================");
 
       // -------------------------------------------------
       // SUCCESS
@@ -401,10 +682,7 @@ export default function EditCareer() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={COLORS.background}
-        />
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.red} />
@@ -421,197 +699,246 @@ export default function EditCareer() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+
+      {/* ================= HEADER ================= */}
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          activeOpacity={0.7}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          Edit Career Information
+        </Text>
+
+        <TouchableOpacity
+          style={styles.clearButton}
+          activeOpacity={0.8}
+          onPress={handleClear}
+          disabled={saving}
+        >
+          <Ionicons name="trash-outline" size={18} color={COLORS.red} />
+
+          <Text style={styles.clearButtonText}>Clear</Text>
+        </TouchableOpacity>
+      </View>
 
       <KeyboardAvoidingView
-        style={styles.keyboard}
+        style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.screen}>
-          {/* =====================================
-                        HEADER
-                    ===================================== */}
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ================= BANNER ================= */}
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.7}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={20} color={COLORS.red} />
-            </TouchableOpacity>
+          <View style={styles.banner}>
+            <View style={styles.bannerIcon}>
+              <Ionicons name="briefcase-outline" size={26} color={COLORS.red} />
+            </View>
 
-            <Text style={styles.headerTitle}>Edit Career</Text>
+            <View style={styles.bannerTextWrap}>
+              <Text style={styles.bannerTitle}>Edit Your Career Details</Text>
 
-            <View style={styles.headerRight} />
+              <Text style={styles.bannerSubtitle}>
+                Update your professional information
+              </Text>
+            </View>
           </View>
 
-          {/* =====================================
-                        FORM
-                    ===================================== */}
+          {/* ================= OCCUPATION ================= */}
 
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.contentContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+          <FieldRow
+            label="Occupation"
+            required
+            icon={
+              <Ionicons name="briefcase-outline" size={24} color={COLORS.red} />
+            }
           >
-            {/* =================================
-                            CAREER ID
-                        ================================= */}
-
-            <View style={styles.idContainer}>
-              <Ionicons name="briefcase-outline" size={18} color={COLORS.red} />
-
-              <Text style={styles.idText}>Career ID: {careerId}</Text>
-            </View>
-
-            {/* =================================
-                            COMPANY
-                        ================================= */}
-
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Company</Text>
-
-              <View style={styles.inputWrapper}>
-                <Ionicons
-                  name="business-outline"
-                  size={19}
-                  color={COLORS.lightText}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  value={company}
-                  onChangeText={setCompany}
-                  placeholder="Enter company name"
-                  placeholderTextColor={"#AAAAAA"}
-                  autoCapitalize="words"
-                  editable={!saving}
-                />
-              </View>
-            </View>
-
-            {/* =================================
-                            DESIGNATION
-                        ================================= */}
-
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Designation</Text>
-
-              <View style={styles.inputWrapper}>
-                <Ionicons
-                  name="person-outline"
-                  size={19}
-                  color={COLORS.lightText}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  value={designation}
-                  onChangeText={setDesignation}
-                  placeholder="Enter designation"
-                  placeholderTextColor={"#AAAAAA"}
-                  autoCapitalize="words"
-                  editable={!saving}
-                />
-              </View>
-            </View>
-
-            {/* =================================
-                            START YEAR
-                        ================================= */}
-
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Start Year</Text>
-
-              <View style={styles.inputWrapper}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={19}
-                  color={COLORS.lightText}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  value={start}
-                  onChangeText={(value) =>
-                    setStart(value.replace(/\D/g, "").slice(0, 4))
-                  }
-                  placeholder="e.g. 2024"
-                  placeholderTextColor={"#AAAAAA"}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  editable={!saving}
-                />
-              </View>
-            </View>
-
-            {/* =================================
-                            END YEAR
-                        ================================= */}
-
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>End Year</Text>
-
-              <View style={styles.inputWrapper}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={19}
-                  color={COLORS.lightText}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  value={end}
-                  onChangeText={(value) =>
-                    setEnd(value.replace(/\D/g, "").slice(0, 4))
-                  }
-                  placeholder="e.g. 2025"
-                  placeholderTextColor={"#AAAAAA"}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  editable={!saving}
-                />
-              </View>
-            </View>
-
-            {/* =================================
-                            SAVE BUTTON
-                        ================================= */}
-
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              activeOpacity={0.85}
-              onPress={handleSave}
+            <SelectField
+              title="Select Occupation"
+              placeholder="Select occupation"
+              value={occupation}
+              options={OCCUPATION_OPTIONS}
+              onSelect={setOccupation}
               disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Ionicons name="checkmark" size={20} color={COLORS.white} />
-              )}
+            />
+          </FieldRow>
 
-              <Text style={styles.saveButtonText}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Text>
-            </TouchableOpacity>
+          {/* ================= INDUSTRY ================= */}
 
-            {/* =================================
-                            CANCEL
-                        ================================= */}
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              activeOpacity={0.7}
-              onPress={() => router.back()}
+          <FieldRow
+            label="Industry"
+            required
+            icon={
+              <Ionicons name="business-outline" size={24} color={COLORS.red} />
+            }
+          >
+            <SelectField
+              title="Select Industry"
+              placeholder="Select industry"
+              value={industry}
+              options={INDUSTRY_OPTIONS}
+              onSelect={setIndustry}
               disabled={saving}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            />
+          </FieldRow>
 
-            <View style={styles.bottomSpace} />
-          </ScrollView>
+          {/* ================= COMPANY ================= */}
+
+          <FieldRow
+            label="Company Name"
+            icon={
+              <Ionicons name="business-outline" size={24} color={COLORS.red} />
+            }
+          >
+            <ClearableInput
+              value={company}
+              onChangeText={setCompany}
+              placeholder="Enter company name"
+              editable={!saving}
+            />
+          </FieldRow>
+
+          {/* ================= JOB LOCATION ================= */}
+
+          <FieldRow
+            label="Job Location"
+            required
+            icon={
+              <Ionicons name="location-outline" size={24} color={COLORS.red} />
+            }
+          >
+            <SelectField
+              title="Select Job Location"
+              placeholder="Select job location"
+              value={jobLocation}
+              options={LOCATION_OPTIONS}
+              onSelect={setJobLocation}
+              disabled={saving}
+              searchable
+            />
+          </FieldRow>
+
+          {/* ================= WORK MODE ================= */}
+
+          <FieldRow
+            label="Work Mode"
+            icon={
+              <Ionicons name="desktop-outline" size={24} color={COLORS.red} />
+            }
+          >
+            <SelectField
+              title="Select Work Mode"
+              placeholder="Select work mode"
+              value={workMode}
+              options={WORK_MODE_OPTIONS}
+              onSelect={setWorkMode}
+              disabled={saving}
+            />
+          </FieldRow>
+
+          {/* ================= DESIGNATION ================= */}
+
+          <FieldRow
+            label="Designation"
+            required
+            icon={
+              <Ionicons name="person-outline" size={24} color={COLORS.red} />
+            }
+          >
+            <ClearableInput
+              value={designation}
+              onChangeText={setDesignation}
+              placeholder="Enter designation"
+              editable={!saving}
+            />
+          </FieldRow>
+
+          {/* ================= ANNUAL INCOME ================= */}
+
+          <FieldRow
+            label="Annual Income"
+            required
+            icon={
+              <MaterialCommunityIcons
+                name="currency-inr"
+                size={24}
+                color={COLORS.red}
+              />
+            }
+          >
+            <SelectField
+              title="Select Annual Income"
+              placeholder="Select annual income"
+              value={annualIncome}
+              options={INCOME_OPTIONS}
+              onSelect={setAnnualIncome}
+              disabled={saving}
+            />
+          </FieldRow>
+
+          {/* ================= ABOUT ================= */}
+
+          <FieldRow
+            label="About Your Career"
+            icon={
+              <Ionicons
+                name="document-text-outline"
+                size={24}
+                color={COLORS.red}
+              />
+            }
+          >
+            <View style={[styles.inputBox, styles.textAreaBox]}>
+              <TextInput
+                style={[styles.inputText, styles.textArea]}
+                value={about}
+                onChangeText={(text) =>
+                  setAbout(text.slice(0, ABOUT_MAX_LENGTH))
+                }
+                placeholder="Tell us about your career"
+                placeholderTextColor={COLORS.placeholder}
+                multiline
+                textAlignVertical="top"
+                maxLength={ABOUT_MAX_LENGTH}
+                editable={!saving}
+              />
+            </View>
+
+            <Text style={styles.counter}>
+              {about.length}/{ABOUT_MAX_LENGTH}
+            </Text>
+          </FieldRow>
+        </ScrollView>
+
+        {/* ================= SAVE BUTTON ================= */}
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            activeOpacity={0.85}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Ionicons name="save-outline" size={22} color={COLORS.white} />
+            )}
+
+            <Text style={styles.saveButtonText}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -628,268 +955,306 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  keyboard: {
+  flex: {
     flex: 1,
   },
 
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 5,
-    paddingTop: 5,
-    paddingBottom: 5,
-  },
-
-  // =====================================================
-  // HEADER
-  // =====================================================
-
-  header: {
-    height: 58,
-    width: "100%",
-    backgroundColor: COLORS.white,
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-
-    borderWidth: 1,
-    borderColor: COLORS.border,
-
-    position: "relative",
-  },
-
-  backButton: {
-    position: "absolute",
-    left: 8,
-    top: 8,
-
-    width: 34,
-    height: 34,
-
-    borderRadius: 17,
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    backgroundColor: COLORS.white,
-
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-  },
-
-  headerTitle: {
-    fontSize: 20,
-    lineHeight: 23,
-    fontWeight: "600",
-    color: COLORS.text,
-
-    includeFontPadding: false,
-  },
-
-  headerRight: {
-    position: "absolute",
-    right: 8,
-    width: 34,
-    height: 34,
-  },
-
-  // =====================================================
-  // SCROLL
-  // =====================================================
-
-  scrollView: {
-    flex: 1,
-
-    backgroundColor: COLORS.white,
-
-    borderWidth: 1,
-    borderTopWidth: 0,
-
-    borderColor: COLORS.border,
-
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-
-  contentContainer: {
-    paddingHorizontal: 18,
-    paddingTop: 22,
-    paddingBottom: 20,
-  },
-
-  // =====================================================
-  // LOADING
-  // =====================================================
+  // ---------- LOADING ----------
 
   loadingContainer: {
     flex: 1,
-
     alignItems: "center",
     justifyContent: "center",
-
     backgroundColor: COLORS.background,
   },
 
   loadingText: {
     marginTop: 10,
-
     fontSize: 13,
     color: COLORS.secondary,
   },
 
-  // =====================================================
-  // ID
-  // =====================================================
+  // ---------- HEADER ----------
 
-  idContainer: {
+  header: {
+    height: 68,
     flexDirection: "row",
     alignItems: "center",
-
-    backgroundColor: COLORS.lightRed,
-
-    borderRadius: 8,
-
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-
-    marginBottom: 22,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.white,
   },
 
-  idText: {
-    marginLeft: 8,
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    fontSize: 13,
-    fontWeight: "500",
+  headerTitle: {
+    flex: 1,
+    marginLeft: 16,
+    marginRight: 8,
+    fontSize: 20,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
 
+  clearButton: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.clearBg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  clearButtonText: {
+    marginLeft: 6,
+    fontSize: 16,
+    fontWeight: "600",
     color: COLORS.red,
   },
 
-  // =====================================================
-  // FIELD
-  // =====================================================
+  // ---------- SCROLL ----------
 
-  fieldContainer: {
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+
+  // ---------- BANNER ----------
+
+  banner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.bannerBg,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+  },
+
+  bannerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.bannerIconBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+
+  bannerTextWrap: {
+    flex: 1,
+  },
+
+  bannerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+
+  bannerSubtitle: {
+    fontSize: 14,
+    color: COLORS.label,
+  },
+
+  // ---------- FIELD ROW ----------
+
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 18,
   },
 
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-
-    color: COLORS.text,
-
-    marginBottom: 7,
-
-    includeFontPadding: false,
-  },
-
-  inputWrapper: {
-    height: 50,
-
-    width: "100%",
-
-    flexDirection: "row",
-    alignItems: "center",
-
-    paddingHorizontal: 13,
-
-    backgroundColor: COLORS.inputBackground,
-
-    borderWidth: 1,
-    borderColor: COLORS.border,
-
-    borderRadius: 8,
-  },
-
-  input: {
-    flex: 1,
-
-    height: "100%",
-
-    marginLeft: 10,
-
-    fontSize: 15,
-
-    color: COLORS.text,
-
-    paddingVertical: 0,
-
-    includeFontPadding: false,
-  },
-
-  // =====================================================
-  // SAVE
-  // =====================================================
-
-  saveButton: {
-    height: 48,
-
-    width: "100%",
-
-    marginTop: 12,
-
-    borderRadius: 8,
-
-    backgroundColor: COLORS.red,
-
-    flexDirection: "row",
-
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.iconBg,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 14,
+    marginTop: 14,
+  },
+
+  fieldBody: {
+    flex: 1,
+  },
+
+  label: {
+    fontSize: 15,
+    color: COLORS.label,
+    marginBottom: 8,
+  },
+
+  required: {
+    color: COLORS.red,
+    fontWeight: "700",
+  },
+
+  // ---------- INPUT BOX ----------
+
+  inputBox: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.fieldBg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+  },
+
+  inputText: {
+    flex: 1,
+    fontSize: 17,
+    color: COLORS.text,
+    paddingVertical: 12,
+    includeFontPadding: false,
+  },
+
+  textInputFlex: {
+    marginRight: 8,
+  },
+
+  placeholderText: {
+    color: COLORS.placeholder,
+  },
+
+  // ---------- TEXT AREA ----------
+
+  textAreaBox: {
+    alignItems: "flex-start",
+    paddingVertical: 4,
+  },
+
+  textArea: {
+    minHeight: 96,
+    lineHeight: 24,
+  },
+
+  counter: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    fontSize: 14,
+    color: COLORS.label,
+  },
+
+  // ---------- FOOTER ----------
+
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F3F3",
+  },
+
+  saveButton: {
+    height: 58,
+    borderRadius: 16,
+    backgroundColor: COLORS.red,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
   },
 
   saveButtonDisabled: {
-    opacity: 0.65,
+    opacity: 0.7,
   },
 
   saveButtonText: {
-    marginLeft: 7,
-
-    fontSize: 16,
-
+    marginLeft: 10,
+    fontSize: 18,
     fontWeight: "600",
-
     color: COLORS.white,
-
-    includeFontPadding: false,
   },
 
-  // =====================================================
-  // CANCEL
-  // =====================================================
+  // ---------- DROPDOWN SHEET ----------
 
-  cancelButton: {
-    height: 46,
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: COLORS.overlay,
+  },
 
-    width: "100%",
-
-    marginTop: 10,
-
-    borderRadius: 8,
-
-    borderWidth: 1,
-
-    borderColor: COLORS.border,
-
+  sheet: {
+    maxHeight: "70%",
     backgroundColor: COLORS.white,
-
-    alignItems: "center",
-    justifyContent: "center",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 24,
   },
 
-  cancelButtonText: {
-    fontSize: 15,
+  sheetHandle: {
+    alignSelf: "center",
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#DDDDDD",
+    marginBottom: 14,
+  },
 
+  sheetTitle: {
+    fontSize: 18,
     fontWeight: "600",
-
-    color: COLORS.secondary,
+    color: COLORS.text,
+    marginBottom: 12,
   },
 
-  bottomSpace: {
-    height: 20,
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.fieldBg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
+    marginLeft: 8,
+    color: COLORS.text,
+  },
+
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F3F3",
+  },
+
+  optionText: {
+    fontSize: 16,
+    color: COLORS.text,
+  },
+
+  optionTextSelected: {
+    color: COLORS.red,
+    fontWeight: "600",
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: COLORS.label,
+    paddingVertical: 24,
   },
 });

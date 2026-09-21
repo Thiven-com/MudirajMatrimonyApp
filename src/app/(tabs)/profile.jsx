@@ -5,6 +5,7 @@ import {
   Dimensions,
   Image,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -16,6 +17,7 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
 import {
@@ -526,6 +528,49 @@ export default function ProfileDetails() {
 
   const handleShortlists = () => {
     router.push("/shortlist");
+  };
+
+  /* =====================================================
+     LOGOUT
+  ===================================================== */
+
+  /* =====================================================
+   LOGOUT
+===================================================== */
+
+  const performLogout = async () => {
+    try {
+      console.log("LOGOUT: clearing session");
+
+      // Clears everything stored by AsyncStorage (token, cached user, etc.)
+      await AsyncStorage.clear();
+
+      // If you store the token with expo-secure-store, also do:
+      // await SecureStore.deleteItemAsync("token");
+    } catch (error) {
+      console.error("LOGOUT ERROR:", error);
+    }
+
+    console.log("LOGOUT: navigating to login");
+    router.replace("/login");
+  };
+
+  const handleLogout = () => {
+    console.log("LOGOUT PRESSED");
+
+    // Alert.alert with buttons does nothing on Expo web,
+    // so use window.confirm there instead
+    if (Platform.OS === "web") {
+      if (window.confirm("Are you sure you want to log out?")) {
+        performLogout();
+      }
+      return;
+    }
+
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: performLogout },
+    ]);
   };
 
   /* =====================================================
@@ -1785,6 +1830,20 @@ export default function ProfileDetails() {
           <Ionicons name="chevron-forward" size={18} color="#745B29" />
         </View>
 
+        {/* =================================================
+          LOGOUT
+      ================================================= */}
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.85}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#D7192A" />
+
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+
         {/* Bottom space */}
 
         <View style={{ height: 85 }} />
@@ -2322,6 +2381,30 @@ const styles = StyleSheet.create({
     color: "#756B59",
     fontSize: 11,
     marginTop: 2,
+  },
+
+  /* =====================================================
+     LOGOUT
+  ===================================================== */
+
+  logoutButton: {
+    marginHorizontal: 13,
+    marginTop: 16,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F1C6CA",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  logoutText: {
+    color: "#D7192A",
+    fontSize: 14,
+    fontWeight: "800",
+    marginLeft: 8,
   },
 
   /* =====================================================

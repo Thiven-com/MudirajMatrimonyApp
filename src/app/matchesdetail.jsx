@@ -183,6 +183,31 @@ function isAlreadyDoneMessage(message) {
    routeId is passed in as a fallback for `id` since the detail
    payload itself doesn't include an id/user_id field anywhere.
 ========================================================= */
+function getDisplayValue(value) {
+  if (value === null || value === undefined) return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getDisplayValue(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    return String(
+      value.name ??
+        value.label ??
+        value.value ??
+        value.title ??
+        value.qualification ??
+        value.degree ??
+        "",
+    );
+  }
+
+  return String(value);
+}
+
 function mapProfile(api, routeId) {
   const basic = api.basic_info ?? api;
   const intro = api.intoduction ?? api.introduction ?? {};
@@ -228,31 +253,43 @@ function mapProfile(api, routeId) {
     name: (basic.name ?? basic.full_name ?? joinedName) || "Unknown",
     age: basic.age ?? null,
     gender: basic.gender ?? "",
-    profession:
+    profession: getDisplayValue(
       basic.profession ??
-      basic.occupation ??
-      careerList[0]?.profession ??
-      careerList[0]?.designation ??
-      "",
-    location:
+        basic.occupation ??
+        careerList[0]?.profession ??
+        careerList[0]?.designation ??
+        "",
+    ),
+    location: getDisplayValue(
       basic.location ?? [basic.city, basic.state].filter(Boolean).join(", "),
-    education:
+    ),
+    education: getDisplayValue(
       educationList[0]?.qualification ??
-      educationList[0]?.degree ??
-      basic.education ??
-      basic.qualification ??
-      "",
-    height: physical.height ?? basic.height_text ?? basic.height ?? "",
-    religion: basic.religion ?? "",
-    caste: basic.caste ?? "",
-    subCaste: basic.sub_caste ?? "",
-    dob: basic.date_of_birth ?? basic.dob ?? "",
-    maritalStatus: basic.maritial_status ?? basic.marital_status ?? "",
-    motherTongue:
+        educationList[0]?.degree ??
+        basic.education ??
+        basic.qualification ??
+        "",
+    ),
+    height: getDisplayValue(
+      physical.height ?? basic.height_text ?? basic.height ?? "",
+    ),
+    religion: getDisplayValue(basic.religion),
+    caste: getDisplayValue(basic.caste),
+    subCaste: getDisplayValue(basic.sub_caste),
+    dob: getDisplayValue(basic.date_of_birth ?? basic.dob ?? ""),
+    maritalStatus: getDisplayValue(
+      basic.maritial_status ?? basic.marital_status ?? "",
+    ),
+    motherTongue: getDisplayValue(
       api.mother_tongue ?? basic.mothere_tongue ?? basic.mother_tongue ?? "",
-    bloodGroup: physical.blood_group ?? basic.blood_group ?? "",
-    annualIncome: basic.annual_income ?? "",
-    aboutMyself: intro.introduction ?? api.about ?? api.about_myself ?? "",
+    ),
+    bloodGroup: getDisplayValue(
+      physical.blood_group ?? basic.blood_group ?? "",
+    ),
+    annualIncome: getDisplayValue(basic.annual_income ?? ""),
+    aboutMyself: getDisplayValue(
+      intro.introduction ?? api.about ?? api.about_myself ?? "",
+    ),
     online: !!(basic.is_online ?? basic.online),
     verified: !!(basic.is_verified ?? basic.verified),
     canViewContact,
@@ -278,7 +315,12 @@ function mapProfile(api, routeId) {
 
 export default function ProfileDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const rawId = params.id ?? params.memberId;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  console.log("PROFILE ROUTE PARAMS:", params);
+  console.log("PROFILE MEMBER ID:", id);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -429,6 +471,8 @@ export default function ProfileDetailScreen() {
 
     const targetId = profile?.id ?? id;
 
+    console.log("TARGET MEMBER ID:", targetId);
+
     if (!targetId) {
       setInterestError("Unable to identify this member.");
       return;
@@ -445,7 +489,10 @@ export default function ProfileDetailScreen() {
 
     try {
       const result = await expressInterest(targetId, token);
-      console.log("expressInterest result:", JSON.stringify(result));
+      console.log(
+        "EXPRESS INTEREST RESPONSE:",
+        JSON.stringify(result, null, 2),
+      );
 
       if (isSuccessResponse(result)) {
         setInterestSent(true);
@@ -858,12 +905,16 @@ export default function ProfileDetailScreen() {
 
             <View style={styles.aboutGrid}>
               <View style={styles.aboutColumn}>
-                {ABOUT_LEFT.filter((item) => !!item.value).map((item) => (
+                {ABOUT_LEFT.filter(
+                  (item) => getDisplayValue(item.value).trim() !== "",
+                ).map((item) => (
                   <AboutItem key={item.label} {...item} />
                 ))}
               </View>
               <View style={styles.aboutColumn}>
-                {ABOUT_RIGHT.filter((item) => !!item.value).map((item) => (
+                {ABOUT_RIGHT.filter(
+                  (item) => getDisplayValue(item.value).trim() !== "",
+                ).map((item) => (
                   <AboutItem key={item.label} {...item} />
                 ))}
               </View>
@@ -1007,7 +1058,7 @@ function DetailRow({ icon, text }) {
           style={styles.detailIcon}
         />
       )}
-      <Text style={styles.detailText}>{text}</Text>
+      <Text style={styles.detailText}>{getDisplayValue(text)}</Text>
     </View>
   );
 }
@@ -1036,7 +1087,7 @@ function AboutItem({ icon, label, value }) {
       <View style={styles.aboutIconCircle}>{renderAboutIcon(icon)}</View>
       <View>
         <Text style={styles.aboutItemLabel}>{label}</Text>
-        <Text style={styles.aboutItemValue}>{value}</Text>
+        <Text style={styles.aboutItemValue}>{getDisplayValue(value)}</Text>
       </View>
     </View>
   );

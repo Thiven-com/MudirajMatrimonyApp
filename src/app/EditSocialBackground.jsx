@@ -182,7 +182,10 @@ const EditSocialBackground = () => {
     try {
       setSaving(true);
 
-      const accessToken = await AsyncStorage.getItem("authToken");
+      const accessToken =
+        (await AsyncStorage.getItem("authToken")) ||
+        (await AsyncStorage.getItem("token")) ||
+        (await AsyncStorage.getItem("access_token"));
 
       if (!accessToken) {
         Alert.alert(
@@ -241,6 +244,9 @@ const EditSocialBackground = () => {
         JSON.stringify(payload, null, 2),
       );
 
+      console.log("ACCESS TOKEN EXISTS:", Boolean(accessToken));
+      console.log("UPDATE FUNCTION PAYLOAD:", JSON.stringify(payload, null, 2));
+
       const response = await updateMemberSpiritualBackground(
         accessToken,
         payload,
@@ -255,6 +261,9 @@ const EditSocialBackground = () => {
         response?.success === 1 ||
         response?.success === true ||
         response?.result === true ||
+        response?.result === 1 ||
+        response?.status === true ||
+        response?.status === 1 ||
         response?.statusCode === 200 ||
         response?.statusCode === 201;
 

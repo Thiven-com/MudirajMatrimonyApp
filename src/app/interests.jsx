@@ -41,6 +41,11 @@ const COLORS = {
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300.png?text=Profile";
 
+// Screen that opens when a profile (photo / name) is tapped.
+// Change this one line if your route file is named differently
+// (e.g. "/matches-details" or "/MatchesDetails").
+const PROFILE_ROUTE = "/matchesdetail";
+
 const TABS = [
   {
     key: "sent",
@@ -51,6 +56,109 @@ const TABS = [
     label: "Received",
   },
 ];
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+/*
+ * Alert.alert does nothing on Expo Web, so use window.alert there.
+ */
+const notify = (title, message) => {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.alert(`${title}\n\n${message}`);
+    }
+
+    return;
+  }
+
+  Alert.alert(title, message);
+};
+
+/*
+ * FIX: the old check was
+ *     result?.success === 1 || result?.result === true
+ * so a perfectly good response like { success: true, ... } or
+ * { status: "success" } or { statusCode: 200 } was treated as a failure:
+ * the card never disappeared and an error was shown.
+ *
+ * This accepts the common "success" shapes and still rejects
+ * explicit failures.
+ */
+const isApiSuccess = (result) => {
+  if (result === true) return true;
+
+  if (!result || typeof result !== "object") return false;
+
+  const NEGATIVE = [false, 0, "0", "false", "error", "failed", "fail"];
+
+  const POSITIVE = [
+    true,
+    1,
+    "1",
+    "true",
+    "success",
+    "ok",
+    "accepted",
+    "rejected",
+  ];
+
+  const flags = [result.success, result.result, result.status].filter(
+    (value) => value !== undefined && value !== null,
+  );
+
+  if (flags.some((value) => NEGATIVE.includes(value))) return false;
+
+  if (flags.some((value) => POSITIVE.includes(value))) return true;
+
+  // Fall back to an HTTP-style status code if one is present.
+  const code = Number(
+    result.statusCode ??
+      result.status_code ??
+      result.code ??
+      (typeof result.status === "number" ? result.status : undefined),
+  );
+
+  if (Number.isFinite(code) && code > 0) {
+    return code >= 200 && code < 300;
+  }
+
+  return false;
+};
+
+const apiMessage = (result, fallback) =>
+  String(result?.message || result?.msg || result?.error || fallback);
+
+/*
+ * The "received" API returns EVERY interest sent to you - including the
+ * ones you already accepted (status "approved") or rejected. That is why an
+ * accepted card kept coming back after the refresh, still with
+ * Accept / Reject buttons.
+ *
+ * Only PENDING interests get action buttons now.
+ */
+const ACCEPTED_STATUSES = ["approved", "accepted"];
+
+const REJECTED_STATUSES = ["rejected", "declined", "denied"];
+
+// false -> Received tab lists only pending requests (handled ones disappear)
+// true  -> handled ones stay in the list, shown with a status and no buttons
+const SHOW_HANDLED_ON_RECEIVED = false;
+
+const normalizeStatus = (value) =>
+  String(value ?? "pending")
+    .trim()
+    .toLowerCase();
+
+const isAcceptedStatus = (value) =>
+  ACCEPTED_STATUSES.includes(normalizeStatus(value));
+
+const isRejectedStatus = (value) =>
+  REJECTED_STATUSES.includes(normalizeStatus(value));
+
+const isPendingStatus = (value) =>
+  !isAcceptedStatus(value) && !isRejectedStatus(value);
 
 export default function InterestsScreen() {
   const router = useRouter();
@@ -69,12 +177,17 @@ export default function InterestsScreen() {
 
   // =====================================================
   // LOAD INTERESTS
+  // silent = true -> refresh in the background (no spinner)
   // =====================================================
 
-  const loadInterests = async (tab = activeTab, refresh = false) => {
+  const loadInterests = async (
+    tab = activeTab,
+    refresh = false,
+    silent = false,
+  ) => {
     if (refresh) {
       setRefreshing(true);
-    } else {
+    } else if (!silent) {
       setLoading(true);
     }
 
@@ -127,35 +240,61 @@ export default function InterestsScreen() {
   // DATA HELPERS
   // =====================================================
 
+  /*
+   * The profile we show is the OTHER person:
+   *   Received tab -> the sender
+   *   Sent tab     -> the receiver
+   * (Looking at `sender` first on the Sent tab would give you your own
+   *  profile, and the click would open the wrong member.)
+   */
   const getMember = (item) =>
-    item?.member ??
-    item?.sender ??
-    item?.from_member ??
-    item?.receiver ??
-    item?.to_member ??
-    item?.user ??
-    item?.member_data ??
-    {};
+    activeTab === "received"
+      ? (item?.member ??
+        item?.sender ??
+        item?.from_member ??
+        item?.user ??
+        item?.member_data ??
+        item?.receiver ??
+        item?.to_member ??
+        {})
+      : (item?.member ??
+        item?.receiver ??
+        item?.to_member ??
+        item?.user ??
+        item?.member_data ??
+        item?.sender ??
+        item?.from_member ??
+        {});
 
   const getMemberId = (item) => {
     const member = getMember(item);
+
+    const otherId =
+      activeTab === "received"
+        ? (item?.sender_id ?? item?.receiver_id)
+        : (item?.receiver_id ?? item?.sender_id);
 
     return (
       member?.id ??
       member?.member_id ??
       item?.member_id ??
-      item?.sender_id ??
-      item?.receiver_id ??
+      otherId ??
       item?.user_id
     );
   };
 
+  /*
+   * FIX: prefer the explicit interest / request id keys. The generic
+   * `item.id` is checked LAST, because on some list responses `id` is
+   * the member's id, and accept/reject then get called with the wrong
+   * id (server replies "not found" and nothing happens).
+   */
   const getInterestId = (item) =>
-    item?.id ??
     item?.interest_id ??
     item?.request_id ??
+    item?.interest?.interest_id ??
     item?.interest?.id ??
-    item?.interest?.interest_id;
+    item?.id;
 
   const getName = (item) => {
     const member = getMember(item);
@@ -168,8 +307,7 @@ export default function InterestsScreen() {
       member?.name ??
       member?.full_name ??
       item?.name ??
-      `${firstName} ${lastName}`.trim() ??
-      "Member"
+      (`${firstName} ${lastName}`.trim() || "Member")
     );
   };
 
@@ -215,15 +353,20 @@ export default function InterestsScreen() {
   const openProfile = (item) => {
     const memberId = getMemberId(item);
 
+    console.log("OPEN PROFILE -> memberId:", memberId, "route:", PROFILE_ROUTE);
+
     if (!memberId) {
-      Alert.alert("Error", "Member ID not found.");
+      notify("Error", "Member ID not found.");
       return;
     }
 
     router.push({
-      pathname: "/member-details",
+      pathname: PROFILE_ROUTE,
       params: {
+        // Same value under both names, so the details screen can read
+        // either `memberId` or `id`.
         memberId: String(memberId),
+        id: String(memberId),
       },
     });
   };
@@ -241,6 +384,92 @@ export default function InterestsScreen() {
   };
 
   // =====================================================
+  // ACCEPT / REJECT  (shared flow)
+  // =====================================================
+
+  const runInterestAction = async (type, interestId) => {
+    if (actionId !== null) return;
+
+    const isAccept = type === "accept";
+
+    const verb = isAccept ? "accept" : "reject";
+
+    setActionId(interestId);
+
+    setError("");
+
+    try {
+      const token = await getToken();
+
+      if (!token) {
+        setError("Please login again.");
+
+        notify("Login Required", "Please login again.");
+
+        return;
+      }
+
+      console.log(`${verb.toUpperCase()} INTEREST -> ID:`, interestId);
+
+      const result = isAccept
+        ? await acceptInterest(token, interestId)
+        : await rejectInterest(token, interestId);
+
+      console.log(`${verb} result:`, JSON.stringify(result));
+
+      /* ---------- FAILED ---------- */
+
+      if (!isApiSuccess(result)) {
+        const message = apiMessage(result, `Unable to ${verb} interest.`);
+
+        setError(message);
+
+        notify(isAccept ? "Accept Failed" : "Reject Failed", message);
+
+        return;
+      }
+
+      /* ---------- SUCCESS: update the card right away ---------- */
+
+      setInterests((prev) =>
+        SHOW_HANDLED_ON_RECEIVED
+          ? prev.map((item) =>
+              String(getInterestId(item)) === String(interestId)
+                ? { ...item, status: isAccept ? "approved" : "rejected" }
+                : item,
+            )
+          : prev.filter(
+              (item) => String(getInterestId(item)) !== String(interestId),
+            ),
+      );
+
+      notify(
+        isAccept ? "Interest Accepted" : "Interest Rejected",
+        apiMessage(
+          result,
+          isAccept
+            ? "Interest accepted successfully."
+            : "Interest rejected successfully.",
+        ),
+      );
+
+      /* ---------- re-sync with the server (no spinner) ---------- */
+
+      loadInterests(activeTab, false, true);
+    } catch (err) {
+      console.log(`${verb} Error:`, err);
+
+      const message = err?.message || `Unable to ${verb} interest.`;
+
+      setError(message);
+
+      notify(isAccept ? "Accept Failed" : "Reject Failed", message);
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  // =====================================================
   // ACCEPT INTEREST
   // =====================================================
 
@@ -250,8 +479,11 @@ export default function InterestsScreen() {
     console.log("handleAccept -> raw item:", JSON.stringify(item));
     console.log("handleAccept -> resolved interestId:", interestId);
 
-    if (!interestId) {
+    if (interestId === undefined || interestId === null || interestId === "") {
       setError("Interest ID not found.");
+
+      notify("Error", "Interest ID not found.");
+
       return;
     }
 
@@ -259,7 +491,7 @@ export default function InterestsScreen() {
     // fall back to the browser's native confirm() dialog instead.
     if (Platform.OS === "web") {
       if (window.confirm("Do you want to accept this interest?")) {
-        confirmAccept(interestId);
+        runInterestAction("accept", interestId);
       }
       return;
     }
@@ -271,44 +503,9 @@ export default function InterestsScreen() {
       },
       {
         text: "Accept",
-        onPress: () => confirmAccept(interestId),
+        onPress: () => runInterestAction("accept", interestId),
       },
     ]);
-  };
-
-  const confirmAccept = async (interestId) => {
-    if (actionId) return;
-
-    setActionId(interestId);
-
-    setError("");
-
-    try {
-      const token = await getToken();
-
-      if (!token) {
-        setError("Please login again.");
-        return;
-      }
-
-      const result = await acceptInterest(token, interestId);
-
-      console.log("Accept result:", JSON.stringify(result));
-
-      if (result?.success === 1 || result?.result === true) {
-        setInterests((prev) =>
-          prev.filter((item) => getInterestId(item) !== interestId),
-        );
-      } else {
-        setError(result?.message || "Unable to accept interest.");
-      }
-    } catch (err) {
-      console.log("Accept Error:", err);
-
-      setError(err?.message || "Unable to accept interest.");
-    } finally {
-      setActionId(null);
-    }
   };
 
   // =====================================================
@@ -321,14 +518,17 @@ export default function InterestsScreen() {
     console.log("handleReject -> raw item:", JSON.stringify(item));
     console.log("handleReject -> resolved interestId:", interestId);
 
-    if (!interestId) {
+    if (interestId === undefined || interestId === null || interestId === "") {
       setError("Interest ID not found.");
+
+      notify("Error", "Interest ID not found.");
+
       return;
     }
 
     if (Platform.OS === "web") {
       if (window.confirm("Do you want to reject this interest?")) {
-        confirmReject(interestId);
+        runInterestAction("reject", interestId);
       }
       return;
     }
@@ -341,44 +541,9 @@ export default function InterestsScreen() {
       {
         text: "Reject",
         style: "destructive",
-        onPress: () => confirmReject(interestId),
+        onPress: () => runInterestAction("reject", interestId),
       },
     ]);
-  };
-
-  const confirmReject = async (interestId) => {
-    if (actionId) return;
-
-    setActionId(interestId);
-
-    setError("");
-
-    try {
-      const token = await getToken();
-
-      if (!token) {
-        setError("Please login again.");
-        return;
-      }
-
-      const result = await rejectInterest(token, interestId);
-
-      console.log("Reject result:", JSON.stringify(result));
-
-      if (result?.success === 1 || result?.result === true) {
-        setInterests((prev) =>
-          prev.filter((item) => getInterestId(item) !== interestId),
-        );
-      } else {
-        setError(result?.message || "Unable to reject interest.");
-      }
-    } catch (err) {
-      console.log("Reject Error:", err);
-
-      setError(err?.message || "Unable to reject interest.");
-    } finally {
-      setActionId(null);
-    }
   };
 
   // =====================================================
@@ -397,6 +562,12 @@ export default function InterestsScreen() {
     const location = getLocation(item);
 
     const status = String(getStatus(item));
+
+    const isAccepted = isAcceptedStatus(status);
+
+    const isRejected = isRejectedStatus(status);
+
+    const isPending = isPendingStatus(status);
 
     const isActionLoading = actionId === interestId;
 
@@ -457,10 +628,28 @@ export default function InterestsScreen() {
 
           {/* Status */}
           <View style={styles.statusRow}>
-            <View style={styles.statusBadge}>
-              <View style={styles.statusDot} />
+            <View
+              style={[
+                styles.statusBadge,
+                isAccepted && styles.statusBadgeGreen,
+                isRejected && styles.statusBadgeRed,
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  isAccepted && { backgroundColor: COLORS.green },
+                  isRejected && { backgroundColor: COLORS.primaryRed },
+                ]}
+              />
 
-              <Text style={styles.statusText}>
+              <Text
+                style={[
+                  styles.statusText,
+                  isAccepted && styles.statusTextGreen,
+                  isRejected && styles.statusTextRed,
+                ]}
+              >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Text>
             </View>
@@ -468,33 +657,56 @@ export default function InterestsScreen() {
 
           {/* Buttons */}
           {activeTab === "received" ? (
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.rejectButton}
-                onPress={() => handleReject(item)}
-                disabled={isActionLoading}
-              >
-                <Ionicons name="close" size={16} color={COLORS.primaryRed} />
+            isPending ? (
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={styles.rejectButton}
+                  onPress={() => handleReject(item)}
+                  disabled={actionId !== null}
+                >
+                  <Ionicons name="close" size={16} color={COLORS.primaryRed} />
 
-                <Text style={styles.rejectText}>Reject</Text>
-              </TouchableOpacity>
+                  <Text style={styles.rejectText}>Reject</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.acceptButton}
-                onPress={() => handleAccept(item)}
-                disabled={isActionLoading}
-              >
-                {isActionLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                <TouchableOpacity
+                  style={styles.acceptButton}
+                  onPress={() => handleAccept(item)}
+                  disabled={actionId !== null}
+                >
+                  {isActionLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.white} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color={COLORS.white}
+                      />
 
-                    <Text style={styles.acceptText}>Accept</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+                      <Text style={styles.acceptText}>Accept</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.sentStatus}>
+                <Ionicons
+                  name={isAccepted ? "checkmark-circle" : "close-circle"}
+                  size={15}
+                  color={isAccepted ? COLORS.green : COLORS.primaryRed}
+                />
+
+                <Text
+                  style={[
+                    styles.sentStatusText,
+                    { color: isAccepted ? COLORS.green : COLORS.primaryRed },
+                  ]}
+                >
+                  {isAccepted ? "Interest Accepted" : "Interest Rejected"}
+                </Text>
+              </View>
+            )
           ) : (
             <View style={styles.sentStatus}>
               <Ionicons name="paper-plane" size={14} color={COLORS.gold} />
@@ -516,12 +728,17 @@ export default function InterestsScreen() {
     );
   };
 
+  const visibleInterests =
+    activeTab === "received" && !SHOW_HANDLED_ON_RECEIVED
+      ? interests.filter((item) => isPendingStatus(getStatus(item)))
+      : interests;
+
   const emptyTitle =
     activeTab === "received" ? "No Interests Received" : "No Interests Sent";
 
   const emptyMessage =
     activeTab === "received"
-      ? "No one has sent you an interest yet."
+      ? "No pending interest requests right now."
       : "You have not sent any interests yet.";
 
   // =====================================================
@@ -625,7 +842,7 @@ export default function InterestsScreen() {
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            {interests.length} profiles
+            {visibleInterests.length} profiles
           </Text>
         </View>
 
@@ -636,14 +853,14 @@ export default function InterestsScreen() {
 
       {/* List */}
       <FlatList
-        data={interests}
+        data={visibleInterests}
         renderItem={renderItem}
         keyExtractor={(item, index) =>
           String(getInterestId(item) ?? getMemberId(item) ?? index)
         }
         contentContainerStyle={[
           styles.listContent,
-          interests.length === 0 && styles.emptyList,
+          visibleInterests.length === 0 && styles.emptyList,
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -677,7 +894,7 @@ export default function InterestsScreen() {
 }
 
 // =====================================================
-// STYLES
+// STYLES  (unchanged)
 // =====================================================
 
 const styles = StyleSheet.create({
@@ -883,6 +1100,22 @@ const styles = StyleSheet.create({
     color: "#9B6A0D",
     fontSize: 10,
     fontWeight: "700",
+  },
+
+  statusBadgeGreen: {
+    backgroundColor: "#E6F6EC",
+  },
+
+  statusBadgeRed: {
+    backgroundColor: "#FFECEC",
+  },
+
+  statusTextGreen: {
+    color: "#1E7A47",
+  },
+
+  statusTextRed: {
+    color: COLORS.primaryRed,
   },
 
   actionRow: {

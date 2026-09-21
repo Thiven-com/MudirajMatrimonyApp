@@ -3,25 +3,25 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    getMemberCities,
-    getMemberCountries,
-    getMemberPresentAddress,
-    getMemberStates,
-    updateMemberAddress,
+  getMemberCities,
+  getMemberCountries,
+  getMemberPresentAddress,
+  getMemberStates,
+  updateMemberAddress,
 } from "../utils/Functions";
 
 const COLORS = {
@@ -46,9 +46,17 @@ const emptyAddress = {
   address: "",
 };
 
-const getToken = async () =>
-  (await AsyncStorage.getItem("access_token")) ||
-  (await AsyncStorage.getItem("accessToken"));
+const getToken = async () => {
+  const token =
+    (await AsyncStorage.getItem("authToken")) ||
+    (await AsyncStorage.getItem("access_token")) ||
+    (await AsyncStorage.getItem("accessToken")) ||
+    (await AsyncStorage.getItem("token"));
+
+  console.log("PRESENT ADDRESS TOKEN EXISTS:", !!token);
+
+  return token;
+};
 
 const unwrap = (response) => {
   // getMethod() returns the API JSON body directly.
@@ -140,6 +148,37 @@ const normalizeOption = (item, type) => {
   };
 };
 
+/*
+ * One shared parser for countries / states / cities.
+ * Handles: [..]  |  { data: [..] }  |  { data: { states: [..] } }
+ *          { result: [..] }  |  { data: { data: [..] } }  | etc.
+ *
+ * FIX: loadMemberStates used to read only
+ *   response.data.states || response.states || response.data
+ * so any other response shape (data.data, result, ...) gave an empty list.
+ */
+const extractOptions = (response, type) => {
+  const plural = type === "city" ? "cities" : `${type}s`;
+
+  const body = unwrap(response);
+
+  const raw = Array.isArray(body) ? body : getList(body, [plural]);
+
+  return raw.map((item) => normalizeOption(item, type)).filter(Boolean);
+};
+
+const findByName = (list, name) => {
+  const target = String(name || "")
+    .trim()
+    .toLowerCase();
+
+  if (!target) return null;
+
+  return (
+    (list || []).find((item) => item.name.toLowerCase() === target) || null
+  );
+};
+
 const normalizeAddress = (response) => {
   const body = unwrap(response);
 
@@ -155,6 +194,10 @@ const normalizeAddress = (response) => {
   //   },
   //   "result": true
   // }
+  //
+  // NOTE: this response has NAMES only - no country_id / state_id /
+  // city_id. The screen resolves the IDs from the names (see
+  // resolveAddressIds) before the edit form opens.
 
   let address = null;
 
@@ -291,9 +334,13 @@ export default function PresentAddress() {
   const [statesLoading, setStatesLoading] = useState(false);
   const [citiesLoading, setCitiesLoading] = useState(false);
   const [savingPresentAddress, setSavingPresentAddress] = useState(false);
-  const [loadingAddress, setLoadingAddress] = useState(false);
+  const [resolvingAddress, setResolvingAddress] = useState(false);
   const [defaultAddress, setDefaultAddress] = useState(true);
   const [editing, setEditing] = useState(false);
+
+  /* =====================================================
+       LOAD SAVED PRESENT ADDRESS
+    ===================================================== */
 
   const loadMemberPresentAddress = useCallback(async () => {
     try {
@@ -312,13 +359,6 @@ export default function PresentAddress() {
       const address = normalizeAddress(response);
       setPresentAddress(address);
 
-      if (address) {
-        setPresentAddressForm((prev) => ({
-          ...prev,
-          ...address,
-        }));
-      }
-
       return address;
     } catch (error) {
       console.error(
@@ -330,24 +370,41 @@ export default function PresentAddress() {
     }
   }, []);
 
+  /* =====================================================
+       LOAD COUNTRIES
+    ===================================================== */
+
   const loadMemberCountries = useCallback(async () => {
     try {
       const token = await getToken();
-      if (!token) return [];
+
+      if (!token) {
+        console.log("COUNTRIES: TOKEN MISSING");
+        return [];
+      }
 
       setCountriesLoading(true);
-      const response = await getMemberCountries(token);
-      console.log("COUNTRIES RESPONSE:", JSON.stringify(response, null, 2));
 
-      const list = getList(response, ["countries"]);
-      const normalized = list
-        .map((item) => normalizeOption(item, "country"))
-        .filter(Boolean);
+      const response = await getMemberCountries(token);
+
+      console.log(
+        "COUNTRIES FULL RESPONSE:",
+        JSON.stringify(response, null, 2),
+      );
+
+      const normalized = extractOptions(response, "country");
+
+      console.log("COUNTRIES COUNT:", normalized.length);
 
       setCountries(normalized);
+
       return normalized;
     } catch (error) {
-      console.error("LOAD COUNTRIES ERROR:", error?.response?.data || error);
+      console.error(
+        "LOAD COUNTRIES ERROR:",
+        error?.response?.data || error?.message || error,
+      );
+
       setCountries([]);
       return [];
     } finally {
@@ -355,39 +412,55 @@ export default function PresentAddress() {
     }
   }, []);
 
+  /* =====================================================
+       LOAD STATES  (needs country id)
+    ===================================================== */
+
   const loadMemberStates = useCallback(async (countryId) => {
     if (!countryId) {
       setStates([]);
-      setCities([]);
       return [];
     }
 
     try {
-      const token = await getToken();
-      if (!token) return [];
-
       setStatesLoading(true);
-      const response = await getMemberStates(token, countryId);
-      console.log(
-        `STATES RESPONSE (${countryId}):`,
-        JSON.stringify(response, null, 2),
-      );
 
-      const list = getList(response, ["states"]);
-      const normalized = list
-        .map((item) => normalizeOption(item, "state"))
-        .filter(Boolean);
+      const token = await getToken();
+
+      console.log("STATE REQUEST:", {
+        countryId,
+        tokenExists: !!token,
+      });
+
+      if (!token) {
+        setStates([]);
+        return [];
+      }
+
+      const response = await getMemberStates(token, countryId);
+
+      console.log("STATES RESPONSE:", JSON.stringify(response, null, 2));
+
+      const normalized = extractOptions(response, "state");
+
+      console.log("STATES COUNT:", normalized.length);
 
       setStates(normalized);
+
       return normalized;
     } catch (error) {
       console.error("LOAD STATES ERROR:", error?.response?.data || error);
+
       setStates([]);
       return [];
     } finally {
       setStatesLoading(false);
     }
   }, []);
+
+  /* =====================================================
+       LOAD CITIES  (needs STATE id)
+    ===================================================== */
 
   const loadMemberCities = useCallback(async (stateId) => {
     const numericStateId = Number(stateId);
@@ -413,7 +486,6 @@ export default function PresentAddress() {
       console.log("GET MEMBER CITIES");
       console.log("URL: /api/member/cities/" + numericStateId);
       console.log("STATE ID:", numericStateId);
-      console.log("TOKEN EXISTS:", !!token);
       console.log("========================================");
 
       const response = await getMemberCities(token, numericStateId);
@@ -423,38 +495,9 @@ export default function PresentAddress() {
         JSON.stringify(response, null, 2),
       );
 
-      const body = unwrap(response);
-
-      // The Functions.js API is:
-      // GET /api/member/cities/{state_id}
-      // and returns response through getMethod().
-      const rawList = Array.isArray(body)
-        ? body
-        : Array.isArray(body?.cities)
-          ? body.cities
-          : Array.isArray(body?.data?.cities)
-            ? body.data.cities
-            : Array.isArray(body?.data?.data)
-              ? body.data.data
-              : Array.isArray(body?.data)
-                ? body.data
-                : Array.isArray(body?.result)
-                  ? body.result
-                  : Array.isArray(body?.data?.result)
-                    ? body.data.result
-                    : getList(response, ["cities"]);
-
-      console.log("RAW CITY COUNT:", rawList.length);
-
-      const normalizedCities = rawList
-        .map((item) => normalizeOption(item, "city"))
-        .filter(Boolean);
+      const normalizedCities = extractOptions(response, "city");
 
       console.log("NORMALIZED CITY COUNT:", normalizedCities.length);
-      console.log(
-        "NORMALIZED CITIES:",
-        JSON.stringify(normalizedCities, null, 2),
-      );
 
       setCities(normalizedCities);
 
@@ -469,64 +512,92 @@ export default function PresentAddress() {
     }
   }, []);
 
+  /* =====================================================
+       INITIAL LOAD
+    ===================================================== */
+
   useEffect(() => {
-    let mounted = true;
+    console.log("========================================");
+    console.log("PRESENT ADDRESS SCREEN - INITIAL LOAD");
+    console.log("========================================");
 
-    const load = async () => {
-      console.log("========================================");
-      console.log("PRESENT ADDRESS SCREEN - INITIAL LOAD");
-      console.log("========================================");
-
-      await Promise.all([loadMemberPresentAddress(), loadMemberCountries()]);
-
-      if (mounted) {
-        setLoadingAddress(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      mounted = false;
-    };
+    loadMemberPresentAddress();
+    loadMemberCountries();
   }, [loadMemberPresentAddress, loadMemberCountries]);
 
-  // When editing an existing address, load the dependent
-  // state and city lists using the saved IDs.
-  useEffect(() => {
-    if (!editing) return;
+  /*
+   * FIX: the old "load states/cities when editing" effect depended on
+   * country_id / state_id. But the saved-address API returns NAMES only,
+   * so those IDs were always "" -> nothing was ever loaded, and the State
+   * / City dropdowns kept saying "Please select country first".
+   *
+   * resolveAddressIds() looks the IDs up from the names, loads the
+   * state / city lists, and hands back a form that has real IDs.
+   */
+  const resolveAddressIds = async (address) => {
+    const resolved = { ...address };
 
-    let active = true;
+    /* ---------- COUNTRY ---------- */
 
-    const loadDependencies = async () => {
-      const countryId = Number(presentAddressForm.country_id);
-      const stateId = Number(presentAddressForm.state_id);
+    if (!resolved.country_id && resolved.country) {
+      let countryList = countries;
 
-      if (Number.isFinite(countryId) && countryId > 0) {
-        await loadMemberStates(countryId);
+      if (countryList.length === 0) {
+        countryList = await loadMemberCountries();
+      }
+
+      const match = findByName(countryList, resolved.country);
+
+      if (match) {
+        resolved.country_id = match.id;
+        resolved.country = match.name;
       } else {
-        setStates([]);
+        console.log("COUNTRY NOT FOUND IN LIST:", resolved.country);
       }
+    }
 
-      if (active && Number.isFinite(stateId) && stateId > 0) {
-        await loadMemberCities(stateId);
-      } else if (active) {
-        setCities([]);
+    /* ---------- STATE ---------- */
+
+    if (resolved.country_id) {
+      const stateList = await loadMemberStates(resolved.country_id);
+
+      if (!resolved.state_id && resolved.state) {
+        const match = findByName(stateList, resolved.state);
+
+        if (match) {
+          resolved.state_id = match.id;
+          resolved.state = match.name;
+        } else {
+          console.log("STATE NOT FOUND IN LIST:", resolved.state);
+        }
       }
-    };
+    }
 
-    loadDependencies();
+    /* ---------- CITY ---------- */
 
-    return () => {
-      active = false;
-    };
-  }, [
-    editing,
-    presentAddressForm.country_id,
-    presentAddressForm.state_id,
-    loadMemberStates,
-    loadMemberCities,
-  ]);
+    if (resolved.state_id) {
+      const cityList = await loadMemberCities(resolved.state_id);
+
+      if (!resolved.city_id && resolved.city) {
+        const match = findByName(cityList, resolved.city);
+
+        if (match) {
+          resolved.city_id = match.id;
+          resolved.city = match.name;
+        } else {
+          console.log("CITY NOT FOUND IN LIST:", resolved.city);
+        }
+      }
+    }
+
+    console.log("RESOLVED ADDRESS IDS:", JSON.stringify(resolved, null, 2));
+
+    return resolved;
+  };
+
+  /* =====================================================
+       DROPDOWNS
+    ===================================================== */
 
   const selectAddressOption = async (option) => {
     if (!option || !addressDropdown) return;
@@ -559,15 +630,11 @@ export default function PresentAddress() {
         city: "",
       }));
 
-      // City endpoint requires the selected STATE ID.
-      const loadedCities = await loadMemberCities(selectedStateId);
-
-      console.log(
-        "CITIES AFTER STATE SELECTION:",
-        JSON.stringify(loadedCities, null, 2),
-      );
-
+      setCities([]);
       setAddressDropdown(null);
+
+      // City endpoint requires the selected STATE ID.
+      await loadMemberCities(selectedStateId);
       return;
     }
 
@@ -593,40 +660,56 @@ export default function PresentAddress() {
     setSearchText("");
     setAddressDropdown(type);
 
+    // Only fetch when the list is empty (it is already loaded otherwise).
     if (type === "country" && countries.length === 0) {
       await loadMemberCountries();
     }
 
-    if (type === "state") {
+    if (type === "state" && states.length === 0) {
       await loadMemberStates(presentAddressForm.country_id);
     }
 
-    if (type === "city") {
-      const stateId = Number(presentAddressForm.state_id);
-
-      if (!Number.isFinite(stateId) || stateId <= 0) {
-        setAddressDropdown(null);
-        Alert.alert("Select State", "Please select a valid state first.");
-        return;
-      }
-
-      const loadedCities = await loadMemberCities(stateId);
-
-      console.log(
-        "CITY DROPDOWN OPENED:",
-        JSON.stringify(loadedCities, null, 2),
-      );
+    if (type === "city" && cities.length === 0) {
+      await loadMemberCities(presentAddressForm.state_id);
     }
   };
 
-  const handleEdit = () => {
-    if (presentAddress) {
-      setPresentAddressForm({
-        ...emptyAddress,
-        ...presentAddress,
-      });
+  const retryDropdown = () => {
+    if (addressDropdown === "country") {
+      loadMemberCountries();
+    } else if (addressDropdown === "state") {
+      loadMemberStates(presentAddressForm.country_id);
+    } else if (addressDropdown === "city") {
+      loadMemberCities(presentAddressForm.state_id);
     }
+  };
+
+  /* =====================================================
+       EDIT / ADD / CANCEL
+    ===================================================== */
+
+  const handleEdit = async () => {
+    const base = {
+      ...emptyAddress,
+      ...(presentAddress || {}),
+    };
+
+    setPresentAddressForm(base);
     setEditing(true);
+
+    if (!presentAddress) return;
+
+    try {
+      setResolvingAddress(true);
+
+      const resolved = await resolveAddressIds(base);
+
+      setPresentAddressForm(resolved);
+    } catch (error) {
+      console.error("RESOLVE ADDRESS IDS ERROR:", error);
+    } finally {
+      setResolvingAddress(false);
+    }
   };
 
   const handleAddNew = () => {
@@ -649,8 +732,12 @@ export default function PresentAddress() {
     setAddressDropdown(null);
   };
 
+  /* =====================================================
+       SAVE
+    ===================================================== */
+
   const handleSavePresentAddress = async () => {
-    if (savingPresentAddress) return;
+    if (savingPresentAddress || resolvingAddress) return;
 
     const token = await getToken();
 
@@ -745,6 +832,10 @@ export default function PresentAddress() {
     }
   };
 
+  /* =====================================================
+       DERIVED
+    ===================================================== */
+
   const currentAddressText = useMemo(() => {
     if (!presentAddress) return "No present address saved.";
 
@@ -788,6 +879,10 @@ export default function PresentAddress() {
         ? statesLoading
         : citiesLoading;
 
+  /* =====================================================
+       DROPDOWN MODAL
+    ===================================================== */
+
   const renderDropdown = () => (
     <Modal
       visible={!!addressDropdown}
@@ -828,16 +923,14 @@ export default function PresentAddress() {
                 No {addressDropdown || ""} found
               </Text>
 
-              {addressDropdown === "city" && presentAddressForm.state_id ? (
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={() => loadMemberCities(presentAddressForm.state_id)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="refresh" size={15} color={COLORS.red} />
-                  <Text style={styles.retryText}>Retry Cities</Text>
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={retryDropdown}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="refresh" size={15} color={COLORS.red} />
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <ScrollView
@@ -885,6 +978,10 @@ export default function PresentAddress() {
       </View>
     </Modal>
   );
+
+  /* =====================================================
+       UI
+    ===================================================== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -1007,6 +1104,15 @@ export default function PresentAddress() {
                     <Ionicons name="close" size={19} color={COLORS.red} />
                   </TouchableOpacity>
                 </View>
+
+                {resolvingAddress && (
+                  <View style={styles.resolvingRow}>
+                    <ActivityIndicator size="small" color={COLORS.red} />
+                    <Text style={styles.resolvingText}>
+                      Loading state and city details...
+                    </Text>
+                  </View>
+                )}
 
                 <View style={styles.field}>
                   <Text style={styles.label}>
@@ -1181,11 +1287,12 @@ export default function PresentAddress() {
                   <TouchableOpacity
                     style={[
                       styles.saveButton,
-                      savingPresentAddress && styles.saveButtonDisabled,
+                      (savingPresentAddress || resolvingAddress) &&
+                        styles.saveButtonDisabled,
                     ]}
                     onPress={handleSavePresentAddress}
                     activeOpacity={0.85}
-                    disabled={savingPresentAddress}
+                    disabled={savingPresentAddress || resolvingAddress}
                   >
                     {savingPresentAddress ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -1275,11 +1382,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 5,
     paddingBottom: 20,
-  },
-  initialLoader: {
-    height: 4,
-    alignItems: "center",
-    justifyContent: "center",
   },
   currentAddressCard: {
     width: "100%",
@@ -1382,6 +1484,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF0F2",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  resolvingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginBottom: 6,
+  },
+
+  resolvingText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: "#777777",
   },
 
   addressTypeBox: {
@@ -1577,25 +1692,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "700",
   },
-  permanentInfo: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 6,
-    backgroundColor: "#FAFAFA",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-  },
-  permanentTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 5,
-  },
-  permanentText: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#666",
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -1696,6 +1792,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 12,
   },
   emptyText: {
     fontSize: 14,

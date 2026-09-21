@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BASE_URL from "../constants/AppUrls";
-import { deleteMethod, getMethod, postMethod, putMethod } from "./APIServices";
+import { getMethod, postMethod } from "./APIServices";
 
 // ==================== SHARED AUTH TOKEN HELPER ====================
 // Centralized token lookup — checks the primary "authToken" key, then
@@ -2193,26 +2193,26 @@ export async function updateMemberEducation(
   // -------------------------------------------------------
 
   try {
-    const response = await putMethod(URL, user, body);
+    const response = await fetch(URL, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    });
 
-    console.log("=================================");
+    const responseData = await response.json();
+    console.log("STATUS:", response.status);
+    console.log("RESPONSE DATA:", responseData);
 
-    console.log("UPDATE EDUCATION RESPONSE");
+    if (!response.ok) {
+      throw new Error(responseData?.message || "Education update failed");
+    }
 
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("=================================");
-
-    return response;
+    return responseData;
   } catch (error) {
-    console.error("=================================");
-
-    console.error("UPDATE EDUCATION API ERROR");
-
-    console.error(error);
-
-    console.error("=================================");
-
     throw error;
   }
 }
@@ -2223,39 +2223,31 @@ export async function updateMemberEducation(
 ========================================================= */
 
 export async function deleteMemberEducation(accessToken, educationId) {
+  const URL = apiUrl(`/api/member/education/${educationId}`);
+
   try {
-    const id = Number(educationId);
+    console.log("DELETE URL:", URL);
 
-    if (!accessToken) {
-      throw new Error("Access token is missing.");
+    const response = await fetch(URL, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const responseData = await response.json();
+
+    console.log("DELETE RESPONSE:", JSON.stringify(responseData, null, 2));
+
+    if (!response.ok) {
+      throw new Error(responseData?.message || "Education delete failed");
     }
 
-    if (!Number.isInteger(id) || id <= 0) {
-      throw new Error(`Invalid education ID: ${educationId}`);
-    }
-
-    const URL = BASE_URL + `/api/member/education/${id}`;
-
-    const user = {
-      token: accessToken,
-    };
-
-    console.log("================================");
-    console.log("DELETE MEMBER EDUCATION API");
-    console.log("METHOD: DELETE");
-    console.log("URL:", URL);
-    console.log("ID:", id);
-    console.log("TOKEN EXISTS:", !!accessToken);
-    console.log("================================");
-
-    const response = await deleteMethod(URL, user);
-
-    logResponse("DELETE MEMBER EDUCATION RESPONSE", response);
-
-    return response;
+    return responseData;
   } catch (error) {
-    console.error("DELETE MEMBER EDUCATION ERROR:", error);
-
+    console.error("DELETE API ERROR:", error);
     throw error;
   }
 }
@@ -2694,22 +2686,7 @@ export async function updateMemberCareerById(
     throw error;
   }
 }
-// =========================================================
-// DELETE MEMBER CAREER
-// DELETE /api/member/career/{id}
-// =========================================================
-
 export async function deleteMemberCareerById(accessToken, careerId) {
-  console.log("========================================");
-
-  console.log("DELETE MEMBER CAREER FUNCTION");
-
-  console.log("CAREER ID RECEIVED:", careerId);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("========================================");
-
   if (!accessToken) {
     throw new Error("Access token is missing. Please login again.");
   }
@@ -2722,43 +2699,45 @@ export async function deleteMemberCareerById(accessToken, careerId) {
 
   const URL = BASE_URL + `/api/member/career/${id}`;
 
-  console.log("========================================");
-
-  console.log("DELETE MEMBER CAREER API");
-
-  console.log("METHOD:", "DELETE");
-
-  console.log("URL:", URL);
-
-  console.log("CAREER ID:", id);
-
-  console.log("========================================");
-
   try {
-    const response = await deleteMethod(URL, {
-      token: accessToken,
+    console.log("DELETE CAREER URL:", URL);
+    console.log("DELETE CAREER ID:", id);
+
+    const response = await fetch(URL, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
 
-    console.log("========================================");
+    const responseText = await response.text();
 
-    console.log("DELETE MEMBER CAREER RESPONSE");
+    let responseData = {};
 
-    console.log(JSON.stringify(response, null, 2));
+    try {
+      responseData = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      responseData = {
+        message: responseText,
+      };
+    }
 
-    console.log("STATUS CODE:", response?.statusCode);
+    console.log(
+      "DELETE CAREER RESPONSE:",
+      JSON.stringify(responseData, null, 2),
+    );
 
-    console.log("MESSAGE:", response?.message);
+    if (!response.ok) {
+      throw new Error(responseData?.message || "Career delete failed");
+    }
 
-    console.log("========================================");
-
-    return response;
+    return {
+      ...responseData,
+      statusCode: response.status,
+    };
   } catch (error) {
-    console.error("DELETE MEMBER CAREER ERROR");
-
-    console.error("MESSAGE:", error?.message);
-
-    console.error("STATUS:", error?.status);
-
+    console.error("DELETE CAREER API ERROR:", error);
     throw error;
   }
 }

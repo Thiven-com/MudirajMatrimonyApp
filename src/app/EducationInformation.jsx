@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 
 import {
+  ActivityIndicator,
   Alert,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -12,24 +14,15 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { router, useFocusEffect } from "expo-router";
 
 import { deleteMemberEducation, getMemberEducation } from "../utils/Functions";
 
-/* =========================================================
-   MAIN COMPONENT
-========================================================= */
-
 export default function EducationInformation() {
   const [educationList, setEducationList] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
-
   const [deletingId, setDeletingId] = useState(null);
 
   /* =========================================================
@@ -39,34 +32,21 @@ export default function EducationInformation() {
   const loadEducation = useCallback(async () => {
     try {
       setLoading(true);
-
       setError("");
-
-      console.log("======================================");
-
-      console.log("GET EDUCATION API");
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("TOKEN EXISTS:", !!accessToken);
+      console.log("GET EDUCATION TOKEN EXISTS:", !!accessToken);
 
       if (!accessToken) {
         setEducationList([]);
-
         setError("Access token not found. Please login again.");
-
         return;
       }
 
       const response = await getMemberEducation(accessToken);
 
-      console.log("GET EDUCATION RESPONSE:");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      /* =================================================
-               EXTRACT ARRAY
-            ================================================= */
+      console.log("GET EDUCATION RESPONSE:", JSON.stringify(response, null, 2));
 
       let educationData = [];
 
@@ -82,27 +62,15 @@ export default function EducationInformation() {
         educationData = response.data.result;
       }
 
-      console.log("EDUCATION ARRAY:");
-
-      console.log(JSON.stringify(educationData, null, 2));
-
-      /* =================================================
-               FORMAT DATA
-            ================================================= */
+      console.log("EDUCATION ARRAY:", JSON.stringify(educationData, null, 2));
 
       const formattedEducation = educationData
         .filter((item) => item && typeof item === "object")
         .map((item) => {
-          /*
-           * IMPORTANT:
-           * Only use real database ID.
-           */
-
           const rawId =
             item.id ?? item.education_id ?? item.educationId ?? null;
 
-          const id =
-            rawId !== null && rawId !== undefined ? Number(rawId) : null;
+          const id = rawId !== null ? Number(rawId) : null;
 
           const degree =
             item.degree ??
@@ -154,42 +122,34 @@ export default function EducationInformation() {
 
           return {
             id,
-
             degree: String(degree),
-
             field: String(field),
-
             university: String(university),
-
             startYear: String(startYear),
-
             endYear: String(endYear),
           };
         })
-        /*
-         * Do not display records without
-         * a real database ID.
-         */
         .filter((item) => Number.isInteger(item.id) && item.id > 0);
 
-      console.log("FORMATTED EDUCATION:");
-
-      console.log(JSON.stringify(formattedEducation, null, 2));
+      console.log(
+        "FORMATTED EDUCATION:",
+        JSON.stringify(formattedEducation, null, 2),
+      );
 
       setEducationList(formattedEducation);
-    } catch (error) {
-      console.error("GET EDUCATION ERROR:", error);
+    } catch (err) {
+      console.error("GET EDUCATION ERROR:", err);
 
       setEducationList([]);
 
-      setError(error?.message || "Unable to load education information.");
+      setError(err?.message || "Unable to load education information.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   /* =========================================================
-       LOAD WHEN SCREEN GETS FOCUS
+       LOAD WHEN SCREEN FOCUSES
     ========================================================= */
 
   useFocusEffect(
@@ -199,44 +159,56 @@ export default function EducationInformation() {
   );
 
   /* =========================================================
-       DELETE EDUCATION
-    ========================================================= */
+   DELETE EDUCATION
+========================================================= */
 
-  const handleDeleteEducation = async (educationId) => {
+  const handleDeleteEducation = (educationId) => {
+    console.log("======================================");
+    console.log("DELETE BUTTON CLICKED");
+    console.log("RAW EDUCATION ID:", educationId);
+
     const numericId = Number(educationId);
 
-    console.log("======================================");
+    console.log("NUMERIC EDUCATION ID:", numericId);
 
-    console.log("DELETE BUTTON CLICKED");
-
-    console.log("EDUCATION ID:", educationId);
-
-    console.log("NUMERIC ID:", numericId);
-
-    console.log("======================================");
-
-    /* =====================================================
-           VALIDATE ID
-        ===================================================== */
+    // -----------------------------------------------------
+    // VALIDATE ID
+    // -----------------------------------------------------
 
     if (!Number.isInteger(numericId) || numericId <= 0) {
-      console.log("Delete Failed : Invalid education ID.", numericId);
+      console.error("INVALID EDUCATION ID:", educationId);
+
       Alert.alert("Delete Failed", "Invalid education ID.");
 
       return;
     }
 
-    /* =====================================================
-           PREVENT DOUBLE DELETE
-        ===================================================== */
+    // -----------------------------------------------------
+    // PREVENT MULTIPLE DELETE REQUESTS
+    // -----------------------------------------------------
 
     if (deletingId !== null) {
-      console.log("DELETE ALREADY IN PROGRESS");
+      console.log("DELETE ALREADY IN PROGRESS:", deletingId);
 
       return;
     }
 
-    console.log("Are you sure you want to delete this education?", numericId);
+    // -----------------------------------------------------
+    // WEB
+    // -----------------------------------------------------
+
+    if (Platform.OS === "web") {
+      console.log("WEB PLATFORM - CALLING DELETE API");
+
+      performDelete(numericId);
+
+      return;
+    }
+
+    // -----------------------------------------------------
+    // ANDROID / IOS
+    // -----------------------------------------------------
+
     Alert.alert(
       "Delete Education",
       "Are you sure you want to delete this education?",
@@ -244,144 +216,148 @@ export default function EducationInformation() {
         {
           text: "Cancel",
           style: "cancel",
+          onPress: () => {
+            console.log("DELETE CANCELLED");
+          },
         },
-
         {
           text: "Delete",
           style: "destructive",
+          onPress: () => {
+            console.log("DELETE CONFIRMED - CALLING API");
 
-          onPress: async () => {
-            try {
-              setDeletingId(numericId);
-
-              /* =================================
-                               TOKEN
-                            ================================= */
-
-              const accessToken = await AsyncStorage.getItem("authToken");
-
-              if (!accessToken) {
-                Alert.alert("Login Required", "Please login again.");
-
-                return;
-              }
-
-              /* =================================
-                               LOG REQUEST
-                            ================================= */
-
-              console.log("======================================");
-
-              console.log("DELETE EDUCATION REQUEST");
-
-              console.log("METHOD: DELETE");
-
-              console.log("ID:", numericId);
-
-              console.log("TOKEN EXISTS:", !!accessToken);
-
-              console.log("======================================");
-
-              /* =================================
-                               CALL DELETE API
-                            ================================= */
-
-              const response = await deleteMemberEducation(
-                accessToken,
-                numericId,
-              );
-
-              console.log("======================================");
-
-              console.log("DELETE API RESPONSE");
-
-              console.log(JSON.stringify(response, null, 2));
-
-              console.log("======================================");
-
-              /*
-               * IMPORTANT
-               *
-               * deleteMemberEducation()
-               * should return:
-               *
-               * {
-               *    success: true,
-               *    statusCode: 200
-               * }
-               *
-               * OR
-               *
-               * {
-               *    success: true,
-               *    statusCode: 204
-               * }
-               *
-               * Any HTTP 2xx should be treated
-               * as successful.
-               */
-
-              const apiSuccess =
-                response?.success === true ||
-                response?.success === 1 ||
-                response?.result === true ||
-                response?.statusCode === 200 ||
-                response?.statusCode === 201 ||
-                response?.statusCode === 202 ||
-                response?.statusCode === 204 ||
-                response === true;
-
-              if (apiSuccess) {
-                /* =============================
-                                   REMOVE FROM SCREEN IMMEDIATELY
-                                ============================= */
-
-                setEducationList((previousList) =>
-                  previousList.filter((item) => Number(item.id) !== numericId),
-                );
-
-                Alert.alert("Success", "Education deleted successfully.");
-
-                /*
-                 * Reload from backend after
-                 * successful deletion.
-                 */
-
-                setTimeout(() => {
-                  loadEducation();
-                }, 300);
-
-                return;
-              }
-
-              Alert.alert(
-                "Delete Failed",
-                response?.message ||
-                  response?.error ||
-                  "Education could not be deleted.",
-              );
-            } catch (error) {
-              console.error("======================================");
-
-              console.error("DELETE EDUCATION ERROR");
-
-              console.error(error);
-
-              console.error("MESSAGE:", error?.message);
-
-              console.error("======================================");
-
-              Alert.alert(
-                "Delete Failed",
-                error?.message || "Unable to delete education.",
-              );
-            } finally {
-              setDeletingId(null);
-            }
+            performDelete(numericId);
           },
         },
       ],
     );
+  };
+  /* =========================================================
+   PERFORM DELETE
+========================================================= */
+
+  const performDelete = async (numericId) => {
+    try {
+      console.log("======================================");
+      console.log("PERFORM DELETE CALLED");
+      console.log("EDUCATION ID:", numericId);
+
+      setDeletingId(numericId);
+
+      // -------------------------------------------------
+      // GET ACCESS TOKEN
+      // -------------------------------------------------
+
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      console.log("ACCESS TOKEN EXISTS:", !!accessToken);
+
+      if (!accessToken) {
+        Alert.alert(
+          "Login Required",
+          "Your session has expired. Please login again.",
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // CALL DELETE API
+      // -------------------------------------------------
+
+      console.log("CALLING deleteMemberEducation...");
+
+      const response = await deleteMemberEducation(accessToken, numericId);
+
+      console.log("DELETE API RESPONSE:", JSON.stringify(response, null, 2));
+
+      // -------------------------------------------------
+      // CHECK RESPONSE
+      // -------------------------------------------------
+
+      const statusCode = Number(response?.statusCode ?? response?.status ?? 0);
+
+      const success =
+        response?.success === true ||
+        response?.result === true ||
+        (statusCode >= 200 && statusCode < 300);
+
+      console.log("DELETE STATUS:", statusCode);
+
+      console.log("DELETE SUCCESS:", success);
+
+      // -------------------------------------------------
+      // SUCCESS
+      // -------------------------------------------------
+
+      if (success) {
+        console.log("======================================");
+
+        console.log("EDUCATION DELETE SUCCESS");
+
+        console.log("DELETED EDUCATION ID:", numericId);
+
+        // Remove from screen
+        setEducationList((previousList) =>
+          previousList.filter((item) => Number(item.id) !== Number(numericId)),
+        );
+
+        // Show success message
+        if (Platform.OS === "web") {
+          window.alert(response?.message || "Education deleted successfully.");
+        } else {
+          Alert.alert(
+            "Success",
+            response?.message || "Education deleted successfully.",
+          );
+        }
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // FAILURE
+      // -------------------------------------------------
+
+      const message =
+        response?.message ||
+        response?.data?.message ||
+        response?.data?.error ||
+        "Education could not be deleted.";
+
+      if (Platform.OS === "web") {
+        window.alert(`Delete Failed: ${message}`);
+      } else {
+        Alert.alert("Delete Failed", message);
+      }
+    } catch (error) {
+      console.error("======================================");
+
+      console.error("DELETE EDUCATION ERROR:", error);
+
+      console.error("ERROR MESSAGE:", error?.message);
+
+      console.error("ERROR STATUS:", error?.response?.status);
+
+      console.error("ERROR DATA:", error?.response?.data);
+
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.msg ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to delete education.";
+
+      if (Platform.OS === "web") {
+        window.alert(`Delete Failed: ${message}`);
+      } else {
+        Alert.alert("Delete Failed", String(message));
+      }
+    } finally {
+      console.log("DELETE PROCESS FINISHED");
+
+      setDeletingId(null);
+    }
   };
 
   /* =========================================================
@@ -398,7 +374,7 @@ export default function EducationInformation() {
 
   const handleEdit = (item) => {
     if (!item?.id) {
-      console.log("Education ID missing:", item);
+      Alert.alert("Error", "Education ID is missing.");
 
       return;
     }
@@ -407,7 +383,6 @@ export default function EducationInformation() {
 
     router.push({
       pathname: "/EditEducation",
-
       params: {
         id: String(item.id),
       },
@@ -439,9 +414,7 @@ export default function EducationInformation() {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <View style={styles.container}>
-        {/* ============================================
-                    HEADER
-                ============================================ */}
+        {/* HEADER */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -463,96 +436,94 @@ export default function EducationInformation() {
           </TouchableOpacity>
         </View>
 
-        {/* ============================================
-                    CONTENT
-                ============================================ */}
+        {/* CONTENT */}
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* ========================================
-                        ERROR
-                    ======================================== */}
+          {/* ERROR */}
 
-          {error !== "" && <Text style={styles.errorText}>{error}</Text>}
-
-          {/* ========================================
-                        LOADING
-                    ======================================== */}
-
-          {loading && (
-            <Text style={styles.loadingText}>Loading education...</Text>
+          {error !== "" && (
+            <Text style={styles.errorText}>{String(error)}</Text>
           )}
 
-          {/* ========================================
-                        EDUCATION LIST
-                    ======================================== */}
+          {/* LOADING */}
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#EF233C" />
+
+              <Text style={styles.loadingText}>Loading education...</Text>
+            </View>
+          )}
+
+          {/* EDUCATION LIST */}
 
           {!loading &&
-            educationList.map((item) => (
-              <View key={String(item.id)} style={styles.educationCard}>
-                {/* ICON */}
+            educationList.map((item) => {
+              const isDeleting = deletingId === Number(item.id);
 
-                <View style={styles.educationIconCircle}>
-                  <Ionicons name="school-outline" size={27} color="#EF233C" />
+              return (
+                <View key={String(item.id)} style={styles.educationCard}>
+                  {/* ICON */}
+
+                  <View style={styles.educationIconCircle}>
+                    <Ionicons name="school-outline" size={27} color="#EF233C" />
+                  </View>
+
+                  {/* DETAILS */}
+
+                  <View style={styles.educationDetails}>
+                    <Text style={styles.degreeText} numberOfLines={1}>
+                      {item.degree}
+                    </Text>
+
+                    <Text style={styles.fieldText} numberOfLines={1}>
+                      {item.field}
+                    </Text>
+
+                    <Text style={styles.universityText} numberOfLines={1}>
+                      {item.university}
+                    </Text>
+
+                    <Text style={styles.yearText}>
+                      {item.startYear}
+                      {" - "}
+                      {item.endYear}
+                    </Text>
+                  </View>
+
+                  {/* EDIT BUTTON */}
+
+                  <TouchableOpacity
+                    style={styles.editCircle}
+                    activeOpacity={0.7}
+                    disabled={deletingId !== null}
+                    onPress={() => handleEdit(item)}
+                  >
+                    <Ionicons name="pencil-outline" size={17} color="#64748B" />
+                  </TouchableOpacity>
+
+                  {/* DELETE BUTTON */}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.deleteCircle,
+                      deletingId === Number(item.id) && styles.deleteDisabled,
+                    ]}
+                    activeOpacity={0.7}
+                    disabled={deletingId !== null}
+                    onPress={() => handleDeleteEducation(item.id)}
+                  >
+                    <Ionicons name="trash-outline" size={17} color="#EF233C" />
+                  </TouchableOpacity>
                 </View>
+              );
+            })}
 
-                {/* DETAILS */}
-
-                <View style={styles.educationDetails}>
-                  <Text style={styles.degreeText} numberOfLines={1}>
-                    {item.degree}
-                  </Text>
-
-                  <Text style={styles.fieldText} numberOfLines={1}>
-                    {item.field}
-                  </Text>
-
-                  <Text style={styles.universityText} numberOfLines={1}>
-                    {item.university}
-                  </Text>
-
-                  <Text style={styles.yearText}>
-                    {item.startYear}
-                    {" - "}
-                    {item.endYear}
-                  </Text>
-                </View>
-
-                {/* EDIT */}
-
-                <TouchableOpacity
-                  style={styles.editCircle}
-                  activeOpacity={0.7}
-                  onPress={() => handleEdit(item)}
-                >
-                  <Ionicons name="pencil-outline" size={17} color="#64748B" />
-                </TouchableOpacity>
-
-                {/* DELETE */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.deleteCircle,
-
-                    deletingId === Number(item.id) && {
-                      opacity: 0.4,
-                    },
-                  ]}
-                  activeOpacity={0.7}
-                  disabled={deletingId !== null}
-                  onPress={() => handleDeleteEducation(item.id)}
-                >
-                  <Ionicons name="trash-outline" size={17} color="#EF233C" />
-                </TouchableOpacity>
-              </View>
-            ))}
-
-          {/* ========================================
-                        ADD EDUCATION
-                    ======================================== */}
+          {/* ADD EDUCATION */}
 
           {!loading && (
             <View style={styles.addEducationSection}>
@@ -627,7 +598,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: 18,
-    lineHeight: 16,
+    lineHeight: 20,
     fontWeight: "700",
     color: "#171717",
     includeFontPadding: false,
@@ -654,9 +625,15 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 30,
+  },
+
   loadingText: {
     textAlign: "center",
-    marginTop: 30,
+    marginTop: 8,
     fontSize: 12,
     color: "#737B87",
   },
@@ -671,7 +648,7 @@ const styles = StyleSheet.create({
 
   educationCard: {
     width: "100%",
-    height: 84,
+    minHeight: 84,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E9ECEF",
@@ -688,7 +665,7 @@ const styles = StyleSheet.create({
   educationIconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 22,
+    borderRadius: 24,
     backgroundColor: "#FFF0F2",
     alignItems: "center",
     justifyContent: "center",
@@ -703,7 +680,7 @@ const styles = StyleSheet.create({
 
   degreeText: {
     fontSize: 15,
-    lineHeight: 14,
+    lineHeight: 17,
     fontWeight: "700",
     color: "#292929",
     marginBottom: 1,
@@ -712,7 +689,7 @@ const styles = StyleSheet.create({
 
   fieldText: {
     fontSize: 13,
-    lineHeight: 12,
+    lineHeight: 15,
     fontWeight: "400",
     color: "#737B87",
     marginBottom: 1,
@@ -721,7 +698,7 @@ const styles = StyleSheet.create({
 
   universityText: {
     fontSize: 12,
-    lineHeight: 12,
+    lineHeight: 14,
     fontWeight: "700",
     color: "#737B87",
     marginBottom: 1,
@@ -730,7 +707,7 @@ const styles = StyleSheet.create({
 
   yearText: {
     fontSize: 12,
-    lineHeight: 12,
+    lineHeight: 14,
     fontWeight: "400",
     color: "#737B87",
     includeFontPadding: false,
@@ -756,6 +733,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  deleteDisabled: {
+    opacity: 0.4,
+  },
+
   addEducationSection: {
     width: "100%",
     alignItems: "center",
@@ -768,7 +749,7 @@ const styles = StyleSheet.create({
     width: 51,
     height: 51,
     borderRadius: 26,
-    backgroundColor: "#fcf7f8",
+    backgroundColor: "#FCF7F8",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -776,7 +757,7 @@ const styles = StyleSheet.create({
 
   addEducationTitle: {
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#405064",
     textAlign: "center",
@@ -786,7 +767,7 @@ const styles = StyleSheet.create({
 
   addEducationDescription: {
     fontSize: 12,
-    lineHeight: 13,
+    lineHeight: 16,
     fontWeight: "400",
     color: "#7D8795",
     textAlign: "center",
@@ -810,7 +791,7 @@ const styles = StyleSheet.create({
   addEducationButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
-    lineHeight: 13,
+    lineHeight: 18,
     fontWeight: "700",
     includeFontPadding: false,
     marginLeft: 5,

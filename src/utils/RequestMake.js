@@ -12,7 +12,7 @@ export default async (url, options = {}) => {
     let response = null;
     const axiosConfig = {
       headers: options.headers || {},
-      timeout: 15000, // 15 second timeout
+      timeout: 60000, // 60 second timeout
     };
 
     if (options.method === "GET") {
