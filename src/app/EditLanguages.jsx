@@ -1,7 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
+  BackHandler,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -12,11 +13,15 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 
 import {
   getLanguages,
@@ -225,9 +230,11 @@ const isApiSuccess = (response) => {
 ========================================================= */
 
 export default function EditLanguages() {
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const field = Array.isArray(params?.field) ? params.field[0] : params?.field;
+  const rawField = route?.params?.field;
+  const field = Array.isArray(rawField) ? rawField[0] : rawField;
 
   const isMotherTongue = field === "motherTongue";
 
@@ -250,6 +257,45 @@ export default function EditLanguages() {
 
   // Picker modal visibility ("motherTongue" | "knownLanguages" | null)
   const [activePicker, setActivePicker] = useState(null);
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as ChatsScreen / OtpScreen / EditCareer /
+     EditEducation / EditFamilyInformation: intercept the
+     hardware back button and route it through handleBack(),
+     ignored while saving.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
 
   /* =======================================================
      LOAD MASTER LIST + MEMBER'S CURRENT SELECTION
@@ -420,7 +466,7 @@ export default function EditLanguages() {
         Alert.alert(
           "Success",
           successMessage,
-          [{ text: "OK", onPress: () => router.back() }],
+          [{ text: "OK", onPress: handleBack }],
           { cancelable: false },
         );
 
@@ -445,7 +491,7 @@ export default function EditLanguages() {
     } finally {
       setSaving(false);
     }
-  }, [saving, isMotherTongue, motherTongue, knownLanguages]);
+  }, [saving, isMotherTongue, motherTongue, knownLanguages, handleBack]);
 
   const handleRetry = useCallback(() => {
     loadData();
@@ -487,9 +533,7 @@ export default function EditLanguages() {
           {option.name}
         </Text>
 
-        {isSelected ? (
-          <Ionicons name="checkmark" size={18} color="#D7192A" />
-        ) : null}
+        {isSelected ? <Feather name="check" size={18} color="#D7192A" /> : null}
       </TouchableOpacity>
     );
   };
@@ -508,11 +552,11 @@ export default function EditLanguages() {
 
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Feather name="chevron-left" size={24} color="#222222" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>
@@ -538,7 +582,7 @@ export default function EditLanguages() {
         {errorMessage ? (
           <View style={styles.errorContainer}>
             <View style={styles.errorIcon}>
-              <Ionicons name="alert-circle-outline" size={22} color="#D7192A" />
+              <Feather name="alert-circle" size={22} color="#D7192A" />
             </View>
 
             <View style={styles.errorContent}>
@@ -569,11 +613,7 @@ export default function EditLanguages() {
               <View style={styles.section}>
                 <View style={styles.labelRow}>
                   <View style={styles.iconBox}>
-                    <Ionicons
-                      name="language-outline"
-                      size={21}
-                      color="#D7192A"
-                    />
+                    <Feather name="globe" size={21} color="#D7192A" />
                   </View>
 
                   <View>
@@ -599,7 +639,7 @@ export default function EditLanguages() {
                     {motherTongue?.name || "Select mother tongue"}
                   </Text>
 
-                  <Ionicons name="chevron-down" size={18} color="#999999" />
+                  <Feather name="chevron-down" size={18} color="#999999" />
                 </TouchableOpacity>
 
                 <Text style={styles.helperText}>
@@ -616,11 +656,7 @@ export default function EditLanguages() {
               <View style={styles.section}>
                 <View style={styles.labelRow}>
                   <View style={styles.iconBox}>
-                    <Ionicons
-                      name="chatbubbles-outline"
-                      size={21}
-                      color="#D7192A"
-                    />
+                    <Feather name="message-circle" size={21} color="#D7192A" />
                   </View>
 
                   <View>
@@ -639,11 +675,7 @@ export default function EditLanguages() {
                 <View style={styles.languagesContainer}>
                   {knownLanguages.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                      <Ionicons
-                        name="language-outline"
-                        size={25}
-                        color="#AAAAAA"
-                      />
+                      <Feather name="globe" size={25} color="#AAAAAA" />
 
                       <Text style={styles.emptyText}>
                         No known languages added
@@ -653,11 +685,7 @@ export default function EditLanguages() {
                     knownLanguages.map((language) => (
                       <View key={language.id} style={styles.languageChip}>
                         <View style={styles.chipIcon}>
-                          <Ionicons
-                            name="language-outline"
-                            size={14}
-                            color="#D7192A"
-                          />
+                          <Feather name="globe" size={14} color="#D7192A" />
                         </View>
 
                         <Text style={styles.languageChipText}>
@@ -669,11 +697,7 @@ export default function EditLanguages() {
                           style={styles.removeButton}
                           activeOpacity={0.7}
                         >
-                          <Ionicons
-                            name="close-circle"
-                            size={20}
-                            color="#D7192A"
-                          />
+                          <Feather name="x-circle" size={20} color="#D7192A" />
                         </TouchableOpacity>
                       </View>
                     ))
@@ -689,7 +713,7 @@ export default function EditLanguages() {
                   onPress={() => setActivePicker("knownLanguages")}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="add" size={20} color="#D7192A" />
+                  <Feather name="plus" size={20} color="#D7192A" />
 
                   <Text style={styles.addLanguageButtonText}>
                     Add a language
@@ -716,7 +740,7 @@ export default function EditLanguages() {
           disabled={saving || loading}
           activeOpacity={0.85}
         >
-          <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+          <Feather name="check-circle" size={22} color="#FFFFFF" />
 
           <Text style={styles.saveButtonText}>
             {saving ? "Saving..." : "Save Changes"}
@@ -748,7 +772,7 @@ export default function EditLanguages() {
               </Text>
 
               <TouchableOpacity onPress={() => setActivePicker(null)}>
-                <Ionicons name="close" size={22} color="#777777" />
+                <Feather name="x" size={22} color="#777777" />
               </TouchableOpacity>
             </View>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  BackHandler,
   Modal,
   SafeAreaView,
   StatusBar,
@@ -14,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { router } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { deleteMemberCareerById, getMemberCareer } from "../utils/Functions";
 
@@ -43,6 +44,8 @@ const COLORS = {
 // =========================================================
 
 export default function CareerInformation() {
+  const navigation = useNavigation();
+
   const [careers, setCareers] = useState([]);
 
   // -------------------------------------------------------
@@ -61,6 +64,42 @@ export default function CareerInformation() {
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // If a modal is open, close that first instead of
+        // navigating away.
+        if (confirmVisible) {
+          setConfirmVisible(false);
+          setSelectedCareerId(null);
+          return true;
+        }
+
+        if (alertVisible) {
+          setAlertVisible(false);
+          return true;
+        }
+
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation, confirmVisible, alertVisible]),
+  );
 
   // =======================================================
   // SHOW CUSTOM ALERT
@@ -266,7 +305,7 @@ export default function CareerInformation() {
   const handleAddCareer = () => {
     console.log("ADD CAREER CLICKED");
 
-    router.push("/AddCareer");
+    navigation.navigate("AddCareer");
   };
 
   // =======================================================
@@ -668,11 +707,8 @@ export default function CareerInformation() {
                 return;
               }
 
-              router.push({
-                pathname: "/EditCareer",
-                params: {
-                  id: String(careerId),
-                },
+              navigation.navigate("EditCareer", {
+                id: String(careerId),
               });
             }}
           >
@@ -711,7 +747,7 @@ export default function CareerInformation() {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
           >
             <Ionicons name="chevron-back" size={19} color={COLORS.red} />
           </TouchableOpacity>

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
   ActivityIndicator,
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -11,15 +12,23 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { getMemberSpiritualBackground } from "../utils/Functions";
 
 const SocialBackgroundScreen = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  }, [navigation]);
 
   // =========================================================
   // STATE
@@ -131,12 +140,21 @@ const SocialBackgroundScreen = () => {
   }, []);
 
   // =========================================================
-  // INITIAL API CALL
+  // SCREEN FOCUS / API CALL / ANDROID BACK
   // =========================================================
 
-  useEffect(() => {
-    loadSpiritualBackground();
-  }, [loadSpiritualBackground]);
+  useFocusEffect(
+    useCallback(() => {
+      loadSpiritualBackground();
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [loadSpiritualBackground, handleBack]),
+  );
 
   // =========================================================
   // REFRESH
@@ -269,7 +287,7 @@ const SocialBackgroundScreen = () => {
   const handleEdit = () => {
     console.log("EDIT DETAILS CLICKED");
 
-    router.push("/EditSocialBackground");
+    navigation.navigate("EditSocialBackground");
 
     /*
       Change this route name to your actual
@@ -326,9 +344,9 @@ const SocialBackgroundScreen = () => {
             <TouchableOpacity
               style={styles.backButton}
               activeOpacity={0.7}
-              onPress={() => router.back()}
+              onPress={handleBack}
             >
-              <Ionicons name="chevron-back" size={25} color="#D92332" />
+              <Feather name="chevron-left" size={25} color="#D92332" />
             </TouchableOpacity>
 
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -340,7 +358,7 @@ const SocialBackgroundScreen = () => {
               activeOpacity={0.7}
               onPress={() => console.log("MENU CLICKED")}
             >
-              <Ionicons name="ellipsis-vertical" size={19} color="#D92332" />
+              <Feather name="more-vertical" size={19} color="#D92332" />
             </TouchableOpacity>
           </View>
 
@@ -360,7 +378,7 @@ const SocialBackgroundScreen = () => {
             ================================================= */
 
             <View style={styles.stateContainer}>
-              <Ionicons name="alert-circle-outline" size={22} color="#D92332" />
+              <Feather name="alert-circle" size={22} color="#D92332" />
 
               <Text style={[styles.stateText, styles.stateErrorText]}>
                 {loadError}
@@ -403,7 +421,7 @@ const SocialBackgroundScreen = () => {
                         },
                       ]}
                     >
-                      <Ionicons
+                      <Feather
                         name={item.icon}
                         size={18}
                         color={item.iconColor}
@@ -438,11 +456,11 @@ const SocialBackgroundScreen = () => {
                         activeOpacity={0.7}
                         onPress={() => handleItemEdit(item)}
                       >
-                        <Ionicons name="pencil" size={12} color="#A7A7A7" />
+                        <Feather name="edit-2" size={12} color="#A7A7A7" />
                       </TouchableOpacity>
                     ) : (
-                      <Ionicons
-                        name="chevron-forward"
+                      <Feather
+                        name="chevron-right"
                         size={14}
                         color="#999999"
                         style={styles.arrow}
@@ -461,7 +479,7 @@ const SocialBackgroundScreen = () => {
                 activeOpacity={0.85}
                 onPress={handleEdit}
               >
-                <Ionicons name="pencil" size={15} color="#FFFFFF" />
+                <Feather name="edit-2" size={15} color="#FFFFFF" />
 
                 <Text style={styles.editButtonText}>Edit Details</Text>
               </TouchableOpacity>

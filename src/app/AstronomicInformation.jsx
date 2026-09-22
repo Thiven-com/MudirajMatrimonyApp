@@ -1,21 +1,24 @@
 import { useCallback, useState } from "react";
 
 import {
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  BackHandler,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { getMemberAstronomic } from "../utils/Functions";
 
 const AstronomicInformation = () => {
+  const navigation = useNavigation();
+
   /* =========================================================
      STATE
   ========================================================= */
@@ -135,6 +138,29 @@ const AstronomicInformation = () => {
     }, []),
   );
 
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
+
   /* =========================================================
      ONLY EDIT DETAILS BUTTON
   ========================================================= */
@@ -142,7 +168,7 @@ const AstronomicInformation = () => {
   const handleEditDetails = () => {
     console.log("EDIT DETAILS CLICKED");
 
-    router.push("/EditAstronomicInformation");
+    navigation.navigate("EditAstronomicInformation");
   };
 
   /* =========================================================
@@ -163,7 +189,7 @@ const AstronomicInformation = () => {
             <TouchableOpacity
               style={styles.backButton}
               activeOpacity={0.7}
-              onPress={() => router.back()}
+              onPress={() => navigation.goBack()}
             >
               <Ionicons name="chevron-back" size={29} color="#D7192E" />
             </TouchableOpacity>

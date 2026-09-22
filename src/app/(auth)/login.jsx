@@ -1,11 +1,11 @@
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
+  BackHandler,
   Dimensions,
   Image,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,13 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/colors";
 import { Fonts } from "../../constants/Fonts";
 import { sendLoginOtp } from "../../utils/Functions";
@@ -38,10 +39,29 @@ const CTRL_Y = HEADER_HEIGHT * 0.05;
 const MOBILE_LENGTH = 10;
 
 export default function LoginScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [mobile, setMobile] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   const handleLogin = async () => {
     if (loading) return;
@@ -66,7 +86,7 @@ export default function LoginScreen() {
       ) {
         setErrorText("📝 No account found. Redirecting to registration...");
         setTimeout(() => {
-          router.replace("/register");
+          navigation.replace("register");
         }, 2000);
         return;
       }
@@ -77,12 +97,9 @@ export default function LoginScreen() {
       }
 
       // OTP sent successfully
-      router.push({
-        pathname: "/otp",
-        params: {
-          mobile: cleanedMobile,
-          sessionToken: result?.sessionToken || "",
-        },
+      navigation.navigate("otp", {
+        mobile: cleanedMobile,
+        sessionToken: result?.sessionToken || "",
       });
     } catch (error) {
       console.log("login Error:", error);
@@ -127,7 +144,7 @@ export default function LoginScreen() {
 
           <View style={styles.tabRow}>
             <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
-            <TouchableOpacity onPress={() => router.push("/register")}>
+            <TouchableOpacity onPress={() => navigation.navigate("register")}>
               <Text style={styles.tabText}>Register</Text>
             </TouchableOpacity>
           </View>
@@ -137,7 +154,7 @@ export default function LoginScreen() {
             <View style={styles.inputWrap}>
               <View style={styles.codeWrap}>
                 <Text style={styles.codeText}>+91</Text>
-                <Ionicons
+                <Feather
                   name="chevron-down"
                   size={14}
                   color={Colors.textMuted}
@@ -187,19 +204,19 @@ export default function LoginScreen() {
 
             <View style={styles.socialRow}>
               <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <FontAwesome name="google" size={28} color={Colors.google} />
+                <Feather name="chrome" size={28} color={Colors.google} />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Ionicons
-                  name="logo-facebook"
+                <Feather name="facebook" size={28} color={Colors.facebook} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <Feather
+                  name="smartphone"
                   size={28}
-                  color={Colors.facebook}
+                  color={Colors.textPrimary}
                 />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Ionicons name="logo-apple" size={28} color={Colors.white} />
               </TouchableOpacity>
             </View>
 
@@ -207,7 +224,7 @@ export default function LoginScreen() {
               <Text style={styles.registerText}>
                 New to Mudiraj World Matrimony?{" "}
               </Text>
-              <TouchableOpacity onPress={() => router.push("/register")}>
+              <TouchableOpacity onPress={() => navigation.navigate("register")}>
                 <Text style={styles.registerLink}>Register</Text>
               </TouchableOpacity>
             </View>
@@ -460,11 +477,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontFamily: Fonts.body.regular,
     paddingVertical: Platform.OS === "ios" ? 14 : 10,
-    ...Platform.select({
-      web: {
-        outlineStyle: "none",
-      },
-    }),
   },
   errorText: {
     color: Colors.error,

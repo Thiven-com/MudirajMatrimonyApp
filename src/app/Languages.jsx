@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -10,10 +11,10 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Feather from "react-native-vector-icons/Feather";
 
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { getMemberLanguages } from "../utils/Functions";
 
@@ -370,11 +371,47 @@ const getKnownLanguages = (data) => {
 ========================================================= */
 
 export default function Languages() {
+  const navigation = useNavigation();
+
   const [motherTongue, setMotherTongue] = useState("");
 
   const [knownLanguages, setKnownLanguages] = useState([]);
 
   const [errorMessage, setErrorMessage] = useState("");
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as EditSocialBackground / EducationInformation:
+     intercept the hardware back button and route it through
+     handleBack().
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack]);
 
   /* =======================================================
      LOAD LANGUAGES
@@ -522,12 +559,8 @@ export default function Languages() {
   ======================================================= */
 
   const editMotherTongue = () => {
-    router.push({
-      pathname: "/EditLanguages",
-
-      params: {
-        field: "motherTongue",
-      },
+    navigation.navigate("EditLanguages", {
+      field: "motherTongue",
     });
   };
 
@@ -536,12 +569,8 @@ export default function Languages() {
   ======================================================= */
 
   const editKnownLanguages = () => {
-    router.push({
-      pathname: "/EditLanguages",
-
-      params: {
-        field: "knownLanguages",
-      },
+    navigation.navigate("EditLanguages", {
+      field: "knownLanguages",
     });
   };
 
@@ -560,10 +589,10 @@ export default function Languages() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Feather name="arrow-left" size={24} color="#222222" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Languages</Text>
@@ -586,7 +615,7 @@ export default function Languages() {
 
         {errorMessage ? (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle-outline" size={22} color="#E53935" />
+            <Feather name="alert-circle" size={20} color="#E53935" />
 
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
@@ -599,7 +628,7 @@ export default function Languages() {
         <View style={styles.card}>
           <View style={styles.cardLeft}>
             <View style={styles.iconCircle}>
-              <Ionicons name="language-outline" size={22} color="#F44336" />
+              <Feather name="globe" size={20} color="#F44336" />
             </View>
 
             <View style={styles.textContainer}>
@@ -616,7 +645,7 @@ export default function Languages() {
             style={styles.editButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="create-outline" size={20} color="#F44336" />
+            <Feather name="edit-2" size={18} color="#F44336" />
           </TouchableOpacity>
         </View>
 
@@ -627,7 +656,7 @@ export default function Languages() {
         <View style={styles.card}>
           <View style={styles.cardLeft}>
             <View style={styles.iconCircle}>
-              <Ionicons name="chatbubbles-outline" size={22} color="#F44336" />
+              <Feather name="message-circle" size={20} color="#F44336" />
             </View>
 
             <View style={styles.textContainer}>
@@ -655,7 +684,7 @@ export default function Languages() {
             style={styles.editButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="create-outline" size={20} color="#F44336" />
+            <Feather name="edit-2" size={18} color="#F44336" />
           </TouchableOpacity>
         </View>
 
@@ -665,10 +694,10 @@ export default function Languages() {
 
         <TouchableOpacity
           style={styles.bottomEditButton}
-          onPress={() => router.push("/EditLanguages")}
+          onPress={() => navigation.navigate("EditLanguages")}
           activeOpacity={0.85}
         >
-          <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+          <Feather name="edit-2" size={18} color="#FFFFFF" />
 
           <Text style={styles.bottomEditText}>Edit Languages</Text>
         </TouchableOpacity>

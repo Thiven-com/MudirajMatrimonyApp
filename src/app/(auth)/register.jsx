@@ -1,12 +1,12 @@
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
+  BackHandler,
   Dimensions,
   Image,
   Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,7 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import Feather from "react-native-vector-icons/Feather";
+
 import Svg, {
   Defs,
   Path,
@@ -43,7 +45,7 @@ const ON_BEHALF_OPTIONS = [
 ];
 
 export default function RegisterScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -57,6 +59,33 @@ export default function RegisterScreen() {
   const [onBehalfModalVisible, setOnBehalfModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (genderModalVisible) {
+          setGenderModalVisible(false);
+          return true;
+        }
+        if (onBehalfModalVisible) {
+          setOnBehalfModalVisible(false);
+          return true;
+        }
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation, genderModalVisible, onBehalfModalVisible]),
+  );
 
   const handleRegister = async () => {
     if (
@@ -100,7 +129,7 @@ export default function RegisterScreen() {
       }
 
       // Registration successful
-      router.replace("/login");
+      navigation.replace("login");
     } catch (error) {
       console.log("signup Error:", error);
       setErrorText(error?.message || "Something went wrong. Please try again.");
@@ -110,7 +139,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -127,10 +156,10 @@ export default function RegisterScreen() {
 
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <Feather name="arrow-left" size={24} color={Colors.white} />
           </TouchableOpacity>
 
           <View style={styles.logoRing}>
@@ -349,9 +378,7 @@ export default function RegisterScreen() {
           onPress={() => setAgreed(!agreed)}
         >
           <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-            {agreed && (
-              <Ionicons name="checkmark" size={12} color={Colors.white} />
-            )}
+            {agreed && <Feather name="check" size={12} color={Colors.white} />}
           </View>
           <Text style={styles.termsText}>
             I agree to the{" "}
@@ -363,7 +390,7 @@ export default function RegisterScreen() {
         {/* ================= ERROR MESSAGE ================= */}
         {errorText.length > 0 && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={Colors.primaryRed} />
+            <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
             <Text style={styles.errorText}>{errorText}</Text>
           </View>
         )}
@@ -406,12 +433,12 @@ export default function RegisterScreen() {
         {/* ================= SOCIAL BUTTONS ================= */}
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <FontAwesome name="google" size={18} color={Colors.google} />
+            <Feather name="globe" size={18} color={Colors.google} />
             <Text style={styles.socialText}>Continue with Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <Ionicons name="logo-facebook" size={20} color={Colors.facebook} />
+            <Feather name="message-circle" size={20} color={Colors.facebook} />
             <Text style={styles.socialText}>Continue with Facebook</Text>
           </TouchableOpacity>
         </View>
@@ -420,7 +447,7 @@ export default function RegisterScreen() {
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity
-            onPress={() => router.push("/login")}
+            onPress={() => navigation.navigate("login")}
             activeOpacity={0.7}
           >
             <Text style={styles.loginLink}>Login</Text>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   Modal,
@@ -16,9 +17,9 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 import {
   getMemberBasicInfo,
@@ -308,6 +309,8 @@ const FamilyItem = ({ item }) => {
 ========================================================= */
 
 export default function ProfileDetails() {
+  const navigation = useNavigation();
+
   const [profileData, setProfileData] = useState(null);
 
   const [introduction, setIntroduction] = useState("");
@@ -386,6 +389,29 @@ export default function ProfileDetails() {
     marital_status: 0,
     children: 0,
   });
+
+  /* =====================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on
+     HomeScreen / MatchesScreen: active only while this
+     screen is focused, cleaned up on blur/unmount.
+  ===================================================== */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   /* =====================================================
      INITIAL LOAD
@@ -555,7 +581,7 @@ export default function ProfileDetails() {
   ===================================================== */
 
   const handlePhotos = () => {
-    router.push("/myphotos");
+    navigation.navigate("MyPhotos");
   };
 
   /* =====================================================
@@ -563,7 +589,7 @@ export default function ProfileDetails() {
   ===================================================== */
 
   const handleMessage = () => {
-    router.push("/chatting");
+    navigation.navigate("Chatting");
   };
 
   /* =====================================================
@@ -579,7 +605,7 @@ export default function ProfileDetails() {
   ===================================================== */
 
   const handleInterest = () => {
-    router.push("/interests");
+    navigation.navigate("Interests");
 
     Alert.alert("Interest Sent", "Your interest has been sent successfully.");
   };
@@ -589,7 +615,7 @@ export default function ProfileDetails() {
   ===================================================== */
 
   const handleInterests = () => {
-    router.push("/interests");
+    navigation.navigate("Interests");
   };
 
   /* =====================================================
@@ -597,7 +623,7 @@ export default function ProfileDetails() {
   ===================================================== */
 
   const handleShortlists = () => {
-    router.push("/shortlist");
+    navigation.navigate("Shortlist");
   };
 
   /* =====================================================
@@ -618,7 +644,13 @@ export default function ProfileDetails() {
     }
 
     console.log("LOGOUT: navigating to login");
-    router.replace("/login");
+
+    // Equivalent of expo-router's router.replace("/login") — resets the
+    // stack so the user can't navigate back into the app after logging out.
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }],
+    });
   };
 
   const handleLogout = () => {
@@ -1582,7 +1614,7 @@ export default function ProfileDetails() {
         <TouchableOpacity
           style={styles.headerSideButton}
           activeOpacity={0.8}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
         >
           <Ionicons name="chevron-back" size={27} color="#B71C28" />
         </TouchableOpacity>
@@ -1827,7 +1859,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Basic Information clicked");
-              router.push("/EditBasicInformation");
+              navigation.navigate("EditBasicInformation");
             }}
           >
             <View
@@ -1880,7 +1912,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Present Address Clicked");
-              router.push("/PresentAddress");
+              navigation.navigate("PresentAddress");
               Alert.alert(
                 "Present Address",
                 presentAddress
@@ -1909,7 +1941,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Education Information Clicked");
-              router.push("/EducationInformation");
+              navigation.navigate("EducationInformation");
               Alert.alert("Education Information", "Education information");
             }}
           >
@@ -1935,7 +1967,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Career Information Clicked");
-              router.push("/CareerInformation");
+              navigation.navigate("CareerInformation");
               Alert.alert("Career Information", "Career information");
             }}
           >
@@ -1961,7 +1993,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Languages Clicked");
-              router.push("/Languages");
+              navigation.navigate("Languages");
               Alert.alert("Language", "Language information");
             }}
           >
@@ -1983,7 +2015,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Social & Spiritual Background clicked");
-              router.push("/Social&SpiritualBackground");
+              navigation.navigate("SocialSpiritualBackground");
 
               Alert.alert("Spiritual & Social Background", "Information");
             }}
@@ -2010,7 +2042,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Astronomic Information clicked");
-              router.push("/AstronomicInformation");
+              navigation.navigate("AstronomicInformation");
               Alert.alert("Astronomic Information", "Astronomic information");
             }}
           >
@@ -2032,7 +2064,7 @@ export default function ProfileDetails() {
             activeOpacity={0.8}
             onPress={() => {
               console.log("Family Information Clicked");
-              router.push("/FamilyInformation");
+              navigation.navigate("FamilyInformation");
               Alert.alert("Family Information", "Family information");
             }}
           >

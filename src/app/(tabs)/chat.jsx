@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -13,8 +14,8 @@ import {
 } from "react-native";
 
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 
 import { getChatList, getToken } from "../../utils/Functions";
@@ -121,7 +122,7 @@ function mapChat(item) {
 }
 
 export default function ChatsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -129,6 +130,29 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   const loadChats = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -177,25 +201,22 @@ export default function ChatsScreen() {
   }, [loadChats]);
 
   const handleBack = () => {
-    router.back();
+    navigation.goBack();
   };
 
   const handleOpenChatting = (chat) => {
-    router.push({
-      pathname: "/chatconversion",
-      params: {
-        id: chat.threadId, // conversation/chat id — matches the API's `id` field (e.g. 1)
-        memberId: chat.memberId, // the other member's user id — matches the API's `user_id` field (e.g. 32)
-        threadId: chat.threadId,
-        name: chat.name,
-        profession: chat.profession,
-        online: chat.online ? "true" : "false",
-      },
+    navigation.navigate("ChatConversion", {
+      id: chat.threadId, // conversation/chat id — matches the API's `id` field (e.g. 1)
+      memberId: chat.memberId, // the other member's user id — matches the API's `user_id` field (e.g. 32)
+      threadId: chat.threadId,
+      name: chat.name,
+      profession: chat.profession,
+      online: chat.online ? "true" : "false",
     });
   };
 
   const handleUpgrade = () => {
-    router.push("/subscriptionplans");
+    navigation.navigate("SubscriptionPlans");
   };
 
   const normalizedSearch = search.trim().toLowerCase();

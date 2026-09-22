@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -12,9 +13,11 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+
+import { useNavigation } from "@react-navigation/native";
 
 import { updateMemberSpiritualBackground } from "../utils/Functions";
 
@@ -127,7 +130,17 @@ const SectionHeading = ({ title }) => {
 // =========================================================
 
 const EditSocialBackground = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  // =========================================================
+  // BACK
+  // =========================================================
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
 
   // =========================================================
   // FIELD VALUES
@@ -151,6 +164,33 @@ const EditSocialBackground = () => {
   const [communityValue, setCommunityValue] = useState("");
 
   const [saving, setSaving] = useState(false);
+
+  // =========================================================
+  // ANDROID HARDWARE BACK
+  // Same pattern as EditLanguages: intercept the hardware back
+  // button and route it through handleBack(), ignored while saving.
+  // =========================================================
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
 
   // =========================================================
   // VALIDATE NUMERIC ID
@@ -283,7 +323,7 @@ const EditSocialBackground = () => {
         [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: handleBack,
           },
         ],
       );
@@ -321,9 +361,9 @@ const EditSocialBackground = () => {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => router.back()}
+            onPress={handleBack}
           >
-            <Ionicons name="chevron-back" size={22} color="#1F2933" />
+            <Feather name="chevron-left" size={22} color="#1F2933" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -424,7 +464,7 @@ const EditSocialBackground = () => {
           <TouchableOpacity
             style={styles.cancelButton}
             activeOpacity={0.7}
-            onPress={() => router.back()}
+            onPress={handleBack}
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>

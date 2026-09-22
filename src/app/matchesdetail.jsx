@@ -4,10 +4,15 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Platform,
   ScrollView,
@@ -314,8 +319,9 @@ function mapProfile(api, routeId) {
 }
 
 export default function ProfileDetailScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const params = route.params ?? {};
   const rawId = params.id ?? params.memberId;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
@@ -345,6 +351,29 @@ export default function ProfileDetailScreen() {
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
+
+  /* =========================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on
+     HomeScreen / MatchesScreen / ProfileDetails / SearchScreen:
+     active only while this screen is focused, cleaned up on
+     blur/unmount.
+  ========================================================= */
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   /* =========================================================
      LOAD PROFILE
@@ -681,7 +710,7 @@ export default function ProfileDetailScreen() {
         {/* ================= TOP BAR ================= */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="arrow-back" size={26} color={Colors.primaryRed} />
@@ -981,7 +1010,7 @@ export default function ProfileDetailScreen() {
         <TouchableOpacity
           style={styles.bottomRedButton}
           activeOpacity={0.85}
-          onPress={() => router.push("/chatconversion")}
+          onPress={() => navigation.navigate("ChatConversion")}
         >
           <Ionicons
             name="chatbubble-ellipses-outline"

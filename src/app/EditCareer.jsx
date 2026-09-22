@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -20,9 +21,9 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { router, useLocalSearchParams } from "expo-router";
+import Feather from "react-native-vector-icons/Feather";
 
 import {
   getMemberCareerById,
@@ -188,7 +189,7 @@ function SelectField({
           {value || placeholder}
         </Text>
 
-        <Ionicons name="chevron-down" size={20} color={COLORS.text} />
+        <Feather name="chevron-down" size={20} color={COLORS.text} />
       </TouchableOpacity>
 
       <Modal
@@ -205,7 +206,7 @@ function SelectField({
 
             {searchable && (
               <View style={styles.searchBox}>
-                <Ionicons name="search" size={18} color={COLORS.placeholder} />
+                <Feather name="search" size={18} color={COLORS.placeholder} />
 
                 <TextInput
                   style={styles.searchInput}
@@ -243,7 +244,7 @@ function SelectField({
                     </Text>
 
                     {selected && (
-                      <Ionicons name="checkmark" size={20} color={COLORS.red} />
+                      <Feather name="check" size={20} color={COLORS.red} />
                     )}
                   </TouchableOpacity>
                 );
@@ -280,7 +281,7 @@ function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => onChangeText("")}
         >
-          <Ionicons name="close" size={22} color="#555555" />
+          <Feather name="x" size={22} color="#555555" />
         </TouchableOpacity>
       )}
     </View>
@@ -293,12 +294,13 @@ function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
 
 export default function EditCareer() {
   // =====================================================
-  // GET ROUTE PARAM
+  // NAVIGATION / ROUTE PARAM
   // =====================================================
 
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const careerId = params?.id || params?.careerId;
+  const careerId = route?.params?.id || route?.params?.careerId;
 
   // =====================================================
   // STATE
@@ -331,6 +333,44 @@ export default function EditCareer() {
   const [saving, setSaving] = useState(false);
 
   // =====================================================
+  // BACK
+  // =====================================================
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  // =====================================================
+  // ANDROID HARDWARE BACK
+  // Same pattern as ChatsScreen / OtpScreen: intercept the
+  // hardware back button and route it through handleBack()
+  // so both the header arrow and the hardware key stay in sync.
+  // =====================================================
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
+
+  // =====================================================
   // LOAD CAREER BY ID
   // =====================================================
 
@@ -346,7 +386,7 @@ export default function EditCareer() {
         Alert.alert("Error", "Career ID is missing.", [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: handleBack,
           },
         ]);
 
@@ -363,7 +403,7 @@ export default function EditCareer() {
         Alert.alert("Session Expired", "Please login again.", [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: handleBack,
           },
         ]);
 
@@ -482,7 +522,7 @@ export default function EditCareer() {
     } finally {
       setLoading(false);
     }
-  }, [careerId]);
+  }, [careerId, handleBack]);
 
   // =====================================================
   // LOAD ON SCREEN OPEN
@@ -661,9 +701,7 @@ export default function EditCareer() {
       Alert.alert("Success", "Career updated successfully.", [
         {
           text: "OK",
-          onPress: () => {
-            router.back();
-          },
+          onPress: handleBack,
         },
       ]);
     } catch (error) {
@@ -707,9 +745,9 @@ export default function EditCareer() {
         <TouchableOpacity
           style={styles.backButton}
           activeOpacity={0.7}
-          onPress={() => router.back()}
+          onPress={handleBack}
         >
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          <Feather name="chevron-left" size={22} color={COLORS.text} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -722,7 +760,7 @@ export default function EditCareer() {
           onPress={handleClear}
           disabled={saving}
         >
-          <Ionicons name="trash-outline" size={18} color={COLORS.red} />
+          <Feather name="trash-2" size={18} color={COLORS.red} />
 
           <Text style={styles.clearButtonText}>Clear</Text>
         </TouchableOpacity>
@@ -742,7 +780,7 @@ export default function EditCareer() {
 
           <View style={styles.banner}>
             <View style={styles.bannerIcon}>
-              <Ionicons name="briefcase-outline" size={26} color={COLORS.red} />
+              <Feather name="briefcase" size={26} color={COLORS.red} />
             </View>
 
             <View style={styles.bannerTextWrap}>
@@ -759,9 +797,7 @@ export default function EditCareer() {
           <FieldRow
             label="Occupation"
             required
-            icon={
-              <Ionicons name="briefcase-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="briefcase" size={24} color={COLORS.red} />}
           >
             <SelectField
               title="Select Occupation"
@@ -778,9 +814,7 @@ export default function EditCareer() {
           <FieldRow
             label="Industry"
             required
-            icon={
-              <Ionicons name="business-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="grid" size={24} color={COLORS.red} />}
           >
             <SelectField
               title="Select Industry"
@@ -796,9 +830,7 @@ export default function EditCareer() {
 
           <FieldRow
             label="Company Name"
-            icon={
-              <Ionicons name="business-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="home" size={24} color={COLORS.red} />}
           >
             <ClearableInput
               value={company}
@@ -813,9 +845,7 @@ export default function EditCareer() {
           <FieldRow
             label="Job Location"
             required
-            icon={
-              <Ionicons name="location-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="map-pin" size={24} color={COLORS.red} />}
           >
             <SelectField
               title="Select Job Location"
@@ -832,9 +862,7 @@ export default function EditCareer() {
 
           <FieldRow
             label="Work Mode"
-            icon={
-              <Ionicons name="desktop-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="monitor" size={24} color={COLORS.red} />}
           >
             <SelectField
               title="Select Work Mode"
@@ -851,9 +879,7 @@ export default function EditCareer() {
           <FieldRow
             label="Designation"
             required
-            icon={
-              <Ionicons name="person-outline" size={24} color={COLORS.red} />
-            }
+            icon={<Feather name="user" size={24} color={COLORS.red} />}
           >
             <ClearableInput
               value={designation}
@@ -868,13 +894,7 @@ export default function EditCareer() {
           <FieldRow
             label="Annual Income"
             required
-            icon={
-              <MaterialCommunityIcons
-                name="currency-inr"
-                size={24}
-                color={COLORS.red}
-              />
-            }
+            icon={<Feather name="dollar-sign" size={24} color={COLORS.red} />}
           >
             <SelectField
               title="Select Annual Income"
@@ -890,13 +910,7 @@ export default function EditCareer() {
 
           <FieldRow
             label="About Your Career"
-            icon={
-              <Ionicons
-                name="document-text-outline"
-                size={24}
-                color={COLORS.red}
-              />
-            }
+            icon={<Feather name="file-text" size={24} color={COLORS.red} />}
           >
             <View style={[styles.inputBox, styles.textAreaBox]}>
               <TextInput
@@ -932,7 +946,7 @@ export default function EditCareer() {
             {saving ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Ionicons name="save-outline" size={22} color={COLORS.white} />
+              <Feather name="save" size={22} color={COLORS.white} />
             )}
 
             <Text style={styles.saveButtonText}>

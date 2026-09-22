@@ -1,11 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
 import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BackHandler,
   Dimensions,
   Image,
   Platform,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,13 +18,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
 import { verifyLoginOtp } from "../../utils/Functions";
@@ -37,9 +42,9 @@ const OTP_LENGTH = 4;
 const RESEND_SECONDS = 60;
 
 export default function OtpScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const mobile = params?.mobile || "98765 43210";
+  const navigation = useNavigation();
+  const route = useRoute();
+  const mobile = route.params?.mobile || "98765 43210";
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
@@ -47,6 +52,25 @@ export default function OtpScreen() {
   const [errorText, setErrorText] = useState("");
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const inputRefs = useRef([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -100,7 +124,7 @@ export default function OtpScreen() {
       if (result?.userNotFound === true) {
         setErrorText("User account not found. Redirecting to registration...");
         setTimeout(() => {
-          router.replace("/register");
+          navigation.replace("Register");
         }, 1500);
         return;
       }
@@ -145,7 +169,7 @@ export default function OtpScreen() {
           return;
         }
 
-        router.replace("/home");
+        navigation.replace("home");
         return;
       }
 
@@ -172,11 +196,11 @@ export default function OtpScreen() {
   };
 
   const handleEditNumber = () => {
-    router.back();
+    navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -189,10 +213,10 @@ export default function OtpScreen() {
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Feather name="arrow-left" size={24} color={Colors.white} />
         </TouchableOpacity>
 
         <View style={styles.logoRing}>
@@ -229,8 +253,8 @@ export default function OtpScreen() {
         onPress={handleEditNumber}
       >
         <Text style={styles.mobileText}>+91 {mobile}</Text>
-        <Ionicons
-          name="pencil"
+        <Feather
+          name="edit-2"
           size={15}
           color={Colors.primaryRed}
           style={{ marginLeft: 6 }}
@@ -260,7 +284,7 @@ export default function OtpScreen() {
       {isPendingApproval && (
         <View style={styles.pendingContainer}>
           <View style={styles.pendingIconCircle}>
-            <Ionicons name="time-outline" size={22} color={Colors.warning} />
+            <Feather name="clock" size={22} color={Colors.warning} />
           </View>
           <Text style={styles.pendingTitle}>Awaiting Admin Approval</Text>
           <Text style={styles.pendingText}>
@@ -274,7 +298,7 @@ export default function OtpScreen() {
       {/* ================= ERROR MESSAGE ================= */}
       {!isPendingApproval && errorText.length > 0 && (
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color={Colors.primaryRed} />
+          <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
           <Text style={styles.errorText}>{errorText}</Text>
         </View>
       )}
@@ -320,8 +344,8 @@ export default function OtpScreen() {
               />
             </Svg>
             <View style={styles.verifyButtonContent}>
-              <Ionicons
-                name="shield-checkmark-outline"
+              <Feather
+                name="shield"
                 size={20}
                 color={Colors.white}
                 style={{ marginRight: 8 }}
@@ -338,8 +362,8 @@ export default function OtpScreen() {
             activeOpacity={0.8}
             onPress={handleVerifyWithWhatsapp}
           >
-            <Ionicons
-              name="logo-whatsapp"
+            <Feather
+              name="message-circle"
               size={20}
               color={Colors.primaryRed}
             />
@@ -352,9 +376,9 @@ export default function OtpScreen() {
         <TouchableOpacity
           style={styles.whatsappButton}
           activeOpacity={0.8}
-          onPress={() => router.replace("/login")}
+          onPress={() => navigation.replace("Login")}
         >
-          <Ionicons name="arrow-back" size={18} color={Colors.primaryRed} />
+          <Feather name="arrow-left" size={18} color={Colors.primaryRed} />
           <Text style={styles.whatsappText}>Back to Login</Text>
         </TouchableOpacity>
       )}
@@ -362,7 +386,7 @@ export default function OtpScreen() {
       {/* ================= PRIVACY NOTE ================= */}
       <View style={styles.privacyRow}>
         <View style={styles.privacyIconCircle}>
-          <Ionicons name="lock-closed" size={16} color={Colors.primaryRed} />
+          <Feather name="lock" size={16} color={Colors.primaryRed} />
         </View>
         <Text style={styles.privacyText}>
           We never share your number with anyone.{"\n"}Your privacy is our

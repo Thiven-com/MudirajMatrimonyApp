@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Alert,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -14,11 +15,11 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import {
   getMemberFamilyInfo,
@@ -48,7 +49,7 @@ const InputField = ({
             },
           ]}
         >
-          <Ionicons name={icon} size={18} color={iconColor} />
+          <Feather name={icon} size={18} color={iconColor} />
         </View>
 
         <Text style={styles.fieldLabel}>{label}</Text>
@@ -80,12 +81,13 @@ const InputField = ({
 
 export default function EditFamilyInformation() {
   /* =======================================================
-     ROUTER PARAMS
+     NAVIGATION / ROUTE PARAMS
   ======================================================= */
 
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const selectedField = params?.field || "";
+  const selectedField = route?.params?.field || "";
 
   /* =======================================================
      STATES
@@ -116,6 +118,44 @@ export default function EditFamilyInformation() {
   const motherRef = useRef(null);
 
   const siblingRef = useRef(null);
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as ChatsScreen / OtpScreen / EditCareer /
+     EditEducation: intercept the hardware back button and
+     route it through handleBack(), ignored while saving.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
 
   /* =======================================================
      GET FAMILY INFORMATION
@@ -459,9 +499,7 @@ export default function EditFamilyInformation() {
         Alert.alert("Success", message, [
           {
             text: "OK",
-            onPress: () => {
-              router.back();
-            },
+            onPress: handleBack,
           },
         ]);
       } else {
@@ -514,7 +552,7 @@ export default function EditFamilyInformation() {
         <StatusBar barStyle="dark-content" backgroundColor="#F5F6F8" />
 
         <View style={styles.loadingContainer}>
-          <Ionicons name="people-outline" size={30} color="#D7192A" />
+          <Feather name="users" size={30} color="#D7192A" />
 
           <Text style={styles.loadingText}>Loading family information...</Text>
         </View>
@@ -552,13 +590,13 @@ export default function EditFamilyInformation() {
               <TouchableOpacity
                 style={styles.backButton}
                 activeOpacity={0.7}
-                onPress={() => router.back()}
+                onPress={handleBack}
               >
-                <Ionicons name="chevron-back" size={25} color="#D7192A" />
+                <Feather name="chevron-left" size={25} color="#D7192A" />
               </TouchableOpacity>
 
               <View style={styles.headerIconContainer}>
-                <Ionicons name="people-outline" size={17} color="#D7192A" />
+                <Feather name="users" size={17} color="#D7192A" />
               </View>
 
               <Text style={styles.headerTitle} numberOfLines={1}>
@@ -580,11 +618,7 @@ export default function EditFamilyInformation() {
 
             {errorMessage ? (
               <View style={styles.errorBox}>
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={18}
-                  color="#D7192A"
-                />
+                <Feather name="alert-circle" size={18} color="#D7192A" />
 
                 <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
@@ -607,7 +641,7 @@ export default function EditFamilyInformation() {
               value={father}
               onChangeText={setFather}
               inputRef={fatherRef}
-              icon="person-outline"
+              icon="user"
               iconColor="#4A9BE8"
               placeholder="Enter father's name"
               fieldName="father"
@@ -622,7 +656,7 @@ export default function EditFamilyInformation() {
               value={mother}
               onChangeText={setMother}
               inputRef={motherRef}
-              icon="person-outline"
+              icon="user"
               iconColor="#E65A91"
               placeholder="Enter mother's name"
               fieldName="mother"
@@ -637,7 +671,7 @@ export default function EditFamilyInformation() {
               value={sibling}
               onChangeText={setSibling}
               inputRef={siblingRef}
-              icon="people-outline"
+              icon="users"
               iconColor="#4CAF78"
               placeholder="Enter number of siblings"
               keyboardType="number-pad"
@@ -655,11 +689,7 @@ export default function EditFamilyInformation() {
               onPress={handleSave}
               disabled={saving}
             >
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={18}
-                color="#FFFFFF"
-              />
+              <Feather name="check-circle" size={18} color="#FFFFFF" />
 
               <Text style={styles.saveText}>
                 {saving ? "Saving..." : "Save Changes"}
@@ -673,7 +703,7 @@ export default function EditFamilyInformation() {
             <TouchableOpacity
               style={styles.cancelButton}
               activeOpacity={0.75}
-              onPress={() => router.back()}
+              onPress={handleBack}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>

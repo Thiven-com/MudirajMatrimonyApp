@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  BackHandler,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 
 import { getMemberFamilyInfo } from "../utils/Functions";
 
@@ -23,6 +24,18 @@ import { getMemberFamilyInfo } from "../utils/Functions";
 ========================================================= */
 
 export default function FamilyInformation() {
+  const navigation = useNavigation();
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
   /* =======================================================
      FAMILY STATE
   ======================================================= */
@@ -46,6 +59,34 @@ export default function FamilyInformation() {
   ======================================================= */
 
   const [errorMessage, setErrorMessage] = useState("");
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as EditSocialBackground / EducationInformation:
+     intercept the hardware back button and route it through
+     handleBack(), ignored while the screen is loading.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (loading) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, loading]);
 
   /* =======================================================
      GET FAMILY INFORMATION
@@ -196,12 +237,8 @@ export default function FamilyInformation() {
   const handleEdit = (field) => {
     console.log("EDIT FAMILY FIELD:", field);
 
-    router.push({
-      pathname: "/EditFamilyInformation",
-
-      params: {
-        field,
-      },
+    navigation.navigate("EditFamilyInformation", {
+      field,
     });
   };
 
@@ -212,7 +249,7 @@ export default function FamilyInformation() {
   const handleEditDetails = () => {
     console.log("EDIT FAMILY DETAILS CLICKED");
 
-    router.push("/EditFamilyInformation");
+    navigation.navigate("EditFamilyInformation");
   };
 
   /* =======================================================
@@ -263,7 +300,7 @@ export default function FamilyInformation() {
             {/* HEADER ICON */}
 
             <View style={styles.headerIconContainer}>
-              <Ionicons name="people-outline" size={17} color="#D7192A" />
+              <Feather name="users" size={15} color="#D7192A" />
             </View>
 
             {/* TITLE */}
@@ -277,7 +314,7 @@ export default function FamilyInformation() {
               onPress={handleMore}
               activeOpacity={0.7}
             >
-              <Ionicons name="ellipsis-vertical" size={19} color="#D7192A" />
+              <Feather name="more-vertical" size={17} color="#D7192A" />
             </TouchableOpacity>
           </View>
 
@@ -293,7 +330,7 @@ export default function FamilyInformation() {
 
           {errorMessage ? (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={18} color="#D7192A" />
+              <Feather name="alert-circle" size={16} color="#D7192A" />
 
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
@@ -309,7 +346,7 @@ export default function FamilyInformation() {
             onPress={() => handleEdit("father")}
           >
             <View style={[styles.personIcon, styles.fatherIcon]}>
-              <Ionicons name="person-outline" size={15} color="#4A9BE8" />
+              <Feather name="user" size={14} color="#4A9BE8" />
             </View>
 
             <View style={styles.textContainer}>
@@ -331,7 +368,7 @@ export default function FamilyInformation() {
             onPress={() => handleEdit("mother")}
           >
             <View style={[styles.personIcon, styles.motherIcon]}>
-              <Ionicons name="person-outline" size={15} color="#E65A91" />
+              <Feather name="user" size={14} color="#E65A91" />
             </View>
 
             <View style={styles.textContainer}>
@@ -353,7 +390,7 @@ export default function FamilyInformation() {
             onPress={() => handleEdit("sibling")}
           >
             <View style={[styles.personIcon, styles.siblingIcon]}>
-              <Ionicons name="people-outline" size={15} color="#4CAF78" />
+              <Feather name="users" size={14} color="#4CAF78" />
             </View>
 
             <View style={styles.textContainer}>
@@ -374,7 +411,7 @@ export default function FamilyInformation() {
             onPress={handleEditDetails}
             activeOpacity={0.85}
           >
-            <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+            <Feather name="edit" size={15} color="#FFFFFF" />
 
             <Text style={styles.editDetailsText}>Edit Details</Text>
           </TouchableOpacity>

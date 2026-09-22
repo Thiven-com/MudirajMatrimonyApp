@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   SafeAreaView,
   ScrollView,
@@ -12,9 +13,14 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { postMemberListing } from "../../utils/Functions";
 
@@ -373,8 +379,9 @@ const tabs = [
 ========================================================= */
 
 export default function MatchesScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const params = route.params || {};
 
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -387,6 +394,29 @@ export default function MatchesScreen() {
   // (params.search), if present.
   const [searchText, setSearchText] = useState(
     typeof params.search === "string" ? params.search : "",
+  );
+
+  /* =========================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on HomeScreen:
+     only active while this screen is focused, and cleaned up on
+     blur/unmount so it doesn't leak into other screens.
+  ========================================================= */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
   );
 
   /* =========================================================
@@ -555,7 +585,7 @@ export default function MatchesScreen() {
         <View style={styles.headerArea}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={28} color="#252525" />
@@ -709,10 +739,7 @@ export default function MatchesScreen() {
                 style={styles.matchCard}
                 activeOpacity={0.85}
                 onPress={() =>
-                  router.push({
-                    pathname: "/matchesdetail",
-                    params: { id: item.id },
-                  })
+                  navigation.navigate("MatchesDetail", { id: item.id })
                 }
               >
                 {/* =================================================
@@ -869,16 +896,14 @@ export default function MatchesScreen() {
                         // Route to the chat conversation screen for this
                         // member, passing id (and name, for the chat
                         // header) as route params — same pattern as the
-                        // card's own router.push to /matchesdetail above.
-                        router.push({
-                          pathname: "/chatconversion",
-                          params: {
-                            id: String(item.id),
-                            name: item.name || "",
-                            threadId: item.chat_thread_id
-                              ? String(item.chat_thread_id)
-                              : "",
-                          },
+                        // card's own navigation.navigate to MatchesDetail
+                        // above.
+                        navigation.navigate("ChatConversation", {
+                          id: String(item.id),
+                          name: item.name || "",
+                          threadId: item.chat_thread_id
+                            ? String(item.chat_thread_id)
+                            : "",
                         });
                       }}
                       activeOpacity={0.8}

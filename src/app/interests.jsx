@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Platform,
@@ -13,9 +14,9 @@ import {
   View,
 } from "react-native";
 
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,9 +43,9 @@ const COLORS = {
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300.png?text=Profile";
 
 // Screen that opens when a profile (photo / name) is tapped.
-// Change this one line if your route file is named differently
-// (e.g. "/matches-details" or "/MatchesDetails").
-const PROFILE_ROUTE = "/matchesdetail";
+// Change this one line if your registered screen name is different
+// (e.g. "MatchesDetails" or "MatchesDetail").
+const PROFILE_ROUTE = "matchesdetail";
 
 const TABS = [
   {
@@ -161,7 +162,7 @@ const isPendingStatus = (value) =>
   !isAcceptedStatus(value) && !isRejectedStatus(value);
 
 export default function InterestsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [activeTab, setActiveTab] = useState("sent");
 
@@ -174,6 +175,44 @@ export default function InterestsScreen() {
   const [error, setError] = useState("");
 
   const [actionId, setActionId] = useState(null);
+
+  // =====================================================
+  // BACK
+  // =====================================================
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  // =====================================================
+  // ANDROID HARDWARE BACK
+  // Same pattern as EditSocialBackground / EducationInformation:
+  // intercept the hardware back button and route it through
+  // handleBack(), ignored while an accept/reject is in progress.
+  // =====================================================
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (actionId !== null) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, actionId]);
 
   // =====================================================
   // LOAD INTERESTS
@@ -360,14 +399,11 @@ export default function InterestsScreen() {
       return;
     }
 
-    router.push({
-      pathname: PROFILE_ROUTE,
-      params: {
-        // Same value under both names, so the details screen can read
-        // either `memberId` or `id`.
-        memberId: String(memberId),
-        id: String(memberId),
-      },
+    navigation.navigate(PROFILE_ROUTE, {
+      // Same value under both names, so the details screen can read
+      // either `memberId` or `id`.
+      memberId: String(memberId),
+      id: String(memberId),
     });
   };
 
@@ -592,20 +628,12 @@ export default function InterestsScreen() {
                 {name}
               </Text>
 
-              <Ionicons
-                name="checkmark-circle"
-                size={16}
-                color={COLORS.green}
-              />
+              <Feather name="check-circle" size={16} color={COLORS.green} />
             </View>
 
             {age ? (
               <View style={styles.infoRow}>
-                <Ionicons
-                  name="person-outline"
-                  size={14}
-                  color={COLORS.muted}
-                />
+                <Feather name="user" size={14} color={COLORS.muted} />
 
                 <Text style={styles.infoText}>{age} years</Text>
               </View>
@@ -613,11 +641,7 @@ export default function InterestsScreen() {
 
             {location ? (
               <View style={styles.infoRow}>
-                <Ionicons
-                  name="location-outline"
-                  size={14}
-                  color={COLORS.muted}
-                />
+                <Feather name="map-pin" size={14} color={COLORS.muted} />
 
                 <Text style={styles.infoText} numberOfLines={1}>
                   {location}
@@ -664,7 +688,7 @@ export default function InterestsScreen() {
                   onPress={() => handleReject(item)}
                   disabled={actionId !== null}
                 >
-                  <Ionicons name="close" size={16} color={COLORS.primaryRed} />
+                  <Feather name="x" size={16} color={COLORS.primaryRed} />
 
                   <Text style={styles.rejectText}>Reject</Text>
                 </TouchableOpacity>
@@ -678,11 +702,7 @@ export default function InterestsScreen() {
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
                     <>
-                      <Ionicons
-                        name="checkmark"
-                        size={16}
-                        color={COLORS.white}
-                      />
+                      <Feather name="check" size={16} color={COLORS.white} />
 
                       <Text style={styles.acceptText}>Accept</Text>
                     </>
@@ -691,8 +711,8 @@ export default function InterestsScreen() {
               </View>
             ) : (
               <View style={styles.sentStatus}>
-                <Ionicons
-                  name={isAccepted ? "checkmark-circle" : "close-circle"}
+                <Feather
+                  name={isAccepted ? "check-circle" : "x-circle"}
                   size={15}
                   color={isAccepted ? COLORS.green : COLORS.primaryRed}
                 />
@@ -709,7 +729,7 @@ export default function InterestsScreen() {
             )
           ) : (
             <View style={styles.sentStatus}>
-              <Ionicons name="paper-plane" size={14} color={COLORS.gold} />
+              <Feather name="send" size={14} color={COLORS.gold} />
 
               <Text style={styles.sentStatusText}>Interest Sent</Text>
             </View>
@@ -720,9 +740,9 @@ export default function InterestsScreen() {
         <TouchableOpacity
           style={styles.shortlistButton}
           activeOpacity={0.8}
-          onPress={() => router.push("/shortlists")}
+          onPress={() => navigation.navigate("shortlists")}
         >
-          <Ionicons name="star-outline" size={18} color={COLORS.gold} />
+          <Feather name="star" size={18} color={COLORS.gold} />
         </TouchableOpacity>
       </View>
     );
@@ -749,11 +769,8 @@ export default function InterestsScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={23} color={COLORS.white} />
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Feather name="arrow-left" size={23} color={COLORS.white} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Interests</Text>
@@ -776,11 +793,8 @@ export default function InterestsScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={23} color={COLORS.white} />
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Feather name="arrow-left" size={23} color={COLORS.white} />
         </TouchableOpacity>
 
         <View style={styles.headerTextContainer}>
@@ -793,7 +807,7 @@ export default function InterestsScreen() {
           style={styles.refreshButton}
           onPress={() => loadInterests(activeTab, true)}
         >
-          <Ionicons name="refresh" size={20} color={COLORS.gold} />
+          <Feather name="refresh-cw" size={20} color={COLORS.gold} />
         </TouchableOpacity>
       </View>
 
@@ -820,11 +834,7 @@ export default function InterestsScreen() {
       {/* Error */}
       {error ? (
         <View style={styles.errorBox}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={20}
-            color={COLORS.primaryRed}
-          />
+          <Feather name="alert-circle" size={20} color={COLORS.primaryRed} />
 
           <Text style={styles.errorText}>{error}</Text>
 
@@ -847,7 +857,7 @@ export default function InterestsScreen() {
         </View>
 
         <View style={styles.sectionIcon}>
-          <Ionicons name="heart" size={18} color={COLORS.primaryRed} />
+          <Feather name="heart" size={18} color={COLORS.primaryRed} />
         </View>
       </View>
 
@@ -873,7 +883,7 @@ export default function InterestsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-              <Ionicons name="heart-outline" size={48} color={COLORS.gold} />
+              <Feather name="heart" size={48} color={COLORS.gold} />
             </View>
 
             <Text style={styles.emptyTitle}>{emptyTitle}</Text>
@@ -882,7 +892,7 @@ export default function InterestsScreen() {
 
             <TouchableOpacity
               style={styles.exploreButton}
-              onPress={() => router.push("/matches")}
+              onPress={() => navigation.navigate("matches")}
             >
               <Text style={styles.exploreButtonText}>Explore Matches</Text>
             </TouchableOpacity>

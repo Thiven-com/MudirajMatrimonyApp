@@ -11,16 +11,12 @@ import {
   View,
 } from "react-native";
 
-import {
-  Feather,
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import LinearGradient from "react-native-linear-gradient";
+
 import {
   getBannerData,
   getBlogsData,
@@ -78,33 +74,35 @@ const MATCH_IMAGES = {
 
 /* =================================================
    DATA
+   NOTE: icon fields below are now Feather names (a single,
+   minimal icon set), swapped from the original Ionicons names.
 ===================================================== */
 
 const WHY_CHOOSE = [
   {
     id: "1",
-    icon: "shield-checkmark-outline",
+    icon: "shield",
     title: "100%",
     subtitle: "Verified Profiles",
     color: COLORS.red,
   },
   {
     id: "2",
-    icon: "people-outline",
+    icon: "users",
     title: "Trusted",
     subtitle: "Community",
     color: COLORS.gold,
   },
   {
     id: "3",
-    icon: "lock-closed-outline",
+    icon: "lock",
     title: "Privacy",
     subtitle: "Protected",
     color: COLORS.red,
   },
   {
     id: "4",
-    icon: "headset-outline",
+    icon: "headphones",
     title: "Dedicated",
     subtitle: "Support",
     color: COLORS.gold,
@@ -247,7 +245,7 @@ const REVIEWS = [
 ===================================================== */
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [whyChooseList, setWhyChooseList] = useState(WHY_CHOOSE);
@@ -309,8 +307,8 @@ export default function HomeScreen() {
   };
 
   // Some "icon" fields coming from the API are actually image URLs rather
-  // than an Ionicons name (e.g. trusted-by-millions items). Detect that so
-  // we render an <Image> instead of crashing/warning inside <Ionicons>.
+  // than a Feather icon name (e.g. trusted-by-millions items). Detect that
+  // so we render an <Image> instead of crashing/warning inside <Feather>.
   const isImageUrl = (value) =>
     typeof value === "string" && /^(https?:)?\/\//i.test(value.trim());
 
@@ -364,9 +362,7 @@ export default function HomeScreen() {
           .map((item, idx) => ({
             id: String(item.id || idx + 1),
             icon:
-              item.icon ||
-              item.image ||
-              (idx % 2 === 0 ? "shield-checkmark-outline" : "people-outline"),
+              item.icon || item.image || (idx % 2 === 0 ? "shield" : "users"),
             title: item.title || item.name || "100%",
             subtitle:
               item.subtitle || item.review || item.description || "Verified",
@@ -457,12 +453,7 @@ export default function HomeScreen() {
             step: s.step || s.order || idx + 1,
             icon:
               s.icon ||
-              [
-                "person-add-outline",
-                "search-outline",
-                "chatbubbles-outline",
-                "heart-outline",
-              ][idx % 4],
+              ["user-plus", "search", "message-circle", "heart"][idx % 4],
             title: s.title || s.name || `Step ${idx + 1}`,
             description: s.description || s.subtitle || "",
           }));
@@ -547,24 +538,22 @@ export default function HomeScreen() {
   );
 
   {
-    /*const openNotifications = () => router.push("/privacy-policy");*/
+    /*const openNotifications = () => navigation.navigate("PrivacyPolicy");*/
   }
-  const openSearch = () => router.push("/search");
-  const openPremium = () => router.push("/premium");
-  const openPremiumBenefits = () => router.push("/premium-benfits");
+  const openSearch = () => navigation.navigate("Search");
+  const openPremium = () => navigation.navigate("Premium");
+  const openPremiumBenefits = () => navigation.navigate("PremiumBenefits");
   const openProfile = (id) =>
-    router.push({
-      pathname: "/matchesdetail",
-      params: { id: String(id) },
-    });
-  const openPackages = () => router.push("/packages");
-  const openHappyStories = () => router.push("/happy-stories");
-  const openBlogs = () => router.push("/blogs");
-  const openBlog = (blog) => router.push(`/blog/${blog.slug || blog.id}`);
-  const openReviews = () => router.push("/reviews");
+    navigation.navigate("MatchesDetail", { id: String(id) });
+  const openPackages = () => navigation.navigate("Packages");
+  const openHappyStories = () => navigation.navigate("HappyStories");
+  const openBlogs = () => navigation.navigate("Blogs");
+  const openBlog = (blog) =>
+    navigation.navigate("BlogDetail", { slug: blog.slug || blog.id });
+  const openReviews = () => navigation.navigate("Reviews");
 
   const handleBannerPress = (banner) => {
-    if (banner?.route) router.push(banner.route);
+    if (banner?.route) navigation.navigate(banner.route);
     else openPremium();
   };
 
@@ -603,18 +592,9 @@ export default function HomeScreen() {
                 <Text style={styles.brandName}>MUDHIRAJ</Text>
                 <View style={styles.brandDividerRow}>
                   <View style={styles.smallLine} />
-                  <MaterialCommunityIcons
-                    name="ornament-variant"
-                    size={13}
-                    color={COLORS.gold}
-                  />
+                  <Feather name="circle" size={9} color={COLORS.gold} />
                   <Text style={styles.brandMatrimony}>MATRIMONY</Text>
-                  <MaterialCommunityIcons
-                    name="ornament-variant"
-                    size={13}
-                    color={COLORS.gold}
-                    style={{ transform: [{ scaleX: -1 }] }}
-                  />
+                  <Feather name="circle" size={9} color={COLORS.gold} />
                   <View style={styles.smallLine} />
                 </View>
               </View>
@@ -630,7 +610,7 @@ export default function HomeScreen() {
               onPress={openSearch}
               activeOpacity={0.7}
             >
-              <Ionicons name="search-outline" size={25} color={COLORS.text} />
+              <Feather name="search" size={25} color={COLORS.text} />
             </TouchableOpacity>
 
             {/*<TouchableOpacity
@@ -638,11 +618,7 @@ export default function HomeScreen() {
               onPress={openNotifications}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name="notifications-outline"
-                size={25}
-                color={COLORS.text}
-              />
+              <Feather name="bell" size={25} color={COLORS.text} />
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>3</Text>
               </View>
@@ -709,8 +685,8 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <FontAwesome5
-                  name="crown"
+                <Feather
+                  name="award"
                   size={14}
                   color={COLORS.gold}
                   style={{ marginRight: 6 }}
@@ -718,7 +694,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Premium Members</Text>
               </View>
               <TouchableOpacity
-                onPress={() => router.push("/matchesdetail")}
+                onPress={() => navigation.navigate("MatchesDetail")}
                 activeOpacity={0.7}
               >
                 {/*<Text style={styles.seeAll}>See All</Text>*/}
@@ -746,8 +722,8 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Ionicons
-                  name="sparkles"
+                <Feather
+                  name="star"
                   size={15}
                   color={COLORS.gold}
                   style={{ marginRight: 6 }}
@@ -755,7 +731,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>New Members</Text>
               </View>
               <TouchableOpacity
-                onPress={() => router.push("/new-members")}
+                onPress={() => navigation.navigate("NewMembers")}
                 activeOpacity={0.7}
               >
                 {/*<Text style={styles.seeAll}>See All</Text>*/}
@@ -783,8 +759,8 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <FontAwesome5
-                  name="gem"
+                <Feather
+                  name="gift"
                   size={13}
                   color={COLORS.red}
                   style={{ marginRight: 6 }}
@@ -820,7 +796,7 @@ export default function HomeScreen() {
           style={styles.premiumBanner}
         >
           <View style={styles.premiumCrown}>
-            <FontAwesome5 name="crown" size={28} color={COLORS.gold} />
+            <Feather name="award" size={28} color={COLORS.gold} />
           </View>
           <View style={styles.premiumTextContainer}>
             <Text style={styles.premiumTitle}>
@@ -837,7 +813,7 @@ export default function HomeScreen() {
             activeOpacity={0.85}
           >
             <Text style={styles.upgradeNowText}>Upgrade Now</Text>
-            <Ionicons name="chevron-forward" size={19} color="#FFFFFF" />
+            <Feather name="chevron-right" size={19} color="#FFFFFF" />
           </TouchableOpacity>
         </LinearGradient>
 
@@ -846,8 +822,8 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Ionicons
-                  name="heart-circle"
+                <Feather
+                  name="heart"
                   size={16}
                   color={COLORS.red}
                   style={{ marginRight: 6 }}
@@ -894,7 +870,7 @@ export default function HomeScreen() {
                         resizeMode="cover"
                       />
                     ) : (
-                      <Ionicons name={step.icon} size={24} color={COLORS.red} />
+                      <Feather name={step.icon} size={24} color={COLORS.red} />
                     )}
                   </View>
                   <Text style={styles.stepTitle}>{step.title}</Text>
@@ -904,8 +880,8 @@ export default function HomeScreen() {
                     </Text>
                   )}
                   {idx < howItWorks.length - 1 && (
-                    <Ionicons
-                      name="chevron-forward"
+                    <Feather
+                      name="chevron-right"
                       size={16}
                       color={COLORS.gold}
                       style={styles.stepConnector}
@@ -922,8 +898,8 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Ionicons
-                  name="newspaper-outline"
+                <Feather
+                  name="file-text"
                   size={16}
                   color={COLORS.red}
                   style={{ marginRight: 6 }}
@@ -977,7 +953,7 @@ export default function HomeScreen() {
                     resizeMode="cover"
                   />
                 ) : (
-                  <Ionicons name={item.icon} size={30} color={item.color} />
+                  <Feather name={item.icon} size={30} color={item.color} />
                 )}
               </View>
               <Text style={styles.whyCardTitle}>{item.title}</Text>
@@ -993,8 +969,8 @@ export default function HomeScreen() {
           <>
             <View style={[styles.sectionHeader, { marginTop: 22 }]}>
               <View style={styles.sectionTitleRow}>
-                <Ionicons
-                  name="chatbubbles-outline"
+                <Feather
+                  name="message-circle"
                   size={16}
                   color={COLORS.red}
                   style={{ marginRight: 6 }}
@@ -1042,7 +1018,7 @@ function PremiumMemberCard({ member, onPress }) {
       />
 
       <View style={styles.premiumCrownBadge}>
-        <FontAwesome5 name="crown" size={12} color={COLORS.darkRed} />
+        <Feather name="award" size={12} color={COLORS.darkRed} />
       </View>
 
       <LinearGradient
@@ -1079,7 +1055,7 @@ function NewMemberCard({ member, onPress }) {
           resizeMode="cover"
         />
         <View style={styles.newBadge}>
-          <Ionicons name="sparkles" size={10} color={COLORS.white} />
+          <Feather name="star" size={10} color={COLORS.white} />
           <Text style={styles.newBadgeText}>{member.joinedText}</Text>
         </View>
       </View>
@@ -1089,13 +1065,13 @@ function NewMemberCard({ member, onPress }) {
           <Text style={styles.matchName} numberOfLines={1}>
             {member.name}, {member.age}
           </Text>
-          <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
+          <Feather name="check-circle" size={16} color={COLORS.green} />
         </View>
         <Text style={styles.profession} numberOfLines={1}>
           {member.profession}
         </Text>
         <View style={styles.detailRow}>
-          <Ionicons name="location-outline" size={14} color={COLORS.red} />
+          <Feather name="map-pin" size={14} color={COLORS.red} />
           <Text style={styles.detailText} numberOfLines={1}>
             {member.location}
           </Text>
@@ -1121,7 +1097,7 @@ function PackageCard({ pkg, onPress }) {
     >
       {pkg.recommended && (
         <View style={styles.packageBadge}>
-          <FontAwesome5 name="star" size={9} color={COLORS.white} />
+          <Feather name="star" size={9} color={COLORS.white} />
           <Text style={styles.packageBadgeText}>BEST VALUE</Text>
         </View>
       )}
@@ -1138,7 +1114,7 @@ function PackageCard({ pkg, onPress }) {
       <View style={styles.packageFeaturesList}>
         {pkg.features.map((feature, idx) => (
           <View key={idx} style={styles.packageFeatureRow}>
-            <Ionicons name="checkmark-circle" size={15} color={COLORS.green} />
+            <Feather name="check-circle" size={15} color={COLORS.green} />
             <Text style={styles.packageFeatureText} numberOfLines={2}>
               {feature}
             </Text>
@@ -1166,7 +1142,7 @@ function StoryCard({ story }) {
         resizeMode="cover"
       />
       <View style={styles.storyContent}>
-        <Ionicons
+        <Feather
           name="heart"
           size={16}
           color={COLORS.red}
@@ -1216,7 +1192,7 @@ function BlogCard({ blog, onPress }) {
         </Text>
         {!!blog.readTime && (
           <View style={styles.blogMetaRow}>
-            <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+            <Feather name="clock" size={12} color={COLORS.gray} />
             <Text style={styles.blogMetaText}>{blog.readTime}</Text>
           </View>
         )}
@@ -1227,6 +1203,9 @@ function BlogCard({ blog, onPress }) {
 
 /* =====================================================
    REVIEW CARD
+   NOTE: Feather has no separate filled/outline star, so the
+   "unfilled" stars are shown by dimming the color instead of
+   swapping the icon name (the original used star / star-outline).
 ===================================================== */
 
 function ReviewCard({ review }) {
@@ -1244,11 +1223,11 @@ function ReviewCard({ review }) {
           </Text>
           <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Ionicons
+              <Feather
                 key={i}
-                name={i <= review.rating ? "star" : "star-outline"}
+                name="star"
                 size={12}
-                color={COLORS.gold}
+                color={i <= review.rating ? COLORS.gold : COLORS.border}
               />
             ))}
           </View>

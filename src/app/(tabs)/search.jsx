@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   Modal,
   Pressable,
@@ -11,14 +12,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 
 import { postMemberListing } from "../../utils/Functions";
 
@@ -255,7 +256,7 @@ function buildFiltersFromState(filters) {
 ============================================================ */
 
 export default function SearchScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -290,6 +291,29 @@ export default function SearchScreen() {
 
   const [searching, setSearching] = useState(false);
   const [searchApiError, setSearchApiError] = useState("");
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on
+     HomeScreen / MatchesScreen / ProfileDetails: active only
+     while this screen is focused, cleaned up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   /* ============================================================
      OPTIONS
@@ -451,28 +475,24 @@ export default function SearchScreen() {
         return;
       }
 
-      // matches.js re-derives the same filter body from these route
+      // Matches screen re-derives the same filter body from these nav
       // params (see buildFiltersFromParams there) and refetches on its
       // own, so the person can still adjust the active tab / search box
       // once they land on that screen.
-      router.push({
-        pathname: "/matches",
-
-        params: {
-          lookingFor: filters.lookingFor,
-          gender: filters.gender,
-          age: filters.age,
-          height: filters.height,
-          maritalStatus: filters.maritalStatus,
-          religion: filters.religion,
-          motherTongue: filters.motherTongue,
-          caste: filters.caste,
-          education: filters.education,
-          profession: filters.profession,
-          income: filters.income,
-          country: filters.country,
-          location: filters.location,
-        },
+      navigation.navigate("Matches", {
+        lookingFor: filters.lookingFor,
+        gender: filters.gender,
+        age: filters.age,
+        height: filters.height,
+        maritalStatus: filters.maritalStatus,
+        religion: filters.religion,
+        motherTongue: filters.motherTongue,
+        caste: filters.caste,
+        education: filters.education,
+        profession: filters.profession,
+        income: filters.income,
+        country: filters.country,
+        location: filters.location,
       });
     } catch (e) {
       console.log("SearchScreen viewMatches Error:", e);
@@ -559,7 +579,7 @@ export default function SearchScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={22} color="#B5120D" />
           </TouchableOpacity>
@@ -794,11 +814,8 @@ export default function SearchScreen() {
                   activeOpacity={0.8}
                   style={styles.searchChip}
                   onPress={() =>
-                    router.push({
-                      pathname: "/matches",
-                      params: {
-                        search: item,
-                      },
+                    navigation.navigate("Matches", {
+                      search: item,
                     })
                   }
                 >

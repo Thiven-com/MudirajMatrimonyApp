@@ -1,10 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Feather from "react-native-vector-icons/Feather";
 
 import {
   getMemberCities,
@@ -320,6 +321,27 @@ const apiMessage = (response, fallback) => {
 };
 
 export default function PresentAddress() {
+  const navigation = useNavigation();
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
+
   const [presentAddress, setPresentAddress] = useState(null);
   const [presentAddressForm, setPresentAddressForm] = useState(emptyAddress);
 
@@ -898,7 +920,7 @@ export default function PresentAddress() {
               onPress={() => setAddressDropdown(null)}
               style={styles.closeButton}
             >
-              <Ionicons name="close" size={22} color="#555" />
+              <Feather name="x" size={22} color="#555" />
             </TouchableOpacity>
           </View>
 
@@ -917,7 +939,7 @@ export default function PresentAddress() {
             </View>
           ) : displayList.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Ionicons name="location-outline" size={28} color="#BBBBBB" />
+              <Feather name="map-pin" size={28} color="#BBBBBB" />
 
               <Text style={styles.emptyText}>
                 No {addressDropdown || ""} found
@@ -928,7 +950,7 @@ export default function PresentAddress() {
                 onPress={retryDropdown}
                 activeOpacity={0.8}
               >
-                <Ionicons name="refresh" size={15} color={COLORS.red} />
+                <Feather name="refresh-cw" size={15} color={COLORS.red} />
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -967,7 +989,7 @@ export default function PresentAddress() {
                       {item.name}
                     </Text>
                     {selected && (
-                      <Ionicons name="checkmark" size={18} color={COLORS.red} />
+                      <Feather name="check" size={18} color={COLORS.red} />
                     )}
                   </TouchableOpacity>
                 );
@@ -991,10 +1013,10 @@ export default function PresentAddress() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={18} color={COLORS.red} />
+            <Feather name="chevron-left" size={18} color={COLORS.red} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Present Address</Text>
@@ -1009,7 +1031,7 @@ export default function PresentAddress() {
             }
             activeOpacity={0.7}
           >
-            <Ionicons name="ellipsis-vertical" size={18} color={COLORS.red} />
+            <Feather name="more-vertical" size={18} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
@@ -1024,11 +1046,7 @@ export default function PresentAddress() {
               <>
                 <View style={styles.currentAddressCard}>
                   <View style={styles.locationIcon}>
-                    <Ionicons
-                      name="location-outline"
-                      size={25}
-                      color={COLORS.red}
-                    />
+                    <Feather name="map-pin" size={25} color={COLORS.red} />
                   </View>
 
                   <View style={styles.currentAddressDetails}>
@@ -1050,11 +1068,7 @@ export default function PresentAddress() {
                     onPress={handleEdit}
                     activeOpacity={0.7}
                   >
-                    <Ionicons
-                      name="pencil-outline"
-                      size={11}
-                      color={COLORS.red}
-                    />
+                    <Feather name="edit-2" size={11} color={COLORS.red} />
                     <Text style={styles.editAddressText}>Edit</Text>
                   </TouchableOpacity>
                 </View>
@@ -1064,17 +1078,13 @@ export default function PresentAddress() {
                   onPress={handleAddNew}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="add" size={18} color={COLORS.red} />
+                  <Feather name="plus" size={18} color={COLORS.red} />
                   <Text style={styles.addNewAddressText}>Add New Address</Text>
                 </TouchableOpacity>
 
                 {!presentAddress && (
                   <View style={styles.noAddressHint}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={18}
-                      color="#888888"
-                    />
+                    <Feather name="info" size={18} color="#888888" />
                     <Text style={styles.noAddressHintText}>
                       Add your present address to display it here.
                     </Text>
@@ -1101,7 +1111,7 @@ export default function PresentAddress() {
                     onPress={handleCancel}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="close" size={19} color={COLORS.red} />
+                    <Feather name="x" size={19} color={COLORS.red} />
                   </TouchableOpacity>
                 </View>
 
@@ -1121,11 +1131,7 @@ export default function PresentAddress() {
 
                   <View style={styles.addressTypeBox}>
                     <Text style={styles.addressTypeText}>Present Address</Text>
-                    <Ionicons
-                      name="location-outline"
-                      size={17}
-                      color={COLORS.red}
-                    />
+                    <Feather name="map-pin" size={17} color={COLORS.red} />
                   </View>
                 </View>
 
@@ -1149,7 +1155,7 @@ export default function PresentAddress() {
                       {presentAddressForm.country || "Select Country"}
                     </Text>
 
-                    <Ionicons name="chevron-down" size={17} color="#888" />
+                    <Feather name="chevron-down" size={17} color="#888" />
                   </TouchableOpacity>
                 </View>
 
@@ -1176,7 +1182,7 @@ export default function PresentAddress() {
                       {presentAddressForm.state || "Select State"}
                     </Text>
 
-                    <Ionicons
+                    <Feather
                       name="chevron-down"
                       size={17}
                       color={presentAddressForm.country_id ? "#888" : "#BBBBBB"}
@@ -1207,7 +1213,7 @@ export default function PresentAddress() {
                       {presentAddressForm.city || "Select City"}
                     </Text>
 
-                    <Ionicons
+                    <Feather
                       name="chevron-down"
                       size={17}
                       color={presentAddressForm.state_id ? "#888" : "#BBBBBB"}
@@ -1267,7 +1273,7 @@ export default function PresentAddress() {
                     ]}
                   >
                     {defaultAddress && (
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      <Feather name="check" size={14} color="#FFFFFF" />
                     )}
                   </View>
 

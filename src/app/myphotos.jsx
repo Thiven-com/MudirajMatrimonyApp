@@ -1,10 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
 import {
   Alert,
+  BackHandler,
   Image,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,9 +12,26 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { launchImageLibrary } from "react-native-image-picker";
+import Feather from "react-native-vector-icons/Feather";
+
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+
 import { Colors } from "../constants/colors";
 import { Fonts } from "../constants/Fonts";
+
+// If you already have an API for photos, import it here.
+// Example:
+// import {
+//   getMemberPhotos,
+//   updateMemberPhotos,
+// } from "../utils/Functions";
+
+/* =========================================================
+   PHOTO GUIDELINES
+========================================================= */
 
 const PHOTO_GUIDELINES = [
   "Use a clear, recent photo",
@@ -25,10 +42,22 @@ const PHOTO_GUIDELINES = [
   "No filters or heavily edited photos",
 ];
 
+/* =========================================================
+   ADDITIONAL PHOTO COUNT
+========================================================= */
+
 const ADDITIONAL_PHOTO_SLOTS = 4;
 
-export default function PhotosScreen() {
-  const router = useRouter();
+/* =========================================================
+   MY PHOTOS
+========================================================= */
+
+export default function MyPhotos() {
+  const navigation = useNavigation();
+
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [profilePhoto, setProfilePhoto] = useState(null);
 
@@ -38,58 +67,204 @@ export default function PhotosScreen() {
 
   const [saving, setSaving] = useState(false);
 
-  const pickImage = async (onPicked) => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const [errorMessage, setErrorMessage] = useState("");
 
-    if (!permission.granted) {
-      Alert.alert(
-        "Permission Needed",
-        "Please allow photo library access to add photos.",
-      );
+  /* =======================================================
+     BACK
+  ======================================================= */
 
-      return;
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
     }
+  }, [navigation]);
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     
+     Same pattern as Languages.jsx
+  ======================================================= */
 
-    if (!result.canceled && result.assets?.length) {
-      onPicked(result.assets[0].uri);
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack]);
+
+  /* =======================================================
+     IMAGE PICKER
+     
+     React Native CLI
+     No Expo
+  ======================================================= */
+
+  const pickImage = useCallback(async (onPicked) => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: "photo",
+
+        selectionLimit: 1,
+
+        includeBase64: false,
+
+        quality: 0.8,
+
+        presentationStyle: "pageSheet",
+      });
+
+      console.log("IMAGE PICKER RESULT:");
+      console.log(JSON.stringify(result, null, 2));
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorCode) {
+        console.error(
+          "IMAGE PICKER ERROR:",
+          result.errorCode,
+          result.errorMessage,
+        );
+
+        Alert.alert(
+          "Image Picker Error",
+          result.errorMessage || "Unable to select image.",
+        );
+
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+
+        const uri = asset.uri;
+
+        if (!uri) {
+          Alert.alert("Error", "Unable to get selected image.");
+
+          return;
+        }
+
+        /* -----------------------------------------------
+           FILE SIZE CHECK
+           
+           Maximum 5MB
+        ----------------------------------------------- */
+
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            "File Too Large",
+            "Please select an image smaller than 5MB.",
+          );
+
+          return;
+        }
+
+        onPicked({
+          uri,
+          fileName: asset.fileName || "photo.jpg",
+          type: asset.type || "image/jpeg",
+          fileSize: asset.fileSize || 0,
+        });
+      }
+    } catch (error) {
+      console.error("IMAGE PICKER ERROR:", error);
+
+      Alert.alert("Error", error?.message || "Unable to select image.");
     }
-  };
+  }, []);
+
+  /* =======================================================
+     PROFILE PHOTO
+  ======================================================= */
 
   const handlePickProfilePhoto = () => {
-    pickImage((uri) => setProfilePhoto(uri));
+    pickImage((image) => {
+      setProfilePhoto(image);
+    });
   };
 
   const handleRemoveProfilePhoto = () => {
-    setProfilePhoto(null);
+    Alert.alert(
+      "Remove Photo",
+      "Are you sure you want to remove your profile photo?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setProfilePhoto(null);
+          },
+        },
+      ],
+    );
   };
 
+  /* =======================================================
+     ADDITIONAL PHOTO
+  ======================================================= */
+
   const handlePickAdditionalPhoto = (index) => {
-    pickImage((uri) => {
-      setAdditionalPhotos((prev) => {
-        const next = [...prev];
-        next[index] = uri;
+    pickImage((image) => {
+      setAdditionalPhotos((previous) => {
+        const next = [...previous];
+
+        next[index] = image;
+
         return next;
       });
     });
   };
 
   const handleRemoveAdditionalPhoto = (index) => {
-    setAdditionalPhotos((prev) => {
-      const next = [...prev];
-      next[index] = null;
-      return next;
-    });
+    Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          setAdditionalPhotos((previous) => {
+            const next = [...previous];
+
+            next[index] = null;
+
+            return next;
+          });
+        },
+      },
+    ]);
   };
 
+  /* =======================================================
+     SAVE
+  ======================================================= */
+
   const handleSaveAndContinue = async () => {
-    if (saving) return;
+    if (saving) {
+      return;
+    }
+
+    /* -------------------------------------------------------
+       PROFILE PHOTO REQUIRED
+    ------------------------------------------------------- */
 
     if (!profilePhoto) {
       Alert.alert(
@@ -103,45 +278,168 @@ export default function PhotosScreen() {
     try {
       setSaving(true);
 
-      console.log("Saving photos...", {
+      setErrorMessage("");
+
+      /* -----------------------------------------------------
+         TOKEN
+      ----------------------------------------------------- */
+
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      console.log("========================================");
+
+      console.log("MY PHOTOS");
+
+      console.log("TOKEN EXISTS:", !!accessToken);
+
+      console.log("PROFILE PHOTO:", JSON.stringify(profilePhoto, null, 2));
+
+      console.log(
+        "ADDITIONAL PHOTOS:",
+        JSON.stringify(additionalPhotos, null, 2),
+      );
+
+      console.log("========================================");
+
+      if (!accessToken) {
+        Alert.alert("Login Required", "Please login again.");
+
+        return;
+      }
+
+      /* -----------------------------------------------------
+         PHOTO DATA
+         
+         This is ready for your API.
+      ----------------------------------------------------- */
+
+      const selectedAdditionalPhotos = additionalPhotos.filter(
+        (photo) => photo !== null,
+      );
+
+      const photoData = {
         profilePhoto,
-        additionalPhotos,
-      });
+        additionalPhotos: selectedAdditionalPhotos,
+      };
 
-      // TODO: replace with your actual upload/save call, e.g.
-      // await updateMemberPhotos(accessToken, { profilePhoto, additionalPhotos });
+      console.log("PHOTO DATA:", JSON.stringify(photoData, null, 2));
 
-      router.push("/profile");
+      /* =====================================================
+         API UPLOAD
+
+         Replace this section with your existing
+         photo upload API.
+
+         Example:
+
+         const response = await updateMemberPhotos(
+           accessToken,
+           photoData,
+         );
+      ===================================================== */
+
+      /*
+      const response = await updateMemberPhotos(
+        accessToken,
+        photoData,
+      );
+
+      console.log(
+        "PHOTO API RESPONSE:",
+        JSON.stringify(
+          response,
+          null,
+          2,
+        ),
+      );
+
+      const success =
+        response?.success === 1 ||
+        response?.success === true ||
+        response?.result === true;
+
+      if (!success) {
+        throw new Error(
+          response?.message ||
+            "Unable to save photos.",
+        );
+      }
+      */
+
+      /* -----------------------------------------------------
+         TEMPORARY SUCCESS
+         
+         Remove this when API is connected.
+      ----------------------------------------------------- */
+
+      Alert.alert("Success", "Photos selected successfully.", [
+        {
+          text: "Continue",
+          onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          },
+        },
+      ]);
     } catch (error) {
       console.error("SAVE PHOTOS ERROR:", error);
 
-      Alert.alert(
-        "Error",
-        error?.message || "Something went wrong while saving your photos.",
-      );
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong while saving your photos.";
+
+      setErrorMessage(message);
+
+      Alert.alert("Error", message);
     } finally {
       setSaving(false);
     }
   };
 
+  /* =======================================================
+     REFRESH / SCREEN FOCUS
+  ======================================================= */
+
+  useFocusEffect(
+    useCallback(() => {
+      /*
+       * If you have a GET photos API,
+       * call it here.
+       *
+       * Example:
+       *
+       * loadPhotos();
+       */
+    }, []),
+  );
+
+  /* =======================================================
+     UI
+  ======================================================= */
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* TOP BAR */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-        <View style={styles.topBar}>
+        <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
             style={styles.backButton}
+            onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={21} color={Colors.textPrimary} />
+            <Feather name="arrow-left" size={24} color="#222222" />
           </TouchableOpacity>
 
           <View style={styles.progressContainer}>
@@ -153,7 +451,9 @@ export default function PhotosScreen() {
           </View>
         </View>
 
-        {/* PAGE TITLE */}
+        {/* =================================================
+            TITLE
+        ================================================= */}
 
         <View style={styles.titleSection}>
           <Text style={styles.pageTitle}>Add your photos</Text>
@@ -163,7 +463,9 @@ export default function PhotosScreen() {
           </Text>
         </View>
 
-        {/* PROFILE PHOTO CARD */}
+        {/* =================================================
+            PROFILE PHOTO CARD
+        ================================================= */}
 
         <View style={styles.profileCard}>
           <View style={styles.cardHeader}>
@@ -182,10 +484,10 @@ export default function PhotosScreen() {
 
           <View style={styles.profileContent}>
             <PhotoUploadBox
-              uri={profilePhoto}
+              image={profilePhoto}
               size="large"
               label="Add photo"
-              helperText={"JPG, PNG • Max 5MB"}
+              helperText="JPG, PNG • Max 5MB"
               onPress={handlePickProfilePhoto}
               onRemove={handleRemoveProfilePhoto}
             />
@@ -195,7 +497,7 @@ export default function PhotosScreen() {
 
               {PHOTO_GUIDELINES.map((item) => (
                 <View key={item} style={styles.guidelineRow}>
-                  <Ionicons name="checkmark-circle" size={16} color="#2E9B65" />
+                  <Feather name="check-circle" size={16} color="#2E9B65" />
 
                   <Text style={styles.guidelineText}>{item}</Text>
                 </View>
@@ -204,7 +506,9 @@ export default function PhotosScreen() {
           </View>
         </View>
 
-        {/* ADDITIONAL PHOTOS */}
+        {/* =================================================
+            MORE PHOTOS
+        ================================================= */}
 
         <View style={styles.additionalSection}>
           <View style={styles.sectionHeader}>
@@ -220,10 +524,10 @@ export default function PhotosScreen() {
           </View>
 
           <View style={styles.additionalGrid}>
-            {additionalPhotos.map((uri, index) => (
+            {additionalPhotos.map((image, index) => (
               <PhotoUploadBox
                 key={index}
-                uri={uri}
+                image={image}
                 size="small"
                 label="Add photo"
                 helperText="Max 5MB"
@@ -234,15 +538,13 @@ export default function PhotosScreen() {
           </View>
         </View>
 
-        {/* PRIVACY CARD */}
+        {/* =================================================
+            PRIVACY
+        ================================================= */}
 
         <View style={styles.privacyCard}>
           <View style={styles.privacyIcon}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={19}
-              color="#4F46E5"
-            />
+            <Feather name="shield" size={19} color="#4F46E5" />
           </View>
 
           <View style={styles.privacyContent}>
@@ -255,7 +557,21 @@ export default function PhotosScreen() {
           </View>
         </View>
 
-        {/* CONTINUE BUTTON */}
+        {/* =================================================
+            ERROR
+        ================================================= */}
+
+        {errorMessage ? (
+          <View style={styles.errorBox}>
+            <Feather name="alert-circle" size={18} color="#D32F2F" />
+
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
+        {/* =================================================
+            SAVE BUTTON
+        ================================================= */}
 
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -263,14 +579,20 @@ export default function PhotosScreen() {
           disabled={saving}
           onPress={handleSaveAndContinue}
         >
-          <Text style={styles.saveButtonText}>
-            {saving ? "Saving..." : "Save & Continue"}
-          </Text>
+          {saving ? (
+            <Text style={styles.saveButtonText}>Saving...</Text>
+          ) : (
+            <>
+              <Text style={styles.saveButtonText}>Save & Continue</Text>
 
-          {!saving && (
-            <Ionicons name="arrow-forward" size={19} color={Colors.white} />
+              <Feather name="arrow-right" size={19} color="#FFFFFF" />
+            </>
           )}
         </TouchableOpacity>
+
+        {/* =================================================
+            BOTTOM HINT
+        ================================================= */}
 
         <Text style={styles.bottomHint}>
           You can update your photos anytime from your profile.
@@ -280,11 +602,11 @@ export default function PhotosScreen() {
   );
 }
 
-/* ============================================================
+/* =========================================================
    PHOTO UPLOAD BOX
-============================================================ */
+========================================================= */
 
-function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
+function PhotoUploadBox({ image, size, label, helperText, onPress, onRemove }) {
   const isLarge = size === "large";
 
   return (
@@ -296,9 +618,15 @@ function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
       activeOpacity={0.8}
       onPress={onPress}
     >
-      {uri ? (
+      {image?.uri ? (
         <>
-          <Image source={{ uri }} style={styles.photoPreview} />
+          <Image
+            source={{
+              uri: image.uri,
+            }}
+            style={styles.photoPreview}
+            resizeMode="cover"
+          />
 
           <TouchableOpacity
             style={styles.removeButton}
@@ -309,8 +637,9 @@ function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
               right: 8,
             }}
             onPress={onRemove}
+            activeOpacity={0.8}
           >
-            <Ionicons name="close" size={14} color="#FFFFFF" />
+            <Feather name="x" size={14} color="#FFFFFF" />
           </TouchableOpacity>
         </>
       ) : (
@@ -323,14 +652,14 @@ function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
                 : styles.photoIconCircleSmall,
             ]}
           >
-            <Ionicons
-              name="camera-outline"
-              size={isLarge ? 29 : 21}
-              color={Colors.primaryRed}
+            <Feather
+              name="camera"
+              size={isLarge ? 28 : 20}
+              color={Colors.primaryRed || "#D7192E"}
             />
 
             <View style={styles.photoIconPlusBadge}>
-              <Ionicons name="add" size={isLarge ? 13 : 10} color="#FFFFFF" />
+              <Feather name="plus" size={isLarge ? 12 : 9} color="#FFFFFF" />
             </View>
           </View>
 
@@ -355,25 +684,39 @@ function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
   );
 }
 
-/* ============================================================
+/* =========================================================
    STYLES
-============================================================ */
+========================================================= */
 
 const styles = StyleSheet.create({
+  /* =====================================================
+     SAFE AREA
+  ===================================================== */
+
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#FFFFFF",
   },
 
-  scrollContent: {
+  /* =====================================================
+     SCROLL
+  ===================================================== */
+
+  scrollView: {
+    flex: 1,
+  },
+
+  contentContainer: {
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 35,
   },
 
-  /* ================= TOP BAR ================= */
+  /* =====================================================
+     HEADER
+  ===================================================== */
 
-  topBar: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 22,
@@ -405,19 +748,21 @@ const styles = StyleSheet.create({
   progressActive: {
     width: "85%",
     height: "100%",
-    backgroundColor: Colors.primaryRed,
+    backgroundColor: Colors.primaryRed || "#D7192E",
     borderRadius: 5,
   },
 
   progressText: {
     marginTop: 5,
     fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     textAlign: "right",
   },
 
-  /* ================= TITLE ================= */
+  /* =====================================================
+     TITLE
+  ===================================================== */
 
   titleSection: {
     marginBottom: 22,
@@ -425,20 +770,22 @@ const styles = StyleSheet.create({
 
   pageTitle: {
     fontSize: 27,
-    fontFamily: Fonts.display.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.display?.bold,
+    color: Colors.textPrimary || "#222222",
     letterSpacing: -0.4,
   },
 
   pageSubtitle: {
     marginTop: 7,
     fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     lineHeight: 20,
   },
 
-  /* ================= PROFILE CARD ================= */
+  /* =====================================================
+     PROFILE CARD
+  ===================================================== */
 
   profileCard: {
     backgroundColor: "#FFFFFF",
@@ -447,6 +794,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEEEEE",
     marginBottom: 24,
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    elevation: 2,
   },
 
   cardHeader: {
@@ -458,14 +815,14 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     fontSize: 17,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
   },
 
   cardSubtitle: {
     fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     marginTop: 3,
   },
 
@@ -478,26 +835,32 @@ const styles = StyleSheet.create({
 
   requiredText: {
     fontSize: 10,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.primaryRed || "#D7192E",
   },
+
+  /* =====================================================
+     PROFILE CONTENT
+  ===================================================== */
 
   profileContent: {
     flexDirection: "row",
-    gap: 15,
   },
 
-  /* ================= GUIDELINES ================= */
+  /* =====================================================
+     GUIDELINES
+  ===================================================== */
 
   guidelinesBlock: {
     flex: 1,
     paddingTop: 2,
+    paddingLeft: 15,
   },
 
   guidelinesTitle: {
     fontSize: 13,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
     marginBottom: 10,
   },
 
@@ -511,12 +874,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 6,
     fontSize: 10.8,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     lineHeight: 15,
   },
 
-  /* ================= ADDITIONAL PHOTOS ================= */
+  /* =====================================================
+     ADDITIONAL SECTION
+  ===================================================== */
 
   additionalSection: {
     marginBottom: 20,
@@ -531,34 +896,39 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 17,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
   },
 
   sectionSubtitle: {
     fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     marginTop: 3,
   },
 
   optionalText: {
     fontSize: 11,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textMuted || "#777777",
     backgroundColor: "#F3F3F3",
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 20,
   },
 
+  /* =====================================================
+     GRID
+  ===================================================== */
+
   additionalGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 9,
   },
 
-  /* ================= PHOTO BOX ================= */
+  /* =====================================================
+     PHOTO BOX
+  ===================================================== */
 
   photoBox: {
     borderWidth: 1.4,
@@ -577,7 +947,7 @@ const styles = StyleSheet.create({
   },
 
   photoBoxSmall: {
-    flex: 1,
+    width: "23.5%",
     height: 92,
     paddingHorizontal: 3,
   },
@@ -598,6 +968,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  /* =====================================================
+     PHOTO ICON
+  ===================================================== */
 
   photoIconCircle: {
     borderRadius: 999,
@@ -625,7 +999,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: Colors.primaryRed,
+    backgroundColor: Colors.primaryRed || "#D7192E",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -634,33 +1008,35 @@ const styles = StyleSheet.create({
 
   photoLabelLarge: {
     fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
   },
 
   photoLabelSmall: {
     fontSize: 9.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
   },
 
   photoHelperLarge: {
     fontSize: 9.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     textAlign: "center",
     marginTop: 3,
   },
 
   photoHelperSmall: {
     fontSize: 8,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     textAlign: "center",
     marginTop: 1,
   },
 
-  /* ================= PRIVACY ================= */
+  /* =====================================================
+     PRIVACY
+  ===================================================== */
 
   privacyCard: {
     flexDirection: "row",
@@ -687,35 +1063,63 @@ const styles = StyleSheet.create({
 
   privacyTitle: {
     fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.textPrimary || "#222222",
     marginBottom: 2,
   },
 
   privacyText: {
     fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
     lineHeight: 15,
   },
 
-  /* ================= BUTTON ================= */
+  /* =====================================================
+     ERROR
+  ===================================================== */
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3F3",
+    borderWidth: 1,
+    borderColor: "#FFD2D2",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+  },
+
+  errorText: {
+    flex: 1,
+    marginLeft: 8,
+    color: "#D32F2F",
+    fontSize: 14,
+  },
+
+  /* =====================================================
+     SAVE BUTTON
+  ===================================================== */
 
   saveButton: {
     height: 54,
     borderRadius: 15,
-    backgroundColor: Colors.primaryRedDark,
+    backgroundColor: Colors.primaryRedDark || "#B51225",
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
-    shadowColor: "#000",
+
+    shadowColor: "#000000",
+
     shadowOffset: {
       width: 0,
       height: 4,
     },
+
     shadowOpacity: 0.12,
     shadowRadius: 8,
+
     elevation: 4,
   },
 
@@ -725,15 +1129,20 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     fontSize: 15,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
+    fontFamily: Fonts?.body?.bold,
+    color: Colors.white || "#FFFFFF",
+    marginRight: 9,
   },
+
+  /* =====================================================
+     BOTTOM HINT
+  ===================================================== */
 
   bottomHint: {
     textAlign: "center",
     marginTop: 10,
     fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts?.body?.regular,
+    color: Colors.textMuted || "#777777",
   },
 });

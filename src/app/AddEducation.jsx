@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
+  BackHandler,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,7 +17,11 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -63,12 +68,15 @@ const YEAR_OPTIONS = Array.from(
    MAIN COMPONENT
 
    Handles both:
-   - Add mode:  router.push("/AddEducation")
-   - Edit mode: router.push({ pathname: "/EditEducation", params: { id } })
+   - Add mode:  navigation.navigate("AddEducation")
+   - Edit mode: navigation.navigate("AddEducation", { id })
 ========================================================= */
 
 export default function AddEducation() {
-  const { id } = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const { id } = route.params || {};
 
   const educationId = id ? Number(id) : null;
 
@@ -88,6 +96,36 @@ export default function AddEducation() {
 
   // Which dropdown modal is open: "degree" | "startYear" | "endYear" | null
   const [activeDropdown, setActiveDropdown] = useState(null);
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // If a dropdown modal is open, close that first instead of
+        // navigating away.
+        if (activeDropdown) {
+          setActiveDropdown(null);
+          return true;
+        }
+
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation, activeDropdown]),
+  );
 
   /* =========================================================
        LOAD EXISTING RECORD (EDIT MODE ONLY)
@@ -222,7 +260,7 @@ export default function AddEducation() {
 
       console.log("======================================");
 
-      router.back();
+      navigation.goBack();
     } catch (error) {
       console.error("SAVE EDUCATION ERROR:", error);
 
@@ -325,7 +363,7 @@ export default function AddEducation() {
         <TouchableOpacity
           style={styles.backButton}
           activeOpacity={0.7}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>

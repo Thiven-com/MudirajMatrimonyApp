@@ -1,8 +1,9 @@
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
+  BackHandler,
   Image,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 
@@ -19,22 +20,22 @@ const LOGO = require("../../assets/images/logo.png");
 // Top feature strip shown under the title.
 const TOP_FEATURES = [
   {
-    icon: "shield-checkmark-outline",
+    icon: "shield",
     title: "Contact Details",
     desc: "View unlimited contacts",
   },
   {
-    icon: "chatbubble-ellipses-outline",
+    icon: "message-circle",
     title: "Chat Unlimited",
     desc: "Chat without any restrictions",
   },
   {
-    icon: "eye-outline",
+    icon: "eye",
     title: "Profile Boost",
     desc: "Increase your profile visibility",
   },
   {
-    icon: "ribbon-outline",
+    icon: "award",
     title: "Premium Badge",
     desc: "Stand out with premium badge",
   },
@@ -79,21 +80,40 @@ const PLANS = [
 
 // `free` is a label, or `false` to render a cross instead.
 const TABLE_ROWS = [
-  { icon: "person-outline", label: "View Contact Details", free: "Limited" },
-  { icon: "chatbubble-outline", label: "Chat with Matches", free: "Limited" },
-  { icon: "eye-outline", label: "Profile Visibility", free: "Normal" },
-  { icon: "star-outline", label: "Send Interest", free: "Limited" },
-  { icon: "ribbon-outline", label: "Premium Badge", free: false },
-  { icon: "headset-outline", label: "Priority Customer Support", free: false },
+  { icon: "user", label: "View Contact Details", free: "Limited" },
+  { icon: "message-circle", label: "Chat with Matches", free: "Limited" },
+  { icon: "eye", label: "Profile Visibility", free: "Normal" },
+  { icon: "star", label: "Send Interest", free: "Limited" },
+  { icon: "award", label: "Premium Badge", free: false },
+  { icon: "headphones", label: "Priority Customer Support", free: false },
 ];
 
 export default function SubscriptionPlansScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
   const [selectedPlan, setSelectedPlan] = useState("12m");
 
   const handleUpgrade = () => {
     // Wire this up to your checkout flow, e.g.:
-    // router.push(`/checkout?plan=${selectedPlan}`);
+    // navigation.navigate("Checkout", { plan: selectedPlan });
   };
 
   return (
@@ -109,10 +129,10 @@ export default function SubscriptionPlansScreen() {
         {/* ================= TOP BAR ================= */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={26} color={Colors.primaryRed} />
+            <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
           </TouchableOpacity>
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
@@ -120,7 +140,7 @@ export default function SubscriptionPlansScreen() {
         {/* ================= TITLE ================= */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconCircle}>
-            <FontAwesome5 name="crown" size={19} color={Colors.gold} />
+            <Feather name="award" size={19} color={Colors.gold} />
           </View>
           <View style={styles.titleTextBlock}>
             <Text style={styles.titleText}>Choose Your Plan</Text>
@@ -135,7 +155,7 @@ export default function SubscriptionPlansScreen() {
           {TOP_FEATURES.map((f, i) => (
             <View key={i} style={styles.featureItem}>
               <View style={styles.featureIconCircle}>
-                <Ionicons name={f.icon} size={18} color={Colors.primaryRed} />
+                <Feather name={f.icon} size={18} color={Colors.primaryRed} />
               </View>
               <Text style={styles.featureTitle}>{f.title}</Text>
               <Text style={styles.featureDesc}>{f.desc}</Text>
@@ -145,7 +165,7 @@ export default function SubscriptionPlansScreen() {
 
         {/* ================= PLANS HEADING ================= */}
         <View style={styles.sectionHeadingRow}>
-          <Ionicons name="sparkles" size={17} color={Colors.primaryRed} />
+          <Feather name="star" size={17} color={Colors.primaryRed} />
           <Text style={styles.sectionHeading}>Premium Plans</Text>
         </View>
 
@@ -197,25 +217,21 @@ export default function SubscriptionPlansScreen() {
             >
               <View style={[styles.tableColFeature, styles.tableFeatureCell]}>
                 <View style={styles.tableRowIconCircle}>
-                  <Ionicons name={row.icon} size={13} color={Colors.gold} />
+                  <Feather name={row.icon} size={13} color={Colors.gold} />
                 </View>
                 <Text style={styles.tableFeatureLabel}>{row.label}</Text>
               </View>
 
               <View style={styles.tableColValue}>
                 {row.free === false ? (
-                  <Ionicons name="close" size={16} color={Colors.primaryRed} />
+                  <Feather name="x" size={16} color={Colors.primaryRed} />
                 ) : (
                   <Text style={styles.tableFreeText}>{row.free}</Text>
                 )}
               </View>
 
               <View style={styles.tableColValue}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color={Colors.success}
-                />
+                <Feather name="check-circle" size={18} color={Colors.success} />
               </View>
             </View>
           ))}
@@ -224,11 +240,7 @@ export default function SubscriptionPlansScreen() {
         {/* ================= SECURE PAYMENTS ================= */}
         <View style={styles.secureBox}>
           <View style={styles.secureIconCircle}>
-            <Ionicons
-              name="shield-checkmark"
-              size={18}
-              color={Colors.primaryRed}
-            />
+            <Feather name="shield" size={18} color={Colors.primaryRed} />
           </View>
           <View style={styles.secureTextBlock}>
             <Text style={styles.secureTitle}>Safe & Secure Payments</Text>
@@ -244,15 +256,15 @@ export default function SubscriptionPlansScreen() {
           activeOpacity={0.85}
           onPress={handleUpgrade}
         >
-          <FontAwesome5 name="crown" size={15} color={Colors.white} />
+          <Feather name="award" size={15} color={Colors.white} />
           <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
-          <Ionicons name="chevron-forward" size={17} color={Colors.white} />
+          <Feather name="chevron-right" size={17} color={Colors.white} />
         </TouchableOpacity>
 
         {/* ================= GUARANTEE ================= */}
         <View style={styles.guaranteeRow}>
           <View style={styles.guaranteeDot}>
-            <Ionicons name="checkmark" size={11} color={Colors.white} />
+            <Feather name="check" size={11} color={Colors.white} />
           </View>
           <Text style={styles.guaranteeText}>7-Day Money Back Guarantee</Text>
         </View>

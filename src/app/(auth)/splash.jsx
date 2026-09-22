@@ -1,17 +1,18 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useEffect, useRef } from "react";
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  BackHandler,
+  Dimensions,
+  Easing,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
 
@@ -22,14 +23,33 @@ const DOT_COUNT = 10;
 const DOT_RADIUS = 22;
 
 export default function SplashScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+          return true;
+        }
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace("/login");
+      navigation.replace("login");
     }, 10000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigation]);
 
   return (
     <View style={styles.root}>
@@ -53,7 +73,7 @@ export default function SplashScreen() {
           {/* Flourish divider with heart */}
           <View style={styles.flourishRow}>
             <View style={styles.flourishLine} />
-            <Ionicons
+            <Feather
               name="heart"
               size={16}
               color={Colors.primaryRed}

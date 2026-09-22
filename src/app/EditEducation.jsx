@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -13,11 +14,12 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import {
   getMemberEducationById,
   updateMemberEducation,
@@ -29,15 +31,17 @@ import {
 
 export default function EditEducation() {
   /* =======================================================
-     GET EDUCATION ID FROM ROUTE
+     NAVIGATION / GET EDUCATION ID FROM ROUTE
 
      Example:
-     /EditEducation?id=1
+     navigation.navigate("EditEducation", { id: 1 })
   ======================================================= */
 
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const educationId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const rawId = route?.params?.id;
+  const educationId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   /* =======================================================
      STATES
@@ -56,6 +60,45 @@ export default function EditEducation() {
   const [saving, setSaving] = useState(false);
 
   /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as ChatsScreen / OtpScreen / EditCareer:
+     intercept the hardware back button and route it through
+     handleBack() so both the header arrow and the hardware
+     key stay in sync. Ignored while a save is in flight.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
+
+  /* =======================================================
      LOAD SINGLE EDUCATION
   ======================================================= */
 
@@ -68,10 +111,11 @@ export default function EditEducation() {
       Alert.alert("Error", "Education ID is missing.", [
         {
           text: "OK",
-          onPress: () => router.back(),
+          onPress: handleBack,
         },
       ]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [educationId]);
 
   /* =======================================================
@@ -103,7 +147,7 @@ export default function EditEducation() {
         Alert.alert("Login Required", "Please login again.", [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: handleBack,
           },
         ]);
 
@@ -120,7 +164,7 @@ export default function EditEducation() {
         Alert.alert("Error", "Invalid education ID.", [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: handleBack,
           },
         ]);
 
@@ -450,9 +494,7 @@ export default function EditEducation() {
         Alert.alert("Success", "Education updated successfully.", [
           {
             text: "OK",
-            onPress: () => {
-              router.back();
-            },
+            onPress: handleBack,
           },
         ]);
 
@@ -467,9 +509,7 @@ export default function EditEducation() {
         Alert.alert("Success", "Education updated successfully.", [
           {
             text: "OK",
-            onPress: () => {
-              router.back();
-            },
+            onPress: handleBack,
           },
         ]);
 
@@ -517,14 +557,6 @@ export default function EditEducation() {
   };
 
   /* =======================================================
-     BACK
-  ======================================================= */
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  /* =======================================================
      LOADING SCREEN
   ======================================================= */
 
@@ -561,13 +593,13 @@ export default function EditEducation() {
             activeOpacity={0.7}
             onPress={handleBack}
           >
-            <Ionicons name="chevron-back" size={21} color="#EF233C" />
+            <Feather name="chevron-left" size={21} color="#EF233C" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Edit Education</Text>
 
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Ionicons name="ellipsis-vertical" size={18} color="#EF233C" />
+            <Feather name="more-vertical" size={18} color="#EF233C" />
           </TouchableOpacity>
         </View>
 
@@ -666,7 +698,7 @@ export default function EditEducation() {
                   maxLength={4}
                 />
 
-                <Ionicons name="chevron-down" size={14} color="#7A8491" />
+                <Feather name="chevron-down" size={14} color="#7A8491" />
               </View>
             </View>
 
@@ -689,7 +721,7 @@ export default function EditEducation() {
                   maxLength={4}
                 />
 
-                <Ionicons name="chevron-down" size={14} color="#7A8491" />
+                <Feather name="chevron-down" size={14} color="#7A8491" />
               </View>
             </View>
           </View>

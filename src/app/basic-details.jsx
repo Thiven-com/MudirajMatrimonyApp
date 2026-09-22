@@ -1,17 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
-    Dimensions,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  BackHandler,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -32,7 +33,7 @@ const GENDER_OPTIONS = [
 ];
 
 export default function BasicDetailsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState("");
@@ -46,6 +47,29 @@ export default function BasicDetailsScreen() {
   const [languages, setLanguages] = useState("");
   const [nationality, setNationality] = useState("Indian");
   const [city, setCity] = useState("");
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   const handleSaveAndContinue = () => {
     console.log("Saving basic details...", {
@@ -63,7 +87,7 @@ export default function BasicDetailsScreen() {
       city,
     });
     // TODO: submit to backend, then navigate to next onboarding step
-    // router.push("/onboarding/next-step");
+    // navigation.navigate("NextOnboardingStep");
   };
 
   return (
@@ -77,7 +101,7 @@ export default function BasicDetailsScreen() {
       <View style={styles.headerWrapper}>
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.75}
             style={styles.backButton}

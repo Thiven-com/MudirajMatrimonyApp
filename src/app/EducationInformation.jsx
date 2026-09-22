@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -13,17 +14,59 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { deleteMemberEducation, getMemberEducation } from "../utils/Functions";
 
 export default function EducationInformation() {
+  const navigation = useNavigation();
+
   const [educationList, setEducationList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+
+  /* =========================================================
+       BACK
+    ========================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =========================================================
+       ANDROID HARDWARE BACK
+       Same pattern as EditSocialBackground / EditLanguages:
+       intercept the hardware back button and route it through
+       handleBack(), ignored while a delete is in progress.
+    ========================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (deletingId !== null) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, deletingId]);
 
   /* =========================================================
        LOAD EDUCATION
@@ -365,7 +408,7 @@ export default function EducationInformation() {
     ========================================================= */
 
   const handleAddEducation = () => {
-    router.push("/AddEducation");
+    navigation.navigate("AddEducation");
   };
 
   /* =========================================================
@@ -381,20 +424,9 @@ export default function EducationInformation() {
 
     console.log("EDIT EDUCATION ID:", item.id);
 
-    router.push({
-      pathname: "/EditEducation",
-      params: {
-        id: String(item.id),
-      },
+    navigation.navigate("EditEducation", {
+      id: String(item.id),
     });
-  };
-
-  /* =========================================================
-       BACK
-    ========================================================= */
-
-  const handleBack = () => {
-    router.back();
   };
 
   /* =========================================================
@@ -422,7 +454,7 @@ export default function EducationInformation() {
             activeOpacity={0.7}
             onPress={handleBack}
           >
-            <Ionicons name="chevron-back" size={22} color="#EF233C" />
+            <Feather name="chevron-left" size={22} color="#EF233C" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Education Information</Text>
@@ -432,7 +464,7 @@ export default function EducationInformation() {
             activeOpacity={0.7}
             onPress={handleMenu}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color="#EF233C" />
+            <Feather name="more-vertical" size={20} color="#EF233C" />
           </TouchableOpacity>
         </View>
 
@@ -470,7 +502,7 @@ export default function EducationInformation() {
                   {/* ICON */}
 
                   <View style={styles.educationIconCircle}>
-                    <Ionicons name="school-outline" size={27} color="#EF233C" />
+                    <Feather name="book-open" size={24} color="#EF233C" />
                   </View>
 
                   {/* DETAILS */}
@@ -503,7 +535,7 @@ export default function EducationInformation() {
                     disabled={deletingId !== null}
                     onPress={() => handleEdit(item)}
                   >
-                    <Ionicons name="pencil-outline" size={17} color="#64748B" />
+                    <Feather name="edit-2" size={15} color="#64748B" />
                   </TouchableOpacity>
 
                   {/* DELETE BUTTON */}
@@ -517,7 +549,7 @@ export default function EducationInformation() {
                     disabled={deletingId !== null}
                     onPress={() => handleDeleteEducation(item.id)}
                   >
-                    <Ionicons name="trash-outline" size={17} color="#EF233C" />
+                    <Feather name="trash-2" size={15} color="#EF233C" />
                   </TouchableOpacity>
                 </View>
               );
@@ -528,7 +560,7 @@ export default function EducationInformation() {
           {!loading && (
             <View style={styles.addEducationSection}>
               <View style={styles.centerIconCircle}>
-                <Ionicons name="briefcase-outline" size={32} color="#EF233C" />
+                <Feather name="briefcase" size={28} color="#EF233C" />
               </View>
 
               <Text style={styles.addEducationTitle}>
@@ -544,7 +576,7 @@ export default function EducationInformation() {
                 activeOpacity={0.85}
                 onPress={handleAddEducation}
               >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Feather name="plus" size={19} color="#FFFFFF" />
 
                 <Text style={styles.addEducationButtonText}>Add Education</Text>
               </TouchableOpacity>

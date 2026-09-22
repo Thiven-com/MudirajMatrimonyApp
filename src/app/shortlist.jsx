@@ -1,10 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
@@ -75,7 +76,28 @@ function mapShortlistProfile(api) {
 }
 
 export default function ShortlistedProfilesScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadShortlists();
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,10 +140,6 @@ export default function ShortlistedProfilesScreen() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadShortlists();
-  }, []);
 
   /* =========================================================
      REMOVE FROM SHORTLIST
@@ -173,10 +191,10 @@ export default function ShortlistedProfilesScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIconButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Feather name="arrow-left" size={24} color={Colors.white} />
         </TouchableOpacity>
 
         <View style={styles.headerTextBlock}>
@@ -188,7 +206,7 @@ export default function ShortlistedProfilesScreen() {
           style={styles.headerIconButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="heart-outline" size={22} color={Colors.white} />
+          <Feather name="heart" size={22} color={Colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -199,7 +217,7 @@ export default function ShortlistedProfilesScreen() {
         {/* ================= SHORTLIST BANNER ================= */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerIconCircle}>
-            <Ionicons name="bookmark" size={20} color={Colors.white} />
+            <Feather name="bookmark" size={20} color={Colors.white} />
           </View>
           <View style={styles.bannerTextBlock}>
             <Text style={styles.bannerTitle}>Your Shortlist</Text>
@@ -217,11 +235,7 @@ export default function ShortlistedProfilesScreen() {
         {/* ================= ERROR ================= */}
         {!!loadError && (
           <View style={styles.errorBanner}>
-            <Ionicons
-              name="alert-circle-outline"
-              size={16}
-              color={Colors.primaryRed}
-            />
+            <Feather name="alert-circle" size={16} color={Colors.primaryRed} />
             <Text style={styles.errorBannerText}>{loadError}</Text>
             <TouchableOpacity onPress={loadShortlists}>
               <Text style={styles.retryLink}>Retry</Text>
@@ -244,11 +258,7 @@ export default function ShortlistedProfilesScreen() {
         {/* ================= EMPTY / END-OF-LIST FOOTER ================= */}
         <View style={styles.footerEmpty}>
           <View style={styles.footerIconCircle}>
-            <Ionicons
-              name="bookmark-outline"
-              size={30}
-              color={Colors.primaryRed}
-            />
+            <Feather name="bookmark" size={30} color={Colors.primaryRed} />
           </View>
           <Text style={styles.footerTitle}>
             {profiles.length === 0
@@ -261,9 +271,9 @@ export default function ShortlistedProfilesScreen() {
           <TouchableOpacity
             style={styles.exploreButton}
             activeOpacity={0.85}
-            onPress={() => router.push("/matches")}
+            onPress={() => navigation.navigate("Matches")}
           >
-            <Ionicons name="search" size={15} color={Colors.white} />
+            <Feather name="search" size={15} color={Colors.white} />
             <Text style={styles.exploreButtonText}>Explore More Profiles</Text>
           </TouchableOpacity>
         </View>
@@ -293,8 +303,8 @@ function ProfileCard({ profile, isToggling, onRemove }) {
             {profile.name}
           </Text>
           {profile.verified && (
-            <Ionicons
-              name="checkmark-circle"
+            <Feather
+              name="check-circle"
               size={16}
               color={Colors.success}
               style={styles.verifiedIcon}
@@ -323,11 +333,7 @@ function ProfileCard({ profile, isToggling, onRemove }) {
           style={styles.menuButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons
-            name="ellipsis-vertical"
-            size={16}
-            color={Colors.textMuted}
-          />
+          <Feather name="more-vertical" size={16} color={Colors.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -340,7 +346,7 @@ function ProfileCard({ profile, isToggling, onRemove }) {
             <ActivityIndicator size="small" color={Colors.primaryRed} />
           ) : (
             <>
-              <Ionicons name="heart" size={13} color={Colors.primaryRed} />
+              <Feather name="heart" size={13} color={Colors.primaryRed} />
               <Text style={styles.removeText}>Remove</Text>
             </>
           )}
@@ -353,7 +359,7 @@ function ProfileCard({ profile, isToggling, onRemove }) {
 function Tag({ icon, label }) {
   return (
     <View style={styles.tag}>
-      <Ionicons name={icon} size={11} color={Colors.primaryRed} />
+      <Feather name={icon} size={11} color={Colors.primaryRed} />
       <Text style={styles.tagText} numberOfLines={1}>
         {label}
       </Text>

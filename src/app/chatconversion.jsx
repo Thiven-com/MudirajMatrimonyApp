@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -14,7 +15,11 @@ import {
 } from "react-native";
 
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getChatView,
@@ -126,8 +131,9 @@ function mapMessage(item, receiverId) {
 }
 
 export default function ChatConversationScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const params = route.params || {};
 
   // These three can, in principle, all be different values:
   //  - chatId: the conversation/thread's own id (API's `id` field)
@@ -186,6 +192,29 @@ export default function ChatConversationScreen() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const listRef = useRef(null);
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   /* ================= INITIAL LOAD ================= */
 
@@ -302,7 +331,7 @@ export default function ChatConversationScreen() {
 
   /* ================= SEND MESSAGE ================= */
 
-  const handleBack = () => router.back();
+  const handleBack = () => navigation.goBack();
 
   const handleSend = async () => {
     const trimmed = message.trim();
@@ -416,7 +445,7 @@ export default function ChatConversationScreen() {
         <TouchableOpacity
           style={styles.headerProfile}
           activeOpacity={0.8}
-          onPress={() => router.push(`/profile/${chat.id}`)}
+          onPress={() => navigation.navigate("Profile", { id: chat.id })}
         >
           <View style={styles.headerAvatarWrapper}>
             <Image source={avatarSource} style={styles.headerAvatar} />

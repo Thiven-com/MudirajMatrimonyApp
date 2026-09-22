@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -13,7 +14,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { addMemberCareer } from "../utils/Functions";
 
@@ -34,6 +35,8 @@ const COLORS = {
 };
 
 export default function AddCareer() {
+  const navigation = useNavigation();
+
   const [designation, setDesignation] = useState("Manager");
 
   const [company, setCompany] = useState("Hdfc bank");
@@ -51,6 +54,29 @@ export default function AddCareer() {
   );
 
   const [saving, setSaving] = useState(false);
+
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   const handleSaveCareer = async () => {
     if (saving) {
@@ -115,7 +141,7 @@ export default function AddCareer() {
         alert("Career added successfully.");
 
         // Go back to Career Information
-        router.back();
+        navigation.goBack();
       } else {
         alert(response?.message || "Unable to add career.");
       }
@@ -141,7 +167,7 @@ export default function AddCareer() {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
           >
             <Ionicons name="chevron-back" size={15} color={COLORS.red} />
           </TouchableOpacity>
@@ -309,7 +335,7 @@ export default function AddCareer() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 activeOpacity={0.8}
-                onPress={() => router.back()}
+                onPress={() => navigation.goBack()}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>

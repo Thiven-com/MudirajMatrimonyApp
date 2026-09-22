@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   Image,
   Platform,
@@ -14,13 +15,13 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { router } from "expo-router";
+import LinearGradient from "react-native-linear-gradient";
 
-import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-// TODO: adjust this import path to wherever getPackagesData actually lives
 import { getPackagesData } from "../utils/Functions";
 
 /* =========================================================
@@ -34,50 +35,79 @@ const BASE_WIDTH = 390;
 const scale = (size) => {
   const factor = width / BASE_WIDTH;
 
-  /*
-    Mobile-first scaling.
-    Prevents very large sizes on tablets.
-  */
   return Math.round(size * Math.min(factor, 1.12));
 };
 
 /* =========================================================
-   TOP FEATURES (static, not from API)
+   COLORS
+========================================================= */
+
+const COLORS = {
+  white: "#FFFFFF",
+
+  red: "#E51F35",
+  darkRed: "#B50013",
+  redText: "#D7192D",
+
+  title: "#171B35",
+  text: "#34384C",
+  muted: "#777A88",
+
+  border: "#E4E5E8",
+
+  green: "#24913A",
+
+  purple: "#7025C4",
+
+  blue: "#1764C0",
+
+  orange: "#E67E00",
+
+  yellow: "#FFD83D",
+};
+
+/* =========================================================
+   TOP FEATURES
 ========================================================= */
 
 const FEATURES = [
   {
-    icon: "heart-outline",
+    icon: "heart",
     label: "Express",
     label2: "Interest",
     color: "#E31E2F",
   },
+
   {
-    icon: "person-outline",
+    icon: "user",
     label: "Contact",
     label2: "Details",
     color: "#E31E2F",
   },
+
   {
-    icon: "image-outline",
+    icon: "image",
     label: "Photo",
     label2: "Gallery",
     color: "#E31E2F",
   },
+
   {
-    icon: "eye-outline",
+    icon: "eye",
     label: "Profile",
     label2: "Views",
     color: "#F3A500",
   },
+
   {
-    icon: "images-outline",
+    icon: "images",
     label: "Gallery",
     label2: "Views",
     color: "#E31E2F",
   },
+
   {
-    icon: "star-outline",
+    icon: "star",
     label: "Auto",
     label2: "Matches",
     color: "#E67E00",
@@ -85,16 +115,7 @@ const FEATURES = [
 ];
 
 /* =========================================================
-   NORMALIZE API RESPONSE -> UI SHAPE
-
-   The API (/api/home/packages via getPackagesData) will not
-   return exactly the shape the UI wants (e.g. image is a URL
-   string, not a local require()). This function maps whatever
-   comes back into the shape PackageCard expects.
-
-   ADJUST THE RIGHT-HAND FIELD NAMES to match your actual
-   API response. Paste the real payload and this can be
-   tightened up precisely.
+   NORMALIZE API RESPONSE
 ========================================================= */
 
 const normalizePackage = (apiItem = {}) => {
@@ -109,11 +130,14 @@ const normalizePackage = (apiItem = {}) => {
       apiItem.days ??
       (apiItem.validity_days ? `${apiItem.validity_days} Days` : ""),
 
-    // API image is expected to be a URL string -> Image needs { uri }
     image: apiItem.image_url
-      ? { uri: apiItem.image_url }
+      ? {
+          uri: apiItem.image_url,
+        }
       : apiItem.image
-        ? { uri: apiItem.image }
+        ? {
+            uri: apiItem.image,
+          }
         : null,
 
     oldPrice: apiItem.old_price ?? apiItem.oldPrice ?? "",
@@ -162,7 +186,7 @@ const FeatureItem = ({ icon, value, title, color, bg }) => {
           },
         ]}
       >
-        <Ionicons name={icon} size={scale(22)} color={color} />
+        <Feather name={icon} size={scale(20)} color={color} />
       </View>
 
       <View style={styles.featureText}>
@@ -196,9 +220,9 @@ const ExtraFeature = ({ enabled, children }) => {
   return (
     <View style={styles.extraFeatureItem}>
       <View style={[styles.checkCircle, !enabled && styles.crossCircle]}>
-        <Ionicons
-          name={enabled ? "checkmark" : "close"}
-          size={scale(15)}
+        <Feather
+          name={enabled ? "check" : "x"}
+          size={scale(14)}
           color={enabled ? "#258A2C" : "#E11E2E"}
         />
       </View>
@@ -217,25 +241,25 @@ const ExtraFeature = ({ enabled, children }) => {
 const PackageCard = ({ item, onPress }) => {
   return (
     <View style={[styles.packageCard, item.badge && styles.popularCard]}>
-      {/* ===================================================
+      {/* =================================================
           POPULAR BADGE
-      =================================================== */}
+      ================================================= */}
 
       {item.badge && (
         <View style={styles.popularBadge}>
           <MaterialCommunityIcons
             name="crown"
             size={scale(17)}
-            color="#FFD83D"
+            color={COLORS.yellow}
           />
 
           <Text style={styles.popularText}>{item.badge}</Text>
         </View>
       )}
 
-      {/* ===================================================
+      {/* =================================================
           PACKAGE MAIN CONTENT
-      =================================================== */}
+      ================================================= */}
 
       <View
         style={[styles.packageContent, item.badge && styles.popularContent]}
@@ -253,7 +277,12 @@ const PackageCard = ({ item, onPress }) => {
             />
           ) : (
             <View
-              style={[styles.packageImage, { backgroundColor: "#F4F4F4" }]}
+              style={[
+                styles.packageImage,
+                {
+                  backgroundColor: "#F4F4F4",
+                },
+              ]}
             />
           )}
         </View>
@@ -263,10 +292,6 @@ const PackageCard = ({ item, onPress }) => {
         ================================================= */}
 
         <View style={styles.packageDetails}>
-          {/* =================================================
-              TITLE
-          ================================================= */}
-
           <View style={styles.packageTitleRow}>
             <View style={styles.titleContainer}>
               <Text style={styles.packageName} numberOfLines={2}>
@@ -303,14 +328,14 @@ const PackageCard = ({ item, onPress }) => {
         </View>
       </View>
 
-      {/* ===================================================
+      {/* =================================================
           FEATURES SECTION
-      =================================================== */}
+      ================================================= */}
 
       <View style={styles.featuresSection}>
         <View style={styles.packageFeaturesGrid}>
           <FeatureItem
-            icon="heart-outline"
+            icon="heart"
             value={item.express}
             title={
               <>
@@ -323,7 +348,7 @@ const PackageCard = ({ item, onPress }) => {
           />
 
           <FeatureItem
-            icon="person-outline"
+            icon="user"
             value={item.contact}
             title={
               <>
@@ -336,7 +361,7 @@ const PackageCard = ({ item, onPress }) => {
           />
 
           <FeatureItem
-            icon="image-outline"
+            icon="image"
             value={item.gallery}
             title={
               <>
@@ -349,7 +374,7 @@ const PackageCard = ({ item, onPress }) => {
           />
 
           <FeatureItem
-            icon="eye-outline"
+            icon="eye"
             value={item.views}
             title={
               <>
@@ -433,16 +458,11 @@ const PackageCard = ({ item, onPress }) => {
             activeOpacity={0.85}
             onPress={() => {
               onPress?.(item);
-
-              router.push({
-                pathname: "/payment",
-                params: { packageId: item.id },
-              });
             }}
           >
             <Text style={styles.chooseButtonText}>Choose Package</Text>
 
-            <Ionicons name="chevron-forward" size={scale(18)} color="#FFFFFF" />
+            <Feather name="chevron-right" size={scale(18)} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -454,50 +474,113 @@ const PackageCard = ({ item, onPress }) => {
    MAIN SCREEN
 ========================================================= */
 
-export default function ChoosePackageScreen({ navigation }) {
+export default function ChoosePackageScreen() {
+  const navigation = useNavigation();
+
+  /* =======================================================
+     STATE
+  ======================================================= */
+
   const [packages, setPackages] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState(null);
+
+  /* =======================================================
+     BACK BUTTON
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+  ======================================================= */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleBack();
+
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [handleBack]),
+  );
+
+  /* =======================================================
+     FETCH PACKAGES
+  ======================================================= */
 
   const fetchPackages = useCallback(async () => {
     try {
       setLoading(true);
+
       setError(null);
 
-      const response = await getPackagesData(); // GET /api/home/packages
+      console.log("====================================");
 
-      // Adjust this line if the API wraps the list, e.g. response.data.packages
+      console.log("FETCHING PACKAGES");
+
+      console.log("====================================");
+
+      const response = await getPackagesData();
+
+      console.log("PACKAGES API RESPONSE:", JSON.stringify(response, null, 2));
+
       const rawList = Array.isArray(response)
         ? response
         : (response?.data ?? response?.packages ?? []);
 
-      setPackages(rawList.map(normalizePackage));
+      const normalized = rawList.map(normalizePackage);
+
+      setPackages(normalized);
     } catch (err) {
-      console.log("Failed to load packages:", err);
+      console.log("FAILED TO LOAD PACKAGES:", err);
+
       setError("Couldn't load packages. Please try again.");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
   useEffect(() => {
     fetchPackages();
   }, [fetchPackages]);
 
+  /* =======================================================
+     CHOOSE PACKAGE
+  ======================================================= */
+
   const handleChoosePackage = (item) => {
-    console.log("Selected package:", item.name);
+    console.log("SELECTED PACKAGE:", JSON.stringify(item, null, 2));
 
-    /*
-      When Payment screen is ready:
+    navigation.navigate("Payment", {
+      packageId: item.id,
 
-      navigation.navigate(
-        "Payment",
-        {
-          package: item,
-        }
-      );
-    */
+      package: item,
+    });
   };
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -514,10 +597,10 @@ export default function ChoosePackageScreen({ navigation }) {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation?.goBack?.()}
+            onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={scale(28)} color="#D51D2C" />
+            <Feather name="arrow-left" size={scale(26)} color="#D51D2C" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -525,7 +608,11 @@ export default function ChoosePackageScreen({ navigation }) {
           </Text>
 
           <View style={styles.logoContainer}>
-            <Image style={styles.logo} resizeMode="contain" />
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -582,7 +669,7 @@ export default function ChoosePackageScreen({ navigation }) {
 
         <View style={styles.featureBar}>
           {FEATURES.map((item, index) => (
-            <View style={styles.topFeature} key={index}>
+            <View style={styles.topFeature} key={`${item.label}-${index}`}>
               <View
                 style={[
                   styles.topFeatureIcon,
@@ -591,11 +678,7 @@ export default function ChoosePackageScreen({ navigation }) {
                   },
                 ]}
               >
-                <Ionicons
-                  name={item.icon}
-                  size={scale(23)}
-                  color={item.color}
-                />
+                <Feather name={item.icon} size={scale(21)} color={item.color} />
               </View>
 
               <Text style={styles.topFeatureText}>{item.label}</Text>
@@ -618,7 +701,9 @@ export default function ChoosePackageScreen({ navigation }) {
             Get more features and better opportunities
           </Text>
 
-          {/* LOADING STATE */}
+          {/* =================================================
+              LOADING
+          ================================================= */}
 
           {loading && (
             <View style={styles.stateContainer}>
@@ -626,7 +711,9 @@ export default function ChoosePackageScreen({ navigation }) {
             </View>
           )}
 
-          {/* ERROR STATE */}
+          {/* =================================================
+              ERROR
+          ================================================= */}
 
           {!loading && error && (
             <View style={styles.stateContainer}>
@@ -642,7 +729,9 @@ export default function ChoosePackageScreen({ navigation }) {
             </View>
           )}
 
-          {/* EMPTY STATE */}
+          {/* =================================================
+              EMPTY
+          ================================================= */}
 
           {!loading && !error && packages.length === 0 && (
             <View style={styles.stateContainer}>
@@ -652,7 +741,9 @@ export default function ChoosePackageScreen({ navigation }) {
             </View>
           )}
 
-          {/* PACKAGE LIST */}
+          {/* =================================================
+              PACKAGE LIST
+          ================================================= */}
 
           {!loading &&
             !error &&
@@ -673,11 +764,7 @@ export default function ChoosePackageScreen({ navigation }) {
           {/* SECURE */}
 
           <View style={styles.securityItem}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={scale(27)}
-              color="#E21D32"
-            />
+            <Feather name="shield" size={scale(25)} color="#E21D32" />
 
             <Text style={styles.securityText}>100% Secure{"\n"}& Verified</Text>
           </View>
@@ -687,7 +774,7 @@ export default function ChoosePackageScreen({ navigation }) {
           {/* SUPPORT */}
 
           <View style={styles.securityItem}>
-            <Ionicons name="headset-outline" size={scale(27)} color="#E21D32" />
+            <Feather name="headphones" size={scale(25)} color="#E21D32" />
 
             <Text style={styles.securityText}>
               Priority{"\n"}
@@ -713,7 +800,7 @@ export default function ChoosePackageScreen({ navigation }) {
           {/* TRUST */}
 
           <View style={styles.securityItem}>
-            <Ionicons name="ribbon-outline" size={scale(27)} color="#E21D32" />
+            <Feather name="award" size={scale(25)} color="#E21D32" />
 
             <Text style={styles.securityText}>
               Trusted by{"\n"}
@@ -727,11 +814,7 @@ export default function ChoosePackageScreen({ navigation }) {
         ================================================= */}
 
         <View style={styles.bottomSecure}>
-          <Ionicons
-            name="lock-closed-outline"
-            size={scale(18)}
-            color="#777987"
-          />
+          <Feather name="lock" size={scale(17)} color="#777987" />
 
           <Text style={styles.bottomSecureText}>
             Secure payments. Cancel anytime.
@@ -963,7 +1046,6 @@ const styles = StyleSheet.create({
 
     shadowOffset: {
       width: 0,
-
       height: 5,
     },
 
@@ -1011,7 +1093,7 @@ const styles = StyleSheet.create({
   },
 
   /* =====================================================
-     PACKAGES CONTAINER
+     PACKAGES
   ===================================================== */
 
   packagesContainer: {
@@ -1045,7 +1127,7 @@ const styles = StyleSheet.create({
   },
 
   /* =====================================================
-     LOADING / ERROR / EMPTY STATES
+     STATES
   ===================================================== */
 
   stateContainer: {
@@ -1163,8 +1245,6 @@ const styles = StyleSheet.create({
 
     justifyContent: "center",
 
-    gap: scale(5),
-
     zIndex: 20,
   },
 
@@ -1176,6 +1256,8 @@ const styles = StyleSheet.create({
     fontWeight: "900",
 
     letterSpacing: 0.2,
+
+    marginLeft: scale(5),
   },
 
   /* =====================================================
@@ -1233,10 +1315,6 @@ const styles = StyleSheet.create({
 
     justifyContent: "flex-start",
   },
-
-  /* =====================================================
-     TITLE ROW
-  ===================================================== */
 
   packageTitleRow: {
     width: "100%",
@@ -1311,7 +1389,7 @@ const styles = StyleSheet.create({
   },
 
   /* =====================================================
-     FEATURES SECTION
+     FEATURES
   ===================================================== */
 
   featuresSection: {
@@ -1319,10 +1397,6 @@ const styles = StyleSheet.create({
 
     paddingBottom: scale(13),
   },
-
-  /* =====================================================
-     FEATURE GRID
-  ===================================================== */
 
   packageFeaturesGrid: {
     width: "100%",
@@ -1348,10 +1422,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-  /* =====================================================
-     FEATURE ICON
-  ===================================================== */
-
   packageFeatureIcon: {
     width: scale(38),
 
@@ -1365,10 +1435,6 @@ const styles = StyleSheet.create({
 
     flexShrink: 0,
   },
-
-  /* =====================================================
-     FEATURE TEXT
-  ===================================================== */
 
   featureText: {
     flex: 1,
@@ -1414,8 +1480,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
 
     marginTop: scale(15),
-
-    gap: scale(8),
   },
 
   extraFeatureItem: {
@@ -1479,7 +1543,7 @@ const styles = StyleSheet.create({
   },
 
   /* =====================================================
-     PRICE + BUTTON
+     PRICE
   ===================================================== */
 
   bottomPackageRow: {
@@ -1495,10 +1559,6 @@ const styles = StyleSheet.create({
 
     minWidth: 0,
   },
-
-  /* =====================================================
-     PRICE
-  ===================================================== */
 
   priceContainer: {
     flexDirection: "row",
@@ -1714,8 +1774,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
 
     marginTop: scale(14),
-
-    gap: scale(6),
   },
 
   bottomSecureText: {
@@ -1724,5 +1782,7 @@ const styles = StyleSheet.create({
     fontSize: scale(10.5),
 
     fontWeight: "500",
+
+    marginLeft: scale(6),
   },
 });
