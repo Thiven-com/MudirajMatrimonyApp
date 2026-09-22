@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
-  Dimensions,
-  Image,
-  Modal,
+  BackHandler,
+  Keyboard,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -14,71 +14,145 @@ import {
   View,
 } from "react-native";
 
-// React Native CLI icons
-import FontAwesome from "react-native-vector-icons/FontAwesome";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  Check,
+  ChevronDown,
+  Mail,
+  Phone,
+  User,
+  Users,
+} from "react-native-feather";
 
-// React Native CLI gradient
-import LinearGradient from "react-native-linear-gradient";
-
-// React Navigation
 import { useNavigation } from "@react-navigation/native";
-
-import Svg, {
-  Defs,
-  Path,
-  Stop,
-  LinearGradient as SvgGradient,
-} from "react-native-svg";
 
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
+
 import { signup } from "../../utils/Functions";
 
-const LOGO = require("../../../assets/images/logo.png");
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-// Header wave geometry — reversed curve: edges dip down, center arches up
-// (same geometry used on the login / OTP screens)
-const HEADER_HEIGHT = 210;
-const EDGE_Y = HEADER_HEIGHT * 0.7;
-const PEAK_Y = HEADER_HEIGHT * 0.33;
-const CTRL_Y = HEADER_HEIGHT * 0.05;
+/* ============================================================
+   OPTIONS
+============================================================ */
 
 const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
+
 const ON_BEHALF_OPTIONS = [
-  { label: "For Myself", value: 0 },
-  { label: "For Someone Else", value: 1 },
+  {
+    label: "For Myself",
+    value: 0,
+  },
+  {
+    label: "For Someone Else",
+    value: 1,
+  },
 ];
+
+/* ============================================================
+   REGISTER SCREEN
+============================================================ */
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
 
   const [firstName, setFirstName] = useState("");
+
   const [lastName, setLastName] = useState("");
+
   const [mobile, setMobile] = useState("");
+
   const [email, setEmail] = useState("");
+
   const [dob, setDob] = useState("");
+
   const [gender, setGender] = useState("");
+
   const [onBehalf, setOnBehalf] = useState("");
+
   const [agreed, setAgreed] = useState(false);
+
   const [genderModalVisible, setGenderModalVisible] = useState(false);
+
   const [onBehalfModalVisible, setOnBehalfModalVisible] = useState(false);
+
   const [loading, setLoading] = useState(false);
+
   const [errorText, setErrorText] = useState("");
 
+  /* ==========================================================
+     ANDROID HARDWARE BACK
+  ========================================================== */
+
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (loading) {
+        return true;
+      }
+
+      Keyboard.dismiss();
+
+      if (genderModalVisible) {
+        setGenderModalVisible(false);
+        return true;
+      }
+
+      if (onBehalfModalVisible) {
+        setOnBehalfModalVisible(false);
+        return true;
+      }
+
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleBackPress,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation, loading, genderModalVisible, onBehalfModalVisible]);
+
+  /* ==========================================================
+     REGISTER
+  ========================================================== */
+
   const handleRegister = async () => {
+    Keyboard.dismiss();
+
     if (
       !firstName.trim() ||
       !lastName.trim() ||
       !mobile.trim() ||
       !email.trim() ||
-      !dob ||
+      !dob.trim() ||
       !gender ||
       !onBehalf ||
       !agreed
     ) {
-      setErrorText("Please fill all required fields");
+      setErrorText(
+        "Please fill all required fields and accept the Terms & Conditions.",
+      );
+
+      return;
+    }
+
+    if (mobile.trim().length < 10) {
+      setErrorText("Please enter a valid mobile number.");
+
+      return;
+    }
+
+    if (!email.trim().includes("@")) {
+      setErrorText("Please enter a valid email address.");
+
       return;
     }
 
@@ -86,282 +160,276 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // signup() in utils/Functions.js handles mapping these fields
-      // (firstName -> first_name, mobile -> phone, dob -> date_of_birth,
-      // gender -> lowercase, onBehalf -> on_behalf as integer) to match
-      // the /api/signup contract.
       const result = await signup({
         firstName: firstName.trim(),
+
         lastName: lastName.trim(),
+
         mobile: mobile.trim(),
+
         email: email.trim(),
+
         dob,
+
         gender,
+
         onBehalf,
+
         agreed,
       });
 
-      console.log("signup() raw result:", JSON.stringify(result));
+      console.log("signup() result:", JSON.stringify(result));
 
       if (result?.result === false || result?.success === 0) {
         setErrorText(result?.message || "Unable to create account right now.");
+
         return;
       }
 
-      // Registration successful
+      /* ======================================================
+         REGISTRATION SUCCESS
+      ====================================================== */
+
       navigation.replace("Login");
     } catch (error) {
       console.log("signup Error:", error);
+
       setErrorText(error?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ==========================================================
+     GENDER
+  ========================================================== */
+
+  const handleGenderSelect = (value) => {
+    setGender(value);
+    setGenderModalVisible(false);
+    setErrorText("");
+  };
+
+  /* ==========================================================
+     ON BEHALF
+  ========================================================== */
+
+  const handleOnBehalfSelect = (value) => {
+    setOnBehalf(String(value));
+    setOnBehalfModalVisible(false);
+    setErrorText("");
+  };
+
+  /* ==========================================================
+     BACK
+  ========================================================== */
+
+  const handleBack = () => {
+    if (loading) {
+      return;
+    }
+
+    Keyboard.dismiss();
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
+
+  /* ==========================================================
+     SELECTED ON BEHALF LABEL
+  ========================================================== */
+
+  const selectedOnBehalf =
+    ON_BEHALF_OPTIONS.find(
+      (option) => String(option.value) === String(onBehalf),
+    )?.label || "";
+
+  /* ==========================================================
+     UI
+  ========================================================== */
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="light-content"
-        translucent
-        backgroundColor="transparent"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        {/* ================= HEADER SECTION ================= */}
-        <View style={styles.headerContainer}>
-          <HeaderWave width={SCREEN_WIDTH} />
+        {/* ==================================================
+            TOP BAR
+        ================================================== */}
 
+        <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+            onPress={handleBack}
+            disabled={loading}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <ArrowLeft width={21} height={21} color={Colors.textPrimary} />
           </TouchableOpacity>
 
-          <View style={styles.logoRing}>
-            <Image
-              source={LOGO}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+          <View style={styles.progressContainer}>
+            <View style={styles.progressTrack}>
+              <View style={styles.progressActive} />
+            </View>
+
+            <Text style={styles.progressText}>Create your profile</Text>
           </View>
         </View>
 
-        {/* ================= TITLE & TAGLINE ================= */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>MUDIRAJ WORLD</Text>
-          <View style={styles.taglineRow}>
-            <View style={styles.taglineLine} />
-            <Text style={styles.taglineText}>
-              Connect | Unite | Grow Together
-            </Text>
-            <View style={styles.taglineLine} />
+        {/* ==================================================
+            PAGE HEADING
+        ================================================== */}
+
+        <View style={styles.headingContainer}>
+          <View style={styles.headingIcon}>
+            <User width={27} height={27} color={Colors.primaryRed} />
           </View>
-          <View style={styles.flourishRow}>
-            <View style={styles.flourishDot} />
-            <Text style={styles.flourishSymbol}>❖</Text>
-            <View style={styles.flourishDot} />
-          </View>
+
+          <Text style={styles.heading}>Create Your Account</Text>
+
+          <Text style={styles.description}>
+            Join Mudiraj World and create your profile to find your perfect
+            match.
+          </Text>
         </View>
 
-        {/* ================= FORM HEADING ================= */}
-        <Text style={styles.formHeading}>Create Your Account</Text>
-        <Text style={styles.formSubtext}>
-          Join Mudiraj World and find your perfect match
-        </Text>
+        {/* ==================================================
+            FORM
+        ================================================== */}
 
-        {/* ================= FORM FIELDS ================= */}
         <View style={styles.fieldsContainer}>
+          {/* FIRST NAME */}
+
           <FieldCard
-            icon={
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color={Colors.primaryRed}
-              />
-            }
+            icon={<User width={18} height={18} color={Colors.primaryRed} />}
             label="First Name"
             placeholder="Enter your first name"
             value={firstName}
             onChangeText={setFirstName}
-            trailing={
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={Colors.textMuted}
-              />
-            }
+            trailing={<User width={18} height={18} color={Colors.textMuted} />}
           />
 
+          {/* LAST NAME */}
+
           <FieldCard
-            icon={
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color={Colors.primaryRed}
-              />
-            }
+            icon={<User width={18} height={18} color={Colors.primaryRed} />}
             label="Last Name"
             placeholder="Enter your last name"
             value={lastName}
             onChangeText={setLastName}
-            trailing={
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={Colors.textMuted}
-              />
-            }
+            trailing={<User width={18} height={18} color={Colors.textMuted} />}
           />
 
+          {/* MOBILE */}
+
           <FieldCard
-            icon={
-              <Ionicons
-                name="call-outline"
-                size={18}
-                color={Colors.primaryRed}
-              />
-            }
+            icon={<Phone width={18} height={18} color={Colors.primaryRed} />}
             label="Mobile Number"
             placeholder="Enter your mobile number"
             value={mobile}
-            onChangeText={setMobile}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, "").slice(0, 10);
+
+              setMobile(cleaned);
+            }}
             keyboardType="phone-pad"
             trailing={
               <View style={styles.countryCode}>
                 <Text style={styles.countryCodeText}>+91</Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={15}
-                  color={Colors.textMuted}
-                />
+
+                <ChevronDown width={15} height={15} color={Colors.textMuted} />
               </View>
             }
           />
 
+          {/* EMAIL */}
+
           <FieldCard
-            icon={
-              <Ionicons
-                name="mail-outline"
-                size={18}
-                color={Colors.primaryRed}
-              />
-            }
+            icon={<Mail width={18} height={18} color={Colors.primaryRed} />}
             label="Email Address"
             placeholder="Enter your email address"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            trailing={
-              <Ionicons
-                name="mail-outline"
-                size={20}
-                color={Colors.textMuted}
-              />
-            }
+            autoCorrect={false}
+            trailing={<Mail width={18} height={18} color={Colors.textMuted} />}
           />
 
+          {/* DOB */}
+
           <FieldCard
-            icon={
-              <Ionicons
-                name="calendar-outline"
-                size={18}
-                color={Colors.primaryRed}
-              />
-            }
+            icon={<Calendar width={18} height={18} color={Colors.primaryRed} />}
             label="Date of Birth"
             placeholder="DD / MM / YYYY"
             value={dob}
             onChangeText={setDob}
             keyboardType="number-pad"
             trailing={
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={Colors.textMuted}
-              />
+              <Calendar width={18} height={18} color={Colors.textMuted} />
             }
           />
-          {/* For a real date picker, swap the TextInput above for
-              @react-native-community/datetimepicker and format the result into `dob`. */}
+
+          {/* GENDER */}
 
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setGenderModalVisible(true)}
+            disabled={loading}
           >
             <FieldCard
-              icon={
-                <Ionicons
-                  name="people-outline"
-                  size={18}
-                  color={Colors.primaryRed}
-                />
-              }
+              icon={<Users width={18} height={18} color={Colors.primaryRed} />}
               label="Gender"
               placeholder="Select your gender"
               value={gender}
               editable={false}
-              pointerEvents="none"
               trailing={
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color={Colors.textMuted}
-                />
+                <ChevronDown width={20} height={20} color={Colors.textMuted} />
               }
             />
           </TouchableOpacity>
 
+          {/* REGISTER FOR */}
+
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setOnBehalfModalVisible(true)}
+            disabled={loading}
           >
             <FieldCard
-              icon={
-                <Ionicons
-                  name="person-circle-outline"
-                  size={18}
-                  color={Colors.primaryRed}
-                />
-              }
+              icon={<User width={18} height={18} color={Colors.primaryRed} />}
               label="Register For"
               placeholder="Select option"
-              value={
-                onBehalf
-                  ? ON_BEHALF_OPTIONS.find(
-                      (o) => o.value === parseInt(onBehalf),
-                    )?.label
-                  : ""
-              }
+              value={selectedOnBehalf}
               editable={false}
-              pointerEvents="none"
               trailing={
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color={Colors.textMuted}
-                />
+                <ChevronDown width={20} height={20} color={Colors.textMuted} />
               }
             />
           </TouchableOpacity>
         </View>
 
-        {/* ================= TERMS CHECKBOX ================= */}
+        {/* ==================================================
+            TERMS
+        ================================================== */}
+
         <TouchableOpacity
           style={styles.termsRow}
           activeOpacity={0.8}
           onPress={() => setAgreed(!agreed)}
+          disabled={loading}
         >
           <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-            {agreed && (
-              <Ionicons name="checkmark" size={12} color={Colors.white} />
-            )}
+            {agreed && <Check width={12} height={12} color={Colors.white} />}
           </View>
+
           <Text style={styles.termsText}>
             I agree to the{" "}
             <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
@@ -369,157 +437,89 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* ================= ERROR MESSAGE ================= */}
-        {errorText.length > 0 && (
+        {/* ==================================================
+            ERROR
+        ================================================== */}
+
+        {errorText !== "" && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={Colors.primaryRed} />
+            <AlertCircle width={18} height={18} color={Colors.primaryRed} />
+
             <Text style={styles.errorText}>{errorText}</Text>
           </View>
         )}
 
-        {/* ================= REGISTER BUTTON ================= */}
+        {/* ==================================================
+            REGISTER BUTTON
+        ================================================== */}
+
         <TouchableOpacity
           style={[
-            styles.registerButtonTouchable,
+            styles.registerButton,
             loading && styles.registerButtonDisabled,
           ]}
           activeOpacity={0.85}
           onPress={handleRegister}
           disabled={loading}
         >
-          <LinearGradient
-            colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.registerButton}
-          >
-            <Ionicons
-              name={loading ? "hourglass-outline" : "person-add-outline"}
-              size={20}
-              color="#FFFFFF"
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.registerButtonText}>
-              {loading ? "REGISTERING..." : "REGISTER"}
-            </Text>
-          </LinearGradient>
+          <User width={20} height={20} color={Colors.white} />
+
+          <Text style={styles.registerButtonText}>
+            {loading ? "REGISTERING..." : "REGISTER"}
+          </Text>
         </TouchableOpacity>
 
-        {/* ================= OR DIVIDER ================= */}
-        <View style={styles.orRow}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.orLine} />
-        </View>
+        {/* ==================================================
+            LOGIN
+        ================================================== */}
 
-        {/* ================= SOCIAL BUTTONS ================= */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <FontAwesome name="google" size={18} color={Colors.google} />
-            <Text style={styles.socialText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <Ionicons name="logo-facebook" size={20} color={Colors.facebook} />
-            <Text style={styles.socialText}>Continue with Facebook</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ================= LOGIN LINK ================= */}
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
+
           <TouchableOpacity
             onPress={() => navigation.navigate("Login")}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
         </View>
-
-        {/* ================= HERITAGE WATERMARK FOOTER ================= */}
-        <View style={styles.skylineWrapper}>
-          <HeritageSkyline />
-        </View>
       </ScrollView>
 
-      {/* ================= GENDER PICKER MODAL ================= */}
-      <Modal
-        visible={genderModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setGenderModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setGenderModalVisible(false)}
-        >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Select Gender</Text>
-            {GENDER_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={styles.modalOption}
-                onPress={() => {
-                  setGender(option);
-                  setGenderModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalOptionText}>{option}</Text>
-                {gender === option && (
-                  <Ionicons
-                    name="checkmark"
-                    size={18}
-                    color={Colors.primaryRed}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* ====================================================
+          GENDER MODAL
+      ==================================================== */}
 
-      {/* ================= ON BEHALF PICKER MODAL ================= */}
-      <Modal
+      <SelectionModal
+        visible={genderModalVisible}
+        title="Select Gender"
+        options={GENDER_OPTIONS}
+        selectedValue={gender}
+        onClose={() => setGenderModalVisible(false)}
+        onSelect={handleGenderSelect}
+      />
+
+      {/* ====================================================
+          ON BEHALF MODAL
+      ==================================================== */}
+
+      <SelectionModal
         visible={onBehalfModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOnBehalfModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setOnBehalfModalVisible(false)}
-        >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Register For</Text>
-            {ON_BEHALF_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={styles.modalOption}
-                onPress={() => {
-                  setOnBehalf(String(option.value));
-                  setOnBehalfModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalOptionText}>{option.label}</Text>
-                {onBehalf === String(option.value) && (
-                  <Ionicons
-                    name="checkmark"
-                    size={18}
-                    color={Colors.primaryRed}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        title="Register For"
+        options={ON_BEHALF_OPTIONS}
+        selectedValue={onBehalf}
+        isObjectOptions
+        onClose={() => setOnBehalfModalVisible(false)}
+        onSelect={handleOnBehalfSelect}
+      />
     </SafeAreaView>
   );
 }
 
-// ================= REUSABLE FORM FIELD CARD =================
+/* ==============================================================
+   FIELD CARD
+============================================================== */
+
 function FieldCard({
   icon,
   label,
@@ -528,15 +528,17 @@ function FieldCard({
   onChangeText,
   trailing,
   keyboardType,
-  secureTextEntry,
   autoCapitalize,
+  autoCorrect = true,
   editable = true,
 }) {
   return (
     <View style={styles.fieldCard}>
-      <View style={styles.iconCircle}>{icon}</View>
+      <View style={styles.fieldIcon}>{icon}</View>
+
       <View style={styles.fieldTextBlock}>
         <Text style={styles.fieldLabel}>{label}</Text>
+
         <TextInput
           style={styles.fieldInput}
           placeholder={placeholder}
@@ -544,576 +546,458 @@ function FieldCard({
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
           autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
           editable={editable}
           underlineColorAndroid="transparent"
         />
       </View>
+
       {trailing}
     </View>
   );
 }
 
-// ================= HEADER WAVE (reversed: edges dip, center arches up) =================
-// Same geometry as the login / OTP screens' HeaderWave.
-function HeaderWave({ width }) {
-  const w = width;
-  const redPath = `M0,0 H${w} V${EDGE_Y} Q${w * 0.75},${CTRL_Y} ${w / 2},${PEAK_Y} Q${w * 0.25},${CTRL_Y} 0,${EDGE_Y} Z`;
-  const goldPath = `M0,${EDGE_Y + 10} Q${w * 0.25},${CTRL_Y + 10} ${w / 2},${PEAK_Y + 10} Q${w * 0.75},${CTRL_Y + 10} ${w},${EDGE_Y + 10}`;
+/* ==============================================================
+   SELECTION MODAL
+============================================================== */
+
+function SelectionModal({
+  visible,
+  title,
+  options,
+  selectedValue,
+  onClose,
+  onSelect,
+  isObjectOptions = false,
+}) {
+  if (!visible) {
+    return null;
+  }
 
   return (
-    <Svg
-      width={w}
-      height={HEADER_HEIGHT}
-      viewBox={`0 0 ${w} ${HEADER_HEIGHT}`}
-      style={StyleSheet.absoluteFillObject}
-    >
-      <Defs>
-        <SvgGradient id="registerHeaderRedGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={Colors.primaryRed} />
-          <Stop offset="1" stopColor={Colors.primaryRedDark} />
-        </SvgGradient>
-        <SvgGradient id="registerHeaderGoldGrad" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={Colors.goldLight} />
-          <Stop offset="0.5" stopColor={Colors.gold} />
-          <Stop offset="1" stopColor={Colors.goldLight} />
-        </SvgGradient>
-      </Defs>
-      <Path d={redPath} fill="url(#registerHeaderRedGrad)" />
-      <Path
-        d={goldPath}
-        stroke="url(#registerHeaderGoldGrad)"
-        strokeWidth={6}
-        fill="none"
-        strokeLinecap="round"
+    <View style={styles.modalWrapper}>
+      <TouchableOpacity
+        style={styles.modalBackdrop}
+        activeOpacity={1}
+        onPress={onClose}
       />
-    </Svg>
-  );
-}
 
-// ================= HERITAGE SKYLINE (shared motif) =================
-function HeritageSkyline() {
-  return (
-    <View style={styles.skylineSvgContainer}>
-      <View style={styles.monumentCluster}>
-        <View style={styles.monumentPillar}>
-          <View style={styles.domeTop} />
-          <View style={styles.towerBody} />
-        </View>
-        <View style={styles.monumentTower}>
-          <View style={styles.spireTop} />
-          <View style={styles.minaretDome} />
-          <View style={styles.minaretBody}>
-            <View style={styles.archHole} />
-          </View>
-        </View>
-        <View style={styles.templeBlock}>
-          <View style={styles.kalashPeak} />
-          <View style={styles.onionDome} />
-          <View style={styles.buildingBase}>
-            <View style={styles.archWindow} />
-            <View style={styles.archWindow} />
-          </View>
-        </View>
-        <View style={styles.grandArchBlock}>
-          <View style={styles.charminarTowers}>
-            <View style={styles.miniMinaret}>
-              <View style={styles.spireTop} />
-              <View style={styles.miniMinaretBody} />
-            </View>
-            <View style={styles.miniMinaret}>
-              <View style={styles.spireTop} />
-              <View style={styles.miniMinaretBody} />
-            </View>
-          </View>
-          <View style={styles.grandCenterArch}>
-            <View style={styles.grandInnerArch} />
-          </View>
-        </View>
-        <View style={styles.templeBlock}>
-          <View style={styles.kalashPeak} />
-          <View style={styles.onionDome} />
-          <View style={styles.buildingBase}>
-            <View style={styles.archWindow} />
-            <View style={styles.archWindow} />
-          </View>
-        </View>
-        <View style={styles.monumentTower}>
-          <View style={styles.spireTop} />
-          <View style={styles.minaretDome} />
-          <View style={styles.minaretBody}>
-            <View style={styles.archHole} />
-          </View>
-        </View>
-        <View style={styles.monumentPillar}>
-          <View style={styles.domeTop} />
-          <View style={styles.towerBody} />
-        </View>
+      <View style={styles.modalCard}>
+        <View style={styles.modalHandle} />
+
+        <Text style={styles.modalTitle}>{title}</Text>
+
+        {options.map((option, index) => {
+          const optionValue = isObjectOptions ? String(option.value) : option;
+
+          const optionLabel = isObjectOptions ? option.label : option;
+
+          const selected = String(selectedValue) === String(optionValue);
+
+          return (
+            <TouchableOpacity
+              key={String(optionValue)}
+              style={[
+                styles.modalOption,
+                index === options.length - 1 && styles.modalOptionLast,
+              ]}
+              activeOpacity={0.7}
+              onPress={() => onSelect(isObjectOptions ? option.value : option)}
+            >
+              <Text
+                style={[
+                  styles.modalOptionText,
+                  selected && styles.modalOptionSelected,
+                ]}
+              >
+                {optionLabel}
+              </Text>
+
+              {selected && (
+                <Check width={19} height={19} color={Colors.primaryRed} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 }
+
+/* ==============================================================
+   STYLES
+============================================================== */
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+
+  scrollView: {
+    flex: 1,
+  },
+
   scrollContent: {
     alignItems: "center",
-    paddingBottom: 20,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 35,
   },
 
-  /* ===== HEADER ===== */
-  headerContainer: {
+  /* ============================================================
+     TOP BAR
+  ============================================================ */
+
+  topBar: {
     width: "100%",
-    height: HEADER_HEIGHT,
-    position: "relative",
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 55,
+    marginBottom: 25,
   },
+
   backButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 8 : 16,
-    left: 16,
-    zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoRing: {
-    position: "absolute",
-    top: PEAK_Y - 62,
-    alignSelf: "center",
-    width: 124,
-    height: 124,
-    borderRadius: 62,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
     backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3.5,
-    borderColor: Colors.white,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  logoImage: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
   },
 
-  /* ===== TITLE & TAGLINE ===== */
-  titleContainer: {
-    alignItems: "center",
-    marginTop: 6,
+  progressContainer: {
+    flex: 1,
+    marginLeft: 14,
   },
-  title: {
-    fontSize: FontSizes.title,
-    fontFamily: Fonts.display.extraBold,
-    color: Colors.primaryRedDark,
-    letterSpacing: 1.5,
-    textAlign: "center",
+
+  progressTrack: {
+    height: 5,
+    borderRadius: 10,
+    backgroundColor: "#E8E8E8",
+    overflow: "hidden",
   },
-  taglineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
+
+  progressActive: {
+    width: "70%",
+    height: "100%",
+    borderRadius: 10,
+    backgroundColor: Colors.primaryRed,
   },
-  taglineLine: {
-    width: 32,
-    height: 1.2,
-    backgroundColor: Colors.gold,
-    marginHorizontal: 8,
-  },
-  taglineText: {
-    fontSize: FontSizes.tagline,
+
+  progressText: {
+    marginTop: 5,
+    textAlign: "right",
+    fontSize: 10,
     fontFamily: Fonts.body.medium,
-    color: Colors.textPrimary,
-    letterSpacing: 0.3,
-  },
-  flourishRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  flourishDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.gold,
-    marginHorizontal: 3,
-  },
-  flourishSymbol: {
-    color: Colors.gold,
-    fontSize: 9,
+    color: Colors.textMuted,
   },
 
-  /* ===== FORM HEADING ===== */
-  formHeading: {
+  /* ============================================================
+     HEADING
+  ============================================================ */
+
+  headingContainer: {
+    alignItems: "center",
+    marginBottom: 23,
+  },
+
+  headingIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FCE9E7",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+
+  heading: {
     fontSize: FontSizes.welcome,
     fontFamily: Fonts.display.bold,
     color: Colors.textPrimary,
-    marginTop: 20,
-    textAlign: "center",
-  },
-  formSubtext: {
-    fontSize: FontSizes.subtitle,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 4,
-    marginBottom: 22,
     textAlign: "center",
   },
 
-  /* ===== FORM FIELDS ===== */
-  fieldsContainer: {
-    width: "90%",
+  description: {
+    maxWidth: 320,
+    fontSize: FontSizes.subtitle,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    textAlign: "center",
+    marginTop: 7,
   },
+
+  /* ============================================================
+     FIELDS
+  ============================================================ */
+
+  fieldsContainer: {
+    width: "100%",
+  },
+
   fieldCard: {
+    width: "100%",
+    minHeight: 65,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 15,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    marginBottom: 11,
+    borderWidth: 1,
+    borderColor: Colors.border,
+
     elevation: 2,
+
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
   },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: Colors.iconCircleBg,
+
+  fieldIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 11,
+    backgroundColor: "#FCE9E7",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 11,
   },
+
   fieldTextBlock: {
     flex: 1,
   },
+
   fieldLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: Fonts.body.semiBold,
-    color: Colors.textPrimary,
+    color: Colors.textMuted,
     marginBottom: 2,
   },
+
   fieldInput: {
-    fontSize: FontSizes.input,
+    fontSize: 13.5,
     fontFamily: Fonts.body.regular,
     color: Colors.textPrimary,
     padding: 0,
-    ...Platform.select({ web: { outlineStyle: "none" } }),
+    minHeight: 20,
+
+    ...Platform.select({
+      web: {
+        outlineStyle: "none",
+      },
+    }),
   },
+
   countryCode: {
     flexDirection: "row",
     alignItems: "center",
   },
+
   countryCodeText: {
-    fontSize: FontSizes.tagline,
+    fontSize: 11.5,
     fontFamily: Fonts.body.medium,
     color: Colors.textSecondary,
     marginRight: 3,
   },
 
-  /* ===== TERMS ===== */
+  /* ============================================================
+     TERMS
+  ============================================================ */
+
   termsRow: {
-    width: "90%",
+    width: "100%",
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 4,
-    marginBottom: 20,
+    marginTop: 3,
+    marginBottom: 16,
   },
+
   checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
+    width: 19,
+    height: 19,
+    borderRadius: 5,
     borderWidth: 1.5,
     borderColor: Colors.checkboxBorder,
-    marginRight: 10,
-    marginTop: 1,
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.white,
+    marginRight: 9,
+    marginTop: 1,
   },
+
   checkboxChecked: {
     backgroundColor: Colors.primaryRed,
+    borderColor: Colors.primaryRed,
   },
+
   termsText: {
     flex: 1,
     fontSize: FontSizes.label,
     fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
-    lineHeight: 19,
+    lineHeight: 18,
   },
+
   termsLink: {
     color: Colors.primaryRed,
     fontFamily: Fonts.body.semiBold,
   },
 
-  /* ===== ERROR MESSAGE ===== */
+  /* ============================================================
+     ERROR
+  ============================================================ */
+
   errorContainer: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEE2E2",
-    borderRadius: 8,
+    backgroundColor: "#FEECEC",
+    borderRadius: 11,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginHorizontal: "5%",
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primaryRed,
+    marginBottom: 14,
   },
+
   errorText: {
-    fontSize: FontSizes.label,
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 11.5,
     fontFamily: Fonts.body.regular,
     color: Colors.primaryRed,
-    marginLeft: 8,
-    flex: 1,
+    lineHeight: 17,
   },
 
-  /* ===== REGISTER BUTTON ===== */
-  registerButtonTouchable: {
-    width: "90%",
-    height: 54,
-    borderRadius: 14,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#E67E00",
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  registerButtonDisabled: {
-    opacity: 0.6,
-  },
+  /* ============================================================
+     REGISTER
+  ============================================================ */
+
   registerButton: {
     width: "100%",
-    height: "100%",
+    height: 54,
+    borderRadius: 15,
+    backgroundColor: Colors.primaryRed,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+
+    elevation: 4,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
   },
+
+  registerButtonDisabled: {
+    opacity: 0.55,
+  },
+
   registerButtonText: {
-    color: Colors.white,
     fontSize: FontSizes.button,
     fontFamily: Fonts.body.bold,
-    letterSpacing: 1.2,
+    color: Colors.white,
+    letterSpacing: 0.8,
   },
 
-  /* ===== OR DIVIDER ===== */
-  orRow: {
-    width: "90%",
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  orLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.dividerGold,
-  },
-  orText: {
-    marginHorizontal: 12,
-    color: Colors.gold,
-    fontFamily: Fonts.body.bold,
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
+  /* ============================================================
+     LOGIN
+  ============================================================ */
 
-  /* ===== SOCIAL BUTTONS ===== */
-  socialRow: {
-    width: "90%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  socialText: {
-    fontSize: FontSizes.social,
-    fontFamily: Fonts.body.medium,
-    color: Colors.textPrimary,
-    marginLeft: 8,
-  },
-
-  /* ===== LOGIN ROW ===== */
   loginRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 22,
-    marginBottom: 16,
+    marginTop: 20,
   },
+
   loginText: {
     fontSize: FontSizes.link,
     fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
   },
+
   loginLink: {
     fontSize: FontSizes.link,
     fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
   },
 
-  /* ===== GENDER MODAL ===== */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+  /* ============================================================
+     MODAL
+  ============================================================ */
+
+  modalWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
     justifyContent: "flex-end",
   },
-  modalCard: {
-    backgroundColor: Colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 30,
+
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
   },
+
+  modalCard: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 30,
+    elevation: 10,
+  },
+
+  modalHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: "#D6D6D6",
+    alignSelf: "center",
+    marginBottom: 15,
+  },
+
   modalTitle: {
     fontSize: FontSizes.welcome - 2,
     fontFamily: Fonts.display.bold,
     color: Colors.textPrimary,
-    marginBottom: 10,
+    marginBottom: 8,
   },
+
   modalOption: {
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+
+  modalOptionLast: {
+    borderBottomWidth: 0,
+  },
+
   modalOptionText: {
     fontSize: FontSizes.input,
     fontFamily: Fonts.body.regular,
     color: Colors.textPrimary,
   },
 
-  /* ===== BOTTOM SKYLINE WATERMARK ===== */
-  skylineWrapper: {
-    width: "100%",
-    alignItems: "center",
-    marginTop: 10,
-    opacity: 0.45,
-  },
-  skylineSvgContainer: {
-    width: SCREEN_WIDTH,
-    height: 70,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    overflow: "hidden",
-  },
-  monumentCluster: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "center",
-    gap: 8,
-    width: "100%",
-    paddingHorizontal: 10,
-  },
-  monumentPillar: { alignItems: "center" },
-  domeTop: {
-    width: 14,
-    height: 10,
-    borderTopLeftRadius: 7,
-    borderTopRightRadius: 7,
-    backgroundColor: "#E4B8B8",
-  },
-  towerBody: { width: 12, height: 28, backgroundColor: "#E4B8B8" },
-  monumentTower: { alignItems: "center" },
-  spireTop: { width: 2, height: 6, backgroundColor: "#D99E9E" },
-  minaretDome: {
-    width: 12,
-    height: 8,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    backgroundColor: "#E4B8B8",
-  },
-  minaretBody: {
-    width: 10,
-    height: 42,
-    backgroundColor: "#E4B8B8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  archHole: {
-    width: 4,
-    height: 8,
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
-    backgroundColor: Colors.background,
-  },
-  templeBlock: { alignItems: "center" },
-  kalashPeak: { width: 3, height: 5, backgroundColor: "#D99E9E" },
-  onionDome: {
-    width: 28,
-    height: 20,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    backgroundColor: "#E4B8B8",
-  },
-  buildingBase: {
-    width: 34,
-    height: 28,
-    backgroundColor: "#E4B8B8",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 4,
-  },
-  archWindow: {
-    width: 6,
-    height: 12,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
-    backgroundColor: Colors.background,
-  },
-  grandArchBlock: { alignItems: "center" },
-  charminarTowers: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: 44,
-  },
-  miniMinaret: { alignItems: "center" },
-  miniMinaretBody: { width: 6, height: 18, backgroundColor: "#E4B8B8" },
-  grandCenterArch: {
-    width: 50,
-    height: 45,
-    backgroundColor: "#E4B8B8",
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
-  grandInnerArch: {
-    width: 26,
-    height: 28,
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 13,
-    borderTopRightRadius: 13,
+  modalOptionSelected: {
+    color: Colors.primaryRed,
+    fontFamily: Fonts.body.bold,
   },
 });

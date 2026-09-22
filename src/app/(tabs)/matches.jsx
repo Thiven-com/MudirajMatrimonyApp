@@ -1013,111 +1013,131 @@ export default function MatchesScreen() {
 }
 
 /* =========================================================
-   STYLES
+   STYLES - PROFESSIONAL MUDHIRAJ MATRIMONY UI
 ========================================================= */
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFDFC",
   },
 
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFDFC",
   },
 
   centerState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FFFDFC",
+    paddingHorizontal: 30,
   },
 
   centerStateText: {
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 14,
-    color: "#666",
+    color: "#6F6662",
+    fontWeight: "600",
   },
 
   headerArea: {
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFDFC",
+    paddingTop: 8,
+    paddingBottom: 10,
   },
 
   backButton: {
-    width: 50,
-    height: 46,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: "center",
-    marginLeft: 20,
+    alignItems: "center",
+    marginLeft: 18,
     marginTop: 4,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F0E5DC",
   },
 
   titleSection: {
-    paddingHorizontal: 28,
-    marginTop: 16,
+    paddingHorizontal: 22,
+    marginTop: 15,
   },
 
   title: {
-    fontSize: 29,
-    fontWeight: "800",
-    color: "#242424",
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "900",
+    color: "#211B19",
+    letterSpacing: -0.5,
   },
 
   titleRed: {
-    color: "#A81712",
+    color: "#B20D08",
   },
 
   matchesFound: {
     marginTop: 5,
-    fontSize: 16,
-    color: "#666",
+    fontSize: 13,
+    color: "#8A807B",
+    fontWeight: "600",
   },
 
   searchRow: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    marginTop: 24,
+    paddingHorizontal: 18,
+    marginTop: 17,
     alignItems: "center",
   },
 
   searchContainer: {
     flex: 1,
-    height: 58,
+    height: 52,
     borderWidth: 1,
-    borderColor: "#E2DDD8",
+    borderColor: "#EDE3DC",
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
+    shadowColor: "#B7A59B",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   searchIcon: {
     marginRight: 9,
+    color: "#B20D08",
   },
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: "#333",
+    fontSize: 13,
+    color: "#211B19",
     minWidth: 0,
+    fontWeight: "500",
   },
 
   tabsContainer: {
-    marginTop: 18,
-    maxHeight: 54,
+    marginTop: 14,
+    maxHeight: 50,
   },
 
   tabsScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     alignItems: "center",
   },
 
   tab: {
-    height: 48,
+    height: 43,
     paddingHorizontal: 15,
-    borderRadius: 15,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: "#E1DDD8",
+    borderColor: "#E9DED6",
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
@@ -1125,14 +1145,19 @@ const styles = StyleSheet.create({
   },
 
   activeTab: {
-    backgroundColor: COLORS.red,
-    borderColor: COLORS.red,
+    backgroundColor: "#B20D08",
+    borderColor: "#B20D08",
+    shadowColor: "#B20D08",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
+    elevation: 3,
   },
 
   tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#444",
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5E5753",
     marginLeft: 7,
   },
 
@@ -1142,10 +1167,10 @@ const styles = StyleSheet.create({
   },
 
   onlineDot: {
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
-    backgroundColor: COLORS.green,
+    backgroundColor: "#159447",
   },
 
   onlineDotActive: {
@@ -1154,39 +1179,36 @@ const styles = StyleSheet.create({
 
   list: {
     flex: 1,
-    marginTop: 16,
+    marginTop: 5,
   },
 
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 92,
+    paddingHorizontal: 18,
+    paddingTop: 5,
+    paddingBottom: 90,
   },
 
   matchCard: {
     minHeight: 190,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
+    borderRadius: 20,
     marginBottom: 14,
     flexDirection: "row",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#EEE8E3",
-
-    shadowColor: "#888",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    borderColor: "#EFE5DE",
+    shadowColor: "#8D7B70",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.09,
+    shadowRadius: 12,
     elevation: 3,
   },
 
   imageContainer: {
-    width: "37%",
+    width: "36%",
     minHeight: 190,
     position: "relative",
-    backgroundColor: "#EEE",
+    backgroundColor: "#F1ECE8",
   },
 
   profileImage: {
@@ -1198,15 +1220,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     left: 9,
-    backgroundColor: "#13934A",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    backgroundColor: "#159447",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
   },
 
   onlineText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "800",
   },
 
@@ -1214,7 +1236,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 9,
     left: 9,
-    backgroundColor: "#C90804",
+    backgroundColor: "#B20D08",
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 8,
@@ -1222,20 +1244,27 @@ const styles = StyleSheet.create({
 
   premiumTagText: {
     color: "#FFD333",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
   },
 
   communityBadge: {
     position: "absolute",
     right: 8,
-    top: 10,
+    top: 9,
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    backgroundColor: "rgba(33,27,25,0.68)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   detailsContainer: {
     flex: 1,
     flexDirection: "row",
-    paddingLeft: 13,
+    paddingLeft: 14,
+    paddingRight: 8,
     paddingVertical: 14,
   },
 
@@ -1247,13 +1276,16 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingRight: 3,
   },
 
   name: {
-    maxWidth: 135,
-    fontSize: 21,
-    fontWeight: "800",
-    color: "#A81C16",
+    flexShrink: 1,
+    maxWidth: "88%",
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: "900",
+    color: "#A81712",
   },
 
   verifiedIcon: {
@@ -1261,108 +1293,93 @@ const styles = StyleSheet.create({
   },
 
   profession: {
-    fontSize: 15,
-    color: "#333",
-    marginTop: 7,
-    marginBottom: 12,
+    fontSize: 12.5,
+    color: "#403A37",
+    marginTop: 5,
+    marginBottom: 11,
+    fontWeight: "600",
   },
 
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 7,
+    paddingRight: 2,
   },
 
   infoText: {
     flex: 1,
     minWidth: 0,
     marginLeft: 7,
-    fontSize: 12,
-    color: "#626262",
+    fontSize: 11.5,
+    color: "#716863",
+    fontWeight: "500",
   },
 
   actionsContainer: {
-    width: 50,
+    width: 46,
     alignItems: "center",
     justifyContent: "center",
   },
 
   heartButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFF7F5",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EEE9E5",
-
-    shadowColor: "#888",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
+    borderColor: "#F3DCD6",
   },
 
   chatButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#F8BA00",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 13,
+    marginTop: 11,
+    shadowColor: "#A87800",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
     elevation: 3,
   },
 
   premiumBanner: {
     width: "100%",
-    minHeight: 76,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    minHeight: 88,
+    backgroundColor: "#FFF8E5",
+    borderRadius: 18,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 12,
-    marginBottom: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    marginTop: 5,
+    marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#F0E8E3",
-
+    borderColor: "#F2D98D",
     shadowColor: "#A99A92",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 9,
+    elevation: 3,
   },
 
   premiumIconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#C90804",
+    backgroundColor: "#B20D08",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
-
-    shadowColor: "#C90804",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
 
   crownText: {
-    fontSize: 27,
+    fontSize: 25,
     color: "#FFD333",
     fontWeight: "bold",
   },
@@ -1373,86 +1390,91 @@ const styles = StyleSheet.create({
   },
 
   premiumTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#A51B16",
+    fontSize: 13.5,
+    fontWeight: "900",
+    color: "#9E1712",
     marginBottom: 3,
   },
 
   premiumDescription: {
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 9.5,
+    lineHeight: 14,
     color: "#716864",
     fontWeight: "500",
   },
 
   upgradeButton: {
-    height: 38,
-    minWidth: 82,
-    backgroundColor: "#C90804",
-    borderRadius: 7,
+    height: 39,
+    minWidth: 92,
+    backgroundColor: "#B20D08",
+    borderRadius: 11,
     paddingHorizontal: 9,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
-
-    shadowColor: "#B00000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    marginLeft: 7,
+    shadowColor: "#8D0A06",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
     elevation: 3,
   },
 
   buttonCrown: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#FFD333",
     marginRight: 4,
   },
 
   upgradeText: {
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     color: "#FFFFFF",
   },
 
   emptyState: {
-    minHeight: 260,
+    minHeight: 270,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#EFE5DE",
   },
 
   emptyTitle: {
     marginTop: 12,
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#333",
+    fontSize: 19,
+    fontWeight: "900",
+    color: "#302A27",
   },
 
   emptyText: {
     marginTop: 7,
-    fontSize: 14,
-    color: "#777",
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#7B726D",
     textAlign: "center",
   },
 
   emptyButton: {
-    marginTop: 17,
-    backgroundColor: COLORS.red,
-    paddingHorizontal: 20,
+    marginTop: 18,
+    backgroundColor: "#B20D08",
+    paddingHorizontal: 23,
     paddingVertical: 11,
-    borderRadius: 10,
+    borderRadius: 11,
+    shadowColor: "#B20D08",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
   },
 
   emptyButtonText: {
     color: "#FFFFFF",
     fontWeight: "800",
+    fontSize: 13,
   },
 });

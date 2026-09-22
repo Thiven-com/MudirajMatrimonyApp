@@ -1555,1119 +1555,587 @@ function ReviewCard({ review }) {
 ===================================================== */
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.background },
   contentContainer: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 92,
+    paddingBottom: 100,
   },
-
-  /* HEADER */
 
   header: {
-    minHeight: 92,
+    minHeight: 72,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 12,
   },
-
   menuButton: {
-    width: 42,
-    height: 48,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
     justifyContent: "center",
-    alignItems: "flex-start",
-  },
-
-  headerCenter: {
-    flex: 1,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
   },
-
+  headerCenter: { flex: 1, alignItems: "center", paddingHorizontal: 8 },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  logo: {
-    width: 58,
-    height: 58,
-  },
-
-  brandContainer: {
-    alignItems: "center",
-    marginLeft: 5,
-  },
-
+  logo: { width: 46, height: 46 },
+  brandContainer: { alignItems: "center", marginLeft: 5 },
   brandName: {
     color: COLORS.red,
-    fontSize: width < 380 ? 22 : 25,
+    fontSize: width < 380 ? 20 : 23,
     fontWeight: "900",
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
   },
-
   brandDividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: -2,
+    marginTop: -1,
   },
-
   smallLine: {
-    width: 18,
+    width: 14,
     height: 1,
     backgroundColor: COLORS.gold,
     marginHorizontal: 3,
   },
-
   brandMatrimony: {
     color: COLORS.text,
-    fontSize: width < 380 ? 12 : 14,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    marginHorizontal: 3,
+    fontSize: width < 380 ? 10 : 12,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    marginHorizontal: 2,
   },
-
   tagline: {
-    color: COLORS.red,
-    fontSize: 10,
+    color: COLORS.gray,
+    fontSize: 9.5,
     fontWeight: "600",
     marginTop: 3,
     textAlign: "center",
   },
-
-  headerActionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
+  headerActionsRow: { flexDirection: "row", alignItems: "center" },
   headerIconButton: {
-    width: 40,
-    height: 48,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
   },
-
-  /* HERO */
 
   heroCard: {
     width: "100%",
-    height: width * 0.43,
-    borderRadius: 14,
+    height: Math.max(155, Math.min(205, width * 0.48)),
+    borderRadius: 20,
     overflow: "hidden",
-    marginTop: 2,
-    marginBottom: 18,
-    backgroundColor: "#C90000",
-
-    shadowColor: "#8B0000",
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.22,
-
-    shadowRadius: 5,
-
-    elevation: 5,
+    marginBottom: 22,
+    backgroundColor: COLORS.red,
+    shadowColor: COLORS.darkRed,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.16,
+    shadowRadius: 9,
+    elevation: 4,
   },
-
-  heroImage: {
-    width: "100%",
-    height: "100%",
-  },
-
+  heroImage: { width: "100%", height: "100%" },
   bannerDots: {
     position: "absolute",
     bottom: 10,
     alignSelf: "center",
     flexDirection: "row",
-    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.18)",
   },
-
   bannerDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: "rgba(255,255,255,0.65)",
+    marginHorizontal: 3,
   },
-
-  bannerDotActive: {
-    width: 16,
-    backgroundColor: COLORS.white,
-  },
-
-  /* SECTION */
+  bannerDotActive: { width: 18, backgroundColor: COLORS.white },
 
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 11,
   },
-
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
+  sectionTitleRow: { flexDirection: "row", alignItems: "center" },
   sectionTitle: {
     color: COLORS.text,
     fontSize: 18,
     fontWeight: "900",
+    letterSpacing: -0.2,
   },
-
-  seeAll: {
-    color: COLORS.red,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-
-  matchesContainer: {
-    paddingBottom: 18,
-    paddingRight: 10,
-  },
-
-  /* MEMBER CARD */
+  seeAll: { color: COLORS.red, fontSize: 12.5, fontWeight: "800" },
+  matchesContainer: { paddingBottom: 20, paddingRight: 8 },
 
   matchCard: {
-    width: width < 400 ? 220 : 230,
-
+    width: width < 390 ? 220 : 232,
     backgroundColor: COLORS.white,
-
-    borderRadius: 17,
-
+    borderRadius: 18,
     overflow: "hidden",
-
     marginRight: 12,
-
     borderWidth: 1,
-
     borderColor: COLORS.border,
-
     shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.12,
-
-    shadowRadius: 7,
-
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 3,
   },
-
   matchImageContainer: {
     width: "100%",
-
-    height: width < 300 ? 205 : 180,
-
+    height: width < 390 ? 205 : 215,
     position: "relative",
+    backgroundColor: "#F6EEEA",
   },
-
-  matchImage: {
-    width: "100%",
-    height: "100%",
-  },
-
+  matchImage: { width: "100%", height: "100%" },
   newBadge: {
     position: "absolute",
-
     top: 10,
     left: 10,
-
     backgroundColor: COLORS.green,
-
-    borderRadius: 12,
-
-    paddingHorizontal: 8,
+    borderRadius: 20,
+    paddingHorizontal: 9,
     paddingVertical: 5,
-
     flexDirection: "row",
-
     alignItems: "center",
-
-    gap: 4,
   },
-
   newBadgeText: {
     color: COLORS.white,
-
     fontSize: 10,
-
     fontWeight: "800",
-  },
-
-  matchInfo: {
-    paddingHorizontal: 11,
-    paddingTop: 17,
-    paddingBottom: 12,
-  },
-
-  nameRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    marginBottom: 4,
-  },
-
-  matchName: {
-    color: COLORS.text,
-
-    fontSize: 16,
-
-    fontWeight: "900",
-
-    marginRight: 4,
-
-    maxWidth: "88%",
-  },
-
-  profession: {
-    color: COLORS.gray,
-
-    fontSize: 12,
-
-    marginBottom: 7,
-  },
-
-  detailRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    marginTop: 4,
-  },
-
-  detailText: {
-    flexShrink: 1,
-
-    color: COLORS.gray,
-
-    fontSize: 10.5,
-
     marginLeft: 4,
   },
-
-  /* PREMIUM MEMBER */
+  matchInfo: { paddingHorizontal: 13, paddingTop: 13, paddingBottom: 14 },
+  nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
+  matchName: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "900",
+    marginRight: 5,
+    maxWidth: "88%",
+  },
+  profession: { color: COLORS.gray, fontSize: 12, marginBottom: 7 },
+  detailRow: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  detailText: {
+    flexShrink: 1,
+    color: COLORS.gray,
+    fontSize: 10.5,
+    marginLeft: 5,
+  },
 
   premiumMemberCard: {
-    width: 170,
-    height: 260,
-
-    borderRadius: 18,
-
+    width: 174,
+    height: 270,
+    borderRadius: 20,
     overflow: "hidden",
-
     marginRight: 12,
-
     backgroundColor: COLORS.text,
-
     shadowColor: "#000",
-
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
-    shadowOpacity: 0.2,
-
-    shadowRadius: 8,
-
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 9,
     elevation: 4,
   },
-
-  premiumMemberImage: {
-    width: "100%",
-    height: "100%",
-
-    position: "absolute",
-  },
-
+  premiumMemberImage: { width: "100%", height: "100%", position: "absolute" },
   premiumCrownBadge: {
     position: "absolute",
-
-    top: 10,
-    right: 10,
-
-    width: 28,
-    height: 28,
-
-    borderRadius: 14,
-
+    top: 11,
+    right: 11,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: COLORS.gold,
-
     justifyContent: "center",
-
     alignItems: "center",
   },
-
   premiumMemberOverlay: {
     position: "absolute",
-
     left: 0,
     right: 0,
     bottom: 0,
-
     paddingHorizontal: 14,
-
-    paddingTop: 40,
-
-    paddingBottom: 14,
+    paddingTop: 58,
+    paddingBottom: 15,
   },
-
   premiumMemberName: {
     color: COLORS.white,
-
     fontSize: 16,
-
     fontWeight: "900",
-
     marginBottom: 4,
   },
-
   premiumMemberId: {
-    color: "rgba(255,255,255,0.85)",
-
-    fontSize: 11,
-
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 10.5,
     fontWeight: "500",
   },
-
-  premiumMemberIdBold: {
-    color: COLORS.white,
-
-    fontWeight: "800",
-  },
-
-  /* PREMIUM BANNER */
+  premiumMemberIdBold: { color: COLORS.white, fontWeight: "800" },
 
   premiumBanner: {
-    minHeight: 105,
-
-    borderRadius: 18,
-
+    minHeight: 118,
+    borderRadius: 20,
     flexDirection: "row",
-
     alignItems: "center",
-
-    paddingHorizontal: 10,
-
-    marginBottom: 20,
-
+    paddingHorizontal: 13,
+    marginBottom: 24,
     shadowColor: COLORS.gold,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.2,
-
-    shadowRadius: 7,
-
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
     elevation: 3,
   },
-
   premiumCrown: {
-    width: 60,
-    height: 60,
-
-    borderRadius: 30,
-
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: COLORS.darkRed,
-
     justifyContent: "center",
-
     alignItems: "center",
-
-    marginRight: 9,
+    marginRight: 10,
   },
-
-  premiumTextContainer: {
-    flex: 1,
-  },
-
+  premiumTextContainer: { flex: 1, paddingRight: 8 },
   premiumTitle: {
     color: COLORS.darkRed,
-
-    fontSize: width < 400 ? 13 : 14,
-
+    fontSize: width < 390 ? 13 : 14,
     fontWeight: "900",
-
-    marginBottom: 3,
+    marginBottom: 4,
   },
-
-  premiumSubtitle: {
-    color: COLORS.text,
-
-    fontSize: 10.5,
-
-    lineHeight: 15,
-  },
-
+  premiumSubtitle: { color: COLORS.text, fontSize: 10.5, lineHeight: 15 },
   upgradeNowButton: {
-    minWidth: 95,
-
+    minWidth: 94,
     height: 43,
-
     backgroundColor: COLORS.red,
-
-    borderRadius: 12,
-
-    paddingHorizontal: 8,
-
+    borderRadius: 13,
+    paddingHorizontal: 9,
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
   },
-
   upgradeNowText: {
     color: COLORS.white,
-
     fontSize: 11.5,
-
     fontWeight: "900",
-
     marginRight: 2,
   },
 
-  /* WHY HEADER */
-
   whyHeader: {
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
-    marginBottom: 13,
+    marginBottom: 15,
   },
-
-  whyLine: {
-    flex: 1,
-
-    height: 1,
-
-    backgroundColor: COLORS.gold,
-
-    opacity: 0.7,
-  },
-
+  whyLine: { flex: 1, height: 1, backgroundColor: COLORS.gold, opacity: 0.65 },
   whyTitle: {
     color: COLORS.text,
-
     fontSize: width < 400 ? 15 : 17,
-
     fontWeight: "900",
-
-    marginHorizontal: 9,
-
+    marginHorizontal: 10,
     textAlign: "center",
   },
-
-  /* HOW IT WORKS */
 
   stepsRow: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
-    marginBottom: 24,
+    marginBottom: 28,
   },
-
-  stepCard: {
-    width: "23.5%",
-
-    alignItems: "center",
-
-    position: "relative",
-  },
-
+  stepCard: { width: "23.5%", alignItems: "center", position: "relative" },
   stepNumberBadge: {
     position: "absolute",
-
     top: -4,
-
-    right: "18%",
-
-    width: 18,
-    height: 18,
-
-    borderRadius: 9,
-
+    right: "15%",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.darkRed,
-
     justifyContent: "center",
-
     alignItems: "center",
-
     zIndex: 1,
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
-
-  stepNumberText: {
-    color: COLORS.white,
-
-    fontSize: 9,
-
-    fontWeight: "900",
-  },
-
+  stepNumberText: { color: COLORS.white, fontSize: 9, fontWeight: "900" },
   stepIconCircle: {
-    width: 52,
-    height: 52,
-
-    borderRadius: 26,
-
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: "#FFF0EF",
-
     justifyContent: "center",
-
     alignItems: "center",
-
-    marginBottom: 8,
-
+    marginBottom: 9,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F8D9D7",
   },
-
-  stepIconImage: {
-    width: "100%",
-    height: "100%",
-  },
-
+  stepIconImage: { width: "100%", height: "100%" },
   stepTitle: {
     color: COLORS.text,
-
     fontSize: 11.5,
-
     fontWeight: "800",
-
     textAlign: "center",
-
     marginBottom: 3,
   },
-
   stepDescription: {
     color: COLORS.gray,
-
     fontSize: 9.5,
-
     textAlign: "center",
-
     lineHeight: 13,
   },
-
-  stepConnector: {
-    position: "absolute",
-
-    top: 18,
-
-    right: -14,
-  },
-
-  /* WHY GRID */
+  stepConnector: { position: "absolute", top: 19, right: -14 },
 
   whyGrid: {
     flexDirection: "row",
-
     justifyContent: "space-between",
+    marginBottom: 25,
   },
-
   whyCard: {
     width: "23.5%",
-
-    minHeight: 112,
-
+    minHeight: 118,
     backgroundColor: COLORS.white,
-
-    borderRadius: 14,
-
+    borderRadius: 16,
     borderWidth: 1,
-
     borderColor: COLORS.border,
-
     alignItems: "center",
-
     justifyContent: "center",
-
-    paddingVertical: 10,
-
+    paddingVertical: 11,
     shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-
-    shadowRadius: 5,
-
+    shadowRadius: 6,
     elevation: 2,
   },
-
   whyIcon: {
-    width: 48,
-    height: 48,
-
-    borderRadius: 24,
-
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
-
     alignItems: "center",
-
-    marginBottom: 7,
-
+    marginBottom: 8,
     overflow: "hidden",
   },
-
-  whyIconImage: {
-    width: "100%",
-    height: "100%",
-  },
-
+  whyIconImage: { width: "100%", height: "100%" },
   whyCardTitle: {
     color: COLORS.text,
-
     fontSize: 12,
-
     fontWeight: "900",
-
     textAlign: "center",
   },
-
   whyCardSubtitle: {
     color: COLORS.gray,
-
     fontSize: 9.5,
-
     textAlign: "center",
-
     marginTop: 2,
+    paddingHorizontal: 3,
   },
-
-  /* PACKAGE */
 
   packageCard: {
-    width: 215,
-
+    width: 220,
     backgroundColor: COLORS.white,
-
-    borderRadius: 17,
-
+    borderRadius: 18,
     padding: 16,
-
     marginRight: 12,
-
     marginTop: 8,
-
     borderWidth: 1,
-
     borderColor: COLORS.border,
-
     shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.12,
-
-    shadowRadius: 7,
-
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 3,
   },
-
   packageCardRecommended: {
     borderWidth: 2,
-
     borderColor: COLORS.gold,
+    backgroundColor: "#FFFDF6",
   },
-
   packageBadge: {
     position: "absolute",
-
     top: -11,
-
     alignSelf: "center",
-
     backgroundColor: COLORS.darkRed,
-
-    borderRadius: 12,
-
-    paddingHorizontal: 10,
-
-    paddingVertical: 4,
-
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     flexDirection: "row",
-
     alignItems: "center",
-
-    gap: 4,
   },
-
   packageBadgeText: {
     color: COLORS.white,
-
     fontSize: 9,
-
     fontWeight: "800",
+    marginLeft: 4,
   },
-
   packageName: {
     color: COLORS.text,
-
     fontSize: 17,
-
     fontWeight: "900",
-
     marginTop: 6,
-
     marginBottom: 4,
   },
-
   packagePriceRow: {
     flexDirection: "row",
-
     alignItems: "baseline",
-
-    marginBottom: 12,
+    marginBottom: 13,
   },
-
-  packagePrice: {
-    color: COLORS.red,
-
-    fontSize: 22,
-
-    fontWeight: "900",
+  packagePrice: { color: COLORS.red, fontSize: 23, fontWeight: "900" },
+  packageDuration: { color: COLORS.gray, fontSize: 12, marginLeft: 4 },
+  packageFeaturesList: { marginBottom: 14 },
+  packageFeatureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
   },
+  packageFeatureText: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 11.5,
+    lineHeight: 15,
+    marginLeft: 6,
+  },
+  packageCTAButton: {
+    height: 43,
+    backgroundColor: COLORS.red,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  packageCTAText: { color: COLORS.white, fontSize: 13, fontWeight: "800" },
 
-  packageDuration: {
-    color: COLORS.gray,
-
+  storyCard: {
+    width: 265,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    overflow: "hidden",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 7,
+    elevation: 2,
+  },
+  storyImage: { width: "100%", height: 135 },
+  storyContent: { padding: 14 },
+  storyText: {
+    color: COLORS.text,
     fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 11,
+  },
+  storyFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  storyCoupleName: {
+    color: COLORS.darkRed,
+    fontSize: 12.5,
+    fontWeight: "800",
+    flexShrink: 1,
+    marginRight: 6,
+  },
+  storyDateBadge: {
+    backgroundColor: "#FFF0EF",
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  storyDateText: { color: COLORS.red, fontSize: 10, fontWeight: "700" },
 
+  blogCard: {
+    width: 225,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    overflow: "hidden",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 7,
+    elevation: 2,
+  },
+  blogImage: { width: "100%", height: 115 },
+  blogContent: { padding: 13 },
+  blogCategoryTag: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.lightGold,
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 7,
+  },
+  blogCategoryText: { color: COLORS.darkRed, fontSize: 9.5, fontWeight: "800" },
+  blogTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 5,
+    lineHeight: 17,
+  },
+  blogExcerpt: {
+    color: COLORS.gray,
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginBottom: 8,
+  },
+  blogMetaRow: { flexDirection: "row", alignItems: "center" },
+  blogMetaText: {
+    color: COLORS.gray,
+    fontSize: 10,
+    fontWeight: "600",
     marginLeft: 4,
   },
 
-  packageFeaturesList: {
-    marginBottom: 14,
-  },
-
-  packageFeatureRow: {
-    flexDirection: "row",
-
-    alignItems: "flex-start",
-
-    marginBottom: 7,
-
-    gap: 6,
-  },
-
-  packageFeatureText: {
-    flex: 1,
-
-    color: COLORS.text,
-
-    fontSize: 11.5,
-
-    lineHeight: 15,
-  },
-
-  packageCTAButton: {
-    height: 42,
-
-    backgroundColor: COLORS.red,
-
-    borderRadius: 11,
-
-    alignItems: "center",
-
-    justifyContent: "center",
-  },
-
-  packageCTAText: {
-    color: COLORS.white,
-
-    fontSize: 13,
-
-    fontWeight: "800",
-  },
-
-  /* STORY */
-
-  storyCard: {
-    width: 260,
-
-    backgroundColor: COLORS.white,
-
-    borderRadius: 17,
-
-    overflow: "hidden",
-
-    marginRight: 12,
-
-    borderWidth: 1,
-
-    borderColor: COLORS.border,
-
-    shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.1,
-
-    shadowRadius: 6,
-
-    elevation: 2,
-  },
-
-  storyImage: {
-    width: "100%",
-    height: 130,
-  },
-
-  storyContent: {
-    padding: 14,
-  },
-
-  storyText: {
-    color: COLORS.text,
-
-    fontSize: 12,
-
-    lineHeight: 17,
-
-    marginBottom: 10,
-  },
-
-  storyFooterRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "space-between",
-  },
-
-  storyCoupleName: {
-    color: COLORS.darkRed,
-
-    fontSize: 12.5,
-
-    fontWeight: "800",
-
-    flexShrink: 1,
-
-    marginRight: 6,
-  },
-
-  storyDateBadge: {
-    backgroundColor: "#FFF0EF",
-
-    borderRadius: 8,
-
-    paddingHorizontal: 8,
-
-    paddingVertical: 3,
-  },
-
-  storyDateText: {
-    color: COLORS.red,
-
-    fontSize: 10,
-
-    fontWeight: "700",
-  },
-
-  /* BLOG */
-
-  blogCard: {
-    width: 220,
-
-    backgroundColor: COLORS.white,
-
-    borderRadius: 17,
-
-    overflow: "hidden",
-
-    marginRight: 12,
-
-    borderWidth: 1,
-
-    borderColor: COLORS.border,
-
-    shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.1,
-
-    shadowRadius: 6,
-
-    elevation: 2,
-  },
-
-  blogImage: {
-    width: "100%",
-    height: 110,
-  },
-
-  blogContent: {
-    padding: 12,
-  },
-
-  blogCategoryTag: {
-    alignSelf: "flex-start",
-
-    backgroundColor: COLORS.lightGold,
-
-    borderRadius: 8,
-
-    paddingHorizontal: 8,
-
-    paddingVertical: 3,
-
-    marginBottom: 6,
-  },
-
-  blogCategoryText: {
-    color: COLORS.darkRed,
-
-    fontSize: 9.5,
-
-    fontWeight: "800",
-  },
-
-  blogTitle: {
-    color: COLORS.text,
-
-    fontSize: 13,
-
-    fontWeight: "800",
-
-    marginBottom: 5,
-
-    lineHeight: 17,
-  },
-
-  blogExcerpt: {
-    color: COLORS.gray,
-
-    fontSize: 10.5,
-
-    lineHeight: 14,
-
-    marginBottom: 8,
-  },
-
-  blogMetaRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    gap: 4,
-  },
-
-  blogMetaText: {
-    color: COLORS.gray,
-
-    fontSize: 10,
-
-    fontWeight: "600",
-  },
-
-  /* REVIEWS */
-
   reviewCard: {
-    width: 240,
-
+    width: 245,
     backgroundColor: COLORS.white,
-
-    borderRadius: 17,
-
+    borderRadius: 18,
     padding: 18,
-
     marginRight: 12,
-
     borderWidth: 1,
-
     borderColor: COLORS.border,
-
     shadowColor: COLORS.shadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.1,
-
-    shadowRadius: 6,
-
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 7,
     elevation: 2,
   },
-
   reviewHeaderRow: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    marginBottom: 9,
-
-    gap: 10,
+    marginBottom: 10,
   },
-
-  reviewAvatar: {
-    width: 42,
-    height: 42,
-
-    borderRadius: 21,
-  },
-
+  reviewAvatar: { width: 44, height: 44, borderRadius: 22 },
   reviewName: {
     color: COLORS.text,
-
     fontSize: 13,
-
     fontWeight: "800",
-
-    marginBottom: 3,
+    marginBottom: 4,
   },
-
-  starRow: {
-    flexDirection: "row",
-
-    gap: 2,
-  },
-
-  reviewComment: {
-    color: COLORS.gray,
-
-    fontSize: 11.5,
-
-    lineHeight: 16,
-  },
+  starRow: { flexDirection: "row" },
+  reviewComment: { color: COLORS.gray, fontSize: 11.5, lineHeight: 16 },
 });

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   Modal,
   Pressable,
@@ -14,8 +15,7 @@ import {
   View,
 } from "react-native";
 
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LinearGradient from "react-native-linear-gradient";
@@ -342,6 +342,40 @@ export default function SearchScreen() {
   const [searchApiError, setSearchApiError] = useState("");
 
   /* ============================================================
+     BACK
+  ============================================================ */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* ============================================================
+     ANDROID HARDWARE BACK
+     Mirrors the pattern used on ChatsScreen / ProfileDetailsScreen:
+     intercept the hardware back button and route it through the
+     same handleBack() the header's back arrow uses.
+  ============================================================ */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack]);
+
+  /* ============================================================
      OPTIONS
   ============================================================ */
 
@@ -553,6 +587,8 @@ export default function SearchScreen() {
 
   /* ============================================================
      FILTER BOX
+     NOTE: now a single Feather icon set, so the old "material"
+     switch prop is no longer needed.
   ============================================================ */
 
   const FilterBox = ({
@@ -560,7 +596,6 @@ export default function SearchScreen() {
     title,
     value,
     icon,
-    material = false,
     color = COLORS.orange,
     fullWidth = false,
   }) => {
@@ -579,11 +614,7 @@ export default function SearchScreen() {
               },
             ]}
           >
-            {material ? (
-              <MaterialCommunityIcons name={icon} size={15} color={color} />
-            ) : (
-              <Ionicons name={icon} size={15} color={color} />
-            )}
+            <Feather name={icon} size={15} color={color} />
           </View>
 
           <View style={styles.filterTextContainer}>
@@ -597,7 +628,7 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <Ionicons name="chevron-down" size={14} color="#5D5652" />
+        <Feather name="chevron-down" size={14} color="#5D5652" />
       </TouchableOpacity>
     );
   };
@@ -622,9 +653,9 @@ export default function SearchScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={handleBack}
           >
-            <Ionicons name="arrow-back" size={22} color="#B5120D" />
+            <Feather name="arrow-left" size={22} color="#B5120D" />
           </TouchableOpacity>
 
           <View style={styles.logoWrapper}>
@@ -670,7 +701,7 @@ export default function SearchScreen() {
               field="lookingFor"
               title="Looking For"
               value={filters.lookingFor}
-              icon="person-outline"
+              icon="user"
               color={COLORS.orange}
             />
 
@@ -678,7 +709,7 @@ export default function SearchScreen() {
               field="gender"
               title="Gender"
               value={filters.gender}
-              icon="person"
+              icon="user"
               color={COLORS.red}
             />
 
@@ -694,7 +725,7 @@ export default function SearchScreen() {
               field="height"
               title="Height"
               value={filters.height}
-              icon="resize-outline"
+              icon="maximize-2"
               color={COLORS.orange}
             />
 
@@ -702,7 +733,7 @@ export default function SearchScreen() {
               field="maritalStatus"
               title="Marital Status"
               value={filters.maritalStatus}
-              icon="people-outline"
+              icon="users"
               color={COLORS.orange}
             />
 
@@ -710,8 +741,7 @@ export default function SearchScreen() {
               field="religion"
               title="Religion"
               value={filters.religion}
-              icon="om"
-              material
+              icon="sun"
               color={COLORS.red}
             />
 
@@ -719,7 +749,7 @@ export default function SearchScreen() {
               field="motherTongue"
               title="Mother Tongue"
               value={filters.motherTongue}
-              icon="language-outline"
+              icon="message-square"
               color={COLORS.red}
             />
 
@@ -727,7 +757,7 @@ export default function SearchScreen() {
               field="caste"
               title="Caste"
               value={filters.caste}
-              icon="people"
+              icon="users"
               color={COLORS.orange}
             />
 
@@ -735,7 +765,7 @@ export default function SearchScreen() {
               field="education"
               title="Education"
               value={filters.education}
-              icon="school"
+              icon="book-open"
               color={COLORS.orange}
             />
 
@@ -751,8 +781,7 @@ export default function SearchScreen() {
               field="income"
               title="Annual Income"
               value={filters.income}
-              icon="currency-inr"
-              material
+              icon="dollar-sign"
               color={COLORS.red}
             />
 
@@ -760,7 +789,7 @@ export default function SearchScreen() {
               field="country"
               title="Country Living In"
               value={filters.country}
-              icon="globe-outline"
+              icon="globe"
               color={COLORS.orange}
             />
           </View>
@@ -771,7 +800,7 @@ export default function SearchScreen() {
             field="location"
             title="Location"
             value={filters.location}
-            icon="location"
+            icon="map-pin"
             color={COLORS.red}
             fullWidth
           />
@@ -784,7 +813,7 @@ export default function SearchScreen() {
               style={styles.resetButton}
               onPress={resetAll}
             >
-              <Ionicons name="refresh" size={15} color="#B5120D" />
+              <Feather name="refresh-cw" size={15} color="#B5120D" />
 
               <Text style={styles.resetText}>Reset All</Text>
             </TouchableOpacity>
@@ -813,7 +842,7 @@ export default function SearchScreen() {
                 {searching ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="search-outline" size={16} color="#FFFFFF" />
+                  <Feather name="search" size={16} color="#FFFFFF" />
                 )}
 
                 <Text style={styles.viewMatchesText}>
@@ -825,7 +854,7 @@ export default function SearchScreen() {
 
           {!!searchApiError && (
             <View style={styles.searchErrorBanner}>
-              <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+              <Feather name="alert-circle" size={16} color="#B42318" />
 
               <Text style={styles.searchErrorText}>{searchApiError}</Text>
             </View>
@@ -861,8 +890,8 @@ export default function SearchScreen() {
                     })
                   }
                 >
-                  <Ionicons
-                    name="time-outline"
+                  <Feather
+                    name="clock"
                     size={15}
                     color="#625B56"
                     style={styles.chipClock}
@@ -885,7 +914,7 @@ export default function SearchScreen() {
                       removeRecentSearch(item);
                     }}
                   >
-                    <Ionicons name="close" size={15} color="#756D68" />
+                    <Feather name="x" size={15} color="#756D68" />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -917,7 +946,7 @@ export default function SearchScreen() {
               <Text style={styles.modalTitle}>Select Option</Text>
 
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={27} color="#333" />
+                <Feather name="x" size={27} color="#333" />
               </TouchableOpacity>
             </View>
 
@@ -942,8 +971,8 @@ export default function SearchScreen() {
                     </Text>
 
                     {filters[activeField] === option && (
-                      <Ionicons
-                        name="checkmark-circle"
+                      <Feather
+                        name="check-circle"
                         size={23}
                         color={COLORS.red}
                       />

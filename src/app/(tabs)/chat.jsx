@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -261,9 +262,36 @@ export default function ChatsScreen() {
      BACK
   ======================================================= */
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Mirrors the same pattern used on OtpScreen: intercept the
+     hardware back button and route it through the same
+     handleBack() the header's back arrow uses, so both paths
+     stay in sync.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack]);
 
   /* =======================================================
      OPEN CHAT
@@ -680,113 +708,128 @@ function EmptyState({ errorMessage, onRetry }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    justifyContent: "flex-start",
     backgroundColor: COLORS.background,
   },
 
-  /* ================= HEADER ================= */
-
   header: {
-    height: 48,
+    height: 58,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
 
   backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF7F2",
   },
 
   headerTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.darkRed,
   },
 
   headerRightSpace: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
   },
 
-  /* ================= TITLE ================= */
-
   titleBlock: {
-    paddingHorizontal: SPACING.md,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 22,
+    paddingBottom: 15,
   },
 
   screenTitle: {
     fontSize: width <= 430 ? 30 : 34,
-    fontWeight: "800",
+    fontWeight: "900",
     color: COLORS.darkRed,
+    letterSpacing: -0.5,
   },
 
   screenSubtitle: {
     fontSize: 13,
     color: COLORS.gray,
-    marginTop: SPACING.xs,
+    marginTop: 5,
+    lineHeight: 19,
   },
 
-  /* ================= SEARCH ================= */
-
   searchBar: {
+    height: 54,
+    marginHorizontal: SPACING.lg,
+    marginBottom: 14,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
     borderRadius: 16,
-    paddingHorizontal: SPACING.md,
-    height: 54,
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   searchInput: {
     flex: 1,
+    marginLeft: 10,
     fontSize: 14,
     color: COLORS.text,
+    paddingVertical: 0,
   },
 
   filterIconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: COLORS.gold,
-    justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.goldLight,
   },
 
-  /* ================= FILTERS ================= */
+  filtersList: {
+    height: 55,
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: 7,
+  },
 
   filterRow: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    gap: 8,
     alignItems: "center",
   },
 
   filterChip: {
+    height: 42,
+    paddingHorizontal: 14,
+    borderRadius: 13,
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    paddingHorizontal: SPACING.md,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    gap: 6,
     backgroundColor: COLORS.white,
-    gap: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   filterChipActive: {
     backgroundColor: COLORS.red,
     borderColor: COLORS.red,
+    shadowColor: COLORS.red,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   filterDot: {
@@ -796,33 +839,23 @@ const styles = StyleSheet.create({
   },
 
   filterChipText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "700",
     color: COLORS.text,
   },
 
   filterChipTextActive: {
-    color: "#FFFFFF",
+    color: COLORS.white,
   },
-
-  filtersList: {
-    height: 56,
-    flexGrow: 0,
-    flexShrink: 0,
-    marginBottom: SPACING.xs,
-  },
-
-  /* ================= CHAT LIST ================= */
 
   chatFlatList: {
     flex: 1,
-    alignSelf: "stretch",
   },
 
   chatList: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: 0,
-    paddingBottom: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 3,
+    paddingBottom: 26,
   },
 
   chatListEmpty: {
@@ -830,40 +863,34 @@ const styles = StyleSheet.create({
   },
 
   chatRow: {
+    minHeight: 82,
+    padding: 10,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    padding: SPACING.sm,
-    marginBottom: SPACING.sm,
-
     shadowColor: COLORS.cardShadow,
-
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 9,
     elevation: 2,
   },
 
-  /* ================= AVATAR ================= */
-
   avatarWrapper: {
     position: "relative",
-    marginRight: SPACING.md,
+    marginRight: 13,
   },
 
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#F2ECE6",
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#F3ECE5",
+    borderWidth: 2,
+    borderColor: "#FFF5EC",
   },
 
   avatarFallback: {
@@ -872,27 +899,26 @@ const styles = StyleSheet.create({
   },
 
   avatarFallbackText: {
-    color: "#FFFFFF",
+    color: COLORS.white,
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   statusDot: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 13,
-    height: 13,
+    right: 1,
+    bottom: 1,
+    width: 14,
+    height: 14,
     borderRadius: 7,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: COLORS.white,
   },
-
-  /* ================= CONTENT ================= */
 
   chatContent: {
     flex: 1,
     minWidth: 0,
+    paddingVertical: 2,
   },
 
   chatTopRow: {
@@ -902,31 +928,32 @@ const styles = StyleSheet.create({
   },
 
   chatNameRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    flexShrink: 1,
+    minWidth: 0,
   },
 
   chatName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.darkRed,
     flexShrink: 1,
+    fontSize: 16,
+    fontWeight: "850",
+    color: COLORS.darkRed,
   },
 
   chatTime: {
-    fontSize: 11.5,
+    marginLeft: 8,
+    fontSize: 10.5,
     color: COLORS.mutedGray,
-    marginLeft: SPACING.sm,
   },
 
   chatProfession: {
-    fontSize: 12.5,
-    color: COLORS.gray,
+    marginTop: 3,
+    marginBottom: 6,
+    fontSize: 12,
     fontWeight: "600",
-    marginTop: 2,
-    marginBottom: 4,
+    color: COLORS.gray,
   },
 
   chatBottomRow: {
@@ -936,34 +963,32 @@ const styles = StyleSheet.create({
   },
 
   chatLastMessage: {
-    fontSize: 13,
-    color: COLORS.mutedGray,
     flex: 1,
-    marginRight: SPACING.sm,
+    marginRight: 8,
+    fontSize: 12.5,
+    color: COLORS.mutedGray,
   },
 
   chatLastMessageUnread: {
     color: COLORS.text,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   unreadBadge: {
     minWidth: 22,
     height: 22,
-    borderRadius: 11,
-    backgroundColor: COLORS.badgeRed,
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 5,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.badgeRed,
   },
 
   unreadBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
+    color: COLORS.white,
+    fontSize: 10.5,
+    fontWeight: "800",
   },
-
-  /* ================= LOADING ================= */
 
   loadingState: {
     flex: 1,
@@ -972,85 +997,77 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 10,
-    fontSize: 12,
+    marginTop: 11,
+    fontSize: 13,
     color: COLORS.mutedGray,
   },
 
-  /* ================= EMPTY ================= */
-
   emptyState: {
     flex: 1,
+    minHeight: 330,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
   },
 
   emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.goldLight,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    backgroundColor: COLORS.goldLight,
+    borderWidth: 1,
+    borderColor: "#F7DFA8",
+    marginBottom: 16,
   },
 
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    marginBottom: 7,
+    fontSize: 19,
+    fontWeight: "900",
     color: COLORS.darkRed,
     textAlign: "center",
-    marginBottom: 6,
   },
 
   emptySubtitle: {
-    fontSize: 12,
-    lineHeight: 18,
+    maxWidth: 300,
+    fontSize: 12.5,
+    lineHeight: 19,
     color: COLORS.mutedGray,
     textAlign: "center",
-    maxWidth: 290,
   },
 
   retryButton: {
+    height: 42,
+    marginTop: 17,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 7,
     backgroundColor: COLORS.red,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 16,
   },
 
   retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
+    color: COLORS.white,
+    fontSize: 12.5,
+    fontWeight: "800",
   },
 
-  /* ================= PREMIUM ================= */
-
   premiumCard: {
-    minHeight: 90,
-    borderRadius: 18,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    minHeight: 96,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: SPACING.sm,
-
     shadowColor: COLORS.darkRed,
-
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
     shadowRadius: 10,
-
     elevation: 4,
   },
 
@@ -1058,45 +1075,47 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    justifyContent: "center",
     alignItems: "center",
-    marginRight: SPACING.md,
+    justifyContent: "center",
+    marginRight: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
   },
 
   premiumContent: {
     flex: 1,
-    paddingRight: SPACING.xs,
+    paddingRight: 5,
   },
 
   premiumTitle: {
+    marginBottom: 4,
     color: COLORS.goldLight,
-    fontSize: width <= 430 ? 13.5 : 15,
-    fontWeight: "800",
-    marginBottom: 3,
+    fontSize: width <= 430 ? 13 : 14.5,
+    fontWeight: "900",
   },
 
   premiumSubtitle: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: width <= 430 ? 10.5 : 12,
+    fontSize: width <= 430 ? 10.5 : 11.5,
     lineHeight: 15,
   },
 
   premiumUpgradeButton: {
     height: 40,
-    backgroundColor: COLORS.goldDeep,
+    paddingHorizontal: 12,
+    marginLeft: 7,
     borderRadius: 12,
-    paddingHorizontal: SPACING.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    marginLeft: SPACING.sm,
+    backgroundColor: COLORS.goldDeep,
+    gap: 3,
   },
 
   premiumUpgradeText: {
     color: COLORS.darkRed,
-    fontWeight: "800",
-    fontSize: width <= 430 ? 11.5 : 13,
+    fontSize: width <= 430 ? 10.5 : 12,
+    fontWeight: "900",
   },
 });

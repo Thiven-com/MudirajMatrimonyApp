@@ -1,58 +1,139 @@
+import { useCallback, useEffect } from "react";
+
 import {
-    Alert,
-    Dimensions,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  BackHandler,
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import {
-    FontAwesome5,
-    Ionicons,
-    MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import LinearGradient from "react-native-linear-gradient";
+
+import { useNavigation } from "@react-navigation/native";
+
+/* =========================================================
+   DIMENSIONS
+========================================================= */
 
 const { width } = Dimensions.get("window");
 
+/* =========================================================
+   SPACING
+========================================================= */
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+};
+
+/* =========================================================
+   COLORS
+========================================================= */
+
 const COLORS = {
-  background: "#FAF8F5",
+  background: "#FFFDFC",
   white: "#FFFFFF",
-  red: "#ee3e3b",
-  darkRed: "#a01e19",
-  gold: "#F5A400",
-  goldLight: "#FFF2CF",
+
+  red: "#C91412",
+  darkRed: "#A30F0D",
+
+  gold: "#F5B400",
+  goldLight: "#FFF4D0",
+
   text: "#292321",
   gray: "#625B57",
-  border: "#E9DED6",
-  green: "#168A4A",
+
+  border: "#F0E5DC",
+
+  green: "#12A150",
+
+  cardShadow: "#9B8D82",
 };
+
+/* =========================================================
+   ASSETS
+   NOTE: adjust these relative paths to match where this
+   screen lives in your project structure.
+========================================================= */
 
 const PROFILE_IMAGE = require("../../../assets/images/Match1.png");
 const LOGO = require("../../../assets/images/logo.png");
 
-export default function ProfileDetailsScreen() {
-  const router = useRouter();
+/* =========================================================
+   PROFILE DETAILS SCREEN
+========================================================= */
 
-  const handleBack = () => {
-    router.back();
-  };
+export default function ProfileDetailsScreen() {
+  const navigation = useNavigation();
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Mirrors the pattern used on ChatsScreen: intercept the
+     hardware back button and route it through the same
+     handleBack() the header's back arrow uses.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack]);
+
+  /* =======================================================
+     ACTIONS
+  ======================================================= */
 
   const handleMessage = () => {
     Alert.alert("Message", "Opening chat...");
-    // Change this route according to your project
-    // router.push("/chat");
+
+    // Adjust this route/params to match your navigator
+    // navigation.navigate("ChatConversion", { ... });
   };
 
   const handleShortlist = () => {
     Alert.alert("Shortlist", "Profile added to shortlist");
   };
+
+  const handleUpgrade = () => {
+    navigation.navigate("SubscriptionPlans");
+  };
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -67,8 +148,9 @@ export default function ProfileDetailsScreen() {
           style={styles.backButton}
           onPress={handleBack}
           activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={30} color={COLORS.red} />
+          <Feather name="arrow-left" size={30} color={COLORS.red} />
         </TouchableOpacity>
 
         {/* ================= PROFILE CARD ================= */}
@@ -91,7 +173,7 @@ export default function ProfileDetailsScreen() {
               {/* PHOTO COUNT */}
 
               <View style={styles.photoCount}>
-                <Ionicons name="image-outline" size={17} color="#253B85" />
+                <Feather name="image" size={17} color="#253B85" />
 
                 <Text style={styles.photoCountText}>5</Text>
               </View>
@@ -109,8 +191,8 @@ export default function ProfileDetailsScreen() {
                       Priyanka, 25
                     </Text>
 
-                    <Ionicons
-                      name="checkmark-circle"
+                    <Feather
+                      name="check-circle"
                       size={22}
                       color={COLORS.green}
                       style={styles.verifiedIcon}
@@ -125,38 +207,18 @@ export default function ProfileDetailsScreen() {
 
               {/* DETAILS */}
 
-              <DetailRow
-                icon="location-outline"
-                text="Hyderabad, Telangana"
-                type="ion"
-              />
+              <DetailRow icon="map-pin" text="Hyderabad, Telangana" />
 
-              <DetailRow
-                icon="school-outline"
-                text="B.Tech, Computer Science"
-                type="ion"
-              />
+              <DetailRow icon="book-open" text="B.Tech, Computer Science" />
 
-              <DetailRow
-                icon="human-male-height"
-                text={`5'4"`}
-                type="material"
-              />
+              <DetailRow icon="maximize-2" text={`5'4"`} />
 
-              <DetailRow
-                icon="account-group-outline"
-                text="Hindu - Mudhiraj"
-                type="material"
-              />
+              <DetailRow icon="users" text="Hindu - Mudhiraj" />
 
               {/* VERIFIED */}
 
               <View style={styles.verifiedBox}>
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={23}
-                  color={COLORS.red}
-                />
+                <Feather name="shield" size={23} color={COLORS.red} />
 
                 <Text style={styles.verifiedText}>100% Verified Profile</Text>
               </View>
@@ -171,7 +233,7 @@ export default function ProfileDetailsScreen() {
               onPress={handleShortlist}
               activeOpacity={0.8}
             >
-              <Ionicons name="heart-outline" size={25} color="#E21B16" />
+              <Feather name="heart" size={25} color="#E21B16" />
 
               <Text style={styles.shortlistText}>Add to Shortlist</Text>
             </TouchableOpacity>
@@ -187,11 +249,7 @@ export default function ProfileDetailsScreen() {
                 end={{ x: 1, y: 0.5 }}
                 style={styles.messageGradient}
               >
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={25}
-                  color="#FFFFFF"
-                />
+                <Feather name="message-circle" size={25} color="#FFFFFF" />
 
                 <Text style={styles.messageText}>Message</Text>
               </LinearGradient>
@@ -202,15 +260,15 @@ export default function ProfileDetailsScreen() {
         {/* ================= ACTION MENU ================= */}
 
         <View style={styles.actionCard}>
-          <ActionItem icon="person" title="View Contact" active crown />
+          <ActionItem icon="user" title="View Contact" active crown />
 
-          <ActionItem icon="star-outline" title="Send Interest" />
+          <ActionItem icon="star" title="Send Interest" />
 
-          <ActionItem icon="notifications-outline" title="Remind" />
+          <ActionItem icon="bell" title="Remind" />
 
-          <ActionItem icon="share-social-outline" title="Share Profile" />
+          <ActionItem icon="share-2" title="Share Profile" />
 
-          <ActionItem icon="ban-outline" title="Block/Report" />
+          <ActionItem icon="slash" title="Block/Report" />
         </View>
 
         {/* ================= PREMIUM ================= */}
@@ -222,7 +280,7 @@ export default function ProfileDetailsScreen() {
           style={styles.premiumCard}
         >
           <View style={styles.crownCircle}>
-            <FontAwesome5 name="crown" size={34} color="#FFD84E" />
+            <Feather name="award" size={34} color="#FFD84E" />
           </View>
 
           <View style={styles.premiumContent}>
@@ -239,11 +297,11 @@ export default function ProfileDetailsScreen() {
           <TouchableOpacity
             style={styles.upgradeButton}
             activeOpacity={0.8}
-            onPress={() => Alert.alert("Premium", "Premium plans coming soon")}
+            onPress={handleUpgrade}
           >
             <Text style={styles.upgradeText}>Upgrade Now</Text>
 
-            <Ionicons name="chevron-forward" size={20} color={COLORS.red} />
+            <Feather name="chevron-right" size={20} color={COLORS.red} />
           </TouchableOpacity>
         </LinearGradient>
 
@@ -260,15 +318,19 @@ export default function ProfileDetailsScreen() {
                 value="15 May 1999"
               />
 
-              <InfoItem icon="ruler" title="Height" value={`5'4"`} />
+              <InfoItem icon="maximize-2" title="Height" value={`5'4"`} />
 
               <InfoItem
-                icon="ring"
+                icon="circle"
                 title="Marital Status"
                 value="Never Married"
               />
 
-              <InfoItem icon="translate" title="Mother Tongue" value="Telugu" />
+              <InfoItem
+                icon="message-square"
+                title="Mother Tongue"
+                value="Telugu"
+              />
 
               <InfoItem
                 icon="briefcase"
@@ -277,7 +339,7 @@ export default function ProfileDetailsScreen() {
               />
 
               <InfoItem
-                icon="currency-inr"
+                icon="dollar-sign"
                 title="Annual Income"
                 value="₹ 8 - 10 LPA"
               />
@@ -286,29 +348,29 @@ export default function ProfileDetailsScreen() {
             {/* RIGHT */}
 
             <View style={styles.infoColumn}>
-              <InfoItem icon="om" title="Religion" value="Hindu" />
+              <InfoItem icon="sun" title="Religion" value="Hindu" />
 
-              <InfoItem icon="account-group" title="Caste" value="Mudhiraj" />
+              <InfoItem icon="users" title="Caste" value="Mudhiraj" />
 
               <InfoItem
-                icon="account-group-outline"
+                icon="user-check"
                 title="Sub Caste"
                 value="Godari (Gouda)"
               />
 
               <InfoItem
-                icon="school"
+                icon="book-open"
                 title="Education"
                 value="B.Tech, Computer Science"
               />
 
               <InfoItem
-                icon="office-building"
+                icon="grid"
                 title="Company"
                 value="Infosys, Hyderabad"
               />
 
-              <InfoItem icon="earth" title="Country Living In" value="India" />
+              <InfoItem icon="globe" title="Country Living In" value="India" />
             </View>
           </View>
         </InfoSection>
@@ -318,24 +380,24 @@ export default function ProfileDetailsScreen() {
         <InfoSection title="Partner Preferences">
           <View style={styles.preferenceGrid}>
             <View style={styles.preferenceColumn}>
-              <InfoItem
-                icon="account-outline"
-                title="Age"
-                value="23 - 30 Years"
-              />
+              <InfoItem icon="user" title="Age" value="23 - 30 Years" />
 
-              <InfoItem icon="ruler" title="Height" value={`5'3" - 6'0"`} />
+              <InfoItem
+                icon="maximize-2"
+                title="Height"
+                value={`5'3" - 6'0"`}
+              />
             </View>
 
             <View style={styles.preferenceColumn}>
               <InfoItem
-                icon="school"
+                icon="book-open"
                 title="Education"
                 value="Any Graduate and above"
               />
 
               <InfoItem
-                icon="map-marker"
+                icon="map-pin"
                 title="Location"
                 value="Telangana / Hyderabad"
               />
@@ -355,14 +417,10 @@ export default function ProfileDetailsScreen() {
 /* ================= DETAIL ROW ==================== */
 /* ================================================= */
 
-function DetailRow({ icon, text, type }) {
+function DetailRow({ icon, text }) {
   return (
     <View style={styles.detailRow}>
-      {type === "material" ? (
-        <MaterialCommunityIcons name={icon} size={18} color={COLORS.red} />
-      ) : (
-        <Ionicons name={icon} size={18} color={COLORS.red} />
-      )}
+      <Feather name={icon} size={18} color={COLORS.red} />
 
       <Text style={styles.detailText} numberOfLines={2}>
         {text}
@@ -383,7 +441,7 @@ function ActionItem({ icon, title, active = false, crown = false }) {
       onPress={() => Alert.alert(title, `${title} selected`)}
     >
       <View style={styles.actionIconWrapper}>
-        <Ionicons
+        <Feather
           name={icon}
           size={27}
           color={active ? COLORS.red : "#B56B00"}
@@ -391,7 +449,7 @@ function ActionItem({ icon, title, active = false, crown = false }) {
 
         {crown && (
           <View style={styles.smallCrown}>
-            <FontAwesome5 name="crown" size={11} color="#A76A00" />
+            <Feather name="award" size={11} color="#A76A00" />
           </View>
         )}
       </View>
@@ -418,9 +476,9 @@ function InfoSection({ title, children }) {
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
 
-        <MaterialCommunityIcons
-          name="ornament"
-          size={20}
+        <Feather
+          name="circle"
+          size={10}
           color={COLORS.gold}
           style={styles.ornament}
         />
@@ -441,7 +499,7 @@ function InfoItem({ icon, title, value }) {
   return (
     <View style={styles.infoItem}>
       <View style={styles.infoIconCircle}>
-        <MaterialCommunityIcons name={icon} size={22} color={COLORS.red} />
+        <Feather name={icon} size={22} color={COLORS.red} />
       </View>
 
       <View style={styles.infoTextContainer}>
@@ -471,9 +529,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 92,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 6,
+    paddingBottom: 100,
   },
 
   /* ================= BACK ================= */
@@ -494,22 +552,22 @@ const styles = StyleSheet.create({
   profileCard: {
     backgroundColor: COLORS.white,
 
-    borderRadius: 20,
+    borderRadius: 22,
 
     borderWidth: 1,
-    borderColor: "#E9C76E",
+    borderColor: "#EAD9C8",
 
     padding: 10,
 
-    shadowColor: "#9B8D82",
+    shadowColor: COLORS.cardShadow,
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
 
-    elevation: 4,
+    elevation: 5,
   },
 
   profileTop: {
@@ -545,12 +603,12 @@ const styles = StyleSheet.create({
     top: 8,
     left: 8,
 
-    backgroundColor: "#149852",
+    backgroundColor: COLORS.green,
 
     paddingHorizontal: 8,
     paddingVertical: 5,
 
-    borderRadius: 15,
+    borderRadius: 16,
 
     flexDirection: "row",
     alignItems: "center",
@@ -562,13 +620,13 @@ const styles = StyleSheet.create({
 
     borderRadius: 3,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.white,
 
     marginRight: 5,
   },
 
   onlineText: {
-    color: "#FFFFFF",
+    color: COLORS.white,
 
     fontSize: 11,
     fontWeight: "700",
@@ -583,7 +641,7 @@ const styles = StyleSheet.create({
     minWidth: 50,
     height: 34,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.white,
 
     borderRadius: 9,
 
@@ -687,7 +745,7 @@ const styles = StyleSheet.create({
   verifiedBox: {
     minHeight: 40,
 
-    backgroundColor: "#FFF0EB",
+    backgroundColor: "#FFF7F3",
 
     borderRadius: 10,
 
@@ -726,12 +784,12 @@ const styles = StyleSheet.create({
 
     height: 56,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.white,
 
     borderWidth: 1,
     borderColor: "#E5CFC3",
 
-    borderRadius: 15,
+    borderRadius: 16,
 
     flexDirection: "row",
 
@@ -777,7 +835,7 @@ const styles = StyleSheet.create({
   },
 
   messageText: {
-    color: "#FFFFFF",
+    color: COLORS.white,
 
     fontSize: width <= 430 ? 14 : 16,
 
@@ -791,15 +849,17 @@ const styles = StyleSheet.create({
 
     backgroundColor: COLORS.white,
 
-    borderRadius: 20,
+    borderRadius: 22,
 
-    minHeight: 110,
+    minHeight: 112,
 
     flexDirection: "row",
 
     alignItems: "center",
 
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#F0E5DC",
 
     shadowColor: "#B7A79C",
     shadowOpacity: 0.09,
@@ -908,7 +968,7 @@ const styles = StyleSheet.create({
   },
 
   premiumTitle: {
-    color: "#FFFFFF",
+    color: COLORS.white,
 
     fontSize: width <= 430 ? 14 : 17,
 
@@ -918,7 +978,7 @@ const styles = StyleSheet.create({
   },
 
   premiumSubtitle: {
-    color: "#FFFFFF",
+    color: COLORS.white,
 
     fontSize: width <= 430 ? 10 : 12,
 
@@ -928,7 +988,7 @@ const styles = StyleSheet.create({
   upgradeButton: {
     height: 52,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.white,
 
     borderRadius: 14,
 
@@ -959,11 +1019,11 @@ const styles = StyleSheet.create({
 
     marginTop: 16,
 
-    borderRadius: 20,
+    borderRadius: 22,
 
-    paddingHorizontal: 14,
-    paddingTop: 17,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 12,
 
     shadowColor: "#B8AAA0",
     shadowOpacity: 0.07,
@@ -1033,7 +1093,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 22,
 
-    backgroundColor: "#FFF5F1",
+    backgroundColor: "#FFF7F3",
 
     justifyContent: "center",
     alignItems: "center",
