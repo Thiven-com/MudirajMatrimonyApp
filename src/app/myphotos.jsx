@@ -1,675 +1,739 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import { Fonts } from "../constants/Fonts";
 
-const LOGO = require("../../assets/images/logo.png");
-// Swap each of these for the user's actual uploaded photos, e.g. { uri: photo.url }
-const PHOTO_PLACEHOLDER = require("../../assets/images/Match7.png");
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const MAX_PHOTOS = 12;
-
-const INITIAL_PHOTOS = [
-  { id: "1", isPrimary: true },
-  { id: "2", isPrimary: false },
-  { id: "3", isPrimary: false },
-  { id: "4", isPrimary: false },
-  { id: "5", isPrimary: false },
-  { id: "6", isPrimary: false },
+const PHOTO_GUIDELINES = [
+  "Use a clear, recent photo",
+  "Your face should be clearly visible",
+  "Good lighting and background",
+  "JPG, JPEG or PNG format",
+  "Maximum file size 5MB",
+  "No filters or heavily edited photos",
 ];
 
-const GUIDELINES = [
-  {
-    icon: "person-outline",
-    iconBg: "#FDE3E3",
-    label: "Use clear and\nrecent photos",
-  },
-  {
-    icon: "sunny-outline",
-    iconBg: "#FDF0D0",
-    label: "Good lighting\nworks best",
-  },
-  {
-    icon: "person-outline",
-    iconBg: "#DCF3E3",
-    label: "Show your\nface clearly",
-  },
-  { icon: "people-outline", iconBg: "#DCEAFB", label: "No group\nphotos" },
-];
+const ADDITIONAL_PHOTO_SLOTS = 4;
 
-export default function MyPhotosScreen() {
+export default function PhotosScreen() {
   const router = useRouter();
-  const [photos, setPhotos] = useState(INITIAL_PHOTOS);
 
-  const emptySlots = Math.max(0, MAX_PHOTOS - photos.length);
+  const [profilePhoto, setProfilePhoto] = useState(null);
 
-  const removePhoto = (id) => {
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  const [additionalPhotos, setAdditionalPhotos] = useState(
+    Array(ADDITIONAL_PHOTO_SLOTS).fill(null),
+  );
+
+  const [saving, setSaving] = useState(false);
+
+  const pickImage = async (onPicked) => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Needed",
+        "Please allow photo library access to add photos.",
+      );
+
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.length) {
+      onPicked(result.assets[0].uri);
+    }
   };
 
-  const makePrimary = (id) => {
-    setPhotos((prev) => prev.map((p) => ({ ...p, isPrimary: p.id === id })));
+  const handlePickProfilePhoto = () => {
+    pickImage((uri) => setProfilePhoto(uri));
   };
 
-  const addPhoto = () => {
-    // TODO: hook up image picker
+  const handleRemoveProfilePhoto = () => {
+    setProfilePhoto(null);
+  };
+
+  const handlePickAdditionalPhoto = (index) => {
+    pickImage((uri) => {
+      setAdditionalPhotos((prev) => {
+        const next = [...prev];
+        next[index] = uri;
+        return next;
+      });
+    });
+  };
+
+  const handleRemoveAdditionalPhoto = (index) => {
+    setAdditionalPhotos((prev) => {
+      const next = [...prev];
+      next[index] = null;
+      return next;
+    });
+  };
+
+  const handleSaveAndContinue = async () => {
+    if (saving) return;
+
+    if (!profilePhoto) {
+      Alert.alert(
+        "Profile Photo Required",
+        "Please add a profile photo before continuing.",
+      );
+
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      console.log("Saving photos...", {
+        profilePhoto,
+        additionalPhotos,
+      });
+
+      // TODO: replace with your actual upload/save call, e.g.
+      // await updateMemberPhotos(accessToken, { profilePhoto, additionalPhotos });
+
+      router.push("/profile");
+    } catch (error) {
+      console.error("SAVE PHOTOS ERROR:", error);
+
+      Alert.alert(
+        "Error",
+        error?.message || "Something went wrong while saving your photos.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
-      <StatusBar barStyle="light-content" />
-
-      {/* ================= HEADER ================= */}
-      <View style={styles.headerWrapper}>
-        <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            activeOpacity={0.75}
-          >
-            <View style={styles.backButtonCircle}>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={Colors.primaryRed}
-              />
-            </View>
-          </TouchableOpacity>
-
-          <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
-
-          <View style={styles.headerTitleBlock}>
-            <Text style={styles.headerTitle}>MUDHIRAJ WORLD</Text>
-            <View style={styles.headerSubtitleRow}>
-              <Text style={styles.headerSubtitle}>M A T R I M O N Y</Text>
-            </View>
-            <Text style={styles.headerTagline}>Our Community, Our Pride</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.helpButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            activeOpacity={0.75}
-          >
-            <Ionicons
-              name="help-circle-outline"
-              size={22}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
-        </LinearGradient>
-
-        <Svg
-          width={SCREEN_WIDTH}
-          height={24}
-          viewBox={`0 0 ${SCREEN_WIDTH} 24`}
-          style={styles.headerWave}
-        >
-          <Path
-            d={`M0,4 Q${SCREEN_WIDTH * 0.25},22 ${SCREEN_WIDTH * 0.5},10 Q${SCREEN_WIDTH * 0.75},-2 ${SCREEN_WIDTH},14`}
-            stroke={Colors.goldLight}
-            strokeWidth={5}
-            fill="none"
-            strokeLinecap="round"
-          />
-        </Svg>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* ================= PAGE TITLE ================= */}
-        <View style={styles.titleRow}>
-          <View style={styles.titleTextBlock}>
-            <Text style={styles.titleText}>My Photos</Text>
-            <Text style={styles.subtitleText}>
-              Add clear and recent photos to get better{"\n"}responses and more
-              matches.
-            </Text>
-          </View>
+        {/* TOP BAR */}
 
+        <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.addPhotosButton}
-            activeOpacity={0.85}
-            onPress={addPhoto}
+            onPress={() => router.back()}
+            style={styles.backButton}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name="camera"
-              size={16}
-              color={Colors.white}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.addPhotosButtonText}>Add Photos</Text>
+            <Ionicons name="arrow-back" size={21} color={Colors.textPrimary} />
           </TouchableOpacity>
-        </View>
 
-        {/* ================= TIP BANNER ================= */}
-        <View style={styles.tipBanner}>
-          <Ionicons name="bulb-outline" size={18} color="#E08A1E" />
-          <Text style={styles.tipText}>
-            Add at least <Text style={styles.tipTextHighlight}>4</Text> photos.
-            Profiles with more photos get{" "}
-            <Text style={styles.tipTextBold}>5x more responses.</Text>
-          </Text>
-        </View>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressTrack}>
+              <View style={styles.progressActive} />
+            </View>
 
-        {/* ================= PROFILE PHOTOS ================= */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>
-            Profile Photos ({photos.length}/{MAX_PHOTOS})
-          </Text>
-          <View style={styles.reorderRow}>
-            <Text style={styles.reorderText}>Drag to reorder</Text>
-            <Ionicons
-              name="reorder-three-outline"
-              size={18}
-              color={Colors.textMuted}
-              style={{ marginLeft: 6 }}
-            />
+            <Text style={styles.progressText}>Step 6 of 7</Text>
           </View>
         </View>
 
-        <View style={styles.photoGrid}>
-          {photos.map((photo, index) => (
-            <View key={photo.id} style={styles.photoTile}>
-              <Image
-                source={PHOTO_PLACEHOLDER}
-                style={styles.photoImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.35)"]}
-                style={styles.photoShade}
-                pointerEvents="none"
-              />
+        {/* PAGE TITLE */}
 
-              <View style={styles.photoNumberBadge}>
-                <Text style={styles.photoNumberText}>{index + 1}</Text>
-              </View>
+        <View style={styles.titleSection}>
+          <Text style={styles.pageTitle}>Add your photos</Text>
 
-              {photo.isPrimary && (
-                <View style={styles.primaryBadge}>
-                  <Text style={styles.primaryBadgeText}>Primary</Text>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={styles.editPhotoButton}
-                onPress={() => makePrimary(photo.id)}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="pencil" size={13} color={Colors.primaryRed} />
-              </TouchableOpacity>
-            </View>
-          ))}
+          <Text style={styles.pageSubtitle}>
+            Let your personality shine through your photos.
+          </Text>
         </View>
 
-        {/* ================= ADD MORE PHOTOS ================= */}
-        {emptySlots > 0 && (
-          <>
-            <Text style={styles.addMoreTitle}>Add More Photos</Text>
-            <View style={styles.addMoreGrid}>
-              {Array.from({ length: emptySlots }).map((_, i) => (
-                <TouchableOpacity
-                  key={`empty-${i}`}
-                  style={styles.addMoreTile}
-                  activeOpacity={0.7}
-                  onPress={addPhoto}
-                >
-                  <Ionicons name="add" size={24} color={Colors.primaryRed} />
-                </TouchableOpacity>
+        {/* PROFILE PHOTO CARD */}
+
+        <View style={styles.profileCard}>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.cardTitle}>Profile photo</Text>
+
+              <Text style={styles.cardSubtitle}>
+                Your primary profile picture
+              </Text>
+            </View>
+
+            <View style={styles.requiredBadge}>
+              <Text style={styles.requiredText}>Required</Text>
+            </View>
+          </View>
+
+          <View style={styles.profileContent}>
+            <PhotoUploadBox
+              uri={profilePhoto}
+              size="large"
+              label="Add photo"
+              helperText={"JPG, PNG • Max 5MB"}
+              onPress={handlePickProfilePhoto}
+              onRemove={handleRemoveProfilePhoto}
+            />
+
+            <View style={styles.guidelinesBlock}>
+              <Text style={styles.guidelinesTitle}>Photo guidelines</Text>
+
+              {PHOTO_GUIDELINES.map((item) => (
+                <View key={item} style={styles.guidelineRow}>
+                  <Ionicons name="checkmark-circle" size={16} color="#2E9B65" />
+
+                  <Text style={styles.guidelineText}>{item}</Text>
+                </View>
               ))}
             </View>
-          </>
-        )}
+          </View>
+        </View>
 
-        {/* ================= PHOTO GUIDELINES ================= */}
-        <View style={styles.guidelinesCard}>
-          <View style={styles.guidelinesHeaderRow}>
-            <View style={styles.guidelinesIconCircle}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={16}
-                color="#E08A1E"
-              />
+        {/* ADDITIONAL PHOTOS */}
+
+        <View style={styles.additionalSection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>More photos</Text>
+
+              <Text style={styles.sectionSubtitle}>
+                Add up to 4 additional photos
+              </Text>
             </View>
-            <Text style={styles.guidelinesTitle}>Photo Guidelines</Text>
+
+            <Text style={styles.optionalText}>Optional</Text>
           </View>
 
-          <View style={styles.guidelinesRow}>
-            {GUIDELINES.map((g) => (
-              <View key={g.label} style={styles.guidelineItem}>
-                <View
-                  style={[
-                    styles.guidelineIconCircle,
-                    { backgroundColor: g.iconBg },
-                  ]}
-                >
-                  <Ionicons
-                    name={g.icon}
-                    size={16}
-                    color={Colors.textSecondary}
-                  />
-                </View>
-                <Text style={styles.guidelineText}>{g.label}</Text>
-              </View>
+          <View style={styles.additionalGrid}>
+            {additionalPhotos.map((uri, index) => (
+              <PhotoUploadBox
+                key={index}
+                uri={uri}
+                size="small"
+                label="Add photo"
+                helperText="Max 5MB"
+                onPress={() => handlePickAdditionalPhoto(index)}
+                onRemove={() => handleRemoveAdditionalPhoto(index)}
+              />
             ))}
           </View>
         </View>
 
-        {/* ================= PREMIUM BANNER ================= */}
-        <View style={styles.premiumBanner}>
-          <View style={styles.premiumIconCircle}>
-            <Ionicons name="ribbon" size={20} color={Colors.white} />
-          </View>
-          <View style={styles.premiumTextBlock}>
-            <Text style={styles.premiumTitle}>
-              Go Premium for Better Matches!
-            </Text>
-            <Text style={styles.premiumSubtitle}>
-              Premium members get 5x more profile views.
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
-            <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+        {/* PRIVACY CARD */}
+
+        <View style={styles.privacyCard}>
+          <View style={styles.privacyIcon}>
             <Ionicons
-              name="chevron-forward"
-              size={15}
-              color={Colors.white}
-              style={{ marginLeft: 4 }}
+              name="shield-checkmark-outline"
+              size={19}
+              color="#4F46E5"
             />
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.privacyContent}>
+            <Text style={styles.privacyTitle}>Your privacy matters</Text>
+
+            <Text style={styles.privacyText}>
+              Your photos are securely stored and only shown according to your
+              profile visibility settings.
+            </Text>
+          </View>
         </View>
+
+        {/* CONTINUE BUTTON */}
+
+        <TouchableOpacity
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          activeOpacity={0.85}
+          disabled={saving}
+          onPress={handleSaveAndContinue}
+        >
+          <Text style={styles.saveButtonText}>
+            {saving ? "Saving..." : "Save & Continue"}
+          </Text>
+
+          {!saving && (
+            <Ionicons name="arrow-forward" size={19} color={Colors.white} />
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.bottomHint}>
+          You can update your photos anytime from your profile.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+/* ============================================================
+   PHOTO UPLOAD BOX
+============================================================ */
+
+function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
+  const isLarge = size === "large";
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.photoBox,
+        isLarge ? styles.photoBoxLarge : styles.photoBoxSmall,
+      ]}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
+      {uri ? (
+        <>
+          <Image source={{ uri }} style={styles.photoPreview} />
+
+          <TouchableOpacity
+            style={styles.removeButton}
+            hitSlop={{
+              top: 8,
+              bottom: 8,
+              left: 8,
+              right: 8,
+            }}
+            onPress={onRemove}
+          >
+            <Ionicons name="close" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <View
+            style={[
+              styles.photoIconCircle,
+              isLarge
+                ? styles.photoIconCircleLarge
+                : styles.photoIconCircleSmall,
+            ]}
+          >
+            <Ionicons
+              name="camera-outline"
+              size={isLarge ? 29 : 21}
+              color={Colors.primaryRed}
+            />
+
+            <View style={styles.photoIconPlusBadge}>
+              <Ionicons name="add" size={isLarge ? 13 : 10} color="#FFFFFF" />
+            </View>
+          </View>
+
+          <Text
+            style={isLarge ? styles.photoLabelLarge : styles.photoLabelSmall}
+          >
+            {label}
+          </Text>
+
+          {helperText ? (
+            <Text
+              style={
+                isLarge ? styles.photoHelperLarge : styles.photoHelperSmall
+              }
+            >
+              {helperText}
+            </Text>
+          ) : null}
+        </>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+/* ============================================================
+   STYLES
+============================================================ */
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 22,
-    paddingBottom: 30,
+    paddingTop: 10,
+    paddingBottom: 35,
   },
 
-  /* ===== HEADER ===== */
-  headerWrapper: {
-    width: "100%",
-  },
-  header: {
-    minHeight: 130,
+  /* ================= TOP BAR ================= */
+
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    marginBottom: 22,
   },
+
   backButton: {
-    marginRight: 10,
-  },
-  backButtonCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-  },
-  headerLogo: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    marginRight: 12,
-  },
-  headerTitleBlock: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 19,
-    fontFamily: Fonts.display.bold,
-    color: Colors.goldLight,
-  },
-  headerSubtitleRow: {
-    marginTop: 1,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    fontFamily: Fonts.body.medium,
-    color: Colors.white,
-    letterSpacing: 1,
-  },
-  headerTagline: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 2,
-  },
-  helpButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 8,
-  },
-  headerWave: {
-    marginTop: -6,
-  },
-
-  /* ===== PAGE TITLE ===== */
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 18,
-  },
-  titleTextBlock: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  titleText: {
-    fontSize: FontSizes.welcome + 4,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  subtitleText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 6,
-    lineHeight: 18,
-  },
-  addPhotosButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  addPhotosButtonText: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
-
-  /* ===== TIP BANNER ===== */
-  tipBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#FDF3D8",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 22,
-    gap: 10,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: Fonts.body.regular,
-    color: "#5A3E12",
-    lineHeight: 19,
-  },
-  tipTextHighlight: {
-    fontFamily: Fonts.body.bold,
-    backgroundColor: "#F5D879",
-  },
-  tipTextBold: {
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
-  },
-
-  /* ===== SECTION HEADER ===== */
-  sectionHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.welcome - 4,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  reorderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  reorderText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-  },
-
-  /* ===== PHOTO GRID ===== */
-  photoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 22,
-  },
-  photoTile: {
-    width: "31.5%",
-    aspectRatio: 0.82,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: Colors.border,
-    position: "relative",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  photoImage: {
-    width: "100%",
-    height: "100%",
-  },
-  photoShade: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "45%",
-  },
-  photoNumberBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#F5C94D",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  photoNumberText: {
-    fontSize: 11,
-    fontFamily: Fonts.body.bold,
-    color: "#5A3E12",
-  },
-  primaryBadge: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    backgroundColor: Colors.primaryRed,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  primaryBadgeText: {
-    fontSize: 9.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
-  editPhotoButton: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    borderColor: "#EAEAEA",
   },
 
-  /* ===== ADD MORE PHOTOS ===== */
-  addMoreTitle: {
-    fontSize: FontSizes.welcome - 4,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-    marginBottom: 14,
+  progressContainer: {
+    flex: 1,
+    marginLeft: 14,
   },
-  addMoreGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+
+  progressTrack: {
+    height: 5,
+    borderRadius: 5,
+    backgroundColor: "#E9E9E9",
+    overflow: "hidden",
+  },
+
+  progressActive: {
+    width: "85%",
+    height: "100%",
+    backgroundColor: Colors.primaryRed,
+    borderRadius: 5,
+  },
+
+  progressText: {
+    marginTop: 5,
+    fontSize: 10.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    textAlign: "right",
+  },
+
+  /* ================= TITLE ================= */
+
+  titleSection: {
     marginBottom: 22,
   },
-  addMoreTile: {
-    width: "15%",
-    aspectRatio: 0.82,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.primaryRed,
-    borderStyle: "dashed",
+
+  pageTitle: {
+    fontSize: 27,
+    fontFamily: Fonts.display.bold,
+    color: Colors.textPrimary,
+    letterSpacing: -0.4,
+  },
+
+  pageSubtitle: {
+    marginTop: 7,
+    fontSize: 13.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    lineHeight: 20,
+  },
+
+  /* ================= PROFILE CARD ================= */
+
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#EEEEEE",
+    marginBottom: 24,
+  },
+
+  cardHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FDF1EF",
+    justifyContent: "space-between",
+    marginBottom: 17,
+  },
+
+  cardTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+  },
+
+  cardSubtitle: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    marginTop: 3,
+  },
+
+  requiredBadge: {
+    backgroundColor: "#FCE9E7",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  requiredText: {
+    fontSize: 10,
+    fontFamily: Fonts.body.bold,
+    color: Colors.primaryRed,
+  },
+
+  profileContent: {
+    flexDirection: "row",
+    gap: 15,
+  },
+
+  /* ================= GUIDELINES ================= */
+
+  guidelinesBlock: {
+    flex: 1,
+    paddingTop: 2,
+  },
+
+  guidelinesTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
     marginBottom: 10,
   },
 
-  /* ===== GUIDELINES ===== */
-  guidelinesCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 16,
-    marginBottom: 18,
-  },
-  guidelinesHeaderRow: {
+  guidelineRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  guidelinesIconCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#FDF0D0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-  },
-  guidelinesTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  guidelinesRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  guidelineItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  guidelineIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  guidelineText: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 14,
+    alignItems: "flex-start",
+    marginBottom: 7,
   },
 
-  /* ===== PREMIUM BANNER ===== */
-  premiumBanner: {
+  guidelineText: {
+    flex: 1,
+    marginLeft: 6,
+    fontSize: 10.8,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    lineHeight: 15,
+  },
+
+  /* ================= ADDITIONAL PHOTOS ================= */
+
+  additionalSection: {
+    marginBottom: 20,
+  },
+
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FDF3D8",
-    borderRadius: 16,
-    padding: 14,
+    justifyContent: "space-between",
+    marginBottom: 13,
   },
-  premiumIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+
+  sectionTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+  },
+
+  sectionSubtitle: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    marginTop: 3,
+  },
+
+  optionalText: {
+    fontSize: 11,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textMuted,
+    backgroundColor: "#F3F3F3",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  additionalGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 9,
+  },
+
+  /* ================= PHOTO BOX ================= */
+
+  photoBox: {
+    borderWidth: 1.4,
+    borderColor: "#E3B3AE",
+    borderStyle: "dashed",
+    borderRadius: 16,
+    backgroundColor: "#FFF9F8",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  photoBoxLarge: {
+    width: 142,
+    height: 142,
+  },
+
+  photoBoxSmall: {
+    flex: 1,
+    height: 92,
+    paddingHorizontal: 3,
+  },
+
+  photoPreview: {
+    width: "100%",
+    height: "100%",
+  },
+
+  removeButton: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  photoIconCircle: {
+    borderRadius: 999,
+    backgroundColor: "#FBE9E7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  photoIconCircleLarge: {
+    width: 57,
+    height: 57,
+    marginBottom: 9,
+  },
+
+  photoIconCircleSmall: {
+    width: 37,
+    height: 37,
+    marginBottom: 5,
+  },
+
+  photoIconPlusBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -1,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: Colors.primaryRed,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    borderWidth: 1.5,
+    borderColor: "#FFF9F8",
   },
-  premiumTextBlock: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  premiumTitle: {
-    fontSize: 13,
+
+  photoLabelLarge: {
+    fontSize: 12.5,
     fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
+    color: Colors.textPrimary,
   },
-  premiumSubtitle: {
-    fontSize: 11,
+
+  photoLabelSmall: {
+    fontSize: 9.5,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+  },
+
+  photoHelperLarge: {
+    fontSize: 9.5,
     fontFamily: Fonts.body.regular,
     color: Colors.textMuted,
-    marginTop: 2,
+    textAlign: "center",
+    marginTop: 3,
   },
-  upgradeButton: {
+
+  photoHelperSmall: {
+    fontSize: 8,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    textAlign: "center",
+    marginTop: 1,
+  },
+
+  /* ================= PRIVACY ================= */
+
+  privacyCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: "#F4F5FF",
+    borderRadius: 15,
+    padding: 13,
+    marginBottom: 20,
   },
-  upgradeButtonText: {
-    fontSize: 12,
+
+  privacyIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E6E8FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+
+  privacyContent: {
+    flex: 1,
+  },
+
+  privacyTitle: {
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+
+  privacyText: {
+    fontSize: 10.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    lineHeight: 15,
+  },
+
+  /* ================= BUTTON ================= */
+
+  saveButton: {
+    height: 54,
+    borderRadius: 15,
+    backgroundColor: Colors.primaryRedDark,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  saveButtonText: {
+    fontSize: 15,
     fontFamily: Fonts.body.bold,
     color: Colors.white,
+  },
+
+  bottomHint: {
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 10.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
   },
 });

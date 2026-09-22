@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
@@ -18,7 +18,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import {
   getMemberBasicInfo,
@@ -28,6 +28,9 @@ import {
   getMemberPermanentAddress,
   getMemberPresentAddress,
   getMemberStates,
+  // Hits /api/member/my-interests and /api/member/my-shortlists
+  getMyInterests,
+  getMyShortlists,
   getProfileDetails,
   getToken,
   updateMemberAddress,
@@ -79,6 +82,8 @@ const PROFILE = {
 
   about:
     "I am a simple, ambitious and family oriented person. I love traveling, listening to music and spending time with family and friends.",
+
+  photos: [require("../../../assets/images/Match6.png")],
 
   personal: [
     {
@@ -317,6 +322,23 @@ export default function ProfileDetails() {
   const [aboutTextValue, setAboutTextValue] = useState("");
 
   /* =====================================================
+     PHOTOS
+  ===================================================== */
+
+  const [photos, setPhotos] = useState(PROFILE.photos);
+
+  // The member's actual uploaded profile photo (from Basic Information).
+  // Falls back to the static PROFILE.image asset until it loads.
+  const [profilePhotoUri, setProfilePhotoUri] = useState("");
+
+  /* =====================================================
+     INTERESTS / SHORTLISTS COUNTS
+  ===================================================== */
+
+  const [interestsCount, setInterestsCount] = useState(0);
+  const [shortlistsCount, setShortlistsCount] = useState(0);
+
+  /* =====================================================
      PRESENT / PERMANENT ADDRESS
   ===================================================== */
 
@@ -376,7 +398,24 @@ export default function ProfileDetails() {
     loadMemberPresentAddress();
     loadMemberPermanentAddress();
     loadMemberCountries();
+    loadInterestsCount();
+    loadShortlistsCount();
   }, []);
+
+  // Re-fetch basic info (name + photo) whenever this screen regains
+  // focus, e.g. coming back from Edit Basic Information after an
+  // upload — the stack keeps this screen mounted, so the initial
+  // effect above alone would never pick up the change. Also refresh
+  // interests/shortlists counts here, since those can change from
+  // other screens (sending an interest, shortlisting a profile, etc.)
+  // while this screen stays mounted in the background.
+  useFocusEffect(
+    useCallback(() => {
+      loadMemberBasicInfo();
+      loadInterestsCount();
+      loadShortlistsCount();
+    }, []),
+  );
 
   useEffect(() => {
     if (!presentAddress) return;
@@ -479,6 +518,29 @@ export default function ProfileDetails() {
       const profile = result?.data || result?.user || result?.profile || result;
 
       setProfileData(profile);
+
+      const profilePhotos =
+        profile?.photos || profile?.gallery || profile?.images || null;
+
+      if (Array.isArray(profilePhotos) && profilePhotos.length > 0) {
+        const normalizedPhotos = profilePhotos
+          .map((item) => {
+            if (!item) return null;
+
+            if (typeof item === "string") {
+              return { uri: item };
+            }
+
+            const uri = item.url || item.image || item.photo || item.path;
+
+            return uri ? { uri } : null;
+          })
+          .filter(Boolean);
+
+        if (normalizedPhotos.length > 0) {
+          setPhotos(normalizedPhotos);
+        }
+      }
     } catch (error) {
       console.error("LOAD PROFILE ERROR:", error);
 
@@ -486,6 +548,14 @@ export default function ProfileDetails() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* =====================================================
+     PHOTOS
+  ===================================================== */
+
+  const handlePhotos = () => {
+    router.push("/myphotos");
   };
 
   /* =====================================================
@@ -533,10 +603,6 @@ export default function ProfileDetails() {
   /* =====================================================
      LOGOUT
   ===================================================== */
-
-  /* =====================================================
-   LOGOUT
-===================================================== */
 
   const performLogout = async () => {
     try {
@@ -711,6 +777,23 @@ export default function ProfileDetails() {
           ? basicInfoData
           : {}),
       }));
+
+      const photoValue =
+        basicInfoData?.photo_url ||
+        basicInfoData?.photo ||
+        basicInfoData?.profile_photo ||
+        basicInfoData?.image ||
+        basicInfoData?.avatar ||
+        "";
+
+      const photoUri =
+        typeof photoValue === "object"
+          ? photoValue?.url || photoValue?.path || ""
+          : photoValue;
+
+      if (photoUri) {
+        setProfilePhotoUri(String(photoUri));
+      }
     } catch (error) {
       console.error("LOAD BASIC INFO ERROR:", error);
     }
@@ -1389,6 +1472,104 @@ export default function ProfileDetails() {
     }
   };
 
+  /* =====================================================
+     GET INTERESTS COUNT
+
+     GET /api/member/my-interests
+  ===================================================== */
+
+  const loadInterestsCount = async () => {
+    try {
+      const accessToken = await getToken();
+
+      if (!accessToken) {
+        setInterestsCount(0);
+        return;
+      }
+
+      const response = await getMyInterests(accessToken);
+
+      console.log("INTERESTS API RESPONSE:", JSON.stringify(response, null, 2));
+
+      const list = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : Array.isArray(response?.interests)
+              ? response.interests
+              : Array.isArray(response?.data?.interests)
+                ? response.data.interests
+                : [];
+
+      // Some APIs return a ready-made count instead of (or in addition
+      // to) the list — prefer an explicit count field if present,
+      // otherwise fall back to the list length.
+      const count =
+        response?.count ??
+        response?.total ??
+        response?.data?.count ??
+        response?.data?.total ??
+        list.length;
+
+      setInterestsCount(Number(count) || 0);
+    } catch (error) {
+      console.error("LOAD INTERESTS COUNT ERROR:", error);
+
+      setInterestsCount(0);
+    }
+  };
+
+  /* =====================================================
+     GET SHORTLISTS COUNT
+
+     GET /api/member/my-shortlists
+  ===================================================== */
+
+  const loadShortlistsCount = async () => {
+    try {
+      const accessToken = await getToken();
+
+      if (!accessToken) {
+        setShortlistsCount(0);
+        return;
+      }
+
+      const response = await getMyShortlists(accessToken);
+
+      console.log(
+        "SHORTLISTS API RESPONSE:",
+        JSON.stringify(response, null, 2),
+      );
+
+      const list = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : Array.isArray(response?.shortlists)
+              ? response.shortlists
+              : Array.isArray(response?.data?.shortlists)
+                ? response.data.shortlists
+                : [];
+
+      const count =
+        response?.count ??
+        response?.total ??
+        response?.data?.count ??
+        response?.data?.total ??
+        list.length;
+
+      setShortlistsCount(Number(count) || 0);
+    } catch (error) {
+      console.error("LOAD SHORTLISTS COUNT ERROR:", error);
+
+      setShortlistsCount(0);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -1440,9 +1621,15 @@ export default function ProfileDetails() {
           <View style={styles.heroContent}>
             {/* PROFILE IMAGE */}
 
-            <View style={styles.profileImageContainer}>
+            <TouchableOpacity
+              style={styles.profileImageContainer}
+              activeOpacity={0.9}
+              onPress={handlePhotos}
+            >
               <Image
-                source={PROFILE.image}
+                source={
+                  profilePhotoUri ? { uri: profilePhotoUri } : PROFILE.image
+                }
                 style={styles.profileImage}
                 resizeMode="cover"
               />
@@ -1455,12 +1642,20 @@ export default function ProfileDetails() {
                 <Text style={styles.onlineText}>Online</Text>
               </View>
 
+              {/* Photo count badge */}
+
+              <View style={styles.photoCountBadge}>
+                <Ionicons name="camera" size={11} color="#FFFFFF" />
+
+                <Text style={styles.photoCountText}>{photos?.length || 0}</Text>
+              </View>
+
               {/* Bottom online indicator */}
 
               <View style={styles.imageOnlineIndicator}>
                 <View style={styles.imageOnlineDot} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* PROFILE DETAILS */}
 
@@ -1549,6 +1744,14 @@ export default function ProfileDetails() {
             activeOpacity={0.85}
             onPress={handleInterests}
           >
+            {interestsCount > 0 && (
+              <View style={styles.cardCountBadge}>
+                <Text style={styles.cardCountBadgeText}>
+                  {interestsCount > 99 ? "99+" : interestsCount}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.interestIconCircle}>
               <Ionicons name="heart" size={24} color="#C91E26" />
             </View>
@@ -1568,6 +1771,14 @@ export default function ProfileDetails() {
             activeOpacity={0.85}
             onPress={handleShortlists}
           >
+            {shortlistsCount > 0 && (
+              <View style={styles.cardCountBadge}>
+                <Text style={styles.cardCountBadgeText}>
+                  {shortlistsCount > 99 ? "99+" : shortlistsCount}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.shortlistIconCircle}>
               <Ionicons name="star" size={24} color="#D99A18" />
             </View>
@@ -1631,6 +1842,31 @@ export default function ProfileDetails() {
             </View>
 
             <Text style={styles.rowTitle}>Basic Information</Text>
+
+            <Ionicons name="chevron-forward" size={18} color="#666666" />
+          </TouchableOpacity>
+
+          {/* =================================================
+            PHOTOS
+        ================================================= */}
+
+          <TouchableOpacity
+            style={styles.profileRow}
+            activeOpacity={0.8}
+            onPress={() => {
+              console.log("Photos Clicked");
+              handlePhotos();
+            }}
+          >
+            <View style={[styles.rowIcon, { backgroundColor: "#EAF3FF" }]}>
+              <Ionicons name="images-outline" size={21} color="#2C84D6" />
+            </View>
+
+            <Text style={styles.rowTitle}>Photos</Text>
+
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{photos?.length || 0}</Text>
+            </View>
 
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
@@ -2056,6 +2292,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  photoCountBadge: {
+    position: "absolute",
+    right: 7,
+    top: 7,
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.60)",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  photoCountText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+    marginLeft: 3,
+  },
+
   quickActionsContainer: {
     flexDirection: "row",
     gap: 10,
@@ -2072,6 +2327,7 @@ const styles = StyleSheet.create({
     borderColor: "#F0E4DE",
     padding: 12,
     justifyContent: "space-between",
+    position: "relative",
 
     shadowColor: "#000000",
     shadowOffset: {
@@ -2116,6 +2372,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#777777",
     marginTop: 3,
+  },
+
+  /* Small numeric pill shown top-right of the Interests / Shortlists
+     cards, e.g. "3", when there is a non-zero count. */
+  cardCountBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    backgroundColor: "#D7192A",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+
+  cardCountBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
   },
 
   imageOnlineIndicator: {

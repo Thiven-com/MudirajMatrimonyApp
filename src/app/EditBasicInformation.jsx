@@ -18,6 +18,8 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 
+import * as ImagePicker from "expo-image-picker";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { router } from "expo-router";
@@ -184,6 +186,26 @@ const toUri = (value) => {
   }
 
   return "";
+};
+
+// Turns a picked { uri, name, type } into whatever FormData.append
+// needs on this platform. React Native's fetch polyfill accepts the
+// plain { uri, name, type } object directly on iOS/Android, but a
+// real browser (Expo Web) requires an actual Blob/File — passing the
+// object literal there throws before the request is ever sent.
+const buildPhotoFilePart = async (photo) => {
+  if (Platform.OS !== "web") {
+    return { uri: photo.uri, name: photo.name, type: photo.type };
+  }
+
+  const response = await fetch(photo.uri);
+  const blob = await response.blob();
+
+  if (typeof File !== "undefined") {
+    return new File([blob], photo.name, { type: photo.type || blob.type });
+  }
+
+  return blob;
 };
 
 /* =========================================================
@@ -391,6 +413,16 @@ export default function EditBasicInformation() {
 
   const [photoUrl, setPhotoUrl] = useState("");
 
+  // Newly picked local photo, waiting to be uploaded on Save.
+  // { uri, name, type } — null until the member picks something new.
+  const [newPhoto, setNewPhoto] = useState(null);
+
+  // True when the member removed their existing photo and it still
+  // needs to be cleared on the server on Save.
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [showMaritalModal, setShowMaritalModal] = useState(false);
 
   const [showChildrenModal, setShowChildrenModal] = useState(false);
@@ -453,6 +485,8 @@ export default function EditBasicInformation() {
       .find(Boolean);
 
     setPhotoUrl(photo || "");
+    setNewPhoto(null);
+    setPhotoRemoved(false);
   }, []);
 
   const loadProfile = useCallback(async () => {
@@ -624,7 +658,7 @@ export default function EditBasicInformation() {
       // REQUEST BODY
       // ============================================
 
-      const requestBody = {
+      const fields = {
         first_name: cleanFirstName,
         last_name: cleanLastName,
         email: cleanEmail,
@@ -636,7 +670,57 @@ export default function EditBasicInformation() {
         children: childrenId,
       };
 
-      console.log("REQUEST BODY:", JSON.stringify(requestBody, null, 2));
+      // A new photo was picked, or the existing one was removed ->
+      // send multipart/form-data so the file (or the removal flag)
+      // reaches the server together with the rest of the form.
+      const hasPhotoChange = !!newPhoto || photoRemoved;
+
+      let requestBody;
+      let requestHeaders;
+
+      if (hasPhotoChange) {
+        const formData = new FormData();
+
+        Object.entries(fields).forEach(([key, value]) => {
+          formData.append(key, String(value));
+        });
+
+        if (newPhoto) {
+          const photoPart = await buildPhotoFilePart(newPhoto);
+
+          // Web's FormData.append needs the filename as a 3rd arg;
+          // React Native's polyfill ignores the extra arg harmlessly.
+          formData.append("photo", photoPart, newPhoto.name);
+        } else if (photoRemoved) {
+          // TODO: confirm the field your API expects to clear a photo.
+          formData.append("remove_photo", "1");
+        }
+
+        requestBody = formData;
+
+        requestHeaders = {
+          Accept: "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          // Deliberately no Content-Type here — fetch sets the
+          // multipart boundary itself when the body is FormData.
+        };
+
+        console.log("REQUEST BODY (multipart):", {
+          ...fields,
+          photo: newPhoto ? newPhoto.name : undefined,
+          remove_photo: photoRemoved ? "1" : undefined,
+        });
+      } else {
+        requestBody = JSON.stringify(fields);
+
+        requestHeaders = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        };
+
+        console.log("REQUEST BODY:", JSON.stringify(fields, null, 2));
+      }
 
       // ============================================
       // API URL
@@ -653,15 +737,9 @@ export default function EditBasicInformation() {
       const response = await fetch(apiUrl, {
         method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
+        headers: requestHeaders,
 
-          Accept: "application/json",
-
-          Authorization: `Bearer ${accessToken}`,
-        },
-
-        body: JSON.stringify(requestBody),
+        body: requestBody,
       });
 
       // ============================================
@@ -731,6 +809,14 @@ export default function EditBasicInformation() {
       // SUCCESS
       // ============================================
 
+      // The server now has the new photo (or the removal); clear the
+      // local "pending" flags and reload so photoUrl reflects the
+      // final server-hosted URL, not the local picker uri.
+      setNewPhoto(null);
+      setPhotoRemoved(false);
+
+      await loadProfile();
+
       notify("Success", "Basic information updated successfully.", () => {
         router.back();
       });
@@ -756,13 +842,19 @@ export default function EditBasicInformation() {
        REMOVE PHOTO
     ======================================================= */
 
+  const clearPhoto = () => {
+    setPhotoUrl("");
+    setNewPhoto(null);
+    setPhotoRemoved(true);
+  };
+
   const handleRemovePhoto = () => {
     if (Platform.OS === "web") {
       if (
         typeof window !== "undefined" &&
         window.confirm("Are you sure you want to remove this photo?")
       ) {
-        setPhotoUrl("");
+        clearPhoto();
       }
 
       return;
@@ -776,9 +868,7 @@ export default function EditBasicInformation() {
       {
         text: "Remove",
         style: "destructive",
-        onPress: () => {
-          setPhotoUrl("");
-        },
+        onPress: clearPhoto,
       },
     ]);
   };
@@ -787,11 +877,63 @@ export default function EditBasicInformation() {
        UPLOAD PHOTO
     ======================================================= */
 
-  const handleUploadPhoto = () => {
-    notify(
-      "Upload Photo",
-      "Connect your image picker here to select a profile photo.",
-    );
+  const handleUploadPhoto = async () => {
+    if (uploadingPhoto) return;
+
+    try {
+      setUploadingPhoto(true);
+
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        notify(
+          "Permission Needed",
+          "Please allow photo library access to choose a profile photo.",
+        );
+
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        return;
+      }
+
+      const asset = result.assets[0];
+
+      const fileName =
+        asset.fileName ||
+        asset.uri.split("/").pop() ||
+        `photo-${Date.now()}.jpg`;
+
+      const extensionMatch = /\.(\w+)$/.exec(fileName);
+
+      const extension = (extensionMatch?.[1] || "jpg").toLowerCase();
+
+      const mimeType =
+        asset.mimeType || (extension === "png" ? "image/png" : "image/jpeg");
+
+      // Preview immediately; the actual upload happens on Save so it
+      // travels together with the rest of the form in one request.
+      setPhotoUrl(asset.uri);
+
+      setNewPhoto({ uri: asset.uri, name: fileName, type: mimeType });
+
+      setPhotoRemoved(false);
+    } catch (error) {
+      console.error("PICK PHOTO ERROR:", error);
+
+      notify("Error", error?.message || "Unable to select a photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   /* =======================================================
@@ -1138,19 +1280,28 @@ export default function EditBasicInformation() {
                     activeOpacity={0.8}
                     style={styles.uploadBox}
                     onPress={handleUploadPhoto}
+                    disabled={uploadingPhoto}
                   >
-                    <Ionicons
-                      name="camera-outline"
-                      size={18}
-                      color={COLORS.red}
-                      style={styles.cameraIcon}
-                    />
+                    {uploadingPhoto ? (
+                      <ActivityIndicator size="small" color={COLORS.red} />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="camera-outline"
+                          size={18}
+                          color={COLORS.red}
+                          style={styles.cameraIcon}
+                        />
 
-                    <Text style={styles.uploadTitle}>
-                      Upload Photo (800x800)
-                    </Text>
+                        <Text style={styles.uploadTitle}>
+                          Upload Photo (800x800)
+                        </Text>
 
-                    <Text style={styles.uploadSubText}>JPG, PNG (Max 5MB)</Text>
+                        <Text style={styles.uploadSubText}>
+                          JPG, PNG (Max 5MB)
+                        </Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
