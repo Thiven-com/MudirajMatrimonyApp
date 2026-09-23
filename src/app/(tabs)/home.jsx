@@ -1,25 +1,36 @@
+import React, { useRef, useState } from "react";
 
 import {
   Dimensions,
   Image,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-import {
-  Feather,
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import LinearGradient from "react-native-linear-gradient";
+
+import {
+  getBannerData,
+  getBlogsData,
+  getHappyStoriesData,
+  getHowItWorksData,
+  getNewMembersData,
+  getPackagesData,
+  getPremiumMembersData,
+  getReviewsData,
+  getTrustedByMillionsData,
+} from "../../utils/Functions";
 
 const { width } = Dimensions.get("window");
 
@@ -56,7 +67,7 @@ const COLORS = {
 
 const LOGO = require("../../../assets/images/logo.png");
 
-const HERO_IMAGE = require("../../../assets/images/banner1.png");
+const HERO_IMAGE = require("../../../assets/images/banner9.png");
 
 const MATCH_IMAGES = {
   Match1: require("../../../assets/images/Match1.png"),
@@ -64,85 +75,9 @@ const MATCH_IMAGES = {
   Match3: require("../../../assets/images/Match3.png"),
 };
 
-/* =====================================================
+/* =================================================
    DATA
 ===================================================== */
-
-const QUICK_STATS = [
-  {
-    id: "1",
-    label: "Matches",
-    icon: "people",
-    color: COLORS.red,
-    route: "/family-details",
-
-  },
-  {
-    id: "2",
-    label: "Visitors",
-    icon: "eye-outline",
-    count: 12,
-    color: COLORS.gold,
-    route: "/visitors",
-  },
-  {
-    id: "3",
-    label: "Likes",
-    icon: "heart",
-    count: 8,
-    color: COLORS.red,
-    route: "/recentlyviewed",
-
-  },
-  {
-    id: "4",
-    label: "Messages",
-    icon: "chatbubble-ellipses",
-    count: 5,
-    color: COLORS.gold,
-    route: "/interests",
-  },
-  {
-    id: "5",
-    label: "Shortlist",
-    icon: "star",
-    color: COLORS.gold,
-    route: "/shortlist",
-  },
-];
-
-const MATCHES = [
-  {
-    id: "1",
-    name: "Priyanka",
-    age: 25,
-    profession: "Software Engineer",
-    location: "Hyderabad, Telangana",
-    height: `5'4"`,
-    religion: "Hindu - Mudhiraj",
-    image: MATCH_IMAGES.Match1,
-  },
-  {
-    id: "2",
-    name: "Rohit",
-    age: 27,
-    profession: "Civil Engineer",
-    location: "Vijayawada, Andhra Pradesh",
-    height: `5'7"`,
-    religion: "Hindu - Mudhiraj",
-    image: MATCH_IMAGES.Match2,
-  },
-  {
-    id: "3",
-    name: "Deepika",
-    age: 23,
-    profession: "Teacher",
-    location: "Warangal, Telangana",
-    height: `5'3"`,
-    religion: "Hindu - Mudhiraj",
-    image: MATCH_IMAGES.Match3,
-  },
-];
 
 const WHY_CHOOSE = [
   {
@@ -151,7 +86,6 @@ const WHY_CHOOSE = [
     title: "100%",
     subtitle: "Verified Profiles",
     color: COLORS.red,
-    route: "/profilecompletion",
   },
   {
     id: "2",
@@ -159,7 +93,6 @@ const WHY_CHOOSE = [
     title: "Trusted",
     subtitle: "Community",
     color: COLORS.gold,
-    route: "/matchesdetail",
   },
   {
     id: "3",
@@ -167,7 +100,6 @@ const WHY_CHOOSE = [
     title: "Privacy",
     subtitle: "Protected",
     color: COLORS.red,
-    route: "/privacy-policy",
   },
   {
     id: "4",
@@ -175,7 +107,149 @@ const WHY_CHOOSE = [
     title: "Dedicated",
     subtitle: "Support",
     color: COLORS.gold,
-    route: "/help-support",
+  },
+];
+
+/* =====================================================
+   FALLBACK PACKAGES
+===================================================== */
+
+const PACKAGES = [
+  {
+    id: "1",
+    name: "Silver",
+    price: "₹1,999",
+    duration: "3 Months",
+    recommended: false,
+    features: [
+      "50 Profile Views",
+      "Chat with 10 Matches",
+      "Basic Search Filters",
+    ],
+  },
+  {
+    id: "2",
+    name: "Gold",
+    price: "₹3,999",
+    duration: "6 Months",
+    recommended: true,
+    features: [
+      "Unlimited Profile Views",
+      "Chat with 50 Matches",
+      "Advanced Search Filters",
+      "Priority Support",
+    ],
+  },
+  {
+    id: "3",
+    name: "Platinum",
+    price: "₹6,999",
+    duration: "12 Months",
+    recommended: false,
+    features: [
+      "Unlimited Everything",
+      "Dedicated Relationship Manager",
+      "Profile Highlighting",
+      "Horoscope Matching",
+    ],
+  },
+];
+
+/* =====================================================
+   FALLBACK HAPPY STORIES
+===================================================== */
+
+const HAPPY_STORIES = [
+  {
+    id: "1",
+    coupleName: "Ravi & Sindhu",
+    marriedDate: "Feb 2025",
+    story:
+      "We found each other through Mudhiraj Matrimony and instantly connected over our shared values and love for family traditions.",
+    image: MATCH_IMAGES.Match1,
+  },
+  {
+    id: "2",
+    coupleName: "Kiran & Anjali",
+    marriedDate: "Nov 2024",
+    story:
+      "After months of searching, this platform helped us find a match that truly understood our community and culture.",
+    image: MATCH_IMAGES.Match2,
+  },
+  {
+    id: "3",
+    coupleName: "Suresh & Padma",
+    marriedDate: "Aug 2024",
+    story:
+      "Verified profiles gave us confidence from day one. We're grateful this app brought us together.",
+    image: MATCH_IMAGES.Match3,
+  },
+];
+
+/* =====================================================
+   FALLBACK BLOGS
+===================================================== */
+
+const BLOGS = [
+  {
+    id: "1",
+    slug: "5-tips-for-a-successful-arranged-marriage",
+    title: "5 Tips for a Successful Arranged Marriage",
+    excerpt:
+      "Discover how to build trust and understanding when starting your journey together.",
+    category: "Relationships",
+    readTime: "4 min read",
+    image: MATCH_IMAGES.Match1,
+  },
+  {
+    id: "2",
+    slug: "understanding-mudhiraj-wedding-traditions",
+    title: "Understanding Mudhiraj Wedding Traditions",
+    excerpt:
+      "A look at the customs and rituals that make our community's weddings special.",
+    category: "Culture",
+    readTime: "6 min read",
+    image: MATCH_IMAGES.Match2,
+  },
+  {
+    id: "3",
+    slug: "how-to-write-a-profile-that-stands-out",
+    title: "How to Write a Profile That Stands Out",
+    excerpt: "Simple tips to help your profile attract the right matches.",
+    category: "Tips",
+    readTime: "3 min read",
+    image: MATCH_IMAGES.Match3,
+  },
+];
+
+/* =====================================================
+   FALLBACK REVIEWS
+===================================================== */
+
+const REVIEWS = [
+  {
+    id: "1",
+    name: "Lakshmi P.",
+    rating: 5,
+    comment:
+      "Found my life partner within 2 months! The verification process gave me peace of mind.",
+    image: MATCH_IMAGES.Match1,
+  },
+  {
+    id: "2",
+    name: "Venkat R.",
+    rating: 5,
+    comment:
+      "Great community-focused platform. The support team was very helpful throughout.",
+    image: MATCH_IMAGES.Match2,
+  },
+  {
+    id: "3",
+    name: "Sandhya K.",
+    rating: 4,
+    comment:
+      "Easy to use app with genuine profiles. Highly recommend to anyone in our community.",
+    image: MATCH_IMAGES.Match3,
   },
 ];
 
@@ -183,32 +257,521 @@ const WHY_CHOOSE = [
    HOME SCREEN
 ===================================================== */
 
-export default function HomeScreen() {
-  const router = useRouter();
+export default function HomeScreen({ navigation }) {
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const openNotifications = () => {
-    router.push("/notifications");
+  const [whyChooseList, setWhyChooseList] = useState(WHY_CHOOSE);
+
+  const [packages, setPackages] = useState(PACKAGES);
+
+  const [happyStories, setHappyStories] = useState(HAPPY_STORIES);
+
+  const [premiumMembers, setPremiumMembers] = useState([]);
+
+  const [newMembers, setNewMembers] = useState([]);
+
+  const [howItWorks, setHowItWorks] = useState([]);
+
+  const [blogs, setBlogs] = useState(BLOGS);
+
+  const [reviews, setReviews] = useState(REVIEWS);
+
+  const [banners, setBanners] = useState([]);
+
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
+  const bannerScrollRef = useRef(null);
+
+  /* =====================================================
+     TOKEN
+  ===================================================== */
+
+  const getToken = async () => {
+    try {
+      const possibleKeys = [
+        "token",
+        "access_token",
+        "authToken",
+        "userToken",
+        "auth_token",
+      ];
+
+      for (const key of possibleKeys) {
+        const value = await AsyncStorage.getItem(key);
+
+        if (value) {
+          return value;
+        }
+      }
+
+      const userStr =
+        (await AsyncStorage.getItem("user")) ||
+        (await AsyncStorage.getItem("user_data"));
+
+      if (userStr) {
+        try {
+          const parsed = JSON.parse(userStr);
+
+          return (
+            parsed?.token || parsed?.access_token || parsed?.data?.token || null
+          );
+        } catch (e) {}
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  /* =====================================================
+     IMAGE RESOLVER
+  ===================================================== */
+
+  const resolveImage = (remoteValue, fallbackIndex = 0) => {
+    if (!remoteValue) {
+      const keys = Object.keys(MATCH_IMAGES);
+
+      return MATCH_IMAGES[keys[fallbackIndex % keys.length]];
+    }
+
+    if (typeof remoteValue === "string") {
+      return {
+        uri: remoteValue,
+      };
+    }
+
+    if (typeof remoteValue === "object" && remoteValue.uri) {
+      return remoteValue;
+    }
+
+    const keys = Object.keys(MATCH_IMAGES);
+
+    return MATCH_IMAGES[keys[fallbackIndex % keys.length]];
+  };
+
+  /* =====================================================
+     IMAGE URL CHECK
+  ===================================================== */
+
+  const isImageUrl = (value) =>
+    typeof value === "string" && /^(https?:)?\/\//i.test(value.trim());
+
+  /* =====================================================
+     LOAD HOME DATA
+  ===================================================== */
+
+  const loadHomeData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const token = await getToken();
+
+      console.log("Loading Home Data. Token:", token ? "FOUND" : "NOT FOUND");
+
+      const [
+        trustedRes,
+        storiesRes,
+        packagesRes,
+        premiumRes,
+        bannerRes,
+        newMembersRes,
+        howItWorksRes,
+        blogsRes,
+        reviewsRes,
+      ] = await Promise.all([
+        getTrustedByMillionsData(token),
+        getHappyStoriesData(token),
+        getPackagesData(token),
+        getPremiumMembersData(token),
+        getBannerData(token),
+        getNewMembersData(token),
+        getHowItWorksData(token),
+        getBlogsData(token),
+        getReviewsData(token),
+      ]);
+
+      console.log("Trusted By Millions:", JSON.stringify(trustedRes));
+
+      console.log("Happy Stories:", JSON.stringify(storiesRes));
+
+      console.log("Packages:", JSON.stringify(packagesRes));
+
+      console.log("Premium Members:", JSON.stringify(premiumRes));
+
+      console.log("Banner:", JSON.stringify(bannerRes));
+
+      console.log("New Members:", JSON.stringify(newMembersRes));
+
+      console.log("How It Works:", JSON.stringify(howItWorksRes));
+
+      console.log("Blogs:", JSON.stringify(blogsRes));
+
+      console.log("Reviews:", JSON.stringify(reviewsRes));
+
+      /* =====================================================
+         WHY CHOOSE
+      ===================================================== */
+
+      if (
+        trustedRes?.success === 1 &&
+        Array.isArray(trustedRes.data) &&
+        trustedRes.data.length > 0
+      ) {
+        const formattedWhy = trustedRes.data
+          .filter(Boolean)
+          .map((item, idx) => ({
+            id: String(item.id || idx + 1),
+
+            icon:
+              item.icon ||
+              item.image ||
+              (idx % 2 === 0 ? "shield-checkmark-outline" : "people-outline"),
+
+            title: item.title || item.name || "100%",
+
+            subtitle:
+              item.subtitle || item.review || item.description || "Verified",
+
+            color: idx % 2 === 0 ? COLORS.red : COLORS.gold,
+          }));
+
+        setWhyChooseList(formattedWhy);
+      }
+
+      /* =====================================================
+         HAPPY STORIES
+      ===================================================== */
+
+      if (
+        storiesRes?.success === 1 &&
+        Array.isArray(storiesRes.data) &&
+        storiesRes.data.length > 0
+      ) {
+        const formattedStories = storiesRes.data
+          .filter(Boolean)
+          .map((s, idx) => ({
+            id: String(s.id || idx + 1),
+
+            coupleName:
+              s.couple_name || s.coupleName || s.name || `Couple ${idx + 1}`,
+
+            marriedDate: s.married_date || s.marriedDate || s.date || "",
+
+            story: s.story || s.description || s.message || "",
+
+            image: resolveImage(s.photo || s.image || s.couple_photo, idx),
+          }));
+
+        setHappyStories(formattedStories);
+      }
+
+      /* =====================================================
+         PACKAGES
+      ===================================================== */
+
+      if (
+        packagesRes?.success === 1 &&
+        Array.isArray(packagesRes.data) &&
+        packagesRes.data.length > 0
+      ) {
+        const formattedPackages = packagesRes.data
+          .filter(Boolean)
+          .map((p, idx) => ({
+            id: String(p.id || idx + 1),
+
+            name: p.name || p.title || `Plan ${idx + 1}`,
+
+            price: p.price || p.amount || "₹0",
+
+            duration: p.duration || p.validity || "",
+
+            recommended: !!(p.recommended || p.is_recommended || idx === 1),
+
+            features: Array.isArray(p.features)
+              ? p.features
+              : Array.isArray(p.benefits)
+                ? p.benefits
+                : [],
+          }));
+
+        setPackages(formattedPackages);
+      }
+
+      /* =====================================================
+         PREMIUM MEMBERS
+      ===================================================== */
+
+      if (premiumRes?.success === 1 && Array.isArray(premiumRes.data)) {
+        const formattedPremium = premiumRes.data
+          .filter(Boolean)
+          .map((m, idx) => ({
+            id: String(m.id || m.user_id || idx + 1),
+
+            name: m.name || m.first_name || m.full_name || `Member ${idx + 1}`,
+
+            memberId:
+              m.member_id ||
+              m.memberId ||
+              m.member_code ||
+              String(m.id || m.user_id || ""),
+
+            age: m.age || 25,
+
+            profession: m.profession || m.occupation || "Professional",
+
+            location: m.location || m.city || m.residing_in || "Telangana",
+
+            image: resolveImage(m.photo || m.profile_photo || m.image, idx),
+          }));
+
+        setPremiumMembers(formattedPremium);
+      }
+
+      /* =====================================================
+         NEW MEMBERS
+      ===================================================== */
+
+      if (newMembersRes?.success === 1 && Array.isArray(newMembersRes.data)) {
+        const formattedNewMembers = newMembersRes.data
+          .filter(Boolean)
+          .map((m, idx) => ({
+            id: String(m.id || m.user_id || idx + 1),
+
+            name: m.name || m.first_name || m.full_name || `Member ${idx + 1}`,
+
+            age: m.age || 25,
+
+            profession: m.profession || m.occupation || "Professional",
+
+            location: m.location || m.city || m.residing_in || "Telangana",
+
+            joinedText: m.joined_text || m.joined_on || "New",
+
+            image: resolveImage(m.photo || m.profile_photo || m.image, idx),
+          }));
+
+        setNewMembers(formattedNewMembers);
+      }
+
+      /* =====================================================
+         HOW IT WORKS
+      ===================================================== */
+
+      if (howItWorksRes?.success === 1 && Array.isArray(howItWorksRes.data)) {
+        const formattedSteps = howItWorksRes.data
+          .filter(Boolean)
+          .map((s, idx) => ({
+            id: String(s.id || idx + 1),
+
+            step: s.step || s.order || idx + 1,
+
+            icon:
+              s.icon ||
+              [
+                "person-add-outline",
+                "search-outline",
+                "chatbubbles-outline",
+                "heart-outline",
+              ][idx % 4],
+
+            title: s.title || s.name || `Step ${idx + 1}`,
+
+            description: s.description || s.subtitle || "",
+          }));
+
+        setHowItWorks(formattedSteps);
+      }
+
+      /* =====================================================
+         BLOGS
+      ===================================================== */
+
+      if (
+        blogsRes?.success === 1 &&
+        Array.isArray(blogsRes.data) &&
+        blogsRes.data.length > 0
+      ) {
+        const cleanText = (text) =>
+          String(text || "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const formattedBlogs = blogsRes.data.filter(Boolean).map((b, idx) => ({
+          id: String(b.id || idx + 1),
+
+          slug: b.slug || null,
+
+          title: b.title || b.name || `Blog ${idx + 1}`,
+
+          excerpt: cleanText(b.short_description || b.description),
+
+          category: b.category_name || b.category || "",
+
+          readTime: b.read_time || b.readTime || "",
+
+          image: resolveImage(
+            b.banner || b.image || b.cover_image || b.photo,
+            idx,
+          ),
+        }));
+
+        setBlogs(formattedBlogs);
+      }
+
+      /* =====================================================
+         REVIEWS
+      ===================================================== */
+
+      if (
+        reviewsRes?.success === 1 &&
+        Array.isArray(reviewsRes.data) &&
+        reviewsRes.data.length > 0
+      ) {
+        const formattedReviews = reviewsRes.data
+          .filter(Boolean)
+          .map((r, idx) => ({
+            id: String(r.id || idx + 1),
+
+            name:
+              r.name || r.reviewer_name || r.user_name || `Member ${idx + 1}`,
+
+            rating: Number(r.rating || r.stars || 5),
+
+            comment: r.comment || r.review || r.message || "",
+
+            image: resolveImage(r.photo || r.image || r.avatar, idx),
+          }));
+
+        setReviews(formattedReviews);
+      }
+
+      /* =====================================================
+         BANNERS
+      ===================================================== */
+
+      if (
+        bannerRes?.success === 1 &&
+        Array.isArray(bannerRes.data) &&
+        bannerRes.data.length > 0
+      ) {
+        const formattedBanners = bannerRes.data
+          .filter(Boolean)
+          .map((b, idx) => ({
+            id: String(b.id || idx + 1),
+
+            image: resolveImage(
+              b.image || b.image_url || b.photo || b.banner_image,
+              idx,
+            ),
+
+            route: b.route || b.link || b.deep_link || null,
+          }));
+
+        setBanners(formattedBanners);
+
+        setActiveBannerIndex(0);
+      } else {
+        setBanners([]);
+      }
+    } catch (err) {
+      console.log("loadHomeData Error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  /* =====================================================
+     LOAD DATA
+  ===================================================== */
+
+  React.useEffect(() => {
+    loadHomeData(false);
+  }, []);
+
+  /* =====================================================
+     NAVIGATION
+  ===================================================== */
+
+  const openSearch = () => {
+    navigation.navigate("Search");
   };
 
   const openPremium = () => {
-    router.push("/profilecompletion");
+    navigation.navigate("Premium");
   };
 
   const openPremiumBenefits = () => {
-    router.push("/premium-benfits");
-  };
-
-  const openMatchesdetail = () => {
-    router.push("/matchesdetail");
-  };
-
-  const openRecommendedProfiles = () => {
-    router.push("/recommendedprofiles");
+    navigation.navigate("PremiumBenefits");
   };
 
   const openProfile = (id) => {
-    router.push(`/profile/${id}`);
+    navigation.navigate("MatchesDetail", {
+      id: String(id),
+    });
   };
+
+  const openPackages = () => {
+    navigation.navigate("Packages");
+  };
+
+  const openHappyStories = () => {
+    navigation.navigate("HappyStories");
+  };
+
+  const openBlogs = () => {
+    navigation.navigate("Blogs");
+  };
+
+  const openBlog = (blog) => {
+    navigation.navigate("BlogDetail", {
+      slug: blog.slug || String(blog.id),
+    });
+  };
+
+  const openReviews = () => {
+    navigation.navigate("Reviews");
+  };
+
+  /* =====================================================
+     BANNER PRESS
+  ===================================================== */
+
+  const handleBannerPress = (banner) => {
+    if (banner?.route) {
+      navigation.navigate(banner.route);
+    } else {
+      openPremium();
+    }
+  };
+
+  /* =====================================================
+     BANNER SCROLL
+  ===================================================== */
+
+  const handleBannerScroll = (event) => {
+    const slideWidth = event.nativeEvent.layoutMeasurement.width;
+
+    const offset = event.nativeEvent.contentOffset.x;
+
+    if (!slideWidth) {
+      return;
+    }
+
+    const index = Math.round(offset / slideWidth);
+
+    setActiveBannerIndex(index);
+  };
+
+  /* =====================================================
+     UI
+  ===================================================== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -216,43 +779,30 @@ export default function HomeScreen() {
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadHomeData(true)}
+            colors={[COLORS.red]}
+            tintColor={COLORS.red}
+          />
+        }
       >
-        {/* =================================================
+        {/* =====================================================
             HEADER
-        ================================================= */}
+        ===================================================== */}
 
         <View style={styles.header}>
-
-          {/* MENU */}
-
-          <TouchableOpacity
-            style={styles.menuButton}
-            activeOpacity={0.7}
-          >
-            <Feather
-              name="menu"
-              size={28}
-              color={COLORS.red}
-            />
+          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
+            <Feather name="menu" size={28} color={COLORS.red} />
           </TouchableOpacity>
 
-          {/* LOGO + TITLE */}
-
           <View style={styles.headerCenter}>
-
             <View style={styles.logoRow}>
-
-              <Image
-                source={LOGO}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+              <Image source={LOGO} style={styles.logo} resizeMode="contain" />
 
               <View style={styles.brandContainer}>
-
-                <Text style={styles.brandName}>
-                  MUDHIRAJ
-                </Text>
+                <Text style={styles.brandName}>MUDHIRAJ</Text>
 
                 <View style={styles.brandDividerRow}>
                   <View style={styles.smallLine} />
@@ -263,215 +813,233 @@ export default function HomeScreen() {
                     color={COLORS.gold}
                   />
 
-                  <Text style={styles.brandMatrimony}>
-                    MATRIMONY
-                  </Text>
+                  <Text style={styles.brandMatrimony}>MATRIMONY</Text>
 
                   <MaterialCommunityIcons
                     name="ornament-variant"
                     size={13}
                     color={COLORS.gold}
                     style={{
-                      transform: [{ scaleX: -1 }],
+                      transform: [
+                        {
+                          scaleX: -1,
+                        },
+                      ],
                     }}
                   />
 
                   <View style={styles.smallLine} />
                 </View>
-
               </View>
             </View>
 
             <Text style={styles.tagline}>
               మన బంధం.. మన సంప్రదాయం.. మన ముదిరాజ్
             </Text>
-
           </View>
 
-          {/* NOTIFICATION */}
-
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={openNotifications}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={27}
-              color={COLORS.text}
-            />
-
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                3
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-        </View>
-
-        {/* =================================================
-            SEARCH
-        ================================================= */}
-
-        <View style={styles.searchBox}>
-
-          <Ionicons
-            name="search-outline"
-            size={27}
-            color={COLORS.gray}
-          />
-
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name, location or profession"
-            placeholderTextColor={COLORS.lightGray}
-          />
-
-          <TouchableOpacity
-            style={styles.filterButton}
-            activeOpacity={0.8}
-            onPress={() => router.push("/search")}
-          >
-            <Ionicons
-              name="options-outline"
-              size={24}
-              color={COLORS.darkRed}
-            />
-          </TouchableOpacity>
-
-        </View>
-
-
-        {/* =================================================
-    PREMIUM HERO BANNER
-================================================= */}
-
-        <TouchableOpacity
-          style={styles.heroCard}
-          onPress={openPremium}
-          activeOpacity={0.95}
-        >
-          <Image
-            source={HERO_IMAGE}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-
-        {/* =================================================
-            QUICK STATS
-        ================================================= */}
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsContainer}
-        >
-
-          {QUICK_STATS.map((item) => (
+          <View style={styles.headerActionsRow}>
             <TouchableOpacity
-              key={item.id}
-              style={styles.statCard}
-              activeOpacity={0.8}
-              onPress={() => router.push(item.route)}
+              style={styles.headerIconButton}
+              onPress={openSearch}
+              activeOpacity={0.7}
             >
+              <Ionicons name="search-outline" size={25} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-              <View style={styles.statIconContainer}>
+        {/* =====================================================
+            HERO BANNER
+        ===================================================== */}
 
-                <Ionicons
-                  name={item.icon}
-                  size={28}
-                  color={item.color}
+        {banners.length > 0 ? (
+          <View style={styles.heroCard}>
+            <ScrollView
+              ref={bannerScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleBannerScroll}
+            >
+              {banners.map((banner) => (
+                <TouchableOpacity
+                  key={banner.id}
+                  activeOpacity={0.95}
+                  onPress={() => handleBannerPress(banner)}
+                  style={{
+                    width: width - 28,
+                  }}
+                >
+                  <Image
+                    source={banner.image}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {banners.length > 1 && (
+              <View style={styles.bannerDots}>
+                {banners.map((banner, idx) => (
+                  <View
+                    key={banner.id}
+                    style={[
+                      styles.bannerDot,
+                      idx === activeBannerIndex && styles.bannerDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.heroCard}
+            onPress={openPremium}
+            activeOpacity={0.95}
+          >
+            <Image
+              source={HERO_IMAGE}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        )}
+
+        {/* =====================================================
+            PREMIUM MEMBERS
+        ===================================================== */}
+
+        {premiumMembers.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <FontAwesome5
+                  name="crown"
+                  size={14}
+                  color={COLORS.gold}
+                  style={{
+                    marginRight: 6,
+                  }}
                 />
 
-                {item.count !== undefined && (
-                  <View style={styles.statBadge}>
-                    <Text style={styles.statBadgeText}>
-                      {item.count}
-                    </Text>
-                  </View>
-                )}
-
+                <Text style={styles.sectionTitle}>Premium Members</Text>
               </View>
+            </View>
 
-              <Text style={styles.statLabel}>
-                {item.label}
-              </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {premiumMembers.map((member) => (
+                <PremiumMemberCard
+                  key={member.id}
+                  member={member}
+                  onPress={() => openProfile(member.id)}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
 
-            </TouchableOpacity>
-          ))}
+        {/* =====================================================
+            NEW MEMBERS
+        ===================================================== */}
 
-        </ScrollView>
+        {newMembers.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons
+                  name="sparkles"
+                  size={15}
+                  color={COLORS.gold}
+                  style={{
+                    marginRight: 6,
+                  }}
+                />
 
-        {/* =================================================
-            RECOMMENDED MATCHES HEADER
-        ================================================= */}
+                <Text style={styles.sectionTitle}>New Members</Text>
+              </View>
+            </View>
 
-        <View style={styles.sectionHeader}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {newMembers.map((member) => (
+                <NewMemberCard
+                  key={member.id}
+                  member={member}
+                  onPress={() => openProfile(member.id)}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
 
-          <Text style={styles.sectionTitle}>
-            Recommended Matches
-          </Text>
+        {/* =====================================================
+            MEMBERSHIP PLANS
+        ===================================================== */}
 
-          <TouchableOpacity
-            onPress={() => openRecommendedProfiles()}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.seeAll}>
-              See All
-            </Text>
-          </TouchableOpacity>
+        {packages.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <FontAwesome5
+                  name="gem"
+                  size={13}
+                  color={COLORS.red}
+                  style={{
+                    marginRight: 6,
+                  }}
+                />
 
-        </View>
+                <Text style={styles.sectionTitle}>Membership Plans</Text>
+              </View>
+            </View>
 
-        {/* =================================================
-            MATCH CARDS
-        ================================================= */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {packages.map((pkg) => (
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onPress={openPremiumBenefits}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.matchesContainer}
-        >
-
-          {MATCHES.map((match) => (
-            <MatchCard
-              key={match.id}
-              match={match}
-              onPress={() => openMatchesdetail(match.id)}
-            />
-          ))}
-
-        </ScrollView>
-
-        {/* =================================================
+        {/* =====================================================
             PREMIUM BANNER
-        ================================================= */}
+        ===================================================== */}
 
         <LinearGradient
-          colors={[
-            "#FFF1C5",
-            "#FFD84D",
-            "#FFC400",
-          ]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
+          colors={["#FFF1C5", "#FFD84D", "#FFC400"]}
+          start={{
+            x: 0,
+            y: 0.5,
+          }}
+          end={{
+            x: 1,
+            y: 0.5,
+          }}
           style={styles.premiumBanner}
         >
-
           <View style={styles.premiumCrown}>
-
-            <FontAwesome5
-              name="crown"
-              size={28}
-              color={COLORS.gold}
-            />
-
+            <FontAwesome5 name="crown" size={28} color={COLORS.gold} />
           </View>
 
           <View style={styles.premiumTextContainer}>
-
             <Text style={styles.premiumTitle}>
               Go Premium, Get Better Matches
             </Text>
@@ -480,219 +1048,505 @@ export default function HomeScreen() {
               Unlock all features & connect with
             </Text>
 
-            <Text style={styles.premiumSubtitle}>
-              the right life partner
-            </Text>
-
+            <Text style={styles.premiumSubtitle}>the right life partner</Text>
           </View>
 
           <TouchableOpacity
             style={styles.upgradeNowButton}
-            onPress={() => openPremiumBenefits()}
+            onPress={openPremiumBenefits}
             activeOpacity={0.85}
           >
+            <Text style={styles.upgradeNowText}>Upgrade Now</Text>
 
-            <Text style={styles.upgradeNowText}>
-              Upgrade Now
-            </Text>
-
-            <Ionicons
-              name="chevron-forward"
-              size={19}
-              color="#FFFFFF"
-            />
-
+            <Ionicons name="chevron-forward" size={19} color={COLORS.white} />
           </TouchableOpacity>
-
         </LinearGradient>
-        {/* =================================================
-    WHY CHOOSE
-================================================= */}
+
+        {/* =====================================================
+            HAPPY STORIES
+        ===================================================== */}
+
+        {happyStories.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons
+                  name="heart-circle"
+                  size={16}
+                  color={COLORS.red}
+                  style={{
+                    marginRight: 6,
+                  }}
+                />
+
+                <Text style={styles.sectionTitle}>Happy Stories</Text>
+              </View>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {happyStories.map((story) => (
+                <StoryCard key={story.id} story={story} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* =====================================================
+            HOW IT WORKS
+        ===================================================== */}
+
+        {howItWorks.length > 0 && (
+          <>
+            <View style={styles.whyHeader}>
+              <View style={styles.whyLine} />
+
+              <Text style={styles.whyTitle}>How It Works</Text>
+
+              <View style={styles.whyLine} />
+            </View>
+
+            <View style={styles.stepsRow}>
+              {howItWorks.map((step, idx) => (
+                <View key={step.id} style={styles.stepCard}>
+                  <View style={styles.stepNumberBadge}>
+                    <Text style={styles.stepNumberText}>{step.step}</Text>
+                  </View>
+
+                  <View style={styles.stepIconCircle}>
+                    {isImageUrl(step.icon) ? (
+                      <Image
+                        source={{
+                          uri: step.icon,
+                        }}
+                        style={styles.stepIconImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons name={step.icon} size={24} color={COLORS.red} />
+                    )}
+                  </View>
+
+                  <Text style={styles.stepTitle}>{step.title}</Text>
+
+                  {!!step.description && (
+                    <Text style={styles.stepDescription} numberOfLines={3}>
+                      {step.description}
+                    </Text>
+                  )}
+
+                  {idx < howItWorks.length - 1 && (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={COLORS.gold}
+                      style={styles.stepConnector}
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* =====================================================
+            BLOGS
+        ===================================================== */}
+
+        {blogs.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons
+                  name="newspaper-outline"
+                  size={16}
+                  color={COLORS.red}
+                  style={{
+                    marginRight: 6,
+                  }}
+                />
+
+                <Text style={styles.sectionTitle}>Latest Blogs</Text>
+              </View>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {blogs.map((blog) => (
+                <BlogCard
+                  key={blog.id}
+                  blog={blog}
+                  onPress={() => openBlog(blog)}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* =====================================================
+            WHY CHOOSE
+        ===================================================== */}
 
         <View style={styles.whyHeader}>
           <View style={styles.whyLine} />
 
-          <Text style={styles.whyTitle}>
-            Why Choose Mudhiraj Matrimony?
-          </Text>
+          <Text style={styles.whyTitle}>Why Choose Mudhiraj Matrimony?</Text>
 
           <View style={styles.whyLine} />
         </View>
 
         <View style={styles.whyGrid}>
-          {WHY_CHOOSE.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.whyCard}
-              activeOpacity={0.8}
-              onPress={() => router.push(item.route || "/privacy-policy")}
-            >
+          {whyChooseList.map((item) => (
+            <View key={item.id} style={styles.whyCard}>
               <View
                 style={[
                   styles.whyIcon,
                   {
                     backgroundColor:
-                      item.color === COLORS.gold
-                        ? "#FFF7DF"
-                        : "#FFF0EF",
+                      item.color === COLORS.gold ? "#FFF7DF" : "#FFF0EF",
                   },
                 ]}
               >
-                <Ionicons
-                  name={item.icon}
-                  size={30}
-                  color={item.color}
-                />
+                {isImageUrl(item.icon) ? (
+                  <Image
+                    source={{
+                      uri: item.icon,
+                    }}
+                    style={styles.whyIconImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Ionicons name={item.icon} size={30} color={item.color} />
+                )}
               </View>
 
-              <Text style={styles.whyCardTitle}>
-                {item.title}
-              </Text>
+              <Text style={styles.whyCardTitle}>{item.title}</Text>
 
-              <Text style={styles.whyCardSubtitle}>
+              <Text style={styles.whyCardSubtitle} numberOfLines={3}>
                 {item.subtitle}
               </Text>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
-        {/* =================================================
-            BOTTOM SPACE
-        ================================================= */}
 
-        <View style={{ height: 25 }} />
+        {/* =====================================================
+            REVIEWS
+        ===================================================== */}
 
+        {reviews.length > 0 && (
+          <>
+            <View
+              style={[
+                styles.sectionHeader,
+                {
+                  marginTop: 22,
+                },
+              ]}
+            >
+              <View style={styles.sectionTitleRow}>
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={16}
+                  color={COLORS.red}
+                  style={{
+                    marginRight: 6,
+                  }}
+                />
+
+                <Text style={styles.sectionTitle}>What Our Members Say</Text>
+              </View>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.matchesContainer}
+            >
+              {reviews.map((review) => (
+                <ReviewCard key={review.id} review={review} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        <View
+          style={{
+            height: 25,
+          }}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 /* =====================================================
-   MATCH CARD
+   PREMIUM MEMBER CARD
 ===================================================== */
 
-function MatchCard({ match, onPress }) {
+function PremiumMemberCard({ member, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.premiumMemberCard}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <Image
+        source={member.image}
+        style={styles.premiumMemberImage}
+        resizeMode="cover"
+      />
+
+      <View style={styles.premiumCrownBadge}>
+        <FontAwesome5 name="crown" size={12} color={COLORS.darkRed} />
+      </View>
+
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.45)", "rgba(0,0,0,0.88)"]}
+        style={styles.premiumMemberOverlay}
+      >
+        <Text style={styles.premiumMemberName} numberOfLines={1}>
+          {member.name}
+        </Text>
+
+        <Text style={styles.premiumMemberId} numberOfLines={1}>
+          Member ID:{" "}
+          <Text style={styles.premiumMemberIdBold}>{member.memberId}</Text>
+        </Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+/* =====================================================
+   NEW MEMBER CARD
+===================================================== */
+
+function NewMemberCard({ member, onPress }) {
   return (
     <TouchableOpacity
       style={styles.matchCard}
       onPress={onPress}
       activeOpacity={0.9}
     >
-
-      {/* IMAGE */}
-
       <View style={styles.matchImageContainer}>
-
         <Image
-          source={match.image}
+          source={member.image}
           style={styles.matchImage}
           resizeMode="cover"
         />
 
-        {/* ONLINE */}
+        <View style={styles.newBadge}>
+          <Ionicons name="sparkles" size={10} color={COLORS.white} />
 
-        <View style={styles.onlineBadge}>
-
-          <View style={styles.onlineDot} />
-
-          <Text style={styles.onlineText}>
-            Online
-          </Text>
-
+          <Text style={styles.newBadgeText}>{member.joinedText}</Text>
         </View>
-
-        {/* HEART */}
-
-        <TouchableOpacity
-          style={styles.heartButton}
-          activeOpacity={0.8}
-        >
-
-          <Ionicons
-            name="heart"
-            size={19}
-            color={COLORS.red}
-          />
-
-        </TouchableOpacity>
-
       </View>
 
-      {/* INFO */}
-
       <View style={styles.matchInfo}>
-
         <View style={styles.nameRow}>
-
-          <Text
-            style={styles.matchName}
-            numberOfLines={1}
-          >
-            {match.name}, {match.age}
+          <Text style={styles.matchName} numberOfLines={1}>
+            {member.name}, {member.age}
           </Text>
 
-          <Ionicons
-            name="checkmark-circle"
-            size={16}
-            color={COLORS.green}
-          />
-
+          <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
         </View>
 
-        <Text
-          style={styles.profession}
-          numberOfLines={1}
-        >
-          {match.profession}
+        <Text style={styles.profession} numberOfLines={1}>
+          {member.profession}
         </Text>
 
         <View style={styles.detailRow}>
+          <Ionicons name="location-outline" size={14} color={COLORS.red} />
 
-          <Ionicons
-            name="location-outline"
-            size={14}
-            color={COLORS.red}
-          />
-
-          <Text
-            style={styles.detailText}
-            numberOfLines={1}
-          >
-            {match.location}
+          <Text style={styles.detailText} numberOfLines={1}>
+            {member.location}
           </Text>
-
         </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
-        <View style={styles.detailRow}>
+/* =====================================================
+   PACKAGE CARD
+===================================================== */
 
-          <Ionicons
-            name="resize-outline"
-            size={14}
-            color={COLORS.red}
-          />
+function PackageCard({ pkg, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.packageCard,
+        pkg.recommended && styles.packageCardRecommended,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      {pkg.recommended && (
+        <View style={styles.packageBadge}>
+          <FontAwesome5 name="star" size={9} color={COLORS.white} />
 
-          <Text style={styles.detailText}>
-            {match.height}
-          </Text>
-
-          <Ionicons
-            name="people-outline"
-            size={14}
-            color={COLORS.red}
-            style={{ marginLeft: 8 }}
-          />
-
-          <Text
-            style={styles.detailText}
-            numberOfLines={1}
-          >
-            {match.religion}
-          </Text>
-
+          <Text style={styles.packageBadgeText}>BEST VALUE</Text>
         </View>
+      )}
 
+      <Text style={styles.packageName}>{pkg.name}</Text>
+
+      <View style={styles.packagePriceRow}>
+        <Text style={styles.packagePrice}>{pkg.price}</Text>
+
+        {!!pkg.duration && (
+          <Text style={styles.packageDuration}>/ {pkg.duration}</Text>
+        )}
       </View>
 
+      <View style={styles.packageFeaturesList}>
+        {pkg.features.map((feature, idx) => (
+          <View key={idx} style={styles.packageFeatureRow}>
+            <Ionicons name="checkmark-circle" size={15} color={COLORS.green} />
+
+            <Text style={styles.packageFeatureText} numberOfLines={2}>
+              {feature}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.packageCTAButton}>
+        <Text style={styles.packageCTAText}>Choose Plan</Text>
+      </View>
     </TouchableOpacity>
+  );
+}
+
+/* =====================================================
+   HAPPY STORY CARD
+===================================================== */
+
+function StoryCard({ story }) {
+  return (
+    <View style={styles.storyCard}>
+      <Image
+        source={story.image}
+        style={styles.storyImage}
+        resizeMode="cover"
+      />
+
+      <View style={styles.storyContent}>
+        <Ionicons
+          name="heart"
+          size={16}
+          color={COLORS.red}
+          style={{
+            marginBottom: 6,
+          }}
+        />
+
+        <Text style={styles.storyText} numberOfLines={4}>
+          {story.story}
+        </Text>
+
+        <View style={styles.storyFooterRow}>
+          <Text style={styles.storyCoupleName} numberOfLines={1}>
+            {story.coupleName}
+          </Text>
+
+          {!!story.marriedDate && (
+            <View style={styles.storyDateBadge}>
+              <Text style={styles.storyDateText}>{story.marriedDate}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/* =====================================================
+   BLOG CARD
+===================================================== */
+
+function BlogCard({ blog, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.blogCard}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <Image source={blog.image} style={styles.blogImage} resizeMode="cover" />
+
+      <View style={styles.blogContent}>
+        {!!blog.category && (
+          <View style={styles.blogCategoryTag}>
+            <Text style={styles.blogCategoryText}>{blog.category}</Text>
+          </View>
+        )}
+
+        <Text style={styles.blogTitle} numberOfLines={2}>
+          {blog.title}
+        </Text>
+
+        <Text style={styles.blogExcerpt} numberOfLines={2}>
+          {blog.excerpt}
+        </Text>
+
+        {!!blog.readTime && (
+          <View style={styles.blogMetaRow}>
+            <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+
+            <Text style={styles.blogMetaText}>{blog.readTime}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/* =====================================================
+   REVIEW CARD
+===================================================== */
+
+function ReviewCard({ review }) {
+  return (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewHeaderRow}>
+        <Image
+          source={review.image}
+          style={styles.reviewAvatar}
+          resizeMode="cover"
+        />
+
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
+          <Text style={styles.reviewName} numberOfLines={1}>
+            {review.name}
+          </Text>
+
+          <View style={styles.starRow}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Ionicons
+                key={i}
+                name={i <= review.rating ? "star" : "star-outline"}
+                size={12}
+                color={COLORS.gold}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.reviewComment} numberOfLines={4}>
+        {review.comment}
+      </Text>
+    </View>
   );
 }
 
@@ -701,11 +1555,6 @@ function MatchCard({ match, onPress }) {
 ===================================================== */
 
 const styles = StyleSheet.create({
-
-  /* =================================================
-     MAIN
-  ================================================= */
-
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -722,9 +1571,7 @@ const styles = StyleSheet.create({
     paddingBottom: 92,
   },
 
-  /* =================================================
-     HEADER
-  ================================================= */
+  /* HEADER */
 
   header: {
     minHeight: 92,
@@ -798,84 +1645,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  notificationButton: {
-    width: 42,
+  headerActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  headerIconButton: {
+    width: 40,
     height: 48,
     justifyContent: "center",
-    alignItems: "flex-end",
+    alignItems: "center",
     position: "relative",
   },
 
-  notificationBadge: {
-    position: "absolute",
-    top: 2,
-    right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.brightRed,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-  },
-
-  notificationBadgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-
-  /* =================================================
-     SEARCH
-  ================================================= */
-
-  searchBox: {
-    height: 58,
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
-    borderRadius: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 15,
-    paddingRight: 5,
-    marginBottom: 15,
-  },
-
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    fontSize: 15,
-    color: COLORS.text,
-    paddingHorizontal: 10,
-  },
-
-  filterButton: {
-    width: 47,
-    height: 47,
-    borderRadius: 13,
-    backgroundColor: "#FFD548",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /* =================================================
-    PREMIUM HERO BANNER
- ================================================= */
+  /* HERO */
 
   heroCard: {
     width: "100%",
-
     height: width * 0.43,
-
     borderRadius: 14,
-
     overflow: "hidden",
-
     marginTop: 2,
-    marginBottom: 10,
-
+    marginBottom: 18,
     backgroundColor: "#C90000",
 
     shadowColor: "#8B0000",
@@ -895,82 +1686,40 @@ const styles = StyleSheet.create({
   heroImage: {
     width: "100%",
     height: "100%",
+  },
 
+  bannerDots: {
     position: "absolute",
-    top: 0,
-    left: 0,
+    bottom: 10,
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 5,
   },
 
-  /* =================================================
-     QUICK STATS
-  ================================================= */
-
-  statsContainer: {
-    paddingVertical: 2,
-    paddingBottom: 18,
-    paddingRight: 8,
+  bannerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.55)",
   },
 
-  statCard: {
-    width: 82,
-    height: 88,
+  bannerDotActive: {
+    width: 16,
     backgroundColor: COLORS.white,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 9,
-
-    shadowColor: COLORS.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
   },
 
-  statIconContainer: {
-    position: "relative",
-    marginBottom: 7,
-  },
-
-  statBadge: {
-    position: "absolute",
-    top: -9,
-    right: -13,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    paddingHorizontal: 4,
-    backgroundColor: COLORS.brightRed,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  statBadgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-
-  statLabel: {
-    color: COLORS.text,
-    fontSize: 11.5,
-    fontWeight: "700",
-  },
-
-  /* =================================================
-     SECTION HEADER
-  ================================================= */
+  /* SECTION */
 
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
+  },
+
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   sectionTitle: {
@@ -985,38 +1734,47 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  /* =================================================
-     MATCHES
-  ================================================= */
-
   matchesContainer: {
     paddingBottom: 18,
     paddingRight: 10,
   },
 
+  /* MEMBER CARD */
+
   matchCard: {
     width: width < 400 ? 220 : 230,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 17,
+
     overflow: "hidden",
+
     marginRight: 12,
 
     borderWidth: 1,
+
     borderColor: COLORS.border,
 
     shadowColor: COLORS.shadow,
+
     shadowOffset: {
       width: 0,
       height: 3,
     },
+
     shadowOpacity: 0.12,
+
     shadowRadius: 7,
+
     elevation: 3,
   },
 
   matchImageContainer: {
     width: "100%",
+
     height: width < 300 ? 205 : 180,
+
     position: "relative",
   },
 
@@ -1025,51 +1783,32 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 
-  onlineBadge: {
+  newBadge: {
     position: "absolute",
+
     top: 10,
     left: 10,
-    backgroundColor: "#11A84A",
+
+    backgroundColor: COLORS.green,
+
     borderRadius: 12,
+
     paddingHorizontal: 8,
     paddingVertical: 5,
+
     flexDirection: "row",
+
     alignItems: "center",
+
+    gap: 4,
   },
 
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.white,
-    marginRight: 4,
-  },
-
-  onlineText: {
+  newBadgeText: {
     color: COLORS.white,
+
     fontSize: 10,
+
     fontWeight: "800",
-  },
-
-  heartButton: {
-    position: "absolute",
-    right: 9,
-    bottom: -15,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.white,
-    justifyContent: "center",
-    alignItems: "center",
-
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 4,
   },
 
   matchInfo: {
@@ -1080,66 +1819,182 @@ const styles = StyleSheet.create({
 
   nameRow: {
     flexDirection: "row",
+
     alignItems: "center",
+
     marginBottom: 4,
   },
 
   matchName: {
     color: COLORS.text,
+
     fontSize: 16,
+
     fontWeight: "900",
+
     marginRight: 4,
+
     maxWidth: "88%",
   },
 
   profession: {
     color: COLORS.gray,
+
     fontSize: 12,
+
     marginBottom: 7,
   },
 
   detailRow: {
     flexDirection: "row",
+
     alignItems: "center",
+
     marginTop: 4,
   },
 
   detailText: {
     flexShrink: 1,
+
     color: COLORS.gray,
+
     fontSize: 10.5,
+
     marginLeft: 4,
   },
 
-  /* =================================================
-     PREMIUM
-  ================================================= */
+  /* PREMIUM MEMBER */
+
+  premiumMemberCard: {
+    width: 170,
+    height: 260,
+
+    borderRadius: 18,
+
+    overflow: "hidden",
+
+    marginRight: 12,
+
+    backgroundColor: COLORS.text,
+
+    shadowColor: "#000",
+
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    shadowOpacity: 0.2,
+
+    shadowRadius: 8,
+
+    elevation: 4,
+  },
+
+  premiumMemberImage: {
+    width: "100%",
+    height: "100%",
+
+    position: "absolute",
+  },
+
+  premiumCrownBadge: {
+    position: "absolute",
+
+    top: 10,
+    right: 10,
+
+    width: 28,
+    height: 28,
+
+    borderRadius: 14,
+
+    backgroundColor: COLORS.gold,
+
+    justifyContent: "center",
+
+    alignItems: "center",
+  },
+
+  premiumMemberOverlay: {
+    position: "absolute",
+
+    left: 0,
+    right: 0,
+    bottom: 0,
+
+    paddingHorizontal: 14,
+
+    paddingTop: 40,
+
+    paddingBottom: 14,
+  },
+
+  premiumMemberName: {
+    color: COLORS.white,
+
+    fontSize: 16,
+
+    fontWeight: "900",
+
+    marginBottom: 4,
+  },
+
+  premiumMemberId: {
+    color: "rgba(255,255,255,0.85)",
+
+    fontSize: 11,
+
+    fontWeight: "500",
+  },
+
+  premiumMemberIdBold: {
+    color: COLORS.white,
+
+    fontWeight: "800",
+  },
+
+  /* PREMIUM BANNER */
 
   premiumBanner: {
     minHeight: 105,
+
     borderRadius: 18,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     paddingHorizontal: 10,
+
     marginBottom: 20,
 
     shadowColor: COLORS.gold,
+
     shadowOffset: {
       width: 0,
       height: 3,
     },
+
     shadowOpacity: 0.2,
+
     shadowRadius: 7,
+
     elevation: 3,
   },
 
   premiumCrown: {
     width: 60,
     height: 60,
+
     borderRadius: 30,
+
     backgroundColor: COLORS.darkRed,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     marginRight: 9,
   },
 
@@ -1149,108 +2004,670 @@ const styles = StyleSheet.create({
 
   premiumTitle: {
     color: COLORS.darkRed,
+
     fontSize: width < 400 ? 13 : 14,
+
     fontWeight: "900",
+
     marginBottom: 3,
   },
 
   premiumSubtitle: {
     color: COLORS.text,
+
     fontSize: 10.5,
+
     lineHeight: 15,
   },
 
   upgradeNowButton: {
     minWidth: 95,
+
     height: 43,
+
     backgroundColor: COLORS.red,
+
     borderRadius: 12,
+
     paddingHorizontal: 8,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   upgradeNowText: {
     color: COLORS.white,
+
     fontSize: 11.5,
+
     fontWeight: "900",
+
     marginRight: 2,
   },
 
-  /* =================================================
-     WHY CHOOSE
-  ================================================= */
+  /* WHY HEADER */
 
   whyHeader: {
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginBottom: 13,
   },
 
   whyLine: {
     flex: 1,
+
     height: 1,
+
     backgroundColor: COLORS.gold,
+
     opacity: 0.7,
   },
 
   whyTitle: {
     color: COLORS.text,
+
     fontSize: width < 400 ? 15 : 17,
+
     fontWeight: "900",
+
     marginHorizontal: 9,
+
     textAlign: "center",
   },
 
+  /* HOW IT WORKS */
+
+  stepsRow: {
+    flexDirection: "row",
+
+    justifyContent: "space-between",
+
+    marginBottom: 24,
+  },
+
+  stepCard: {
+    width: "23.5%",
+
+    alignItems: "center",
+
+    position: "relative",
+  },
+
+  stepNumberBadge: {
+    position: "absolute",
+
+    top: -4,
+
+    right: "18%",
+
+    width: 18,
+    height: 18,
+
+    borderRadius: 9,
+
+    backgroundColor: COLORS.darkRed,
+
+    justifyContent: "center",
+
+    alignItems: "center",
+
+    zIndex: 1,
+  },
+
+  stepNumberText: {
+    color: COLORS.white,
+
+    fontSize: 9,
+
+    fontWeight: "900",
+  },
+
+  stepIconCircle: {
+    width: 52,
+    height: 52,
+
+    borderRadius: 26,
+
+    backgroundColor: "#FFF0EF",
+
+    justifyContent: "center",
+
+    alignItems: "center",
+
+    marginBottom: 8,
+
+    overflow: "hidden",
+  },
+
+  stepIconImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  stepTitle: {
+    color: COLORS.text,
+
+    fontSize: 11.5,
+
+    fontWeight: "800",
+
+    textAlign: "center",
+
+    marginBottom: 3,
+  },
+
+  stepDescription: {
+    color: COLORS.gray,
+
+    fontSize: 9.5,
+
+    textAlign: "center",
+
+    lineHeight: 13,
+  },
+
+  stepConnector: {
+    position: "absolute",
+
+    top: 18,
+
+    right: -14,
+  },
+
+  /* WHY GRID */
+
   whyGrid: {
     flexDirection: "row",
+
     justifyContent: "space-between",
   },
 
   whyCard: {
     width: "23.5%",
+
     minHeight: 112,
+
     backgroundColor: COLORS.white,
+
     borderRadius: 14,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     paddingVertical: 10,
 
     shadowColor: COLORS.shadow,
+
     shadowOffset: {
       width: 0,
       height: 2,
     },
+
     shadowOpacity: 0.08,
+
     shadowRadius: 5,
+
     elevation: 2,
   },
 
   whyIcon: {
     width: 48,
     height: 48,
+
     borderRadius: 24,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     marginBottom: 7,
+
+    overflow: "hidden",
+  },
+
+  whyIconImage: {
+    width: "100%",
+    height: "100%",
   },
 
   whyCardTitle: {
     color: COLORS.text,
+
     fontSize: 12,
+
     fontWeight: "900",
+
     textAlign: "center",
   },
 
   whyCardSubtitle: {
     color: COLORS.gray,
+
     fontSize: 9.5,
+
     textAlign: "center",
+
     marginTop: 2,
   },
 
+  /* PACKAGE */
+
+  packageCard: {
+    width: 215,
+
+    backgroundColor: COLORS.white,
+
+    borderRadius: 17,
+
+    padding: 16,
+
+    marginRight: 12,
+
+    marginTop: 8,
+
+    borderWidth: 1,
+
+    borderColor: COLORS.border,
+
+    shadowColor: COLORS.shadow,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.12,
+
+    shadowRadius: 7,
+
+    elevation: 3,
+  },
+
+  packageCardRecommended: {
+    borderWidth: 2,
+
+    borderColor: COLORS.gold,
+  },
+
+  packageBadge: {
+    position: "absolute",
+
+    top: -11,
+
+    alignSelf: "center",
+
+    backgroundColor: COLORS.darkRed,
+
+    borderRadius: 12,
+
+    paddingHorizontal: 10,
+
+    paddingVertical: 4,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 4,
+  },
+
+  packageBadgeText: {
+    color: COLORS.white,
+
+    fontSize: 9,
+
+    fontWeight: "800",
+  },
+
+  packageName: {
+    color: COLORS.text,
+
+    fontSize: 17,
+
+    fontWeight: "900",
+
+    marginTop: 6,
+
+    marginBottom: 4,
+  },
+
+  packagePriceRow: {
+    flexDirection: "row",
+
+    alignItems: "baseline",
+
+    marginBottom: 12,
+  },
+
+  packagePrice: {
+    color: COLORS.red,
+
+    fontSize: 22,
+
+    fontWeight: "900",
+  },
+
+  packageDuration: {
+    color: COLORS.gray,
+
+    fontSize: 12,
+
+    marginLeft: 4,
+  },
+
+  packageFeaturesList: {
+    marginBottom: 14,
+  },
+
+  packageFeatureRow: {
+    flexDirection: "row",
+
+    alignItems: "flex-start",
+
+    marginBottom: 7,
+
+    gap: 6,
+  },
+
+  packageFeatureText: {
+    flex: 1,
+
+    color: COLORS.text,
+
+    fontSize: 11.5,
+
+    lineHeight: 15,
+  },
+
+  packageCTAButton: {
+    height: 42,
+
+    backgroundColor: COLORS.red,
+
+    borderRadius: 11,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
+  packageCTAText: {
+    color: COLORS.white,
+
+    fontSize: 13,
+
+    fontWeight: "800",
+  },
+
+  /* STORY */
+
+  storyCard: {
+    width: 260,
+
+    backgroundColor: COLORS.white,
+
+    borderRadius: 17,
+
+    overflow: "hidden",
+
+    marginRight: 12,
+
+    borderWidth: 1,
+
+    borderColor: COLORS.border,
+
+    shadowColor: COLORS.shadow,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.1,
+
+    shadowRadius: 6,
+
+    elevation: 2,
+  },
+
+  storyImage: {
+    width: "100%",
+    height: 130,
+  },
+
+  storyContent: {
+    padding: 14,
+  },
+
+  storyText: {
+    color: COLORS.text,
+
+    fontSize: 12,
+
+    lineHeight: 17,
+
+    marginBottom: 10,
+  },
+
+  storyFooterRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+  },
+
+  storyCoupleName: {
+    color: COLORS.darkRed,
+
+    fontSize: 12.5,
+
+    fontWeight: "800",
+
+    flexShrink: 1,
+
+    marginRight: 6,
+  },
+
+  storyDateBadge: {
+    backgroundColor: "#FFF0EF",
+
+    borderRadius: 8,
+
+    paddingHorizontal: 8,
+
+    paddingVertical: 3,
+  },
+
+  storyDateText: {
+    color: COLORS.red,
+
+    fontSize: 10,
+
+    fontWeight: "700",
+  },
+
+  /* BLOG */
+
+  blogCard: {
+    width: 220,
+
+    backgroundColor: COLORS.white,
+
+    borderRadius: 17,
+
+    overflow: "hidden",
+
+    marginRight: 12,
+
+    borderWidth: 1,
+
+    borderColor: COLORS.border,
+
+    shadowColor: COLORS.shadow,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.1,
+
+    shadowRadius: 6,
+
+    elevation: 2,
+  },
+
+  blogImage: {
+    width: "100%",
+    height: 110,
+  },
+
+  blogContent: {
+    padding: 12,
+  },
+
+  blogCategoryTag: {
+    alignSelf: "flex-start",
+
+    backgroundColor: COLORS.lightGold,
+
+    borderRadius: 8,
+
+    paddingHorizontal: 8,
+
+    paddingVertical: 3,
+
+    marginBottom: 6,
+  },
+
+  blogCategoryText: {
+    color: COLORS.darkRed,
+
+    fontSize: 9.5,
+
+    fontWeight: "800",
+  },
+
+  blogTitle: {
+    color: COLORS.text,
+
+    fontSize: 13,
+
+    fontWeight: "800",
+
+    marginBottom: 5,
+
+    lineHeight: 17,
+  },
+
+  blogExcerpt: {
+    color: COLORS.gray,
+
+    fontSize: 10.5,
+
+    lineHeight: 14,
+
+    marginBottom: 8,
+  },
+
+  blogMetaRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 4,
+  },
+
+  blogMetaText: {
+    color: COLORS.gray,
+
+    fontSize: 10,
+
+    fontWeight: "600",
+  },
+
+  /* REVIEWS */
+
+  reviewCard: {
+    width: 240,
+
+    backgroundColor: COLORS.white,
+
+    borderRadius: 17,
+
+    padding: 18,
+
+    marginRight: 12,
+
+    borderWidth: 1,
+
+    borderColor: COLORS.border,
+
+    shadowColor: COLORS.shadow,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.1,
+
+    shadowRadius: 6,
+
+    elevation: 2,
+  },
+
+  reviewHeaderRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    marginBottom: 9,
+
+    gap: 10,
+  },
+
+  reviewAvatar: {
+    width: 42,
+    height: 42,
+
+    borderRadius: 21,
+  },
+
+  reviewName: {
+    color: COLORS.text,
+
+    fontSize: 13,
+
+    fontWeight: "800",
+
+    marginBottom: 3,
+  },
+
+  starRow: {
+    flexDirection: "row",
+
+    gap: 2,
+  },
+
+  reviewComment: {
+    color: COLORS.gray,
+
+    fontSize: 11.5,
+
+    lineHeight: 16,
+  },
 });

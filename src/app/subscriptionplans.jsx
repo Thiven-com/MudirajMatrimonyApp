@@ -1,9 +1,6 @@
 
 import {
-  Dimensions,
   Image,
-  Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,

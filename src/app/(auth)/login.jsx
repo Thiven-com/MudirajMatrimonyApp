@@ -1,17 +1,10 @@
-import {
-  FontAwesome,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
-
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 
 import {
   Dimensions,
   Image,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -21,7 +14,15 @@ import {
   View,
 } from "react-native";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+// React Native CLI icons
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Native CLI gradient
+import LinearGradient from "react-native-linear-gradient";
+
+// React Navigation
+import { useNavigation } from "@react-navigation/native";
 
 import Svg, {
   Defs,
@@ -31,9 +32,8 @@ import Svg, {
 } from "react-native-svg";
 
 import { Colors } from "../../constants/colors";
-import { Fonts, FontSizes } from "../../constants/Fonts";
-import { login } from "../../utils/Functions";
-
+import { Fonts } from "../../constants/Fonts";
+import { sendLoginOtp } from "../../utils/Functions";
 
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -48,9 +48,8 @@ const CTRL_Y = HEADER_HEIGHT * 0.05;
 const MOBILE_LENGTH = 10;
 
 export default function LoginScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [mobile, setMobile] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
 
@@ -130,17 +129,42 @@ export default function LoginScreen() {
     // SUCCESS
     // ==========================================
 
-    router.push({
-      pathname: "/otp",
-      params: {
+    try {
+      const result = await sendLoginOtp(cleanedMobile);
+      console.log("sendLoginOtp() raw result:", JSON.stringify(result));
+
+      // User not found - redirect to registration
+      if (
+        result?.userNotFound === true ||
+        result?.message?.toLowerCase().includes("user not found")
+      ) {
+        setErrorText("📝 No account found. Redirecting to registration...");
+        setTimeout(() => {
+          navigation.replace("Register");
+        }, 2000);
+        return;
+      }
+
+      if (result?.result === false || result?.success === 0) {
+        setErrorText(result?.message || "Unable to send OTP right now.");
+        return;
+      }
+
+      // OTP sent successfully
+      navigation.navigate("Otp", {
         mobile: cleanedMobile,
-      },
-    });
-  } catch (error) {
-    console.log(
-      "Login API Error:",
-      error
-    );
+        sessionToken: result?.sessionToken || "",
+      });
+    } catch (error) {
+      console.log("login Error:", error);
+      setErrorText(
+        error?.message ||
+          "Something went wrong while sending the OTP. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
     setErrorText(
       error?.message ||
@@ -149,10 +173,10 @@ export default function LoginScreen() {
   } finally {
     setLoading(false);
   }
-};
+ };
  
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -162,159 +186,118 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* ================= HEADER SECTION ================= */}
-        <View style={styles.headerContainer}>
-          <HeaderWave width={SCREEN_WIDTH} />
- 
-          {/* Center Logo Ring */}
-          <View style={styles.logoRing}>
-            <Image
-              source={LOGO}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
- 
-        {/* ================= TITLE & TAGLINE ================= */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>MUDIRAJ WORLD</Text>
- 
-          <View style={styles.taglineRow}>
-            <View style={styles.taglineLine} />
-            <Text style={styles.taglineText}>
-              Connect | Unite | Grow Together
-            </Text>
-            <View style={styles.taglineLine} />
-          </View>
- 
-          <View style={styles.flourishRow}>
-            <View style={styles.flourishDot} />
-            <Text style={styles.flourishSymbol}>❖</Text>
-            <View style={styles.flourishDot} />
-          </View>
-        </View>
- 
-        {/* ================= WELCOME SECTION ================= */}
-        <Text style={styles.welcomeText}>Welcome Back!</Text>
-        <View style={styles.subRow}>
-          <Text style={styles.subOrnament}>✦—</Text>
-          <Text style={styles.subText}>Login to continue to your account</Text>
-          <Text style={styles.subOrnament}>—✦</Text>
-        </View>
- 
-        {/* ================= FORM CARD ================= */}
-        <View style={styles.formCard}>
-          <View style={styles.inputRow}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="call" size={17} color={Colors.primaryRed} />
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Mobile Number"
-              placeholderTextColor={Colors.placeholder}
-              keyboardType="phone-pad"
-              value={mobile}
-              onChangeText={setMobile}
-              underlineColorAndroid="transparent"
-            />
-            <View style={styles.countryCode}>
-              <Text style={styles.countryCodeText}>+91</Text>
-              <Ionicons
-                name="chevron-down"
-                size={15}
-                color={Colors.textMuted}
+        <View style={styles.shell}>
+          <View style={styles.headerContainer}>
+            <HeaderWave width={SCREEN_WIDTH} />
+            <View style={styles.logoRing}>
+              <Image
+                source={LOGO}
+                style={styles.logoImage}
+                resizeMode="contain"
               />
             </View>
           </View>
-        </View>
- 
-        {/* ================= REMEMBER ME ================= */}
-        <View style={styles.optionsRow}>
-          <TouchableOpacity
-            style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
-            >
-              {rememberMe && (
-                <Ionicons name="checkmark" size={12} color={Colors.white} />
-              )}
-            </View>
-            <Text style={styles.rememberText}>Remember me</Text>
-          </TouchableOpacity>
-        </View>
- 
-        {/* ================= LOGIN BUTTON ================= */}
-        {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
 
-        <TouchableOpacity
-          style={styles.loginButtonTouchable}
-          activeOpacity={0.85}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          <LinearGradient
-            colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-          >
-            <MaterialCommunityIcons
-              name="login"
-              size={22}
-              color={Colors.white}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.loginButtonText}>
-              {loading ? "SENDING..." : "SEND OTP"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
- 
-        {/* ================= OR DIVIDER ================= */}
-        <View style={styles.orRow}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.orLine} />
-        </View>
- 
-        {/* ================= SOCIAL BUTTONS ================= */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <FontAwesome name="google" size={18} color={Colors.google} />
-            <Text style={styles.socialText}>Continue with Google</Text>
-          </TouchableOpacity>
- 
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <Ionicons name="logo-facebook" size={20} color={Colors.facebook} />
-            <Text style={styles.socialText}>Continue with Facebook</Text>
-          </TouchableOpacity>
-        </View>
- 
-        {/* ================= REGISTER LINK ================= */}
-        <View style={styles.registerRow}>
-          <Text style={styles.registerText}>Don't have an account? </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/register")}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.registerLink}>Register Now</Text>
-          </TouchableOpacity>
-        </View>
- 
-        {/* ================= HERITAGE WATERMARK FOOTER ================= */}
-        <View style={styles.skylineWrapper}>
-          <HeritageSkyline />
+          <View style={styles.titleBlock}>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Login to continue your journey</Text>
+          </View>
+
+          <View style={styles.tabRow}>
+            <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+              <Text style={styles.tabText}>Register</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.formWrapper}>
+            <Text style={styles.fieldLabel}>Mobile Number</Text>
+            <View style={styles.inputWrap}>
+              <View style={styles.codeWrap}>
+                <Text style={styles.codeText}>+91</Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={14}
+                  color={Colors.textMuted}
+                />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter mobile number"
+                placeholderTextColor={Colors.placeholder}
+                keyboardType="phone-pad"
+                value={mobile}
+                onChangeText={setMobile}
+                underlineColorAndroid="transparent"
+              />
+            </View>
+
+            {errorText ? (
+              <Text style={styles.errorText}>{errorText}</Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.loginButtonTouchable}
+              activeOpacity={0.85}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <LinearGradient
+                colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.loginButton,
+                  loading && styles.loginButtonDisabled,
+                ]}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loading ? "PROCESSING..." : "Send OTP"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>or continue with</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <FontAwesome name="google" size={28} color={Colors.google} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <Ionicons
+                  name="logo-facebook"
+                  size={28}
+                  color={Colors.facebook}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <Ionicons name="logo-apple" size={28} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.registerRow}>
+              <Text style={styles.registerText}>
+                New to Mudiraj World Matrimony?{" "}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                <Text style={styles.registerLink}>Register</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
-}
- 
+
+
 // ================= HEADER WAVE (reversed: edges dip, center arches up) =================
 // Same geometry as the OTP screen's HeaderWave.
 function HeaderWave({ width }) {
@@ -420,32 +403,42 @@ function HeritageSkyline() {
     </View>
   );
 }
+
  
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.primaryRed,
   },
   scrollContent: {
-    alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 30,
+    backgroundColor: Colors.primaryRed,
   },
- 
-  /* ===== HEADER STYLES ===== */
+  shell: {
+    width: "100%",
+    minHeight: "100%",
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+    paddingBottom: 18,
+  },
   headerContainer: {
     width: "100%",
-    height: HEADER_HEIGHT,
+    height: 240,
     position: "relative",
     alignItems: "center",
-    marginBottom: 55,
+    backgroundColor: Colors.primaryRed,
   },
   logoRing: {
     position: "absolute",
-    top: PEAK_Y - 62,
+    top: 54,
     alignSelf: "center",
-    width: 126,
-    height: 126,
-    borderRadius: 63,
+    width: 124,
+    height: 124,
+    borderRadius: 62,
     backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
@@ -458,181 +451,112 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   logoImage: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
- 
-  /* ===== TITLE & TAGLINE ===== */
-  titleContainer: {
+
+  titleBlock: {
     alignItems: "center",
-    marginTop: 6,
+    marginTop: 80,
   },
   title: {
-    fontSize: FontSizes.title,
-    fontFamily: Fonts.display.extraBold,
-    color: Colors.primaryRedDark,
-    letterSpacing: 1.5,
-    textAlign: "center",
-  },
-  taglineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  taglineLine: {
-    width: 32,
-    height: 1.2,
-    backgroundColor: Colors.gold,
-    marginHorizontal: 8,
-  },
-  taglineText: {
-    fontSize: FontSizes.tagline,
-    fontFamily: Fonts.body.medium,
-    color: Colors.textPrimary,
-    letterSpacing: 0.3,
-  },
-  flourishRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  flourishDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.gold,
-    marginHorizontal: 3,
-  },
-  flourishSymbol: {
-    color: Colors.gold,
-    fontSize: 9,
-  },
- 
-  /* ===== WELCOME SECTION ===== */
-  welcomeText: {
-    fontSize: FontSizes.welcome,
+    fontSize: 38,
     fontFamily: Fonts.display.bold,
-    color: Colors.textPrimary,
-    marginTop: 18,
+    color: Colors.primaryRed,
     textAlign: "center",
   },
-  subRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    marginBottom: 20,
-  },
-  subOrnament: {
-    color: Colors.gold,
-    fontSize: FontSizes.subtitle,
-    marginHorizontal: 6,
-  },
-  subText: {
-    fontSize: FontSizes.subtitle,
+  subtitle: {
+    marginTop: 8,
+    fontSize: 18,
     fontFamily: Fonts.body.regular,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+
+  tabRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "72%",
+    marginTop: 24,
+    marginBottom: 18,
+    alignSelf: "center",
+    paddingHorizontal: 8,
+  },
+  tabText: {
+    fontSize: 26,
+    fontFamily: Fonts.body.bold,
     color: Colors.textMuted,
+    paddingBottom: 10,
   },
- 
-  /* ===== FORM CARD ===== */
-  formCard: {
-    width: "90%",
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
+  tabActive: {
+    color: Colors.primaryRed,
+    borderBottomWidth: 3,
+    borderBottomColor: Colors.primaryRed,
+    paddingHorizontal: 2,
   },
-  inputRow: {
+
+  formWrapper: {
+    width: "88%",
+    alignSelf: "center",
+  },
+  fieldLabel: {
+    fontSize: 18,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: "#D5D5D5",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    marginBottom: 18,
+    minHeight: 56,
   },
-  cardDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: Colors.iconCircleBg,
+  codeWrap: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+    paddingRight: 10,
+    borderRightWidth: 1,
+    borderRightColor: "#D5D5D5",
+    marginRight: 10,
+    minHeight: 28,
+  },
+  codeText: {
+    fontSize: 18,
+    color: Colors.textPrimary,
+    fontFamily: Fonts.body.medium,
+    marginRight: 8,
   },
   input: {
     flex: 1,
-    fontSize: FontSizes.input,
-    fontFamily: Fonts.body.regular,
+    fontSize: 18,
     color: Colors.textPrimary,
-    paddingVertical: Platform.OS === "ios" ? 8 : 4,
-    paddingHorizontal: 0,
+    fontFamily: Fonts.body.regular,
+    paddingVertical: Platform.OS === "ios" ? 14 : 10,
     ...Platform.select({
       web: {
         outlineStyle: "none",
       },
     }),
   },
-  countryCode: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 6,
-  },
-  countryCodeText: {
-    fontSize: FontSizes.tagline,
+  errorText: {
+    color: Colors.error,
+    textAlign: "center",
+    fontSize: 14,
     fontFamily: Fonts.body.medium,
-    color: Colors.textSecondary,
-    marginRight: 3,
+    marginBottom: 12,
   },
- 
-  /* ===== OPTIONS ROW ===== */
-  optionsRow: {
-    width: "90%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 14,
-    marginBottom: 20,
-  },
-  rememberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.checkboxBorder,
-    marginRight: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.white,
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primaryRed,
-  },
-  rememberText: {
-    fontSize: FontSizes.label,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textSecondary,
-  },
-  forgotText: {
-    fontSize: FontSizes.label,
-    fontFamily: Fonts.body.semiBold,
-    color: Colors.primaryRed,
-  },
- 
-  /* ===== LOGIN BUTTON ===== */
   loginButtonTouchable: {
-    width: "90%",
-    height: 50,
-    borderRadius: 12,
+    width: "100%",
+    height: 58,
+    borderRadius: 16,
     overflow: "hidden",
     elevation: 4,
     shadowColor: "#E67E00",
@@ -643,93 +567,75 @@ const styles = StyleSheet.create({
   loginButton: {
     width: "100%",
     height: "100%",
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
   loginButtonText: {
     color: Colors.white,
-    fontSize: FontSizes.button,
+    fontSize: 28,
     fontFamily: Fonts.body.bold,
-    letterSpacing: 1.2,
+    letterSpacing: 0.5,
   },
- 
-  /* ===== OR DIVIDER ===== */
   orRow: {
-    width: "90%",
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: 22,
   },
   orLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.dividerGold,
+    backgroundColor: "#D8D8D8",
   },
   orText: {
     marginHorizontal: 12,
-    color: Colors.gold,
-    fontFamily: Fonts.body.bold,
-    fontSize: 12,
-    letterSpacing: 0.5,
+    color: Colors.textMuted,
+    fontFamily: Fonts.body.medium,
+    fontSize: 16,
   },
- 
-  /* ===== SOCIAL BUTTONS ===== */
   socialRow: {
-    width: "90%",
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 14,
   },
   socialButton: {
     flex: 1,
-    flexDirection: "row",
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: "#D8D8D8",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 1,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
   },
-  socialText: {
-    fontSize: FontSizes.social,
-    fontFamily: Fonts.body.medium,
-    color: Colors.textPrimary,
-    marginLeft: 8,
-  },
- 
-  /* ===== REGISTER ROW ===== */
   registerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 22,
-    marginBottom: 16,
+    marginTop: 28,
+    marginBottom: 10,
+    flexWrap: "wrap",
   },
   registerText: {
-    fontSize: FontSizes.link,
+    fontSize: 18,
     fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
   },
   registerLink: {
-    fontSize: FontSizes.link,
+    fontSize: 18,
     fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
   },
- 
-  /* ===== BOTTOM SKYLINE WATERMARK ===== */
   skylineWrapper: {
     width: "100%",
     alignItems: "center",
-    marginTop: 10,
-    opacity: 0.45,
+    marginTop: 8,
+    opacity: 0.6,
   },
   skylineSvgContainer: {
     width: SCREEN_WIDTH,

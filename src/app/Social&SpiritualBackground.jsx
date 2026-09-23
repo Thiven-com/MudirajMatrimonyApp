@@ -6,24 +6,27 @@ import {
 
 import {
   Alert,
+  BackHandler,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
   useFocusEffect,
-  useRouter,
-} from "expo-router";
+  useNavigation,
+} from "@react-navigation/native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   getMemberSpiritualBackground,
@@ -178,15 +181,12 @@ const extractResponseData = (
     return {};
   }
 
-  const visited =
-    new Set();
-
+  const visited = new Set();
 
   const search = (
     object,
     depth = 0
   ) => {
-
     if (
       !object ||
       typeof object !== "object" ||
@@ -196,38 +196,27 @@ const extractResponseData = (
       return null;
     }
 
-
     if (
       visited.has(object)
     ) {
       return null;
     }
 
-
     visited.add(object);
 
-
-    // ----------------------------------------------
     // Current object
-    // ----------------------------------------------
-
     if (
       hasSpiritualFields(object)
     ) {
       return object;
     }
 
-
-    // ----------------------------------------------
     // result
-    // ----------------------------------------------
-
     if (
       object.result &&
       typeof object.result === "object" &&
       !Array.isArray(object.result)
     ) {
-
       const resultData =
         search(
           object.result,
@@ -239,17 +228,12 @@ const extractResponseData = (
       }
     }
 
-
-    // ----------------------------------------------
     // data
-    // ----------------------------------------------
-
     if (
       object.data &&
       typeof object.data === "object" &&
       !Array.isArray(object.data)
     ) {
-
       const data =
         search(
           object.data,
@@ -261,17 +245,12 @@ const extractResponseData = (
       }
     }
 
-
-    // ----------------------------------------------
     // response
-    // ----------------------------------------------
-
     if (
       object.response &&
       typeof object.response === "object" &&
       !Array.isArray(object.response)
     ) {
-
       const responseData =
         search(
           object.response,
@@ -283,10 +262,8 @@ const extractResponseData = (
       }
     }
 
-
     return null;
   };
-
 
   return (
     search(response) || {}
@@ -302,7 +279,6 @@ const getFieldValue = (
   data,
   keys
 ) => {
-
   if (
     !data ||
     typeof data !== "object"
@@ -310,31 +286,25 @@ const getFieldValue = (
     return "-";
   }
 
-
   for (
     const key of keys
   ) {
-
     const value =
       data?.[key];
-
 
     if (
       value !== null &&
       value !== undefined &&
       value !== ""
     ) {
-
       const text =
         getObjectName(value);
-
 
       if (text) {
         return text;
       }
     }
   }
-
 
   return "-";
 };
@@ -345,10 +315,8 @@ const getFieldValue = (
 // ======================================================
 
 const SocialBackgroundScreen = () => {
-
-  const router =
-    useRouter();
-
+  const navigation =
+    useNavigation();
 
   // ====================================================
   // STATE
@@ -359,18 +327,15 @@ const SocialBackgroundScreen = () => {
     setSocialBackground,
   ] = useState({});
 
-
   const [
     loading,
     setLoading,
   ] = useState(true);
 
-
   const [
     refreshing,
     setRefreshing,
   ] = useState(false);
-
 
   const loadingRef =
     useRef(false);
@@ -383,7 +348,6 @@ const SocialBackgroundScreen = () => {
   const getToken =
     useCallback(
       async () => {
-
         const tokenKeys = [
           "access_token",
           "accessToken",
@@ -391,22 +355,18 @@ const SocialBackgroundScreen = () => {
           "userToken",
         ];
 
-
         for (
           const key of tokenKeys
         ) {
-
           const token =
             await AsyncStorage.getItem(
               key
             );
 
-
           if (token) {
             return token;
           }
         }
-
 
         return null;
       },
@@ -421,24 +381,19 @@ const SocialBackgroundScreen = () => {
   const loadSpiritualBackground =
     useCallback(
       async (showLoader = true) => {
-
         if (
           loadingRef.current
         ) {
           return;
         }
 
-
         loadingRef.current = true;
-
 
         if (showLoader) {
           setLoading(true);
         }
 
-
         try {
-
           console.log(
             "======================================"
           );
@@ -463,23 +418,18 @@ const SocialBackgroundScreen = () => {
           const token =
             await getToken();
 
-
           if (!token) {
-
             console.log(
               "TOKEN NOT FOUND"
             );
-
 
             Alert.alert(
               "Session Expired",
               "Please login again."
             );
 
-
             return;
           }
-
 
           console.log(
             "TOKEN EXISTS: true"
@@ -506,17 +456,14 @@ const SocialBackgroundScreen = () => {
             "======================================"
           );
 
-
           const response =
             await getMemberSpiritualBackground(
               token
             );
 
-
           console.log(
             "FULL SPIRITUAL BACKGROUND RESPONSE:"
           );
-
 
           console.log(
             JSON.stringify(
@@ -536,11 +483,9 @@ const SocialBackgroundScreen = () => {
               response
             );
 
-
           console.log(
             "EXTRACTED SPIRITUAL DATA:"
           );
-
 
           console.log(
             JSON.stringify(
@@ -557,22 +502,17 @@ const SocialBackgroundScreen = () => {
 
           let cachedData = {};
 
-
           try {
-
             const cacheString =
               await AsyncStorage.getItem(
                 SOCIAL_BACKGROUND_CACHE
               );
 
-
             if (cacheString) {
-
               cachedData =
                 JSON.parse(
                   cacheString
                 );
-
 
               console.log(
                 "======================================"
@@ -581,7 +521,6 @@ const SocialBackgroundScreen = () => {
               console.log(
                 "SOCIAL BACKGROUND CACHE:"
               );
-
 
               console.log(
                 JSON.stringify(
@@ -595,14 +534,11 @@ const SocialBackgroundScreen = () => {
                 "======================================"
               );
             }
-
           } catch (cacheError) {
-
             console.error(
               "CACHE PARSE ERROR:",
               cacheError
             );
-
 
             cachedData = {};
           }
@@ -818,7 +754,6 @@ const SocialBackgroundScreen = () => {
             "FINAL SOCIAL BACKGROUND DATA:"
           );
 
-
           console.log(
             JSON.stringify(
               finalData,
@@ -826,7 +761,6 @@ const SocialBackgroundScreen = () => {
               2
             )
           );
-
 
           console.log(
             "======================================"
@@ -853,13 +787,11 @@ const SocialBackgroundScreen = () => {
             )
           );
 
-
           console.log(
             "SOCIAL BACKGROUND SCREEN UPDATED"
           );
 
         } catch (error) {
-
           console.error(
             "======================================"
           );
@@ -868,7 +800,6 @@ const SocialBackgroundScreen = () => {
             "SPIRITUAL BACKGROUND SCREEN ERROR:",
             error
           );
-
 
           console.error(
             "ERROR RESPONSE:",
@@ -880,7 +811,6 @@ const SocialBackgroundScreen = () => {
             )
           );
 
-
           console.error(
             "======================================"
           );
@@ -891,25 +821,20 @@ const SocialBackgroundScreen = () => {
           // ----------------------------------------
 
           try {
-
             const cacheString =
               await AsyncStorage.getItem(
                 SOCIAL_BACKGROUND_CACHE
               );
 
-
             if (cacheString) {
-
               const cachedData =
                 JSON.parse(
                   cacheString
                 );
 
-
               console.log(
                 "USING CACHE FALLBACK"
               );
-
 
               console.log(
                 JSON.stringify(
@@ -919,14 +844,11 @@ const SocialBackgroundScreen = () => {
                 )
               );
 
-
               setSocialBackground(
                 cachedData
               );
             }
-
           } catch (cacheError) {
-
             console.error(
               "CACHE FALLBACK ERROR:",
               cacheError
@@ -934,21 +856,17 @@ const SocialBackgroundScreen = () => {
           }
 
         } finally {
-
           setLoading(false);
-
           setRefreshing(false);
-
           loadingRef.current = false;
         }
-
       },
       [getToken]
     );
 
 
   // ====================================================
-  // SCREEN FOCUS
+  // SCREEN FOCUS + BACK HANDLER
   // ====================================================
 
   useFocusEffect(
@@ -959,23 +877,37 @@ const SocialBackgroundScreen = () => {
           "SOCIAL BACKGROUND SCREEN FOCUS"
         );
 
-
         loadSpiritualBackground(
           true
         );
 
 
-        return () => {
+        // Android hardware back button
 
+        const onBackPress = () => {
+          navigation.goBack();
+          return true;
+        };
+
+        const subscription =
+          BackHandler.addEventListener(
+            "hardwareBackPress",
+            onBackPress
+          );
+
+
+        return () => {
           console.log(
             "SOCIAL BACKGROUND SCREEN BLURRED"
           );
 
+          subscription.remove();
         };
 
       },
       [
         loadSpiritualBackground,
+        navigation,
       ]
     )
   );
@@ -988,21 +920,17 @@ const SocialBackgroundScreen = () => {
   const handleRefresh =
     useCallback(
       async () => {
-
         if (
           loadingRef.current
         ) {
           return;
         }
 
-
         setRefreshing(true);
-
 
         await loadSpiritualBackground(
           false
         );
-
       },
       [
         loadSpiritualBackground,
@@ -1024,7 +952,6 @@ const SocialBackgroundScreen = () => {
       ]
     );
 
-
   const caste =
     getFieldValue(
       socialBackground,
@@ -1034,7 +961,6 @@ const SocialBackgroundScreen = () => {
         "caste",
       ]
     );
-
 
   const subCaste =
     getFieldValue(
@@ -1047,7 +973,6 @@ const SocialBackgroundScreen = () => {
       ]
     );
 
-
   const ethnicity =
     getFieldValue(
       socialBackground,
@@ -1055,7 +980,6 @@ const SocialBackgroundScreen = () => {
         "ethnicity",
       ]
     );
-
 
   const personalValue =
     getFieldValue(
@@ -1065,7 +989,6 @@ const SocialBackgroundScreen = () => {
         "personalValue",
       ]
     );
-
 
   const familyValue =
     getFieldValue(
@@ -1077,7 +1000,6 @@ const SocialBackgroundScreen = () => {
         "familyValue",
       ]
     );
-
 
   const communityValue =
     getFieldValue(
@@ -1097,43 +1019,43 @@ const SocialBackgroundScreen = () => {
     {
       label: "Religion",
       value: religion,
-      icon: "flower-outline",
+      icon: "sun",
     },
 
     {
       label: "Caste",
       value: caste,
-      icon: "people-outline",
+      icon: "users",
     },
 
     {
       label: "Sub Caste",
       value: subCaste,
-      icon: "planet-outline",
+      icon: "globe",
     },
 
     {
       label: "Ethnicity",
       value: ethnicity,
-      icon: "globe-outline",
+      icon: "map-pin",
     },
 
     {
       label: "Personal Values",
       value: personalValue,
-      icon: "star-outline",
+      icon: "star",
     },
 
     {
       label: "Family Value",
       value: familyValue,
-      icon: "home-outline",
+      icon: "home",
     },
 
     {
       label: "Community Value",
       value: communityValue,
-      icon: "people-circle-outline",
+      icon: "users",
     },
   ];
 
@@ -1150,15 +1072,12 @@ const SocialBackgroundScreen = () => {
           "OPENING EDIT SOCIAL BACKGROUND"
         );
 
-
-        router.push(
-          "/EditSocialBackground"
+        navigation.navigate(
+          "EditSocialBackground"
         );
-
       },
-      [router]
+      [navigation]
     );
-
 
 
   // ====================================================
@@ -1207,12 +1126,12 @@ const SocialBackgroundScreen = () => {
               }
               activeOpacity={0.7}
               onPress={() =>
-                router.back()
+                navigation.goBack()
               }
             >
 
-              <Ionicons
-                name="chevron-back"
+              <Feather
+                name="chevron-left"
                 size={25}
                 color="#D92332"
               />
@@ -1238,9 +1157,9 @@ const SocialBackgroundScreen = () => {
               onPress={handleEdit}
             >
 
-              <Ionicons
-                name="ellipsis-vertical"
-                size={19}
+              <Feather
+                name="more-vertical"
+                size={20}
                 color="#D92332"
               />
 
@@ -1280,7 +1199,7 @@ const SocialBackgroundScreen = () => {
                     }
                   >
 
-                    <Ionicons
+                    <Feather
                       name={item.icon}
                       size={18}
                       color="#D92332"
@@ -1323,9 +1242,9 @@ const SocialBackgroundScreen = () => {
 
                   {/* ARROW */}
 
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
+                  <Feather
+                    name="chevron-right"
+                    size={15}
                     color="#999999"
                   />
 
@@ -1349,12 +1268,11 @@ const SocialBackgroundScreen = () => {
             onPress={handleEdit}
           >
 
-            <Ionicons
-              name="pencil"
-              size={15}
+            <FontAwesome5
+              name="edit"
+              size={14}
               color="#FFFFFF"
             />
-
 
             <Text
               style={
@@ -1557,6 +1475,4 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-
- 
 });

@@ -1,21 +1,37 @@
+import { useCallback, useEffect, useState } from "react";
+
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+import LinearGradient from "react-native-linear-gradient";
+
+import { useNavigation } from "@react-navigation/native";
+
+import { getChatList, getToken } from "../../utils/Functions";
+
+/* =========================================================
+   DIMENSIONS
+========================================================= */
 
 const { width } = Dimensions.get("window");
+
+/* =========================================================
+   SPACING
+========================================================= */
 
 const SPACING = {
   xs: 4,
@@ -26,144 +42,291 @@ const SPACING = {
   xxl: 24,
 };
 
+/* =========================================================
+   COLORS
+========================================================= */
+
 const COLORS = {
   background: "#FAF7F3",
   white: "#FFFFFF",
+
   red: "#B70D09",
   darkRed: "#8D1713",
+
   gold: "#F5A400",
   goldDeep: "#FFB000",
   goldLight: "#FFF2CF",
+
   text: "#292321",
   gray: "#6B6259",
   mutedGray: "#8A8078",
+
   border: "#EFE4DA",
+
   green: "#149852",
   offlineGray: "#C9C0B8",
+
   badgeRed: "#E21B16",
+
   cardShadow: "#B8AAA0",
 };
 
-// ---- Replace with your real assets ----
-const LOGO = require("../../../assets/images/logo.png");
+/* =========================================================
+   AVATAR COLORS
+========================================================= */
+
+const AVATAR_PALETTE = [
+  "#B70D09",
+  "#8D1713",
+  "#C97B1D",
+  "#2E7D5B",
+  "#3A6EA5",
+  "#7C4A9E",
+  "#B25B8F",
+];
+
+/* =========================================================
+   GET AVATAR COLOR
+========================================================= */
+
+function getAvatarColor(name) {
+  if (!name) {
+    return COLORS.mutedGray;
+  }
+
+  let hash = 0;
+
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+
+/* =========================================================
+   GET INITIALS
+========================================================= */
+
+function getInitials(name) {
+  if (!name) {
+    return "?";
+  }
+
+  const parts = name.trim().split(/\s+/);
+
+  const first = parts[0]?.[0] ?? "";
+
+  const second = parts.length > 1 ? parts[parts.length - 1][0] : "";
+
+  return (first + second).toUpperCase();
+}
+
+/* =========================================================
+   FILTERS
+========================================================= */
 
 const FILTERS = [
-  { key: "all", label: "All Chats", icon: "chatbubble" },
-  { key: "unread", label: "Unread", icon: "chatbubble-outline", dot: COLORS.badgeRed },
-  { key: "online", label: "Online", icon: "ellipse", dotOnly: true, dot: COLORS.green },
-  { key: "favourites", label: "Favourites", icon: "star-outline" },
+  {
+    key: "all",
+    label: "All Chats",
+    icon: "chatbubble",
+  },
+
+  {
+    key: "unread",
+    label: "Unread",
+    icon: "chatbubble-outline",
+    dot: COLORS.badgeRed,
+  },
+
+  {
+    key: "online",
+    label: "Online",
+    icon: "ellipse",
+    dotOnly: true,
+    dot: COLORS.green,
+  },
+
+  {
+    key: "favourites",
+    label: "Favourites",
+    icon: "star-outline",
+  },
 ];
 
-const CHATS = [
-  {
-    id: "1",
-    name: "Priyanka",
-    profession: "Software Engineer",
-    lastMessage: "Hi! Thanks for showing interest in my profile.",
-    time: "10:30 AM",
-    unread: 2,
-    online: true,
+/* =========================================================
+   API RESPONSE -> CHAT MODEL
+========================================================= */
+
+function mapChat(item) {
+  return {
+    threadId: String(item.id ?? ""),
+
+    memberId: String(item.user_id ?? item.id ?? ""),
+
+    name: item.member_name ?? "",
+
+    profession: item.profession ?? "",
+
+    lastMessage: item.last_message ?? "",
+
+    time: item.last_message_time ?? "",
+
+    unread: Number(item.unseen_message_count) || 0,
+
+    online: item.active === 1,
+
     verified: true,
-    avatar: require("../../../assets/images/Match1.png"),
-  },
-  {
-    id: "2",
-    name: "Rohit",
-    profession: "Civil Engineer",
-    lastMessage: "Hello! How are you?",
-    time: "9:15 AM",
-    unread: 1,
-    online: true,
-    verified: true,
-    avatar: require("../../../assets/images/Match2.png"),
-  },
-  {
-    id: "3",
-    name: "Deepika",
-    profession: "Teacher",
-    lastMessage: "That's great 😊",
-    time: "Yesterday",
-    unread: 0,
-    online: false,
-    verified: true,
-    avatar: require("../../../assets/images/Match3.png"),
-  },
-  {
-    id: "4",
-    name: "Karthik",
-    profession: "Mechanical Engineer",
-    lastMessage: "Can we connect over a call?",
-    time: "Yesterday",
-    unread: 1,
-    online: false,
-    verified: true,
-    avatar: require("../../../assets/images/Match4.png"),
-  },
-  {
-    id: "5",
-    name: "Ananya",
-    profession: "Doctor",
-    lastMessage: "Thank you for your message.",
-    time: "Tue",
-    unread: 0,
-    online: false,
-    verified: true,
-    avatar: require("../../../assets/images/Match1.png"),
-  },
-  {
-    id: "6",
-    name: "Sandeep",
-    profession: "Business Analyst",
-    lastMessage: "Profile seems interesting.",
-    time: "Mon",
-    unread: 0,
-    online: false,
-    verified: true,
-    avatar: require("../../../assets/images/Match1.png"),
-  },
-];
+
+    avatarUrl: item.member_photo || null,
+  };
+}
+
+/* =========================================================
+   CHATS SCREEN
+========================================================= */
 
 export default function ChatsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
+
   const [activeFilter, setActiveFilter] = useState("all");
+
   const [search, setSearch] = useState("");
 
+  const [chats, setChats] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  /* =======================================================
+     LOAD CHATS
+  ======================================================= */
+
+  const loadChats = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setErrorMessage(null);
+
+    try {
+      const token = await getToken();
+
+      const result = await getChatList(token);
+
+      const isSuccess =
+        result?.success === 1 ||
+        result?.success === true ||
+        result?.result === true;
+
+      if (isSuccess) {
+        const rawChats =
+          result?.data?.chats ||
+          result?.chats ||
+          result?.data ||
+          (Array.isArray(result) ? result : []);
+
+        const mappedChats = Array.isArray(rawChats)
+          ? rawChats.map(mapChat)
+          : [];
+
+        setChats(mappedChats);
+      } else {
+        setErrorMessage(result?.message || "Unable to load chats.");
+      }
+    } catch (error) {
+      console.log("loadChats Error:", error);
+
+      setErrorMessage("Something went wrong loading your chats.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
   const handleBack = () => {
-    router.back();
+    navigation.goBack();
   };
+
+  /* =======================================================
+     OPEN CHAT
+  ======================================================= */
 
   const handleOpenChatting = (chat) => {
-  router.push({
-    pathname: "/chatting",
-    params: {
-      id: chat.id,
-      name: chat.name,
-      profession: chat.profession,
-      online: chat.online ? "true" : "false",
-    },
-  });
-};
+    navigation.navigate("ChatConversion", {
+      id: chat.memberId,
 
-  const handleUpgrade = () => {
-    router.push("/subscriptionplans");
+      threadId: chat.threadId,
+
+      name: chat.name,
+
+      profession: chat.profession,
+
+      online: chat.online ? "true" : "false",
+    });
   };
 
-  const filteredChats = CHATS.filter((chat) => {
-    const matchesSearch = chat.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  /* =======================================================
+     UPGRADE
+  ======================================================= */
 
-    if (!matchesSearch) return false;
+  const handleUpgrade = () => {
+    navigation.navigate("SubscriptionPlans");
+  };
 
-    if (activeFilter === "unread") return chat.unread > 0;
-    if (activeFilter === "online") return chat.online;
-    if (activeFilter === "favourites") return false; // wire up to real favourites data
+  /* =======================================================
+     SEARCH
+  ======================================================= */
+
+  const normalizedSearch = search.trim().toLowerCase();
+
+  /* =======================================================
+     FILTER CHAT DATA
+  ======================================================= */
+
+  const filteredChats = chats.filter((chat) => {
+    const matchesSearch =
+      !normalizedSearch || chat.name.toLowerCase().includes(normalizedSearch);
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (activeFilter === "unread") {
+      return chat.unread > 0;
+    }
+
+    if (activeFilter === "online") {
+      return chat.online;
+    }
+
+    if (activeFilter === "favourites") {
+      return false;
+    }
 
     return true;
   });
 
-
-  
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -174,21 +337,32 @@ export default function ChatsScreen() {
           style={styles.backButton}
           onPress={handleBack}
           activeOpacity={0.7}
+          hitSlop={{
+            top: 8,
+            bottom: 8,
+            left: 8,
+            right: 8,
+          }}
         >
-          <Ionicons name="arrow-back" size={26} color={COLORS.red} />
+          <Ionicons name="arrow-back" size={23} color={COLORS.red} />
         </TouchableOpacity>
 
-        <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
+        <Text style={styles.headerTitle}>Chats</Text>
+
+        <View style={styles.headerRightSpace} />
       </View>
+
+      {/* ================= TITLE ================= */}
 
       <View style={styles.titleBlock}>
         <Text style={styles.screenTitle}>Chats</Text>
+
         <Text style={styles.screenSubtitle}>
           Connect, Chat & Find your perfect match
         </Text>
       </View>
 
-      {/* ================= SEARCH BAR ================= */}
+      {/* ================= SEARCH ================= */}
 
       <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color={COLORS.mutedGray} />
@@ -199,6 +373,8 @@ export default function ChatsScreen() {
           placeholderTextColor={COLORS.mutedGray}
           value={search}
           onChangeText={setSearch}
+          returnKeyType="search"
+          autoCorrect={false}
         />
 
         <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.8}>
@@ -220,10 +396,7 @@ export default function ChatsScreen() {
 
           return (
             <TouchableOpacity
-              style={[
-                styles.filterChip,
-                active && styles.filterChipActive,
-              ]}
+              style={[styles.filterChip, active && styles.filterChipActive]}
               onPress={() => setActiveFilter(item.key)}
               activeOpacity={0.8}
             >
@@ -231,7 +404,9 @@ export default function ChatsScreen() {
                 <View
                   style={[
                     styles.filterDot,
-                    { backgroundColor: item.dot },
+                    {
+                      backgroundColor: item.dot,
+                    },
                   ]}
                 />
               ) : (
@@ -257,52 +432,132 @@ export default function ChatsScreen() {
 
       {/* ================= CHAT LIST ================= */}
 
-      <FlatList
-        data={filteredChats}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.chatList}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <ChatRow chat={item} onPress={() => handleOpenChatting(item.id)} />
-        )}
-        ListFooterComponent={
-          <LinearGradient
-            colors={[COLORS.darkRed, COLORS.red]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.premiumCard}
-          >
-            <View style={styles.crownCircle}>
-              <FontAwesome5 name="crown" size={22} color={COLORS.goldDeep} />
-            </View>
+      {loading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={COLORS.red} />
 
-            <View style={styles.premiumContent}>
-              <Text style={styles.premiumTitle}>
-                Go Premium, Get Better Connections
-              </Text>
-              <Text style={styles.premiumSubtitle}>
-                Chat unlimited & see who's interested in you.
-              </Text>
-            </View>
+          <Text style={styles.loadingText}>Loading chats...</Text>
+        </View>
+      ) : (
+        <FlatList
+          style={styles.chatFlatList}
+          data={filteredChats}
+          keyExtractor={(item) => item.threadId}
+          contentContainerStyle={[
+            styles.chatList,
+            filteredChats.length === 0 && styles.chatListEmpty,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadChats(true)}
+              colors={[COLORS.red]}
+              tintColor={COLORS.red}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              errorMessage={errorMessage}
+              onRetry={() => loadChats()}
+            />
+          }
+          renderItem={({ item }) => (
+            <ChatRow chat={item} onPress={() => handleOpenChatting(item)} />
+          )}
+          ListFooterComponent={
+            filteredChats.length > 0 ? (
+              <LinearGradient
+                colors={[COLORS.darkRed, COLORS.red]}
+                start={{
+                  x: 0,
+                  y: 0.5,
+                }}
+                end={{
+                  x: 1,
+                  y: 0.5,
+                }}
+                style={styles.premiumCard}
+              >
+                <View style={styles.crownCircle}>
+                  <FontAwesome5
+                    name="crown"
+                    size={22}
+                    color={COLORS.goldDeep}
+                  />
+                </View>
 
-            <TouchableOpacity
-              style={styles.premiumUpgradeButton}
-              activeOpacity={0.85}
-              onPress={handleUpgrade}
-            >
-              <Text style={styles.premiumUpgradeText}>Upgrade Now</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.darkRed} />
-            </TouchableOpacity>
-          </LinearGradient>
-        }
-      />
+                <View style={styles.premiumContent}>
+                  <Text style={styles.premiumTitle}>
+                    Go Premium, Get Better Connections
+                  </Text>
+
+                  <Text style={styles.premiumSubtitle}>
+                    Chat unlimited & see who's interested in you.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.premiumUpgradeButton}
+                  activeOpacity={0.85}
+                  onPress={handleUpgrade}
+                >
+                  <Text style={styles.premiumUpgradeText}>Upgrade Now</Text>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={COLORS.darkRed}
+                  />
+                </TouchableOpacity>
+              </LinearGradient>
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
-/* ================================================= */
-/* ================= CHAT ROW ======================= */
-/* ================================================= */
+/* =========================================================
+   AVATAR
+========================================================= */
+
+function Avatar({ chat }) {
+  const [failed, setFailed] = useState(false);
+
+  if (chat.avatarUrl && !failed) {
+    return (
+      <Image
+        source={{
+          uri: chat.avatarUrl,
+        }}
+        style={styles.avatar}
+        resizeMode="cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.avatar,
+        styles.avatarFallback,
+        {
+          backgroundColor: getAvatarColor(chat.name),
+        },
+      ]}
+    >
+      <Text style={styles.avatarFallbackText}>{getInitials(chat.name)}</Text>
+    </View>
+  );
+}
+
+/* =========================================================
+   CHAT ROW
+========================================================= */
 
 function ChatRow({ chat, onPress }) {
   return (
@@ -311,18 +566,26 @@ function ChatRow({ chat, onPress }) {
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* AVATAR */}
+
       <View style={styles.avatarWrapper}>
-        <Image source={chat.avatar} style={styles.avatar} resizeMode="cover" />
+        <Avatar chat={chat} />
 
         <View
           style={[
             styles.statusDot,
-            { backgroundColor: chat.online ? COLORS.green : COLORS.offlineGray },
+            {
+              backgroundColor: chat.online ? COLORS.green : COLORS.offlineGray,
+            },
           ]}
         />
       </View>
 
+      {/* CONTENT */}
+
       <View style={styles.chatContent}>
+        {/* TOP ROW */}
+
         <View style={styles.chatTopRow}>
           <View style={styles.chatNameRow}>
             <Text style={styles.chatName} numberOfLines={1}>
@@ -330,25 +593,43 @@ function ChatRow({ chat, onPress }) {
             </Text>
 
             {chat.verified && (
-              <Ionicons name="checkmark-circle" size={15} color={COLORS.green} />
+              <Ionicons
+                name="checkmark-circle"
+                size={15}
+                color={COLORS.green}
+              />
             )}
           </View>
 
           <Text style={styles.chatTime}>{chat.time}</Text>
         </View>
 
-        <Text style={styles.chatProfession} numberOfLines={1}>
-          {chat.profession}
-        </Text>
+        {/* PROFESSION */}
+
+        {!!chat.profession && (
+          <Text style={styles.chatProfession} numberOfLines={1}>
+            {chat.profession}
+          </Text>
+        )}
+
+        {/* BOTTOM ROW */}
 
         <View style={styles.chatBottomRow}>
-          <Text style={styles.chatLastMessage} numberOfLines={1}>
-            {chat.lastMessage}
+          <Text
+            style={[
+              styles.chatLastMessage,
+              chat.unread > 0 && styles.chatLastMessageUnread,
+            ]}
+            numberOfLines={1}
+          >
+            {chat.lastMessage || "No messages yet"}
           </Text>
 
           {chat.unread > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{chat.unread}</Text>
+              <Text style={styles.unreadBadgeText}>
+                {chat.unread > 99 ? "99+" : chat.unread}
+              </Text>
             </View>
           )}
         </View>
@@ -357,36 +638,82 @@ function ChatRow({ chat, onPress }) {
   );
 }
 
+/* =========================================================
+   EMPTY STATE
+========================================================= */
 
+function EmptyState({ errorMessage, onRetry }) {
+  return (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconCircle}>
+        <Ionicons name="chatbubbles-outline" size={30} color={COLORS.red} />
+      </View>
+
+      <Text style={styles.emptyTitle}>
+        {errorMessage ? "Unable to load chats" : "No chats yet"}
+      </Text>
+
+      <Text style={styles.emptySubtitle}>
+        {errorMessage ||
+          "Start connecting with your matches and your conversations will appear here."}
+      </Text>
+
+      {errorMessage && (
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={onRetry}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="refresh" size={15} color="#FFFFFF" />
+
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    justifyContent: "flex-start",
     backgroundColor: COLORS.background,
   },
 
   /* ================= HEADER ================= */
 
   header: {
+    height: 48,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
   },
 
   backButton: {
-    width: 44,
-    height: 44,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
 
-  headerLogo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.text,
   },
+
+  headerRightSpace: {
+    width: 34,
+    height: 34,
+  },
+
+  /* ================= TITLE ================= */
 
   titleBlock: {
     paddingHorizontal: SPACING.md,
@@ -406,7 +733,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
 
-  /* ================= SEARCH BAR ================= */
+  /* ================= SEARCH ================= */
 
   searchBar: {
     flexDirection: "row",
@@ -437,13 +764,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* ================= FILTER TABS ================= */
+  /* ================= FILTERS ================= */
 
   filterRow: {
-  paddingHorizontal: SPACING.md,
-  gap: SPACING.sm,
-  alignItems: "center",
-},
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
+    alignItems: "center",
+  },
+
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -476,17 +804,29 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: "#FFFFFF",
   },
+
   filtersList: {
-  height: 56,
-  flexGrow: 0,
-  flexShrink: 0,
-},
+    height: 56,
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: SPACING.xs,
+  },
 
   /* ================= CHAT LIST ================= */
 
+  chatFlatList: {
+    flex: 1,
+    alignSelf: "stretch",
+  },
+
   chatList: {
     paddingHorizontal: SPACING.md,
-  
+    paddingTop: 0,
+    paddingBottom: SPACING.xl,
+  },
+
+  chatListEmpty: {
+    flexGrow: 1,
   },
 
   chatRow: {
@@ -498,12 +838,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
+
     shadowColor: COLORS.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
     shadowOpacity: 0.05,
     shadowRadius: 6,
+
     elevation: 2,
   },
+
+  /* ================= AVATAR ================= */
 
   avatarWrapper: {
     position: "relative",
@@ -514,6 +863,18 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
+    backgroundColor: "#F2ECE6",
+  },
+
+  avatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarFallbackText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
   },
 
   statusDot: {
@@ -526,6 +887,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.white,
   },
+
+  /* ================= CONTENT ================= */
 
   chatContent: {
     flex: 1,
@@ -574,9 +937,14 @@ const styles = StyleSheet.create({
 
   chatLastMessage: {
     fontSize: 13,
-    color: COLORS.text,
+    color: COLORS.mutedGray,
     flex: 1,
     marginRight: SPACING.sm,
+  },
+
+  chatLastMessageUnread: {
+    color: COLORS.text,
+    fontWeight: "600",
   },
 
   unreadBadge: {
@@ -595,7 +963,74 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  /* ================= PREMIUM BANNER ================= */
+  /* ================= LOADING ================= */
+
+  loadingState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loadingText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: COLORS.mutedGray,
+  },
+
+  /* ================= EMPTY ================= */
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
+  },
+
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.goldLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.darkRed,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+
+  emptySubtitle: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.mutedGray,
+    textAlign: "center",
+    maxWidth: 290,
+  },
+
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: COLORS.red,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 16,
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  /* ================= PREMIUM ================= */
 
   premiumCard: {
     minHeight: 90,
@@ -605,10 +1040,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: SPACING.sm,
+
     shadowColor: COLORS.darkRed,
-    shadowOffset: { width: 0, height: 4 },
+
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
     shadowOpacity: 0.2,
     shadowRadius: 10,
+
     elevation: 4,
   },
 

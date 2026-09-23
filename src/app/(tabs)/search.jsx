@@ -1,37 +1,34 @@
 import { useMemo, useState } from "react";
 
 import {
+  ActivityIndicator,
   Dimensions,
-  Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import LinearGradient from "react-native-linear-gradient";
 
+import { useNavigation } from "@react-navigation/native";
+
+import { postMemberListing } from "../../utils/Functions";
 
 /* ============================================================
    LOGO
 ============================================================ */
 
-const LOGO = require("../../../assets/images/logo3.png");
-
+const LOGO = require("../../../assets/images/logo.png");
 
 /* ============================================================
    COLORS
@@ -52,29 +49,266 @@ const COLORS = {
   border: "#E9E1DA",
 };
 
-
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+/* ============================================================
+   GET TOKEN
+============================================================ */
+
+const getToken = async () => {
+  try {
+    const authToken = await AsyncStorage.getItem("authToken");
+
+    if (authToken) {
+      return authToken;
+    }
+
+    const userdata = await AsyncStorage.getItem("userdata");
+
+    if (userdata) {
+      try {
+        const parsed = JSON.parse(userdata);
+
+        const token =
+          parsed?.data?.token || parsed?.token || parsed?.access_token || null;
+
+        if (token) {
+          return token;
+        }
+      } catch (error) {
+        console.log("getToken userdata parse error:", error);
+      }
+    }
+
+    const fallbackKeys = ["token", "access_token", "userToken", "auth_token"];
+
+    for (const key of fallbackKeys) {
+      const value = await AsyncStorage.getItem(key);
+
+      if (value) {
+        return value;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.log("getToken Error:", error);
+    return null;
+  }
+};
+
+/* ============================================================
+   FILTER ID MAPS
+============================================================ */
+
+const ID_MAPS = {
+  maritalStatus: {
+    "Never Married": 1,
+    Divorced: 2,
+    Widowed: 3,
+  },
+
+  religion: {
+    "Hindu - Mudhiraj": 1,
+    Hindu: 2,
+  },
+
+  caste: {
+    Mudhiraj: 2,
+    Other: 3,
+  },
+
+  country: {
+    India: 1,
+    USA: 2,
+    "United Kingdom": 3,
+    Australia: 4,
+    Canada: 5,
+  },
+
+  location: {
+    "Hyderabad, Telangana": {
+      state_id: 1,
+      city_id: 1,
+    },
+
+    "Warangal, Telangana": {
+      state_id: 1,
+      city_id: 2,
+    },
+
+    "Vijayawada, Andhra Pradesh": {
+      state_id: 2,
+      city_id: 3,
+    },
+
+    "Bengaluru, Karnataka": {
+      state_id: 3,
+      city_id: 4,
+    },
+  },
+
+  lookingFor: {
+    Bride: 1,
+    Groom: 2,
+  },
+};
+
+/* ============================================================
+   HEIGHT PARSER
+============================================================ */
+
+function parseHeightRange(heightLabel) {
+  if (!heightLabel || typeof heightLabel !== "string") {
+    return {};
+  }
+
+  const pairs = [...heightLabel.matchAll(/(\d+)'(\d+)"/g)].map(
+    ([, feet, inches]) => Number(`${feet}.${inches}`),
+  );
+
+  if (pairs.length === 0) {
+    return {};
+  }
+
+  const result = {
+    min_height: pairs[0],
+  };
+
+  if (pairs.length > 1) {
+    result.max_height = pairs[1];
+  }
+
+  return result;
+}
+
+/* ============================================================
+   AGE PARSER
+============================================================ */
+
+function parseAgeRange(ageLabel) {
+  if (!ageLabel || typeof ageLabel !== "string") {
+    return {};
+  }
+
+  const numbers = ageLabel.match(/\d+/g);
+
+  if (!numbers || numbers.length === 0) {
+    return {};
+  }
+
+  const age_from = Number(numbers[0]);
+
+  const age_to = numbers.length > 1 ? Number(numbers[1]) : undefined;
+
+  return {
+    ...(Number.isFinite(age_from) ? { age_from } : {}),
+    ...(Number.isFinite(age_to) ? { age_to } : {}),
+  };
+}
+
+/* ============================================================
+   BUILD FILTER BODY
+============================================================ */
+
+function buildFiltersFromState(filters) {
+  const isSet = (value) =>
+    !!value && value !== "Select" && value !== "Select City";
+
+  const body = {
+    member_code: "",
+  };
+
+  const { age_from, age_to } = parseAgeRange(filters.age);
+
+  if (age_from !== undefined) {
+    body.age_from = age_from;
+  }
+
+  if (age_to !== undefined) {
+    body.age_to = age_to;
+  }
+
+  const { min_height, max_height } = parseHeightRange(filters.height);
+
+  if (min_height !== undefined) {
+    body.min_height = min_height;
+  }
+
+  if (max_height !== undefined) {
+    body.max_height = max_height;
+  }
+
+  if (isSet(filters.maritalStatus)) {
+    const id = ID_MAPS.maritalStatus[filters.maritalStatus];
+
+    if (id !== undefined) {
+      body.marital_status = id;
+    }
+  }
+
+  if (isSet(filters.religion)) {
+    const id = ID_MAPS.religion[filters.religion];
+
+    if (id !== undefined) {
+      body.religion_id = id;
+    }
+  }
+
+  if (isSet(filters.caste)) {
+    const id = ID_MAPS.caste[filters.caste];
+
+    if (id !== undefined) {
+      body.caste_id = id;
+    }
+  }
+
+  if (isSet(filters.motherTongue)) {
+    body.mother_tongue = filters.motherTongue;
+  }
+
+  if (isSet(filters.profession)) {
+    body.profession = filters.profession;
+  }
+
+  if (isSet(filters.country)) {
+    const id = ID_MAPS.country[filters.country];
+
+    if (id !== undefined) {
+      body.country_id = id;
+    }
+  }
+
+  if (isSet(filters.location)) {
+    const ids = ID_MAPS.location[filters.location];
+
+    if (ids) {
+      body.state_id = ids.state_id;
+      body.city_id = ids.city_id;
+    }
+  }
+
+  if (isSet(filters.lookingFor)) {
+    const id = ID_MAPS.lookingFor[filters.lookingFor];
+
+    if (id !== undefined) {
+      body.member_type = id;
+    }
+  }
+
+  return body;
+}
 
 /* ============================================================
    MAIN SCREEN
 ============================================================ */
 
 export default function SearchScreen() {
+  const navigation = useNavigation();
 
-  const router = useRouter();
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
-  const [showFilterModal, setShowFilterModal] =
-    useState(false);
-
-  const [activeField, setActiveField] =
-    useState(null);
-
-  const [showQuickSearch, setShowQuickSearch] =
-    useState(false);
-
-  const [quickSearch, setQuickSearch] =
-    useState("");
+  const [activeField, setActiveField] = useState(null);
 
   const [filters, setFilters] = useState({
     lookingFor: "Select",
@@ -92,7 +326,6 @@ export default function SearchScreen() {
     location: "Select City",
   });
 
-
   /* ============================================================
      RECENT SEARCHES
   ============================================================ */
@@ -104,6 +337,9 @@ export default function SearchScreen() {
     "Hindu - Mudhiraj",
   ]);
 
+  const [searching, setSearching] = useState(false);
+
+  const [searchApiError, setSearchApiError] = useState("");
 
   /* ============================================================
      OPTIONS
@@ -111,17 +347,9 @@ export default function SearchScreen() {
 
   const OPTIONS = useMemo(
     () => ({
-      lookingFor: [
-        "Select",
-        "Bride",
-        "Groom",
-      ],
+      lookingFor: ["Select", "Bride", "Groom"],
 
-      gender: [
-        "Select",
-        "Male",
-        "Female",
-      ],
+      gender: ["Select", "Male", "Female"],
 
       age: [
         "18 - 60",
@@ -141,17 +369,9 @@ export default function SearchScreen() {
         `6'0"+`,
       ],
 
-      maritalStatus: [
-        "Select",
-        "Never Married",
-        "Divorced",
-        "Widowed",
-      ],
+      maritalStatus: ["Select", "Never Married", "Divorced", "Widowed"],
 
-      religion: [
-        "Hindu - Mudhiraj",
-        "Hindu",
-      ],
+      religion: ["Hindu - Mudhiraj", "Hindu"],
 
       motherTongue: [
         "Select",
@@ -162,20 +382,9 @@ export default function SearchScreen() {
         "Kannada",
       ],
 
-      caste: [
-        "Mudhiraj",
-        "Other",
-      ],
+      caste: ["Mudhiraj", "Other"],
 
-      education: [
-        "Select",
-        "B.Tech",
-        "M.Tech",
-        "MBA",
-        "MBBS",
-        "B.Sc",
-        "M.Sc",
-      ],
+      education: ["Select", "B.Tech", "M.Tech", "MBA", "MBBS", "B.Sc", "M.Sc"],
 
       profession: [
         "Select",
@@ -211,12 +420,11 @@ export default function SearchScreen() {
         "Bengaluru, Karnataka",
       ],
     }),
-    []
+    [],
   );
 
-
   /* ============================================================
-     FUNCTIONS
+     OPEN FILTER
   ============================================================ */
 
   const openFilter = (field) => {
@@ -224,10 +432,14 @@ export default function SearchScreen() {
     setShowFilterModal(true);
   };
 
+  /* ============================================================
+     SELECT OPTION
+  ============================================================ */
 
   const selectOption = (value) => {
-
-    if (!activeField) return;
+    if (!activeField) {
+      return;
+    }
 
     setFilters((previous) => ({
       ...previous,
@@ -238,9 +450,11 @@ export default function SearchScreen() {
     setActiveField(null);
   };
 
+  /* ============================================================
+     RESET
+  ============================================================ */
 
   const resetAll = () => {
-
     setFilters({
       lookingFor: "Select",
       gender: "Select",
@@ -257,48 +471,63 @@ export default function SearchScreen() {
       location: "Select City",
     });
 
-    setQuickSearch("");
+    setSearchApiError("");
   };
 
+  /* ============================================================
+     REMOVE RECENT SEARCH
+  ============================================================ */
 
   const removeRecentSearch = (item) => {
-
     setRecentSearches((previous) =>
-      previous.filter((search) => search !== item)
+      previous.filter((search) => search !== item),
     );
   };
 
+  /* ============================================================
+     VIEW MATCHES
+  ============================================================ */
 
-  const performQuickSearch = () => {
-
-    const value = quickSearch.trim();
-
-    if (!value) return;
-
-    if (!recentSearches.includes(value)) {
-      setRecentSearches((previous) => [
-        value,
-        ...previous,
-      ]);
+  const viewMatches = async () => {
+    if (searching) {
+      return;
     }
 
-    setShowQuickSearch(false);
+    setSearching(true);
+    setSearchApiError("");
 
-    router.push({
-      pathname: "/matches",
-      params: {
-        search: value,
-      },
-    });
-  };
+    try {
+      const token = await getToken();
 
+      if (!token) {
+        setSearchApiError(
+          "Authentication token not found. Please login again.",
+        );
 
-  const viewMatches = () => {
+        return;
+      }
 
-    router.push({
-      pathname: "/profilecompletion",
+      const body = buildFiltersFromState(filters);
 
-      params: {
+      console.log(
+        "SearchScreen -> postMemberListing body:",
+        JSON.stringify(body),
+      );
+
+      const result = await postMemberListing(body, token);
+
+      console.log(
+        "SearchScreen -> postMemberListing result:",
+        JSON.stringify(result),
+      );
+
+      if (!(result?.success === 1 || result?.result === true)) {
+        setSearchApiError(result?.message || "Unable to search matches.");
+
+        return;
+      }
+
+      navigation.navigate("Matches", {
         lookingFor: filters.lookingFor,
         gender: filters.gender,
         age: filters.age,
@@ -312,10 +541,15 @@ export default function SearchScreen() {
         income: filters.income,
         country: filters.country,
         location: filters.location,
-      },
-    });
-  };
+      });
+    } catch (e) {
+      console.log("SearchScreen viewMatches Error:", e);
 
+      setSearchApiError(e?.message || "Unable to search matches.");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   /* ============================================================
      FILTER BOX
@@ -330,251 +564,108 @@ export default function SearchScreen() {
     color = COLORS.orange,
     fullWidth = false,
   }) => {
-
     return (
-
       <TouchableOpacity
         activeOpacity={0.75}
         onPress={() => openFilter(field)}
-        style={[
-          styles.filterBox,
-          fullWidth && styles.fullWidthFilterBox,
-        ]}
+        style={[styles.filterBox, fullWidth && styles.fullWidthFilterBox]}
       >
-
         <View style={styles.filterLeft}>
-
-          {/* ICON */}
-
           <View
             style={[
               styles.filterIconCircle,
               {
-                backgroundColor:
-                  color === COLORS.red
-                    ? "#FFF6F4"
-                    : "#FFF9EA",
+                backgroundColor: color === COLORS.red ? "#FFF6F4" : "#FFF9EA",
               },
             ]}
           >
-
             {material ? (
-
-              <MaterialCommunityIcons
-                name={icon}
-                size={15}
-                color={color}
-              />
-
+              <MaterialCommunityIcons name={icon} size={15} color={color} />
             ) : (
-
-              <Ionicons
-                name={icon}
-                size={15}
-                color={color}
-              />
-
+              <Ionicons name={icon} size={15} color={color} />
             )}
-
           </View>
 
-
-          {/* TEXT */}
-
           <View style={styles.filterTextContainer}>
-
-            <Text
-              numberOfLines={1}
-              style={styles.filterTitle}
-            >
+            <Text numberOfLines={1} style={styles.filterTitle}>
               {title}
             </Text>
 
-            <Text
-              numberOfLines={1}
-              style={styles.filterValue}
-            >
+            <Text numberOfLines={1} style={styles.filterValue}>
               {value}
             </Text>
-
           </View>
-
         </View>
 
-
-        <Ionicons
-          name="chevron-down"
-          size={14}
-          color="#5D5652"
-        />
-
+        <Ionicons name="chevron-down" size={14} color="#5D5652" />
       </TouchableOpacity>
-
     );
   };
-
 
   /* ============================================================
      SCREEN
   ============================================================ */
 
   return (
-
     <SafeAreaView style={styles.safeArea}>
-
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={COLORS.background}
-      />
-
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-
         {/* =====================================================
-    TOP HERO SECTION
-===================================================== */}
+            HERO SECTION
+        ===================================================== */}
 
         <View style={styles.heroBackground}>
-
-          {/* BACK BUTTON */}
-
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
           >
-            <Ionicons
-              name="arrow-back"
-              size={22}
-              color="#B5120D"
-            />
+            <Ionicons name="arrow-back" size={22} color="#B5120D" />
           </TouchableOpacity>
 
-
-          {/* LOGO */}
-
-          <Image
-            source={LOGO}
-            style={styles.logo}
-          />
-
-
-          {/* TITLE */}
-
-          <View style={styles.titleSection}>
-
-            <Text style={styles.mainTitle}>
-              Search
-            </Text>
-
-            <Text
-              numberOfLines={1}
-              style={styles.mainSubtitle}
-            >
-              Find your perfect match from Mudhiraj community
-            </Text>
-
+          <View style={styles.logoWrapper}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>M</Text>
+            </View>
           </View>
 
+          <View style={styles.titleSection}>
+            <Text style={styles.mainTitle}>Search</Text>
 
-          {/* CURVED ORANGE / RED DESIGN */}
+            <Text numberOfLines={1} style={styles.mainSubtitle}>
+              Find your perfect match from Mudhiraj community
+            </Text>
+          </View>
 
           <View style={styles.curveArea}>
-
             <View style={styles.orangeCurve} />
 
             <View style={styles.redCurve} />
-
           </View>
-
         </View>
 
-
         {/* =====================================================
-    QUICK SEARCH
-===================================================== */}
+            SEARCH FILTER CARD
+        ===================================================== */}
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => setShowQuickSearch(true)}
-          style={styles.quickSearchCard}
-        >
-
-          {/* SEARCH ICON */}
-
-          <View style={styles.quickIconCircle}>
-
-            <Ionicons
-              name="search-outline"
-              size={23}
-              color="#E7A000"
-            />
-
-          </View>
-
-
-          {/* TEXT */}
-
-          <View style={styles.quickTextArea}>
-
-            <Text style={styles.quickTitle}>
-              Quick Search
-            </Text>
-
-            <Text
-              numberOfLines={1}
-              style={styles.quickSubtitle}
-            >
-              Search by name, location or profession
-            </Text>
-
-          </View>
-
-
-          {/* RIGHT ARROW */}
-
-          <Ionicons
-            name="chevron-forward"
-            size={21}
-            color="#B5120D"
-          />
-
-        </TouchableOpacity>
-
-
-        {/* =====================================================
-    SEARCH FILTER CARD
-===================================================== */}
-
-        <View style={styles.filterCard}>
-
-          {/* HEADING */}
-
-          <Text style={styles.filtersHeading}>
-            Search Filters
-          </Text>
-
-
-          {/* GOLD DIVIDER */}
+        <View style={[styles.filterCard, { marginTop: 11 }]}>
+          <Text style={styles.filtersHeading}>Search Filters</Text>
 
           <View style={styles.headingDivider}>
-
             <View style={styles.dividerLine} />
 
             <View style={styles.dividerCenter} />
 
             <View style={styles.dividerLine} />
-
           </View>
-
 
           {/* FILTER GRID */}
 
           <View style={styles.filtersGrid}>
-
             <FilterBox
               field="lookingFor"
               title="Looking For"
@@ -672,9 +763,7 @@ export default function SearchScreen() {
               icon="globe-outline"
               color={COLORS.orange}
             />
-
           </View>
-
 
           {/* LOCATION */}
 
@@ -687,114 +776,91 @@ export default function SearchScreen() {
             fullWidth
           />
 
-
-          {/* BOTTOM ACTIONS */}
+          {/* ACTIONS */}
 
           <View style={styles.actionRow}>
-
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.resetButton}
               onPress={resetAll}
             >
+              <Ionicons name="refresh" size={15} color="#B5120D" />
 
-              <Ionicons
-                name="refresh"
-                size={15}
-                color="#B5120D"
-              />
-
-              <Text style={styles.resetText}>
-                Reset All
-              </Text>
-
+              <Text style={styles.resetText}>Reset All</Text>
             </TouchableOpacity>
-
 
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={viewMatches}
-              style={styles.matchesButtonWrapper}
+              disabled={searching}
+              style={[
+                styles.matchesButtonWrapper,
+                searching && styles.matchesButtonDisabled,
+              ]}
             >
-
               <LinearGradient
-                colors={[
-                  "#C90804",
-                  "#E33B00",
-                  "#F5A500",
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                colors={["#C90804", "#E33B00", "#F5A500"]}
+                start={{
+                  x: 0,
+                  y: 0,
+                }}
+                end={{
+                  x: 1,
+                  y: 0,
+                }}
                 style={styles.viewMatchesButton}
               >
-
-                <Ionicons
-                  name="search-outline"
-                  size={16}
-                  color="#FFFFFF"
-                />
+                {searching ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="search-outline" size={16} color="#FFFFFF" />
+                )}
 
                 <Text style={styles.viewMatchesText}>
-                  View Matches
+                  {searching ? "Searching..." : "View Matches"}
                 </Text>
-
               </LinearGradient>
-
             </TouchableOpacity>
-
           </View>
 
+          {!!searchApiError && (
+            <View style={styles.searchErrorBanner}>
+              <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+
+              <Text style={styles.searchErrorText}>{searchApiError}</Text>
+            </View>
+          )}
         </View>
 
         {/* =====================================================
             RECENT SEARCHES
         ===================================================== */}
 
-
         {recentSearches.length > 0 && (
-
           <View style={styles.recentCard}>
-
-            {/* HEADER */}
-
             <View style={styles.recentHeader}>
-
-              <Text style={styles.recentHeading}>
-                Recent Searches
-              </Text>
+              <Text style={styles.recentHeading}>Recent Searches</Text>
 
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => setRecentSearches([])}
               >
-                <Text style={styles.clearAllText}>
-                  Clear All
-                </Text>
+                <Text style={styles.clearAllText}>Clear All</Text>
               </TouchableOpacity>
-
             </View>
 
-
-            {/* SEARCH CHIPS */}
-
             <View style={styles.chipsContainer}>
-
               {recentSearches.map((item) => (
-
                 <TouchableOpacity
                   key={item}
                   activeOpacity={0.8}
                   style={styles.searchChip}
                   onPress={() =>
-                    router.push({
-                      pathname: "/matches",
-                      params: {
-                        search: item,
-                      },
+                    navigation.navigate("Matches", {
+                      search: item,
                     })
                   }
                 >
-
                   <Ionicons
                     name="time-outline"
                     size={15}
@@ -802,14 +868,9 @@ export default function SearchScreen() {
                     style={styles.chipClock}
                   />
 
-
-                  <Text
-                    numberOfLines={1}
-                    style={styles.chipText}
-                  >
+                  <Text numberOfLines={1} style={styles.chipText}>
                     {item}
                   </Text>
-
 
                   <TouchableOpacity
                     activeOpacity={0.7}
@@ -820,138 +881,20 @@ export default function SearchScreen() {
                       right: 8,
                     }}
                     onPress={(event) => {
-                      event.stopPropagation?.();
+                      event?.stopPropagation?.();
                       removeRecentSearch(item);
                     }}
                   >
-
-                    <Ionicons
-                      name="close"
-                      size={15}
-                      color="#756D68"
-                    />
-
+                    <Ionicons name="close" size={15} color="#756D68" />
                   </TouchableOpacity>
-
                 </TouchableOpacity>
-
               ))}
-
             </View>
-
           </View>
-
         )}
-        {/* Bottom spacing only — NO BOTTOM TABS */}
 
         <View style={{ height: 35 }} />
-
       </ScrollView>
-
-
-
-      {/* =====================================================
-          QUICK SEARCH MODAL
-      ===================================================== */}
-
-      <Modal
-        visible={showQuickSearch}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setShowQuickSearch(false)
-        }
-      >
-
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={
-            Platform.OS === "ios"
-              ? "padding"
-              : undefined
-          }
-        >
-
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() =>
-              setShowQuickSearch(false)
-            }
-          >
-
-            <Pressable
-              style={styles.quickModalCard}
-              onPress={() => { }}
-            >
-
-              <View style={styles.modalHandle} />
-
-
-              <Text style={styles.modalTitle}>
-                Quick Search
-              </Text>
-
-
-              <View style={styles.quickInputContainer}>
-
-                <Ionicons
-                  name="search"
-                  size={23}
-                  color={COLORS.orange}
-                />
-
-                <TextInput
-                  value={quickSearch}
-                  onChangeText={setQuickSearch}
-                  placeholder="Name, location or profession"
-                  placeholderTextColor="#999"
-                  style={styles.quickInput}
-                  autoFocus
-                  returnKeyType="search"
-                  onSubmitEditing={performQuickSearch}
-                />
-
-              </View>
-
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={performQuickSearch}
-              >
-
-                <LinearGradient
-                  colors={[
-                    "#C90804",
-                    "#F2A400",
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.quickSearchButton}
-                >
-
-                  <Ionicons
-                    name="search"
-                    size={24}
-                    color="#FFFFFF"
-                  />
-
-                  <Text style={styles.quickSearchButtonText}>
-                    Search Matches
-                  </Text>
-
-                </LinearGradient>
-
-              </TouchableOpacity>
-
-            </Pressable>
-
-          </Pressable>
-
-        </KeyboardAvoidingView>
-
-      </Modal>
-
-
 
       {/* =====================================================
           FILTER MODAL
@@ -961,120 +904,65 @@ export default function SearchScreen() {
         visible={showFilterModal}
         transparent
         animationType="slide"
-        onRequestClose={() =>
-          setShowFilterModal(false)
-        }
+        onRequestClose={() => setShowFilterModal(false)}
       >
-
         <Pressable
           style={styles.modalOverlay}
-          onPress={() =>
-            setShowFilterModal(false)
-          }
+          onPress={() => setShowFilterModal(false)}
         >
-
-          <Pressable
-            style={styles.filterModal}
-            onPress={() => { }}
-          >
-
+          <Pressable style={styles.filterModal} onPress={() => {}}>
             <View style={styles.modalHandle} />
 
-
             <View style={styles.filterModalHeader}>
+              <Text style={styles.modalTitle}>Select Option</Text>
 
-              <Text style={styles.modalTitle}>
-                Select Option
-              </Text>
-
-
-              <TouchableOpacity
-                onPress={() =>
-                  setShowFilterModal(false)
-                }
-              >
-
-                <Ionicons
-                  name="close"
-                  size={27}
-                  color="#333"
-                />
-
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Ionicons name="close" size={27} color="#333" />
               </TouchableOpacity>
-
             </View>
 
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-            >
-
+            <ScrollView showsVerticalScrollIndicator={false}>
               {activeField &&
-                OPTIONS[activeField]?.map(
-                  (option) => (
+                OPTIONS[activeField]?.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    activeOpacity={0.7}
+                    onPress={() => selectOption(option)}
+                    style={styles.optionItem}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
 
-                    <TouchableOpacity
-                      key={option}
-                      activeOpacity={0.7}
-                      onPress={() =>
-                        selectOption(option)
-                      }
-                      style={styles.optionItem}
-                    >
-
-                      <Text
-                        style={[
-                          styles.optionText,
-
-                          filters[activeField] ===
-                          option &&
+                        filters[activeField] === option &&
                           styles.selectedOptionText,
-                        ]}
-                      >
-                        {option}
-                      </Text>
+                      ]}
+                    >
+                      {option}
+                    </Text>
 
-
-                      {filters[activeField] ===
-                        option && (
-
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={23}
-                            color={COLORS.red}
-                          />
-
-                        )}
-
-                    </TouchableOpacity>
-
-                  )
-                )}
-
+                    {filters[activeField] === option && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={23}
+                        color={COLORS.red}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
             </ScrollView>
-
           </Pressable>
-
         </Pressable>
-
       </Modal>
-
     </SafeAreaView>
   );
 }
-
-
 
 /* ============================================================
    STYLES
 ============================================================ */
 
 const styles = StyleSheet.create({
-
-  /* ============================================================
-     MAIN SCREEN
-  ============================================================ */
-
   safeArea: {
     flex: 1,
     backgroundColor: "#FBF9F6",
@@ -1084,9 +972,8 @@ const styles = StyleSheet.create({
     paddingBottom: 92,
   },
 
-
   /* ============================================================
-     TOP HERO SECTION
+     HERO
   ============================================================ */
 
   heroBackground: {
@@ -1095,9 +982,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#FBFAF8",
   },
-
-
-  /* BACK BUTTON */
 
   backButton: {
     position: "absolute",
@@ -1113,25 +997,56 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
+  logoWrapper: {
+    position: "absolute",
+    width: 62,
+    height: 62,
+    right: 18,
+    top: 14,
+    zIndex: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-  /* LOGO */
+  /*
+   * If your logo.png is available, replace this
+   * wrapper with:
+   *
+   * <Image
+   *   source={LOGO}
+   *   style={styles.logo}
+   * />
+   *
+   * The original uploaded code declared LOGO
+   * but did not render the Image component.
+   */
+
+  logoCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFF4D8",
+    borderWidth: 2,
+    borderColor: "#EAB129",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  logoText: {
+    fontSize: 25,
+    fontWeight: "900",
+    color: "#B5120D",
+  },
 
   logo: {
     position: "absolute",
-
     width: 62,
     height: 62,
-
     right: 18,
     top: 14,
-
     resizeMode: "contain",
-
     zIndex: 10,
   },
-
-
-  /* TITLE */
 
   titleSection: {
     position: "absolute",
@@ -1141,9 +1056,8 @@ const styles = StyleSheet.create({
     right: 95,
 
     zIndex: 5,
-    marginTop:10,
+    marginTop: 10,
   },
-
 
   mainTitle: {
     fontSize: 34,
@@ -1154,7 +1068,6 @@ const styles = StyleSheet.create({
     lineHeight: 29,
   },
 
-
   mainSubtitle: {
     marginTop: 2,
 
@@ -1164,9 +1077,8 @@ const styles = StyleSheet.create({
     color: "#5E5753",
   },
 
-
   /* ============================================================
-     ORANGE / RED CURVE
+     CURVE
   ============================================================ */
 
   curveArea: {
@@ -1180,7 +1092,6 @@ const styles = StyleSheet.create({
 
     overflow: "hidden",
   },
-
 
   orangeCurve: {
     position: "absolute",
@@ -1196,7 +1107,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5A300",
   },
 
-
   redCurve: {
     position: "absolute",
 
@@ -1211,83 +1121,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#C90A06",
   },
 
-
   /* ============================================================
-     QUICK SEARCH
-  ============================================================ */
-
-  quickSearchCard: {
-    height: 45,
-
-    marginHorizontal: 6,
-    marginTop: -4,
-
-    paddingHorizontal: 10,
-
-    borderRadius: 9,
-
-    backgroundColor: "#FFFFFF",
-
-    borderWidth: 1,
-    borderColor: "#EAE2DC",
-
-    flexDirection: "row",
-    alignItems: "center",
-
-    shadowColor: "#B5AAA3",
-
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    elevation: 2,
-  },
-
-
-  quickIconCircle: {
-    width: 28,
-    height: 28,
-
-    borderRadius: 14,
-
-    backgroundColor: "#FFF9EA",
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    marginRight: 8,
-  },
-
-
-  quickTextArea: {
-    flex: 1,
-  },
-
-
-  quickTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-
-    color: "#302B29",
-
-    marginBottom: 1,
-  },
-
-
-  quickSubtitle: {
-    fontSize: 9.5,
-    fontWeight: "500",
-
-    color: "#655E59",
-  },
-
-
-  /* ============================================================
-     SEARCH FILTER CARD
+     FILTER CARD
   ============================================================ */
 
   filterCard: {
@@ -1318,9 +1153,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-
-  /* FILTER HEADING */
-
   filtersHeading: {
     fontSize: 25,
     fontWeight: "800",
@@ -1329,7 +1161,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 15,
   },
-
 
   /* ============================================================
      DIVIDER
@@ -1342,7 +1173,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-
   dividerLine: {
     flex: 1,
 
@@ -1350,7 +1180,6 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#EAB129",
   },
-
 
   dividerCenter: {
     width: 5,
@@ -1363,7 +1192,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
 
-
   /* ============================================================
      FILTER GRID
   ============================================================ */
@@ -1374,7 +1202,6 @@ const styles = StyleSheet.create({
 
     justifyContent: "space-between",
   },
-
 
   /* ============================================================
      FILTER BOX
@@ -1402,7 +1229,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-
   fullWidthFilterBox: {
     width: "100%",
 
@@ -1410,7 +1236,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 0,
   },
-
 
   filterLeft: {
     flex: 1,
@@ -1420,7 +1245,6 @@ const styles = StyleSheet.create({
 
     minWidth: 0,
   },
-
 
   /* ============================================================
      FILTER ICON
@@ -1438,7 +1262,6 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
 
-
   /* ============================================================
      FILTER TEXT
   ============================================================ */
@@ -1448,7 +1271,6 @@ const styles = StyleSheet.create({
     minWidth: 30,
   },
 
-
   filterTitle: {
     fontSize: 10,
     fontWeight: "700",
@@ -1457,7 +1279,6 @@ const styles = StyleSheet.create({
 
     lineHeight: 10,
   },
-
 
   filterValue: {
     marginTop: 1,
@@ -1470,9 +1291,8 @@ const styles = StyleSheet.create({
     lineHeight: 10,
   },
 
-
   /* ============================================================
-     ACTION BUTTONS
+     ACTIONS
   ============================================================ */
 
   actionRow: {
@@ -1483,9 +1303,6 @@ const styles = StyleSheet.create({
 
     marginTop: 9,
   },
-
-
-  /* RESET */
 
   resetButton: {
     width: "40%",
@@ -1498,7 +1315,6 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
   },
 
-
   resetText: {
     marginLeft: 5,
 
@@ -1507,9 +1323,6 @@ const styles = StyleSheet.create({
 
     color: "#B11B16",
   },
-
-
-  /* VIEW MATCHES */
 
   matchesButtonWrapper: {
     flex: 1,
@@ -1521,6 +1334,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
+  matchesButtonDisabled: {
+    opacity: 0.7,
+  },
 
   viewMatchesButton: {
     flex: 1,
@@ -1529,7 +1345,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
 
   viewMatchesText: {
     marginLeft: 5,
@@ -1540,6 +1355,33 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  /* ============================================================
+     ERROR
+  ============================================================ */
+
+  searchErrorBanner: {
+    marginTop: 10,
+
+    backgroundColor: "#FDECEC",
+
+    borderRadius: 10,
+
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+
+    flexDirection: "row",
+    alignItems: "center",
+
+    gap: 8,
+  },
+
+  searchErrorText: {
+    flex: 1,
+
+    fontSize: 12.5,
+
+    color: "#B42318",
+  },
 
   /* ============================================================
      RECENT SEARCHES
@@ -1573,7 +1415,6 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
 
-
   recentHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1582,14 +1423,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-
   recentHeading: {
     fontSize: 15,
     fontWeight: "800",
 
     color: "#91221C",
   },
-
 
   clearAllText: {
     fontSize: 13,
@@ -1600,14 +1439,12 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-
   chipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
 
     alignItems: "center",
   },
-
 
   searchChip: {
     height: 25,
@@ -1628,11 +1465,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 
-
   chipClock: {
     marginRight: 4,
   },
-
 
   chipText: {
     maxWidth: 90,
@@ -1645,9 +1480,8 @@ const styles = StyleSheet.create({
     color: "#5B5551",
   },
 
-
   /* ============================================================
-     MODAL OVERLAY
+     MODAL
   ============================================================ */
 
   modalOverlay: {
@@ -1657,27 +1491,6 @@ const styles = StyleSheet.create({
 
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-
-
-  /* ============================================================
-     QUICK SEARCH MODAL
-  ============================================================ */
-
-  quickModalCard: {
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: 30,
-
-    backgroundColor: "#FFFFFF",
-
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-  },
-
-
-  /* ============================================================
-     FILTER MODAL
-  ============================================================ */
 
   filterModal: {
     maxHeight: "72%",
@@ -1692,7 +1505,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
   },
 
-
   modalHandle: {
     width: 42,
     height: 4,
@@ -1706,14 +1518,12 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-
   modalTitle: {
     fontSize: 21,
     fontWeight: "800",
 
     color: "#302B29",
   },
-
 
   filterModalHeader: {
     flexDirection: "row",
@@ -1724,66 +1534,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-
   /* ============================================================
-     QUICK SEARCH INPUT
-  ============================================================ */
-
-  quickInputContainer: {
-    height: 54,
-
-    marginTop: 18,
-
-    paddingHorizontal: 15,
-
-    borderWidth: 1,
-    borderColor: "#E6DED8",
-
-    borderRadius: 14,
-
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-
-  quickInput: {
-    flex: 1,
-
-    height: "100%",
-
-    marginLeft: 10,
-
-    fontSize: 15,
-
-    color: "#302B29",
-  },
-
-
-  quickSearchButton: {
-    height: 54,
-
-    marginTop: 14,
-
-    borderRadius: 14,
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-
-  quickSearchButtonText: {
-    marginLeft: 8,
-
-    color: "#FFFFFF",
-
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-
-  /* ============================================================
-     FILTER OPTIONS
+     OPTIONS
   ============================================================ */
 
   optionItem: {
@@ -1800,17 +1552,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-
   optionText: {
     fontSize: 16,
 
     color: "#514B47",
   },
 
-
   selectedOptionText: {
     color: COLORS.red,
     fontWeight: "700",
   },
-
 });

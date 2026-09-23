@@ -1,25 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
+import {
+  getMyShortlists,
+  removeFromShortlist
+} from "../utils/Functions";
 
 const LOGO = require("../../assets/images/logo.png");
-// Swap each of these for the profile's actual photo, e.g. { uri: profile.photoUrl }
-const PROFILE_PHOTO = require("../../assets/images/Match5.png");
+const FALLBACK_PHOTO = require("../../assets/images/Match5.png");
 
 const SORT_OPTIONS = [
   { key: "recent", label: "Recently Added" },
@@ -33,90 +38,6 @@ const AGE_RANGES = [
   { key: "31+", label: "31+", test: (age) => age >= 31 },
 ];
 
-const SHORTLISTED_PROFILES = [
-  {
-    id: "1",
-    name: "Priyanka",
-    age: 25,
-    profession: "Software Engineer",
-    location: "Hyderabad, Telangana",
-    education: "B.Tech, Computer Science",
-    height: "5'4\"",
-    religionCaste: "Hindu - Mudhiraj",
-    online: true,
-    verified: true,
-  },
-  {
-    id: "2",
-    name: "Deepika",
-    age: 23,
-    profession: "Teacher",
-    location: "Warangal, Telangana",
-    education: "B.Ed",
-    height: "5'3\"",
-    religionCaste: "Hindu - Mudhiraj",
-    online: true,
-    verified: true,
-  },
-  {
-    id: "3",
-    name: "Rohit",
-    age: 27,
-    profession: "Civil Engineer",
-    location: "Vijayawada, Andhra Pradesh",
-    education: "B.Tech, Civil Engineering",
-    height: "5'7\"",
-    religionCaste: "Hindu - Mudhiraj",
-    online: false,
-    verified: true,
-  },
-  {
-    id: "4",
-    name: "Ananya",
-    age: 26,
-    profession: "Doctor",
-    location: "Bengaluru, Karnataka",
-    education: "MBBS, MD",
-    height: "5'5\"",
-    religionCaste: "Hindu - Mudhiraj",
-    online: false,
-    verified: false,
-  },
-];
-
-const PROFESSION_OPTIONS = [
-  ...new Set(SHORTLISTED_PROFILES.map((p) => p.profession)),
-];
-
-const BOTTOM_TABS = [
-  { key: "home", label: "Home", icon: "home-outline", activeIcon: "home" },
-  {
-    key: "matches",
-    label: "Matches",
-    icon: "people-outline",
-    activeIcon: "people",
-  },
-  {
-    key: "search",
-    label: "Search",
-    icon: "search-outline",
-    activeIcon: "search",
-  },
-  {
-    key: "chats",
-    label: "Chats",
-    icon: "chatbubble-ellipses-outline",
-    activeIcon: "chatbubble-ellipses",
-    badge: 2,
-  },
-  {
-    key: "profile",
-    label: "Profile",
-    icon: "person-outline",
-    activeIcon: "person",
-  },
-];
-
 const EMPTY_FILTERS = {
   onlineOnly: false,
   verifiedOnly: false,
@@ -124,14 +45,72 @@ const EMPTY_FILTERS = {
   professions: [],
 };
 
+/* =========================================================
+   GET TOKEN (same pattern used across the app)
+========================================================= */
+const getToken = async () => {
+  try {
+    const authToken = await AsyncStorage.getItem("authToken");
+    if (authToken) return authToken;
+
+    const userdata = await AsyncStorage.getItem("userdata");
+    if (userdata) {
+      try {
+        const parsed = JSON.parse(userdata);
+        const token =
+          parsed?.data?.token || parsed?.token || parsed?.access_token || null;
+        if (token) return token;
+      } catch (error) {
+        console.log("getToken userdata parse error:", error);
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.log("getToken Error:", error);
+    return null;
+  }
+};
+
+/* =========================================================
+   API -> UI MAPPING
+   Adjust field names once you confirm the real response
+   shape from /api/member/my-shortlists
+========================================================= */
+function mapShortlistProfile(api) {
+  const joinedName = [api.first_name, api.last_name].filter(Boolean).join(" ");
+
+  return {
+    id: api.id ?? api.user_id ?? api.member_id,
+    name: (api.name ?? api.full_name ?? joinedName) || "Unknown",
+    age: api.age ?? null,
+    profession: api.profession ?? api.occupation ?? "",
+    location: api.location ?? [api.city, api.state].filter(Boolean).join(", "),
+    education: api.education ?? api.qualification ?? "",
+    height: api.height_text ?? api.height ?? "",
+    religionCaste:
+      api.religion_caste ??
+      [api.religion, api.caste].filter(Boolean).join(" - "),
+    online: !!(api.is_online ?? api.online),
+    verified: !!(api.is_verified ?? api.verified),
+    image: api.photo_url
+      ? { uri: api.photo_url }
+      : api.photo
+        ? { uri: api.photo }
+        : FALLBACK_PHOTO,
+  };
+}
+
 export default function ShortlistedProfilesScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
-  const [shortlisted, setShortlisted] = useState(
-    () => new Set(SHORTLISTED_PROFILES.map((p) => p.id)),
-  );
+
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [togglingId, setTogglingId] = useState(null);
 
   // Applied filters
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -139,18 +118,89 @@ export default function ShortlistedProfilesScreen() {
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
   const [filtersVisible, setFiltersVisible] = useState(false);
 
+  const professionOptions = useMemo(
+    () => [...new Set(profiles.map((p) => p.profession).filter(Boolean))],
+    [profiles],
+  );
+
   const activeFilterCount =
     (filters.onlineOnly ? 1 : 0) +
     (filters.verifiedOnly ? 1 : 0) +
     (filters.ageRange ? 1 : 0) +
     filters.professions.length;
 
-  const toggleShortlist = (id) => {
-    setShortlisted((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  /* =========================================================
+     LOAD SHORTLISTS
+  ========================================================= */
+  const loadShortlists = async () => {
+    setLoading(true);
+    setLoadError("");
+
+    try {
+      const token = await getToken();
+
+      if (!token) {
+        setLoadError("Authentication token not found. Please login again.");
+        return;
+      }
+
+      const result = await getMyShortlists(token);
+      console.log("getMyShortlists result:", JSON.stringify(result));
+
+      if (result?.success === 1 || result?.result === true) {
+        // Adjust once you confirm the real shape:
+        // could be result.data or result.data.shortlists / result.data.members
+        const apiData =
+          result?.data?.shortlists ??
+          result?.data?.members ??
+          (Array.isArray(result?.data) ? result.data : []);
+
+        setProfiles(apiData.filter(Boolean).map(mapShortlistProfile));
+      } else {
+        setProfiles([]);
+        setLoadError(result?.message || "Unable to load shortlisted profiles.");
+      }
+    } catch (e) {
+      console.log("loadShortlists Error:", e);
+      setLoadError(e?.message || "Unable to load shortlisted profiles.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadShortlists();
+  }, []);
+
+  /* =========================================================
+     TOGGLE SHORTLIST (calls real API, then updates local list)
+  ========================================================= */
+  const toggleShortlist = async (id) => {
+    setTogglingId(id);
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setLoadError("Authentication token not found. Please login again.");
+        return;
+      }
+
+      // Every profile currently shown here is already shortlisted,
+      // so tapping the heart always means "remove".
+      const result = await removeFromShortlist(id, token);
+      console.log("removeFromShortlist result:", JSON.stringify(result));
+
+      if (result?.success === 1 || result?.result === true) {
+        setProfiles((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        setLoadError(result?.message || "Unable to update shortlist.");
+      }
+    } catch (e) {
+      console.log("toggleShortlist Error:", e);
+      setLoadError(e?.message || "Unable to update shortlist.");
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const openFilters = () => {
@@ -178,10 +228,8 @@ export default function ShortlistedProfilesScreen() {
   };
 
   const visibleProfiles = useMemo(() => {
-    let list = SHORTLISTED_PROFILES.filter(
-      (p) =>
-        shortlisted.has(p.id) &&
-        p.name.toLowerCase().includes(search.toLowerCase()),
+    let list = profiles.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()),
     );
 
     if (filters.onlineOnly) list = list.filter((p) => p.online);
@@ -197,13 +245,25 @@ export default function ShortlistedProfilesScreen() {
     if (sortBy === "name") {
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === "age") {
-      list = [...list].sort((a, b) => a.age - b.age);
+      list = [...list].sort((a, b) => (a.age ?? 0) - (b.age ?? 0));
     }
-    // "recent" keeps the original (most-recently-shortlisted-first) order
     return list;
-  }, [search, sortBy, shortlisted, filters]);
+  }, [search, sortBy, profiles, filters]);
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={Colors.primaryRed} />
+          <Text style={styles.centerStateText}>
+            Loading shortlisted profiles...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
@@ -241,19 +301,19 @@ export default function ShortlistedProfilesScreen() {
           <StatCard
             icon="heart"
             iconBg={Colors.gold}
-            value="12"
+            value={String(profiles.length)}
             label="Total Shortlisted"
           />
           <StatCard
             icon="eye"
             iconBg={Colors.primaryRed}
-            value="4"
+            value="-"
             label="Viewed Your Profile"
           />
           <StatCard
             icon="people"
             iconBg={Colors.gold}
-            value="2"
+            value="-"
             label="Interested in You"
           />
         </View>
@@ -284,6 +344,21 @@ export default function ShortlistedProfilesScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* ================= ERROR ================= */}
+        {!!loadError && (
+          <View style={styles.errorBanner}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={16}
+              color={Colors.primaryRed}
+            />
+            <Text style={styles.errorBannerText}>{loadError}</Text>
+            <TouchableOpacity onPress={loadShortlists}>
+              <Text style={styles.retryLink}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ================= ACTIVE FILTER CHIPS ================= */}
         {activeFilterCount > 0 && (
@@ -360,7 +435,7 @@ export default function ShortlistedProfilesScreen() {
               <ProfileCard
                 key={profile.id}
                 profile={profile}
-                isShortlisted={shortlisted.has(profile.id)}
+                isToggling={togglingId === profile.id}
                 onToggleShortlist={() => toggleShortlist(profile.id)}
               />
             ))
@@ -372,7 +447,9 @@ export default function ShortlistedProfilesScreen() {
                 color={Colors.textMuted}
               />
               <Text style={styles.emptyStateText}>
-                No shortlisted profiles match your filters.
+                {loadError
+                  ? "Couldn't load shortlisted profiles."
+                  : "No shortlisted profiles match your filters."}
               </Text>
             </View>
           )}
@@ -398,43 +475,6 @@ export default function ShortlistedProfilesScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* ================= BOTTOM TAB BAR ================= */}
-      {/* If your app already uses an expo-router <Tabs> layout, remove this
-          block and place this screen's content inside that layout instead. */}
-      <View style={styles.bottomTabBar}>
-        {BOTTOM_TABS.map((tab) => {
-          const isActive = tab.key === "profile";
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={styles.bottomTabItem}
-              activeOpacity={0.7}
-            >
-              <View>
-                <Ionicons
-                  name={isActive ? tab.activeIcon : tab.icon}
-                  size={22}
-                  color={isActive ? Colors.primaryRed : Colors.textMuted}
-                />
-                {tab.badge ? (
-                  <View style={styles.tabBadge}>
-                    <Text style={styles.tabBadgeText}>{tab.badge}</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text
-                style={[
-                  styles.bottomTabLabel,
-                  isActive && styles.bottomTabLabelActive,
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
 
       {/* ================= SORT DROPDOWN MODAL ================= */}
       <Modal
@@ -554,7 +594,7 @@ export default function ShortlistedProfilesScreen() {
 
               <Text style={styles.modalSectionLabel}>Profession</Text>
               <View style={styles.modalToggleRow}>
-                {PROFESSION_OPTIONS.map((prof) => (
+                {professionOptions.map((prof) => (
                   <ToggleChip
                     key={prof}
                     icon="briefcase-outline"
@@ -604,12 +644,12 @@ function StatCard({ icon, iconBg, value, label }) {
   );
 }
 
-function ProfileCard({ profile, isShortlisted, onToggleShortlist }) {
+function ProfileCard({ profile, isToggling, onToggleShortlist }) {
   return (
     <View style={styles.profileCard}>
       <View style={styles.profilePhotoWrapper}>
         <Image
-          source={PROFILE_PHOTO}
+          source={profile.image}
           style={styles.profilePhoto}
           resizeMode="cover"
         />
@@ -623,7 +663,8 @@ function ProfileCard({ profile, isShortlisted, onToggleShortlist }) {
       <View style={styles.profileInfo}>
         <View style={styles.profileNameRow}>
           <Text style={styles.profileName}>
-            {profile.name}, {profile.age}
+            {profile.name}
+            {profile.age ? `, ${profile.age}` : ""}
           </Text>
           {profile.verified && (
             <Ionicons
@@ -634,12 +675,22 @@ function ProfileCard({ profile, isShortlisted, onToggleShortlist }) {
             />
           )}
         </View>
-        <Text style={styles.profileProfession}>{profile.profession}</Text>
+        {!!profile.profession && (
+          <Text style={styles.profileProfession}>{profile.profession}</Text>
+        )}
 
-        <DetailLine icon="location" text={profile.location} />
-        <DetailLine icon="school-outline" text={profile.education} />
-        <DetailLine icon="resize-outline" text={profile.height} />
-        <DetailLine icon="people-outline" text={profile.religionCaste} />
+        {!!profile.location && (
+          <DetailLine icon="location" text={profile.location} />
+        )}
+        {!!profile.education && (
+          <DetailLine icon="school-outline" text={profile.education} />
+        )}
+        {!!profile.height && (
+          <DetailLine icon="resize-outline" text={profile.height} />
+        )}
+        {!!profile.religionCaste && (
+          <DetailLine icon="people-outline" text={profile.religionCaste} />
+        )}
       </View>
 
       <View style={styles.profileActions}>
@@ -655,14 +706,15 @@ function ProfileCard({ profile, isShortlisted, onToggleShortlist }) {
           style={styles.shortlistAction}
           activeOpacity={0.7}
           onPress={onToggleShortlist}
+          disabled={isToggling}
         >
-          <Ionicons
-            name={isShortlisted ? "heart" : "heart-outline"}
-            size={22}
-            color={Colors.primaryRed}
-          />
+          {isToggling ? (
+            <ActivityIndicator size="small" color={Colors.primaryRed} />
+          ) : (
+            <Ionicons name="heart" size={22} color={Colors.primaryRed} />
+          )}
           <Text style={styles.shortlistLabel}>
-            {isShortlisted ? "Shortlisted" : "Shortlist"}
+            {isToggling ? "..." : "Shortlisted"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -729,6 +781,40 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+
+  centerState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centerStateText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    gap: 8,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: Colors.primaryRed,
+    fontFamily: Fonts.body.regular,
+  },
+  retryLink: {
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
+    color: Colors.primaryRed,
+    textDecorationLine: "underline",
   },
 
   /* ===== TOP BAR ===== */
@@ -1092,47 +1178,6 @@ const styles = StyleSheet.create({
   },
   upgradeButtonText: {
     fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
-
-  /* ===== BOTTOM TAB BAR ===== */
-  bottomTabBar: {
-    flexDirection: "row",
-    backgroundColor: Colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 22 : 10,
-  },
-  bottomTabItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  bottomTabLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.medium,
-    color: Colors.textMuted,
-    marginTop: 3,
-  },
-  bottomTabLabelActive: {
-    color: Colors.primaryRed,
-    fontFamily: Fonts.body.bold,
-  },
-  tabBadge: {
-    position: "absolute",
-    top: -4,
-    right: -8,
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  tabBadgeText: {
-    fontSize: 9,
     fontFamily: Fonts.body.bold,
     color: Colors.white,
   },

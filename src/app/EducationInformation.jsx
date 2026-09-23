@@ -3,8 +3,8 @@ import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    BackHandler,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -13,9 +13,17 @@ import {
     View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+
+import {
+    useFocusEffect,
+    useNavigation,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
     deleteMemberEducation,
@@ -24,6 +32,8 @@ import {
 
 
 export default function EducationInformation() {
+
+    const navigation = useNavigation();
 
     const [educationList, setEducationList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -50,9 +60,11 @@ export default function EducationInformation() {
 
             if (!accessToken) {
                 setEducationList([]);
+
                 setError(
                     "Access token not found. Please login again."
                 );
+
                 return;
             }
 
@@ -67,18 +79,27 @@ export default function EducationInformation() {
             let educationData = [];
 
             if (Array.isArray(response)) {
+
                 educationData = response;
+
             } else if (Array.isArray(response?.data)) {
+
                 educationData = response.data;
+
             } else if (
                 Array.isArray(response?.data?.data)
             ) {
+
                 educationData = response.data.data;
+
             } else if (Array.isArray(response?.result)) {
+
                 educationData = response.result;
+
             } else if (
                 Array.isArray(response?.data?.result)
             ) {
+
                 educationData = response.data.result;
             }
 
@@ -90,6 +111,7 @@ export default function EducationInformation() {
                     2
                 )
             );
+
 
             const formattedEducation =
                 educationData
@@ -111,6 +133,7 @@ export default function EducationInformation() {
                                 ? Number(rawId)
                                 : null;
 
+
                         const degree =
                             item.degree ??
                             item.degree_name ??
@@ -119,6 +142,7 @@ export default function EducationInformation() {
                             item.qualification_name ??
                             item.education ??
                             "";
+
 
                         const field =
                             item.field ??
@@ -130,6 +154,7 @@ export default function EducationInformation() {
                             item.course_name ??
                             item.courseName ??
                             "";
+
 
                         const university =
                             item.university ??
@@ -143,6 +168,7 @@ export default function EducationInformation() {
                             item.collegeName ??
                             "";
 
+
                         const startYear =
                             item.start_year ??
                             item.startYear ??
@@ -151,6 +177,7 @@ export default function EducationInformation() {
                             item.from ??
                             "";
 
+
                         const endYear =
                             item.end_year ??
                             item.endYear ??
@@ -158,6 +185,7 @@ export default function EducationInformation() {
                             item.toYear ??
                             item.to ??
                             "";
+
 
                         return {
                             id,
@@ -173,6 +201,7 @@ export default function EducationInformation() {
                             Number.isInteger(item.id) &&
                             item.id > 0
                     );
+
 
             console.log(
                 "FORMATTED EDUCATION:",
@@ -200,6 +229,7 @@ export default function EducationInformation() {
             );
 
         } finally {
+
             setLoading(false);
         }
 
@@ -212,319 +242,402 @@ export default function EducationInformation() {
 
     useFocusEffect(
         useCallback(() => {
+
             loadEducation();
+
         }, [loadEducation])
     );
 
-/* =========================================================
-   DELETE EDUCATION
-========================================================= */
 
-const handleDeleteEducation = (educationId) => {
-    console.log("======================================");
-    console.log("DELETE BUTTON CLICKED");
-    console.log("RAW EDUCATION ID:", educationId);
+    /* =========================================================
+       ANDROID HARDWARE BACK BUTTON
+    ========================================================= */
 
-    const numericId = Number(educationId);
+    useFocusEffect(
+        useCallback(() => {
 
-    console.log(
-        "NUMERIC EDUCATION ID:",
-        numericId
+            const handleBackPress = () => {
+
+                navigation.goBack();
+
+                return true;
+            };
+
+            const subscription =
+                BackHandler.addEventListener(
+                    "hardwareBackPress",
+                    handleBackPress
+                );
+
+            return () => {
+                subscription.remove();
+            };
+
+        }, [navigation])
     );
 
-    // -----------------------------------------------------
-    // VALIDATE ID
-    // -----------------------------------------------------
 
-    if (
-        !Number.isInteger(numericId) ||
-        numericId <= 0
-    ) {
-        console.error(
-            "INVALID EDUCATION ID:",
+    /* =========================================================
+       DELETE EDUCATION
+    ========================================================= */
+
+    const handleDeleteEducation = (educationId) => {
+
+        console.log("======================================");
+        console.log("DELETE BUTTON CLICKED");
+        console.log(
+            "RAW EDUCATION ID:",
             educationId
         );
 
-        Alert.alert(
-            "Delete Failed",
-            "Invalid education ID."
-        );
+        const numericId = Number(educationId);
 
-        return;
-    }
-
-    // -----------------------------------------------------
-    // PREVENT MULTIPLE DELETE REQUESTS
-    // -----------------------------------------------------
-
-    if (deletingId !== null) {
         console.log(
-            "DELETE ALREADY IN PROGRESS:",
-            deletingId
-        );
-
-        return;
-    }
-
-    // -----------------------------------------------------
-    // WEB
-    // -----------------------------------------------------
-
-    if (Platform.OS === "web") {
-        console.log(
-            "WEB PLATFORM - CALLING DELETE API"
-        );
-
-        performDelete(numericId);
-
-        return;
-    }
-
-    // -----------------------------------------------------
-    // ANDROID / IOS
-    // -----------------------------------------------------
-
-    Alert.alert(
-        "Delete Education",
-        "Are you sure you want to delete this education?",
-        [
-            {
-                text: "Cancel",
-                style: "cancel",
-                onPress: () => {
-                    console.log(
-                        "DELETE CANCELLED"
-                    );
-                },
-            },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => {
-                    console.log(
-                        "DELETE CONFIRMED - CALLING API"
-                    );
-
-                    performDelete(numericId);
-                },
-            },
-        ]
-    );
-};
-/* =========================================================
-   PERFORM DELETE
-========================================================= */
-
-const performDelete = async (numericId) => {
-    try {
-        console.log("======================================");
-        console.log("PERFORM DELETE CALLED");
-        console.log(
-            "EDUCATION ID:",
+            "NUMERIC EDUCATION ID:",
             numericId
         );
 
-        setDeletingId(numericId);
 
-        // -------------------------------------------------
-        // GET ACCESS TOKEN
-        // -------------------------------------------------
+        // -----------------------------------------------------
+        // VALIDATE ID
+        // -----------------------------------------------------
 
-        const accessToken =
-            await AsyncStorage.getItem(
-                "access_token"
+        if (
+            !Number.isInteger(numericId) ||
+            numericId <= 0
+        ) {
+
+            console.error(
+                "INVALID EDUCATION ID:",
+                educationId
             );
 
-        console.log(
-            "ACCESS TOKEN EXISTS:",
-            !!accessToken
-        );
-
-        if (!accessToken) {
             Alert.alert(
-                "Login Required",
-                "Your session has expired. Please login again."
+                "Delete Failed",
+                "Invalid education ID."
             );
 
             return;
         }
 
-        // -------------------------------------------------
-        // CALL DELETE API
-        // -------------------------------------------------
 
-        console.log(
-            "CALLING deleteMemberEducation..."
+        // -----------------------------------------------------
+        // PREVENT MULTIPLE DELETE REQUESTS
+        // -----------------------------------------------------
+
+        if (deletingId !== null) {
+
+            console.log(
+                "DELETE ALREADY IN PROGRESS:",
+                deletingId
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // WEB
+        // -----------------------------------------------------
+
+        if (Platform.OS === "web") {
+
+            console.log(
+                "WEB PLATFORM - CALLING DELETE API"
+            );
+
+            performDelete(numericId);
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // ANDROID / IOS
+        // -----------------------------------------------------
+
+        Alert.alert(
+            "Delete Education",
+            "Are you sure you want to delete this education?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+
+                    onPress: () => {
+
+                        console.log(
+                            "DELETE CANCELLED"
+                        );
+                    },
+                },
+
+                {
+                    text: "Delete",
+                    style: "destructive",
+
+                    onPress: () => {
+
+                        console.log(
+                            "DELETE CONFIRMED - CALLING API"
+                        );
+
+                        performDelete(numericId);
+                    },
+                },
+            ]
         );
+    };
 
-        const response =
-            await deleteMemberEducation(
-                accessToken,
+
+    /* =========================================================
+       PERFORM DELETE
+    ========================================================= */
+
+    const performDelete = async (numericId) => {
+
+        try {
+
+            console.log("======================================");
+
+            console.log(
+                "PERFORM DELETE CALLED"
+            );
+
+            console.log(
+                "EDUCATION ID:",
                 numericId
             );
 
-        console.log(
-            "DELETE API RESPONSE:",
-            JSON.stringify(
-                response,
-                null,
-                2
-            )
-        );
+            setDeletingId(numericId);
 
-        // -------------------------------------------------
-        // CHECK RESPONSE
-        // -------------------------------------------------
 
-        const statusCode = Number(
-            response?.statusCode ??
-            response?.status ??
-            0
-        );
+            // -------------------------------------------------
+            // GET ACCESS TOKEN
+            // -------------------------------------------------
 
-        const success =
-            response?.success === true ||
-            response?.result === true ||
-            (
-                statusCode >= 200 &&
-                statusCode < 300
-            );
-
-        console.log(
-            "DELETE STATUS:",
-            statusCode
-        );
-
-        console.log(
-            "DELETE SUCCESS:",
-            success
-        );
-
-        // -------------------------------------------------
-        // SUCCESS
-        // -------------------------------------------------
-
-        if (success) {
-            console.log(
-                "======================================"
-            );
-
-            console.log(
-                "EDUCATION DELETE SUCCESS"
-            );
-
-            console.log(
-                "DELETED EDUCATION ID:",
-                numericId
-            );
-
-            // Remove from screen
-            setEducationList(
-                (previousList) =>
-                    previousList.filter(
-                        (item) =>
-                            Number(item.id) !==
-                            Number(numericId)
-                    )
-            );
-
-            // Show success message
-            if (Platform.OS === "web") {
-                window.alert(
-                    response?.message ||
-                    "Education deleted successfully."
+            const accessToken =
+                await AsyncStorage.getItem(
+                    "access_token"
                 );
-            } else {
+
+            console.log(
+                "ACCESS TOKEN EXISTS:",
+                !!accessToken
+            );
+
+
+            if (!accessToken) {
+
                 Alert.alert(
-                    "Success",
-                    response?.message ||
-                    "Education deleted successfully."
+                    "Login Required",
+                    "Your session has expired. Please login again."
+                );
+
+                return;
+            }
+
+
+            // -------------------------------------------------
+            // CALL DELETE API
+            // -------------------------------------------------
+
+            console.log(
+                "CALLING deleteMemberEducation..."
+            );
+
+            const response =
+                await deleteMemberEducation(
+                    accessToken,
+                    numericId
+                );
+
+            console.log(
+                "DELETE API RESPONSE:",
+                JSON.stringify(
+                    response,
+                    null,
+                    2
+                )
+            );
+
+
+            // -------------------------------------------------
+            // CHECK RESPONSE
+            // -------------------------------------------------
+
+            const statusCode = Number(
+                response?.statusCode ??
+                response?.status ??
+                0
+            );
+
+
+            const success =
+                response?.success === true ||
+                response?.result === true ||
+                (
+                    statusCode >= 200 &&
+                    statusCode < 300
+                );
+
+
+            console.log(
+                "DELETE STATUS:",
+                statusCode
+            );
+
+            console.log(
+                "DELETE SUCCESS:",
+                success
+            );
+
+
+            // -------------------------------------------------
+            // SUCCESS
+            // -------------------------------------------------
+
+            if (success) {
+
+                console.log(
+                    "======================================"
+                );
+
+                console.log(
+                    "EDUCATION DELETE SUCCESS"
+                );
+
+                console.log(
+                    "DELETED EDUCATION ID:",
+                    numericId
+                );
+
+
+                // Remove from screen
+                setEducationList(
+                    (previousList) =>
+                        previousList.filter(
+                            (item) =>
+                                Number(item.id) !==
+                                Number(numericId)
+                        )
+                );
+
+
+                // Show success message
+                if (Platform.OS === "web") {
+
+                    window.alert(
+                        response?.message ||
+                        "Education deleted successfully."
+                    );
+
+                } else {
+
+                    Alert.alert(
+                        "Success",
+                        response?.message ||
+                        "Education deleted successfully."
+                    );
+                }
+
+                return;
+            }
+
+
+            // -------------------------------------------------
+            // FAILURE
+            // -------------------------------------------------
+
+            const message =
+                response?.message ||
+                response?.data?.message ||
+                response?.data?.error ||
+                "Education could not be deleted.";
+
+
+            if (Platform.OS === "web") {
+
+                window.alert(
+                    `Delete Failed: ${message}`
+                );
+
+            } else {
+
+                Alert.alert(
+                    "Delete Failed",
+                    message
                 );
             }
 
-            return;
+
+        } catch (error) {
+
+            console.error(
+                "======================================"
+            );
+
+            console.error(
+                "DELETE EDUCATION ERROR:",
+                error
+            );
+
+            console.error(
+                "ERROR MESSAGE:",
+                error?.message
+            );
+
+            console.error(
+                "ERROR STATUS:",
+                error?.response?.status
+            );
+
+            console.error(
+                "ERROR DATA:",
+                error?.response?.data
+            );
+
+
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.msg ||
+                error?.response?.data?.error ||
+                error?.message ||
+                "Unable to delete education.";
+
+
+            if (Platform.OS === "web") {
+
+                window.alert(
+                    `Delete Failed: ${message}`
+                );
+
+            } else {
+
+                Alert.alert(
+                    "Delete Failed",
+                    String(message)
+                );
+            }
+
+        } finally {
+
+            console.log(
+                "DELETE PROCESS FINISHED"
+            );
+
+            setDeletingId(null);
         }
+    };
 
-        // -------------------------------------------------
-        // FAILURE
-        // -------------------------------------------------
-
-        const message =
-            response?.message ||
-            response?.data?.message ||
-            response?.data?.error ||
-            "Education could not be deleted.";
-
-        if (Platform.OS === "web") {
-            window.alert(
-                `Delete Failed: ${message}`
-            );
-        } else {
-            Alert.alert(
-                "Delete Failed",
-                message
-            );
-        }
-
-    } catch (error) {
-
-        console.error(
-            "======================================"
-        );
-
-        console.error(
-            "DELETE EDUCATION ERROR:",
-            error
-        );
-
-        console.error(
-            "ERROR MESSAGE:",
-            error?.message
-        );
-
-        console.error(
-            "ERROR STATUS:",
-            error?.response?.status
-        );
-
-        console.error(
-            "ERROR DATA:",
-            error?.response?.data
-        );
-
-        const message =
-            error?.response?.data?.message ||
-            error?.response?.data?.msg ||
-            error?.response?.data?.error ||
-            error?.message ||
-            "Unable to delete education.";
-
-        if (Platform.OS === "web") {
-            window.alert(
-                `Delete Failed: ${message}`
-            );
-        } else {
-            Alert.alert(
-                "Delete Failed",
-                String(message)
-            );
-        }
-
-    } finally {
-        console.log(
-            "DELETE PROCESS FINISHED"
-        );
-
-        setDeletingId(null);
-    }
-};
 
     /* =========================================================
        ADD EDUCATION
     ========================================================= */
 
     const handleAddEducation = () => {
-        router.push("/AddEducation");
+
+        navigation.navigate("AddEducation");
     };
 
 
@@ -544,17 +657,19 @@ const performDelete = async (numericId) => {
             return;
         }
 
+
         console.log(
             "EDIT EDUCATION ID:",
             item.id
         );
 
-        router.push({
-            pathname: "/EditEducation",
-            params: {
+
+        navigation.navigate(
+            "EditEducation",
+            {
                 id: String(item.id),
-            },
-        });
+            }
+        );
     };
 
 
@@ -563,7 +678,8 @@ const performDelete = async (numericId) => {
     ========================================================= */
 
     const handleBack = () => {
-        router.back();
+
+        navigation.goBack();
     };
 
 
@@ -572,6 +688,7 @@ const performDelete = async (numericId) => {
     ========================================================= */
 
     const handleMenu = () => {
+
         Alert.alert(
             "Menu",
             "More options"
@@ -584,6 +701,7 @@ const performDelete = async (numericId) => {
     ========================================================= */
 
     return (
+
         <SafeAreaView
             style={styles.safeArea}
         >
@@ -593,7 +711,9 @@ const performDelete = async (numericId) => {
                 backgroundColor="#FFFFFF"
             />
 
+
             <View style={styles.container}>
+
 
                 {/* HEADER */}
 
@@ -604,11 +724,13 @@ const performDelete = async (numericId) => {
                         activeOpacity={0.7}
                         onPress={handleBack}
                     >
-                        <Ionicons
-                            name="chevron-back"
+
+                        <Feather
+                            name="chevron-left"
                             size={22}
                             color="#EF233C"
                         />
+
                     </TouchableOpacity>
 
 
@@ -624,11 +746,13 @@ const performDelete = async (numericId) => {
                         activeOpacity={0.7}
                         onPress={handleMenu}
                     >
-                        <Ionicons
-                            name="ellipsis-vertical"
+
+                        <Feather
+                            name="more-vertical"
                             size={20}
                             color="#EF233C"
                         />
+
                     </TouchableOpacity>
 
                 </View>
@@ -644,34 +768,45 @@ const performDelete = async (numericId) => {
                     showsVerticalScrollIndicator={false}
                 >
 
+
                     {/* ERROR */}
 
                     {error !== "" && (
+
                         <Text
                             style={styles.errorText}
                         >
                             {String(error)}
                         </Text>
+
                     )}
 
 
                     {/* LOADING */}
 
                     {loading && (
+
                         <View
-                            style={styles.loadingContainer}
+                            style={
+                                styles.loadingContainer
+                            }
                         >
+
                             <ActivityIndicator
                                 size="small"
                                 color="#EF233C"
                             />
 
                             <Text
-                                style={styles.loadingText}
+                                style={
+                                    styles.loadingText
+                                }
                             >
                                 Loading education...
                             </Text>
+
                         </View>
+
                     )}
 
 
@@ -684,13 +819,16 @@ const performDelete = async (numericId) => {
                                 deletingId ===
                                 Number(item.id);
 
+
                             return (
+
                                 <View
                                     key={String(item.id)}
                                     style={
                                         styles.educationCard
                                     }
                                 >
+
 
                                     {/* ICON */}
 
@@ -699,11 +837,13 @@ const performDelete = async (numericId) => {
                                             styles.educationIconCircle
                                         }
                                     >
-                                        <Ionicons
-                                            name="school-outline"
-                                            size={27}
+
+                                        <FontAwesome5
+                                            name="graduation-cap"
+                                            size={25}
                                             color="#EF233C"
                                         />
+
                                     </View>
 
 
@@ -772,11 +912,13 @@ const performDelete = async (numericId) => {
                                             handleEdit(item)
                                         }
                                     >
-                                        <Ionicons
-                                            name="pencil-outline"
+
+                                        <Feather
+                                            name="edit-2"
                                             size={17}
                                             color="#64748B"
                                         />
+
                                     </TouchableOpacity>
 
 
@@ -789,17 +931,26 @@ const performDelete = async (numericId) => {
                                             styles.deleteDisabled,
                                         ]}
                                         activeOpacity={0.7}
-                                        disabled={deletingId !== null}
-                                        onPress={() => handleDeleteEducation(item.id)}
+                                        disabled={
+                                            deletingId !== null
+                                        }
+                                        onPress={() =>
+                                            handleDeleteEducation(
+                                                item.id
+                                            )
+                                        }
                                     >
-                                        <Ionicons
-                                            name="trash-outline"
+
+                                        <Feather
+                                            name="trash-2"
                                             size={17}
                                             color="#EF233C"
                                         />
+
                                     </TouchableOpacity>
 
                                 </View>
+
                             );
                         })}
 
@@ -807,6 +958,7 @@ const performDelete = async (numericId) => {
                     {/* ADD EDUCATION */}
 
                     {!loading && (
+
                         <View
                             style={
                                 styles.addEducationSection
@@ -818,11 +970,13 @@ const performDelete = async (numericId) => {
                                     styles.centerIconCircle
                                 }
                             >
-                                <Ionicons
-                                    name="briefcase-outline"
-                                    size={32}
+
+                                <FontAwesome5
+                                    name="briefcase"
+                                    size={28}
                                     color="#EF233C"
                                 />
+
                             </View>
 
 
@@ -855,8 +1009,8 @@ const performDelete = async (numericId) => {
                                 }
                             >
 
-                                <Ionicons
-                                    name="add"
+                                <Feather
+                                    name="plus"
                                     size={20}
                                     color="#FFFFFF"
                                 />
@@ -872,6 +1026,7 @@ const performDelete = async (numericId) => {
                             </TouchableOpacity>
 
                         </View>
+
                     )}
 
                 </ScrollView>

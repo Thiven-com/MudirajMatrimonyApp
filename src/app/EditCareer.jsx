@@ -7,9 +7,9 @@ import {
 import {
     ActivityIndicator,
     Alert,
+    BackHandler,
     KeyboardAvoidingView,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -21,36 +21,41 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
-    router,
-    useLocalSearchParams,
-} from "expo-router";
+    useFocusEffect,
+    useNavigation,
+    useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
     getMemberCareerById,
     updateMemberCareerById,
 } from "../utils/Functions";
 
+
 // =========================================================
 // COLORS
 // =========================================================
 
 const COLORS = {
-    background: "#F5F6F8",
-    white: "#FFFFFF",
+  background: "#F5F6F8",
+  white: "#FFFFFF",
 
-    text: "#222222",
-    secondary: "#666666",
-    lightText: "#888888",
+  text: "#222222",
+  secondary: "#666666",
+  lightText: "#888888",
 
-    border: "#E5E5E5",
+  border: "#E5E5E5",
 
-    red: "#ED1B2F",
-    lightRed: "#FFF0F2",
+  red: "#ED1B2F",
+  lightRed: "#FFF0F2",
 
-    inputBackground: "#FFFFFF",
+  inputBackground: "#FFFFFF",
 };
 
 
@@ -60,330 +65,458 @@ const COLORS = {
 
 export default function EditCareer() {
 
-    // =====================================================
-    // GET ROUTE PARAM
-    // =====================================================
+  // =======================================================
+  // NAVIGATION
+  // =======================================================
 
-    const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
 
-    const careerId =
-        params?.id ||
-        params?.careerId;
 
+  // =======================================================
+  // GET ROUTE PARAM
+  //
+  // Navigate:
+  //
+  // navigation.navigate("EditCareer", {
+  //   id: careerId,
+  // });
+  //
+  // OR
+  //
+  // navigation.navigate("EditCareer", {
+  //   careerId: careerId,
+  // });
+  // =======================================================
 
-    // =====================================================
-    // STATE
-    // =====================================================
+  const careerId =
+    route?.params?.id ||
+    route?.params?.careerId;
 
-    const [company, setCompany] =
-        useState("");
 
-    const [designation, setDesignation] =
-        useState("");
+  // =======================================================
+  // STATE
+  // =======================================================
 
-    const [start, setStart] =
-        useState("");
+  const [company, setCompany] =
+    useState("");
 
-    const [end, setEnd] =
-        useState("");
+  const [designation, setDesignation] =
+    useState("");
 
-    const [loading, setLoading] =
-        useState(true);
+  const [start, setStart] =
+    useState("");
 
-    const [saving, setSaving] =
-        useState(false);
+  const [end, setEnd] =
+    useState("");
 
+  const [loading, setLoading] =
+    useState(true);
 
-    // =====================================================
-    // LOAD CAREER BY ID
-    // =====================================================
+  const [saving, setSaving] =
+    useState(false);
 
-    const loadCareer = useCallback(
-        async () => {
 
-            try {
+  // =======================================================
+  // ANDROID HARDWARE BACK BUTTON
+  // =======================================================
 
-                setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
 
-                // -----------------------------------------
-                // CHECK CAREER ID
-                // -----------------------------------------
+      const onBackPress = () => {
 
-                if (!careerId) {
+        if (saving) {
+          return true;
+        }
 
-                    Alert.alert(
-                        "Error",
-                        "Career ID is missing.",
-                        [
-                            {
-                                text: "OK",
-                                onPress: () =>
-                                    router.back(),
-                            },
-                        ]
-                    );
+        navigation.goBack();
 
-                    return;
-                }
+        return true;
+      };
 
 
-                // -----------------------------------------
-                // GET TOKEN
-                // -----------------------------------------
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
 
-                const accessToken =
-                    await AsyncStorage.getItem(
-                        "access_token"
-                    );
 
+      return () => {
+        subscription.remove();
+      };
 
-                if (!accessToken) {
+    }, [navigation, saving])
+  );
 
-                    Alert.alert(
-                        "Session Expired",
-                        "Please login again.",
-                        [
-                            {
-                                text: "OK",
-                                onPress: () =>
-                                    router.back(),
-                            },
-                        ]
-                    );
 
-                    return;
-                }
+  // =======================================================
+  // LOAD CAREER BY ID
+  // =======================================================
 
+  const loadCareer = useCallback(
+    async () => {
 
-                // -----------------------------------------
-                // DEBUG
-                // -----------------------------------------
+      try {
 
-                console.log(
-                    "======================================"
-                );
+        setLoading(true);
 
-                console.log(
-                    "EDIT CAREER SCREEN"
-                );
-
-                console.log(
-                    "CAREER ID:",
-                    careerId
-                );
 
-                console.log(
-                    "CALLING GET CAREER BY ID"
-                );
+        // -----------------------------------------------
+        // CHECK CAREER ID
+        // -----------------------------------------------
+
+        if (!careerId) {
+
+          Alert.alert(
+            "Error",
+            "Career ID is missing.",
+            [
+              {
+                text: "OK",
+                onPress: () =>
+                  navigation.goBack(),
+              },
+            ]
+          );
+
+          return;
+        }
+
+
+        // -----------------------------------------------
+        // GET TOKEN
+        // -----------------------------------------------
+
+        const accessToken =
+          await AsyncStorage.getItem(
+            "access_token"
+          );
+
+
+        if (!accessToken) {
+
+          Alert.alert(
+            "Session Expired",
+            "Please login again.",
+            [
+              {
+                text: "OK",
+                onPress: () =>
+                  navigation.goBack(),
+              },
+            ]
+          );
+
+          return;
+        }
 
-                console.log(
-                    "======================================"
-                );
 
-
-                // -----------------------------------------
-                // GET SINGLE CAREER
-                // GET /api/member/career/{id}
-                // -----------------------------------------
-
-                const response =
-                    await getMemberCareerById(
-                        accessToken,
-                        careerId
-                    );
-
-
-                console.log(
-                    "======================================"
-                );
-
-                console.log(
-                    "GET SINGLE CAREER RESPONSE:"
-                );
-
-                console.log(
-                    JSON.stringify(
-                        response,
-                        null,
-                        2
-                    )
-                );
-
-                console.log(
-                    "======================================"
-                );
-
-
-                // -----------------------------------------
-                // NORMALIZE RESPONSE
-                // -----------------------------------------
-
-                let careerData = null;
-
-
-                if (
-                    response?.data?.data &&
-                    typeof response.data.data ===
-                        "object"
-                ) {
-
-                    careerData =
-                        response.data.data;
-
-                } else if (
-                    response?.data &&
-                    typeof response.data ===
-                        "object"
-                ) {
-
-                    careerData =
-                        response.data;
-
-                } else if (
-                    response?.career &&
-                    typeof response.career ===
-                        "object"
-                ) {
-
-                    careerData =
-                        response.career;
-
-                } else if (
-                    response &&
-                    typeof response ===
-                        "object"
-                ) {
-
-                    careerData =
-                        response;
-                }
-
-
-                console.log(
-                    "NORMALIZED CAREER:",
-                    JSON.stringify(
-                        careerData,
-                        null,
-                        2
-                    )
-                );
-
-
-                if (!careerData) {
-
-                    throw new Error(
-                        "Career details not found."
-                    );
-                }
-
-
-                // -----------------------------------------
-                // SET FORM VALUES
-                // -----------------------------------------
-
-                setCompany(
-                    String(
-                        careerData?.company ||
-                        careerData?.company_name ||
-                        careerData?.companyName ||
-                        ""
-                    )
-                );
-
-
-                setDesignation(
-                    String(
-                        careerData?.designation ||
-                        careerData?.job_title ||
-                        careerData?.jobTitle ||
-                        careerData?.position ||
-                        careerData?.role ||
-                        ""
-                    )
-                );
-
-
-                setStart(
-                    String(
-                        careerData?.start ||
-                        careerData?.start_year ||
-                        careerData?.startYear ||
-                        careerData?.career_start ||
-                        ""
-                    )
-                );
-
-
-                setEnd(
-                    String(
-                        careerData?.end ||
-                        careerData?.end_year ||
-                        careerData?.endYear ||
-                        careerData?.career_end ||
-                        ""
-                    )
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "LOAD CAREER BY ID ERROR:",
-                    error
-                );
-
-                Alert.alert(
-                    "Error",
-                    error?.message ||
-                    "Unable to load career details."
-                );
-
-            } finally {
-
-                setLoading(false);
-            }
-
-        },
-        [careerId]
-    );
-
-
-    // =====================================================
-    // LOAD ON SCREEN OPEN
-    // =====================================================
-
-    useEffect(() => {
-
-        loadCareer();
-
-    }, [loadCareer]);
-
-// =========================================================
-// SAVE / UPDATE CAREER
-// PUT /api/member/career/{id}
-// =========================================================
-
-const handleSave = async () => {
+        // -----------------------------------------------
+        // DEBUG
+        // -----------------------------------------------
+
+        console.log(
+          "======================================"
+        );
+
+        console.log(
+          "EDIT CAREER SCREEN"
+        );
+
+        console.log(
+          "CAREER ID:",
+          careerId
+        );
+
+        console.log(
+          "CALLING GET CAREER BY ID"
+        );
+
+        console.log(
+          "======================================"
+        );
+
+
+        // -----------------------------------------------
+        // CONVERT ID TO NUMBER
+        // -----------------------------------------------
+
+        const numericCareerId =
+          Number(careerId);
+
+
+        if (
+          !Number.isInteger(
+            numericCareerId
+          ) ||
+          numericCareerId <= 0
+        ) {
+
+          Alert.alert(
+            "Error",
+            "Invalid career ID.",
+            [
+              {
+                text: "OK",
+                onPress: () =>
+                  navigation.goBack(),
+              },
+            ]
+          );
+
+          return;
+        }
+
+
+        // -----------------------------------------------
+        // GET SINGLE CAREER
+        //
+        // GET /api/member/career/{id}
+        // -----------------------------------------------
+
+        const response =
+          await getMemberCareerById(
+            accessToken,
+            numericCareerId
+          );
+
+
+        console.log(
+          "======================================"
+        );
+
+        console.log(
+          "GET SINGLE CAREER RESPONSE:"
+        );
+
+        console.log(
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
+
+        console.log(
+          "======================================"
+        );
+
+
+        // -----------------------------------------------
+        // NORMALIZE RESPONSE
+        // -----------------------------------------------
+
+        let careerData = null;
+
+
+        if (
+          response?.data?.data &&
+          typeof response.data.data ===
+            "object" &&
+          !Array.isArray(
+            response.data.data
+          )
+        ) {
+
+          careerData =
+            response.data.data;
+
+        } else if (
+          response?.data &&
+          typeof response.data ===
+            "object" &&
+          !Array.isArray(
+            response.data
+          )
+        ) {
+
+          careerData =
+            response.data;
+
+        } else if (
+          response?.career &&
+          typeof response.career ===
+            "object" &&
+          !Array.isArray(
+            response.career
+          )
+        ) {
+
+          careerData =
+            response.career;
+
+        } else if (
+          response &&
+          typeof response ===
+            "object" &&
+          !Array.isArray(
+            response
+          )
+        ) {
+
+          careerData =
+            response;
+        }
+
+
+        console.log(
+          "NORMALIZED CAREER:",
+          JSON.stringify(
+            careerData,
+            null,
+            2
+          )
+        );
+
+
+        if (!careerData) {
+
+          throw new Error(
+            "Career details not found."
+          );
+        }
+
+
+        // -----------------------------------------------
+        // SET COMPANY
+        // -----------------------------------------------
+
+        setCompany(
+          String(
+            careerData?.company ??
+            careerData?.company_name ??
+            careerData?.companyName ??
+            ""
+          )
+        );
+
+
+        // -----------------------------------------------
+        // SET DESIGNATION
+        // -----------------------------------------------
+
+        setDesignation(
+          String(
+            careerData?.designation ??
+            careerData?.job_title ??
+            careerData?.jobTitle ??
+            careerData?.position ??
+            careerData?.role ??
+            ""
+          )
+        );
+
+
+        // -----------------------------------------------
+        // SET START YEAR
+        // -----------------------------------------------
+
+        setStart(
+          String(
+            careerData?.start ??
+            careerData?.start_year ??
+            careerData?.startYear ??
+            careerData?.career_start ??
+            ""
+          )
+        );
+
+
+        // -----------------------------------------------
+        // SET END YEAR
+        // -----------------------------------------------
+
+        setEnd(
+          String(
+            careerData?.end ??
+            careerData?.end_year ??
+            careerData?.endYear ??
+            careerData?.career_end ??
+            ""
+          )
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "LOAD CAREER BY ID ERROR:",
+          error
+        );
+
+
+        Alert.alert(
+          "Error",
+          error?.message ||
+          "Unable to load career details."
+        );
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    },
+    [
+      careerId,
+      navigation,
+    ]
+  );
+
+
+  // =======================================================
+  // LOAD ON SCREEN OPEN
+  // =======================================================
+
+  useEffect(() => {
+
+    loadCareer();
+
+  }, [loadCareer]);
+
+
+  // =======================================================
+  // SAVE / UPDATE CAREER
+  //
+  // PUT /api/member/career/{id}
+  // =======================================================
+
+  const handleSave = async () => {
 
     if (saving) {
-        return;
+      return;
     }
+
 
     // -----------------------------------------------------
     // CLEAN VALUES
     // -----------------------------------------------------
 
     const cleanCompany =
-        String(company || "").trim();
+      String(
+        company || ""
+      ).trim();
+
 
     const cleanDesignation =
-        String(designation || "").trim();
+      String(
+        designation || ""
+      ).trim();
+
 
     const cleanStart =
-        String(start || "").trim();
+      String(
+        start || ""
+      ).trim();
+
 
     const cleanEnd =
-        String(end || "").trim();
+      String(
+        end || ""
+      ).trim();
 
 
     // -----------------------------------------------------
@@ -391,75 +524,100 @@ const handleSave = async () => {
     // -----------------------------------------------------
 
     if (!cleanCompany) {
-        Alert.alert(
-            "Required",
-            "Please enter company name."
-        );
-        return;
+
+      Alert.alert(
+        "Required",
+        "Please enter company name."
+      );
+
+      return;
     }
+
 
     if (!cleanDesignation) {
-        Alert.alert(
-            "Required",
-            "Please enter designation."
-        );
-        return;
+
+      Alert.alert(
+        "Required",
+        "Please enter designation."
+      );
+
+      return;
     }
+
 
     if (!cleanStart) {
-        Alert.alert(
-            "Required",
-            "Please enter start year."
-        );
-        return;
+
+      Alert.alert(
+        "Required",
+        "Please enter start year."
+      );
+
+      return;
     }
 
+
     if (!cleanEnd) {
-        Alert.alert(
-            "Required",
-            "Please enter end year."
-        );
-        return;
+
+      Alert.alert(
+        "Required",
+        "Please enter end year."
+      );
+
+      return;
     }
 
 
     const startYear =
-        Number(cleanStart);
+      Number(cleanStart);
+
 
     const endYear =
-        Number(cleanEnd);
+      Number(cleanEnd);
 
 
     if (
-        !Number.isInteger(startYear) ||
-        startYear <= 0
+      !Number.isInteger(
+        startYear
+      ) ||
+      startYear <= 0
     ) {
-        Alert.alert(
-            "Invalid Year",
-            "Please enter a valid start year."
-        );
-        return;
+
+      Alert.alert(
+        "Invalid Year",
+        "Please enter a valid start year."
+      );
+
+      return;
     }
 
 
     if (
-        !Number.isInteger(endYear) ||
-        endYear <= 0
+      !Number.isInteger(
+        endYear
+      ) ||
+      endYear <= 0
     ) {
-        Alert.alert(
-            "Invalid Year",
-            "Please enter a valid end year."
-        );
-        return;
+
+      Alert.alert(
+        "Invalid Year",
+        "Please enter a valid end year."
+      );
+
+      return;
     }
 
 
-    if (endYear < startYear) {
-        Alert.alert(
-            "Invalid Year",
-            "End year cannot be before start year."
-        );
-        return;
+    if (
+      endYear <
+      startYear
+    ) {
+
+      Alert.alert(
+        "Invalid Year",
+        "End year cannot be before start year."
+      );
+
+      return;
     }
 
 
@@ -468,857 +626,751 @@ const handleSave = async () => {
     // -----------------------------------------------------
 
     const id =
-        Number(careerId);
+      Number(careerId);
+
 
     if (
-        !Number.isInteger(id) ||
-        id <= 0
+      !Number.isInteger(id) ||
+      id <= 0
     ) {
-        Alert.alert(
-            "Error",
-            "Valid Career ID is required."
-        );
-        return;
+
+      Alert.alert(
+        "Error",
+        "Valid Career ID is required."
+      );
+
+      return;
     }
 
 
     try {
 
-        setSaving(true);
+      setSaving(true);
 
 
-        // -------------------------------------------------
-        // GET TOKEN
-        // -------------------------------------------------
+      // ---------------------------------------------------
+      // GET TOKEN
+      // ---------------------------------------------------
 
-        const accessToken =
-            await AsyncStorage.getItem(
-                "access_token"
-            );
-
-
-        if (!accessToken) {
-
-            Alert.alert(
-                "Session Expired",
-                "Please login again."
-            );
-
-            return;
-        }
-
-
-        // -------------------------------------------------
-        // REQUEST BODY
-        // -------------------------------------------------
-
-        const body = {
-
-            company:
-                cleanCompany,
-
-            designation:
-                cleanDesignation,
-
-            start:
-                startYear,
-
-            end:
-                endYear,
-
-        };
-
-
-        // -------------------------------------------------
-        // DEBUG
-        // -------------------------------------------------
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "UPDATE CAREER BUTTON CLICKED"
-        );
-
-        console.log(
-            "METHOD: PUT"
-        );
-
-        console.log(
-            "CAREER ID:",
-            id
-        );
-
-        console.log(
-            "URL:",
-            `/api/member/career/${id}`
-        );
-
-        console.log(
-            "REQUEST BODY:",
-            JSON.stringify(
-                body,
-                null,
-                2
-            )
-        );
-
-        console.log(
-            "======================================"
+      const accessToken =
+        await AsyncStorage.getItem(
+          "access_token"
         );
 
 
-        // -------------------------------------------------
-        // CALL PUT API
-        // -------------------------------------------------
-
-        const response =
-            await updateMemberCareerById(
-                accessToken,
-                id,
-                body
-            );
-
-
-        // -------------------------------------------------
-        // RESPONSE
-        // -------------------------------------------------
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "CAREER UPDATE RESPONSE:"
-        );
-
-        console.log(
-            JSON.stringify(
-                response,
-                null,
-                2
-            )
-        );
-
-        console.log(
-            "======================================"
-        );
-
-
-        // -------------------------------------------------
-        // SUCCESS
-        // -------------------------------------------------
+      if (!accessToken) {
 
         Alert.alert(
-            "Success",
-            "Career updated successfully.",
-            [
-                {
-                    text: "OK",
-                    onPress: () => {
-                        router.back();
-                    },
-                },
-            ]
+          "Session Expired",
+          "Please login again."
         );
+
+        return;
+      }
+
+
+      // ---------------------------------------------------
+      // REQUEST BODY
+      // ---------------------------------------------------
+
+      const body = {
+
+        company:
+          cleanCompany,
+
+        designation:
+          cleanDesignation,
+
+        start:
+          startYear,
+
+        end:
+          endYear,
+
+      };
+
+
+      // ---------------------------------------------------
+      // DEBUG
+      // ---------------------------------------------------
+
+      console.log(
+        "======================================"
+      );
+
+      console.log(
+        "UPDATE CAREER BUTTON CLICKED"
+      );
+
+      console.log(
+        "METHOD: PUT"
+      );
+
+      console.log(
+        "CAREER ID:",
+        id
+      );
+
+      console.log(
+        "URL:",
+        `/api/member/career/${id}`
+      );
+
+      console.log(
+        "REQUEST BODY:",
+        JSON.stringify(
+          body,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "======================================"
+      );
+
+
+      // ---------------------------------------------------
+      // CALL UPDATE API
+      // ---------------------------------------------------
+
+      const response =
+        await updateMemberCareerById(
+          accessToken,
+          id,
+          body
+        );
+
+
+      // ---------------------------------------------------
+      // RESPONSE
+      // ---------------------------------------------------
+
+      console.log(
+        "======================================"
+      );
+
+      console.log(
+        "CAREER UPDATE RESPONSE:"
+      );
+
+      console.log(
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "======================================"
+      );
+
+
+      // ---------------------------------------------------
+      // SUCCESS
+      // ---------------------------------------------------
+
+      const success =
+        response?.success === true ||
+        response?.success === 1 ||
+        response?.result === true ||
+        response?.status === true ||
+        response?.statusCode === 200 ||
+        response?.statusCode === 201;
+
+
+      if (success) {
+
+        Alert.alert(
+          "Success",
+          "Career updated successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+
+        return;
+      }
+
+
+      // ---------------------------------------------------
+      // API ERROR
+      // ---------------------------------------------------
+
+      Alert.alert(
+        "Update Failed",
+        response?.message ||
+        response?.error ||
+        "Unable to update career."
+      );
+
 
     } catch (error) {
 
-        console.error(
-            "UPDATE CAREER ERROR:",
-            error
-        );
+      console.error(
+        "UPDATE CAREER ERROR:",
+        error
+      );
 
-        Alert.alert(
-            "Error",
-            error?.message ||
-            "Unable to update career."
-        );
+
+      Alert.alert(
+        "Error",
+        error?.message ||
+        "Unable to update career."
+      );
+
 
     } finally {
 
-        setSaving(false);
+      setSaving(false);
 
     }
-};
+  };
 
-    // =====================================================
-    // LOADING SCREEN
-    // =====================================================
 
-    if (loading) {
+  // =======================================================
+  // BACK
+  // =======================================================
 
-        return (
+  const handleBack = () => {
 
-            <SafeAreaView
-                style={styles.safeArea}
-            >
-
-                <StatusBar
-                    barStyle="dark-content"
-                    backgroundColor={
-                        COLORS.background
-                    }
-                />
-
-                <View
-                    style={
-                        styles.loadingContainer
-                    }
-                >
-
-                    <ActivityIndicator
-                        size="large"
-                        color={COLORS.red}
-                    />
-
-                    <Text
-                        style={
-                            styles.loadingText
-                        }
-                    >
-                        Loading career details...
-                    </Text>
-
-                </View>
-
-            </SafeAreaView>
-        );
+    if (saving) {
+      return;
     }
 
+    navigation.goBack();
+  };
 
-    // =====================================================
-    // UI
-    // =====================================================
+
+  // =======================================================
+  // LOADING SCREEN
+  // =======================================================
+
+  if (loading) {
 
     return (
 
-        <SafeAreaView
-            style={styles.safeArea}
+      <SafeAreaView
+        style={styles.safeArea}
+      >
+
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={
+            COLORS.background
+          }
+        />
+
+
+        <View
+          style={
+            styles.loadingContainer
+          }
         >
 
-            <StatusBar
-                barStyle="dark-content"
-                backgroundColor={
-                    COLORS.background
-                }
-            />
+          <ActivityIndicator
+            size="large"
+            color={COLORS.red}
+          />
 
 
-            <KeyboardAvoidingView
-                style={styles.keyboard}
-                behavior={
-                    Platform.OS === "ios"
-                        ? "padding"
-                        : undefined
-                }
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
+            Loading career details...
+          </Text>
+
+        </View>
+
+      </SafeAreaView>
+    );
+  }
+
+
+  // =======================================================
+  // UI
+  // =======================================================
+
+  return (
+
+    <SafeAreaView
+      style={styles.safeArea}
+    >
+
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={
+          COLORS.background
+        }
+      />
+
+
+      <KeyboardAvoidingView
+        style={styles.keyboard}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
+      >
+
+        <View
+          style={styles.screen}
+        >
+
+
+          {/* =============================================
+              HEADER
+          ============================================= */}
+
+          <View
+            style={styles.header}
+          >
+
+            <TouchableOpacity
+              style={
+                styles.backButton
+              }
+              activeOpacity={0.7}
+              onPress={handleBack}
             >
 
-                <View
-                    style={styles.screen}
-                >
-
-
-                    {/* =====================================
-                        HEADER
-                    ===================================== */}
-
-                    <View
-                        style={styles.header}
-                    >
-
-                        <TouchableOpacity
-                            style={
-                                styles.backButton
-                            }
-                            activeOpacity={0.7}
-                            onPress={() =>
-                                router.back()
-                            }
-                        >
-
-                            <Ionicons
-                                name="chevron-back"
-                                size={20}
-                                color={
-                                    COLORS.red
-                                }
-                            />
-
-                        </TouchableOpacity>
-
-
-                        <Text
-                            style={
-                                styles.headerTitle
-                            }
-                        >
-                            Edit Career
-                        </Text>
-
-
-                        <View
-                            style={
-                                styles.headerRight
-                            }
-                        />
-
-                    </View>
-
-
-                    {/* =====================================
-                        FORM
-                    ===================================== */}
-
-                    <ScrollView
-                        style={
-                            styles.scrollView
-                        }
-                        contentContainerStyle={
-                            styles.contentContainer
-                        }
-                        keyboardShouldPersistTaps="handled"
-                        showsVerticalScrollIndicator={
-                            false
-                        }
-                    >
-
-
-                        {/* =================================
-                            CAREER ID
-                        ================================= */}
-
-                        <View
-                            style={
-                                styles.idContainer
-                            }
-                        >
-
-                            <Ionicons
-                                name="briefcase-outline"
-                                size={18}
-                                color={
-                                    COLORS.red
-                                }
-                            />
-
-                            <Text
-                                style={
-                                    styles.idText
-                                }
-                            >
-                                Career ID: {careerId}
-                            </Text>
-
-                        </View>
-
-
-                        {/* =================================
-                            COMPANY
-                        ================================= */}
-
-                        <View
-                            style={
-                                styles.fieldContainer
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.label
-                                }
-                            >
-                                Company
-                            </Text>
-
-
-                            <View
-                                style={
-                                    styles.inputWrapper
-                                }
-                            >
-
-                                <Ionicons
-                                    name="business-outline"
-                                    size={19}
-                                    color={
-                                        COLORS.lightText
-                                    }
-                                />
-
-
-                                <TextInput
-                                    style={
-                                        styles.input
-                                    }
-                                    value={company}
-                                    onChangeText={
-                                        setCompany
-                                    }
-                                    placeholder="Enter company name"
-                                    placeholderTextColor={
-                                        "#AAAAAA"
-                                    }
-                                    autoCapitalize="words"
-                                    editable={!saving}
-                                />
-
-                            </View>
-
-                        </View>
-
-
-                        {/* =================================
-                            DESIGNATION
-                        ================================= */}
-
-                        <View
-                            style={
-                                styles.fieldContainer
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.label
-                                }
-                            >
-                                Designation
-                            </Text>
-
-
-                            <View
-                                style={
-                                    styles.inputWrapper
-                                }
-                            >
-
-                                <Ionicons
-                                    name="person-outline"
-                                    size={19}
-                                    color={
-                                        COLORS.lightText
-                                    }
-                                />
-
-
-                                <TextInput
-                                    style={
-                                        styles.input
-                                    }
-                                    value={
-                                        designation
-                                    }
-                                    onChangeText={
-                                        setDesignation
-                                    }
-                                    placeholder="Enter designation"
-                                    placeholderTextColor={
-                                        "#AAAAAA"
-                                    }
-                                    autoCapitalize="words"
-                                    editable={!saving}
-                                />
-
-                            </View>
-
-                        </View>
-
-
-                        {/* =================================
-                            START YEAR
-                        ================================= */}
-
-                        <View
-                            style={
-                                styles.fieldContainer
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.label
-                                }
-                            >
-                                Start Year
-                            </Text>
-
-
-                            <View
-                                style={
-                                    styles.inputWrapper
-                                }
-                            >
-
-                                <Ionicons
-                                    name="calendar-outline"
-                                    size={19}
-                                    color={
-                                        COLORS.lightText
-                                    }
-                                />
-
-
-                                <TextInput
-                                    style={
-                                        styles.input
-                                    }
-                                    value={start}
-                                    onChangeText={
-                                        (value) =>
-                                            setStart(
-                                                value
-                                                    .replace(
-                                                        /\D/g,
-                                                        ""
-                                                    )
-                                                    .slice(
-                                                        0,
-                                                        4
-                                                    )
-                                            )
-                                    }
-                                    placeholder="e.g. 2024"
-                                    placeholderTextColor={
-                                        "#AAAAAA"
-                                    }
-                                    keyboardType="number-pad"
-                                    maxLength={4}
-                                    editable={!saving}
-                                />
-
-                            </View>
-
-                        </View>
-
-
-                        {/* =================================
-                            END YEAR
-                        ================================= */}
-
-                        <View
-                            style={
-                                styles.fieldContainer
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.label
-                                }
-                            >
-                                End Year
-                            </Text>
-
-
-                            <View
-                                style={
-                                    styles.inputWrapper
-                                }
-                            >
-
-                                <Ionicons
-                                    name="calendar-outline"
-                                    size={19}
-                                    color={
-                                        COLORS.lightText
-                                    }
-                                />
-
-
-                                <TextInput
-                                    style={
-                                        styles.input
-                                    }
-                                    value={end}
-                                    onChangeText={
-                                        (value) =>
-                                            setEnd(
-                                                value
-                                                    .replace(
-                                                        /\D/g,
-                                                        ""
-                                                    )
-                                                    .slice(
-                                                        0,
-                                                        4
-                                                    )
-                                            )
-                                    }
-                                    placeholder="e.g. 2025"
-                                    placeholderTextColor={
-                                        "#AAAAAA"
-                                    }
-                                    keyboardType="number-pad"
-                                    maxLength={4}
-                                    editable={!saving}
-                                />
-
-                            </View>
-
-                        </View>
-
-
-                        {/* =================================
-                            SAVE BUTTON
-                        ================================= */}
-
-                        <TouchableOpacity
-                            style={[
-                                styles.saveButton,
-                                saving &&
-                                    styles.saveButtonDisabled,
-                            ]}
-                            activeOpacity={0.85}
-                            onPress={
-                                handleSave
-                            }
-                            disabled={saving}
-                        >
-
-                            {saving ? (
-
-                                <ActivityIndicator
-                                    size="small"
-                                    color={
-                                        COLORS.white
-                                    }
-                                />
-
-                            ) : (
-
-                                <Ionicons
-                                    name="checkmark"
-                                    size={20}
-                                    color={
-                                        COLORS.white
-                                    }
-                                />
-
-                            )}
-
-
-                            <Text
-                                style={
-                                    styles.saveButtonText
-                                }
-                            >
-                                {saving
-                                    ? "Saving..."
-                                    : "Save Changes"}
-                            </Text>
-
-                        </TouchableOpacity>
-
-
-                        {/* =================================
-                            CANCEL
-                        ================================= */}
-
-                        <TouchableOpacity
-                            style={
-                                styles.cancelButton
-                            }
-                            activeOpacity={0.7}
-                            onPress={() =>
-                                router.back()
-                            }
-                            disabled={saving}
-                        >
-
-                            <Text
-                                style={
-                                    styles.cancelButtonText
-                                }
-                            >
-                                Cancel
-                            </Text>
-
-                        </TouchableOpacity>
-
-
-                        <View
-                            style={
-                                styles.bottomSpace
-                            }
-                        />
-
-                    </ScrollView>
-
-                </View>
-
-            </KeyboardAvoidingView>
-
-        </SafeAreaView>
-    );
-}
-
-
-// =========================================================
-// UPDATE CAREER API
-// =========================================================
-//
-// IMPORTANT:
-//
-// You need to use the HTTP method provided by your backend
-// for updating:
-//
-// PUT /api/member/career/{id}
-// OR
-// PATCH /api/member/career/{id}
-// OR
-// POST /api/member/career/{id}
-//
-//
-//
-// Change this function's method if your API specifies
-// something different.
-// =========================================================
-
-async function updateCareerById(
-    accessToken,
-    careerId,
-    body
-) {
-
-    // -----------------------------------------------
-    // IMPORT BASE URL dynamically
-    // -----------------------------------------------
-
-    const BASE_URL =
-        require("../constants/AppUrls").default;
-
-
-    const id =
-        Number(careerId);
-
-
-    if (
-        !Number.isInteger(id) ||
-        id <= 0
-    ) {
-
-        throw new Error(
-            "Invalid career ID."
-        );
-    }
-
-
-    const URL =
-        `${BASE_URL}/api/member/career/${id}`;
-
-
-    console.log(
-        "======================================"
-    );
-
-    console.log(
-        "UPDATE MEMBER CAREER API"
-    );
-
-    console.log(
-        "METHOD: PUT"
-    );
-
-    console.log(
-        "URL:",
-        URL
-    );
-
-    console.log(
-        "BODY:",
-        JSON.stringify(
-            body,
-            null,
-            2
-        )
-    );
-
-    console.log(
-        "======================================"
-    );
-
-
-    const response =
-        await fetch(
-            URL,
-            {
-                method: "PUT",
-
-                headers: {
-                    Accept:
-                        "application/json",
-
-                    "Content-Type":
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${accessToken}`,
-                },
-
-                body:
-                    JSON.stringify(body),
+              <Feather
+                name="chevron-left"
+                size={20}
+                color={COLORS.red}
+              />
+
+            </TouchableOpacity>
+
+
+            <Text
+              style={
+                styles.headerTitle
+              }
+            >
+              Edit Career
+            </Text>
+
+
+            <View
+              style={
+                styles.headerRight
+              }
+            >
+
+              <FontAwesome5
+                name="briefcase"
+                size={14}
+                color={COLORS.red}
+                solid
+                style={{
+                  opacity: 0,
+                }}
+              />
+
+            </View>
+
+          </View>
+
+
+          {/* =============================================
+              FORM
+          ============================================= */}
+
+          <ScrollView
+            style={
+              styles.scrollView
             }
-        );
+            contentContainerStyle={
+              styles.contentContainer
+            }
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={
+              false
+            }
+          >
 
 
-    const text =
-        await response.text();
+            {/* =========================================
+                CAREER ID
+            ========================================= */}
+
+            <View
+              style={
+                styles.idContainer
+              }
+            >
+
+              <FontAwesome5
+                name="briefcase"
+                size={17}
+                color={
+                  COLORS.red
+                }
+                solid
+              />
 
 
-    let data = {};
+              <Text
+                style={
+                  styles.idText
+                }
+              >
+                Career ID: {careerId}
+              </Text>
 
-    try {
-
-        data =
-            text
-                ? JSON.parse(text)
-                : {};
-
-    } catch {
-
-        data = {
-            message: text,
-        };
-    }
+            </View>
 
 
-    console.log(
-        "UPDATE CAREER STATUS:",
-        response.status
-    );
+            {/* =========================================
+                COMPANY
+            ========================================= */}
 
-    console.log(
-        "UPDATE CAREER RESPONSE:",
-        JSON.stringify(
-            data,
-            null,
-            2
-        )
-    );
+            <View
+              style={
+                styles.fieldContainer
+              }
+            >
 
-
-    if (
-        response.status >= 200 &&
-        response.status < 300
-    ) {
-
-        return {
-            success: true,
-            result: true,
-            statusCode:
-                response.status,
-            data,
-        };
-    }
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                Company
+              </Text>
 
 
-    throw new Error(
-        data?.message ||
-        data?.error ||
-        `Career update failed with status ${response.status}`
-    );
+              <View
+                style={
+                  styles.inputWrapper
+                }
+              >
+
+                <Feather
+                  name="briefcase"
+                  size={19}
+                  color={
+                    COLORS.lightText
+                  }
+                />
+
+
+                <TextInput
+                  style={
+                    styles.input
+                  }
+                  value={
+                    company
+                  }
+                  onChangeText={
+                    setCompany
+                  }
+                  placeholder="Enter company name"
+                  placeholderTextColor="#AAAAAA"
+                  autoCapitalize="words"
+                  editable={!saving}
+                />
+
+              </View>
+
+            </View>
+
+
+            {/* =========================================
+                DESIGNATION
+            ========================================= */}
+
+            <View
+              style={
+                styles.fieldContainer
+              }
+            >
+
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                Designation
+              </Text>
+
+
+              <View
+                style={
+                  styles.inputWrapper
+                }
+              >
+
+                <Feather
+                  name="user"
+                  size={19}
+                  color={
+                    COLORS.lightText
+                  }
+                />
+
+
+                <TextInput
+                  style={
+                    styles.input
+                  }
+                  value={
+                    designation
+                  }
+                  onChangeText={
+                    setDesignation
+                  }
+                  placeholder="Enter designation"
+                  placeholderTextColor="#AAAAAA"
+                  autoCapitalize="words"
+                  editable={!saving}
+                />
+
+              </View>
+
+            </View>
+
+
+            {/* =========================================
+                START YEAR
+            ========================================= */}
+
+            <View
+              style={
+                styles.fieldContainer
+              }
+            >
+
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                Start Year
+              </Text>
+
+
+              <View
+                style={
+                  styles.inputWrapper
+                }
+              >
+
+                <Feather
+                  name="calendar"
+                  size={19}
+                  color={
+                    COLORS.lightText
+                  }
+                />
+
+
+                <TextInput
+                  style={
+                    styles.input
+                  }
+                  value={
+                    start
+                  }
+                  onChangeText={
+                    (value) =>
+                      setStart(
+                        value
+                          .replace(
+                            /\D/g,
+                            ""
+                          )
+                          .slice(
+                            0,
+                            4
+                          )
+                      )
+                  }
+                  placeholder="e.g. 2024"
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  editable={!saving}
+                />
+
+              </View>
+
+            </View>
+
+
+            {/* =========================================
+                END YEAR
+            ========================================= */}
+
+            <View
+              style={
+                styles.fieldContainer
+              }
+            >
+
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                End Year
+              </Text>
+
+
+              <View
+                style={
+                  styles.inputWrapper
+                }
+              >
+
+                <Feather
+                  name="calendar"
+                  size={19}
+                  color={
+                    COLORS.lightText
+                  }
+                />
+
+
+                <TextInput
+                  style={
+                    styles.input
+                  }
+                  value={
+                    end
+                  }
+                  onChangeText={
+                    (value) =>
+                      setEnd(
+                        value
+                          .replace(
+                            /\D/g,
+                            ""
+                          )
+                          .slice(
+                            0,
+                            4
+                          )
+                      )
+                  }
+                  placeholder="e.g. 2025"
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  editable={!saving}
+                />
+
+              </View>
+
+            </View>
+
+
+            {/* =========================================
+                SAVE BUTTON
+            ========================================= */}
+
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                saving &&
+                  styles.saveButtonDisabled,
+              ]}
+              activeOpacity={0.85}
+              onPress={
+                handleSave
+              }
+              disabled={
+                saving
+              }
+            >
+
+              {saving ? (
+
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    COLORS.white
+                  }
+                />
+
+              ) : (
+
+                <Feather
+                  name="check"
+                  size={20}
+                  color={
+                    COLORS.white
+                  }
+                />
+
+              )}
+
+
+              <Text
+                style={
+                  styles.saveButtonText
+                }
+              >
+                {saving
+                  ? "Saving..."
+                  : "Save Changes"}
+              </Text>
+
+            </TouchableOpacity>
+
+
+            {/* =========================================
+                CANCEL
+            ========================================= */}
+
+            <TouchableOpacity
+              style={
+                styles.cancelButton
+              }
+              activeOpacity={0.7}
+              onPress={
+                handleBack
+              }
+              disabled={
+                saving
+              }
+            >
+
+              <Text
+                style={
+                  styles.cancelButtonText
+                }
+              >
+                Cancel
+              </Text>
+
+            </TouchableOpacity>
+
+
+            <View
+              style={
+                styles.bottomSpace
+              }
+            />
+
+          </ScrollView>
+
+        </View>
+
+      </KeyboardAvoidingView>
+
+    </SafeAreaView>
+  );
 }
 
 
@@ -1328,317 +1380,332 @@ async function updateCareerById(
 
 const styles = StyleSheet.create({
 
-    safeArea: {
-        flex: 1,
-        backgroundColor:
-            COLORS.background,
-    },
+  safeArea: {
+    flex: 1,
+    backgroundColor:
+      COLORS.background,
+  },
 
 
-    keyboard: {
-        flex: 1,
-    },
+  keyboard: {
+    flex: 1,
+  },
 
 
-    screen: {
-        flex: 1,
-        backgroundColor:
-            COLORS.background,
-        paddingHorizontal: 5,
-        paddingTop: 5,
-        paddingBottom: 5,
-    },
+  screen: {
+    flex: 1,
+    backgroundColor:
+      COLORS.background,
+    paddingHorizontal: 5,
+    paddingTop: 5,
+    paddingBottom: 5,
+  },
 
 
-    // =====================================================
-    // HEADER
-    // =====================================================
+  // =======================================================
+  // HEADER
+  // =======================================================
 
-    header: {
-        height: 58,
-        width: "100%",
-        backgroundColor:
-            COLORS.white,
+  header: {
+    height: 58,
+    width: "100%",
 
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
+    backgroundColor:
+      COLORS.white,
 
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
 
-        borderWidth: 1,
-        borderColor:
-            COLORS.border,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
 
-        position: "relative",
-    },
+    borderWidth: 1,
+    borderColor:
+      COLORS.border,
 
+    position: "relative",
+  },
 
-    backButton: {
-        position: "absolute",
-        left: 8,
-        top: 8,
 
-        width: 34,
-        height: 34,
+  backButton: {
+    position: "absolute",
 
-        borderRadius: 17,
+    left: 8,
+    top: 8,
 
-        alignItems: "center",
-        justifyContent: "center",
+    width: 34,
+    height: 34,
 
-        backgroundColor:
-            COLORS.white,
+    borderRadius: 17,
 
-        borderWidth: 1,
-        borderColor:
-            "#EEEEEE",
-    },
+    alignItems: "center",
+    justifyContent: "center",
 
+    backgroundColor:
+      COLORS.white,
 
-    headerTitle: {
-        fontSize: 20,
-        lineHeight: 23,
-        fontWeight: "600",
-        color: COLORS.text,
+    borderWidth: 1,
+    borderColor:
+      "#EEEEEE",
+  },
 
-        includeFontPadding: false,
-    },
 
+  headerTitle: {
+    fontSize: 20,
+    lineHeight: 23,
 
-    headerRight: {
-        position: "absolute",
-        right: 8,
-        width: 34,
-        height: 34,
-    },
+    fontWeight: "600",
 
+    color:
+      COLORS.text,
 
-    // =====================================================
-    // SCROLL
-    // =====================================================
+    includeFontPadding: false,
+  },
 
-    scrollView: {
-        flex: 1,
 
-        backgroundColor:
-            COLORS.white,
+  headerRight: {
+    position: "absolute",
 
-        borderWidth: 1,
-        borderTopWidth: 0,
+    right: 8,
 
-        borderColor:
-            COLORS.border,
+    width: 34,
+    height: 34,
+  },
 
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 10,
-    },
 
+  // =======================================================
+  // SCROLL
+  // =======================================================
 
-    contentContainer: {
-        paddingHorizontal: 18,
-        paddingTop: 22,
-        paddingBottom: 20,
-    },
+  scrollView: {
+    flex: 1,
 
+    backgroundColor:
+      COLORS.white,
 
-    // =====================================================
-    // LOADING
-    // =====================================================
+    borderWidth: 1,
+    borderTopWidth: 0,
 
-    loadingContainer: {
-        flex: 1,
+    borderColor:
+      COLORS.border,
 
-        alignItems: "center",
-        justifyContent: "center",
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+  },
 
-        backgroundColor:
-            COLORS.background,
-    },
 
+  contentContainer: {
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 20,
+  },
 
-    loadingText: {
-        marginTop: 10,
 
-        fontSize: 13,
-        color:
-            COLORS.secondary,
-    },
+  // =======================================================
+  // LOADING
+  // =======================================================
 
+  loadingContainer: {
+    flex: 1,
 
-    // =====================================================
-    // ID
-    // =====================================================
+    alignItems: "center",
+    justifyContent: "center",
 
-    idContainer: {
-        flexDirection: "row",
-        alignItems: "center",
+    backgroundColor:
+      COLORS.background,
+  },
 
-        backgroundColor:
-            COLORS.lightRed,
 
-        borderRadius: 8,
+  loadingText: {
+    marginTop: 10,
 
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+    fontSize: 13,
 
-        marginBottom: 22,
-    },
+    color:
+      COLORS.secondary,
+  },
 
 
-    idText: {
-        marginLeft: 8,
+  // =======================================================
+  // ID
+  // =======================================================
 
-        fontSize: 13,
-        fontWeight: "500",
+  idContainer: {
+    flexDirection: "row",
 
-        color:
-            COLORS.red,
-    },
+    alignItems: "center",
 
+    backgroundColor:
+      COLORS.lightRed,
 
-    // =====================================================
-    // FIELD
-    // =====================================================
+    borderRadius: 8,
 
-    fieldContainer: {
-        marginBottom: 18,
-    },
+    paddingHorizontal: 12,
+    paddingVertical: 10,
 
+    marginBottom: 22,
+  },
 
-    label: {
-        fontSize: 14,
-        fontWeight: "600",
 
-        color:
-            COLORS.text,
+  idText: {
+    marginLeft: 8,
 
-        marginBottom: 7,
+    fontSize: 13,
 
-        includeFontPadding: false,
-    },
+    fontWeight: "500",
 
+    color:
+      COLORS.red,
+  },
 
-    inputWrapper: {
-        height: 50,
 
-        width: "100%",
+  // =======================================================
+  // FIELD
+  // =======================================================
 
-        flexDirection: "row",
-        alignItems: "center",
+  fieldContainer: {
+    marginBottom: 18,
+  },
 
-        paddingHorizontal: 13,
 
-        backgroundColor:
-            COLORS.inputBackground,
+  label: {
+    fontSize: 14,
 
-        borderWidth: 1,
-        borderColor:
-            COLORS.border,
+    fontWeight: "600",
 
-        borderRadius: 8,
-    },
+    color:
+      COLORS.text,
 
+    marginBottom: 7,
 
-    input: {
-        flex: 1,
+    includeFontPadding: false,
+  },
 
-        height: "100%",
 
-        marginLeft: 10,
+  inputWrapper: {
+    height: 50,
 
-        fontSize: 15,
+    width: "100%",
 
-        color:
-            COLORS.text,
+    flexDirection: "row",
 
-        paddingVertical: 0,
+    alignItems: "center",
 
-        includeFontPadding: false,
-    },
+    paddingHorizontal: 13,
 
+    backgroundColor:
+      COLORS.inputBackground,
 
-    // =====================================================
-    // SAVE
-    // =====================================================
+    borderWidth: 1,
 
-    saveButton: {
-        height: 48,
+    borderColor:
+      COLORS.border,
 
-        width: "100%",
+    borderRadius: 8,
+  },
 
-        marginTop: 12,
 
-        borderRadius: 8,
+  input: {
+    flex: 1,
 
-        backgroundColor:
-            COLORS.red,
+    height: "100%",
 
-        flexDirection: "row",
+    marginLeft: 10,
 
-        alignItems: "center",
-        justifyContent: "center",
-    },
+    fontSize: 15,
 
+    color:
+      COLORS.text,
 
-    saveButtonDisabled: {
-        opacity: 0.65,
-    },
+    paddingVertical: 0,
 
+    includeFontPadding: false,
+  },
 
-    saveButtonText: {
-        marginLeft: 7,
 
-        fontSize: 16,
+  // =======================================================
+  // SAVE
+  // =======================================================
 
-        fontWeight: "600",
+  saveButton: {
+    height: 48,
 
-        color:
-            COLORS.white,
+    width: "100%",
 
-        includeFontPadding: false,
-    },
+    marginTop: 12,
 
+    borderRadius: 8,
 
-    // =====================================================
-    // CANCEL
-    // =====================================================
+    backgroundColor:
+      COLORS.red,
 
-    cancelButton: {
-        height: 46,
+    flexDirection: "row",
 
-        width: "100%",
+    alignItems: "center",
 
-        marginTop: 10,
+    justifyContent: "center",
+  },
 
-        borderRadius: 8,
 
-        borderWidth: 1,
+  saveButtonDisabled: {
+    opacity: 0.65,
+  },
 
-        borderColor:
-            COLORS.border,
 
-        backgroundColor:
-            COLORS.white,
+  saveButtonText: {
+    marginLeft: 7,
 
-        alignItems: "center",
-        justifyContent: "center",
-    },
+    fontSize: 16,
 
+    fontWeight: "600",
 
-    cancelButtonText: {
-        fontSize: 15,
+    color:
+      COLORS.white,
 
-        fontWeight: "600",
+    includeFontPadding: false,
+  },
 
-        color:
-            COLORS.secondary,
-    },
 
+  // =======================================================
+  // CANCEL
+  // =======================================================
 
-    bottomSpace: {
-        height: 20,
-    },
+  cancelButton: {
+    height: 46,
+
+    width: "100%",
+
+    marginTop: 10,
+
+    borderRadius: 8,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+
+    backgroundColor:
+      COLORS.white,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
+
+  cancelButtonText: {
+    fontSize: 15,
+
+    fontWeight: "600",
+
+    color:
+      COLORS.secondary,
+  },
+
+
+  bottomSpace: {
+    height: 20,
+  },
 
 });

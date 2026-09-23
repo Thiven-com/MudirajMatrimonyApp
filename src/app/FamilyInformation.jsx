@@ -1,10 +1,11 @@
 import {
   useCallback,
-  useState,
+  useState
 } from "react";
 
 import {
-  SafeAreaView,
+  Alert,
+  BackHandler,
   StatusBar,
   StyleSheet,
   Text,
@@ -12,35 +13,48 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-  router,
   useFocusEffect,
-} from "expo-router";
+  useNavigation,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
   getMemberFamilyInfo,
 } from "../utils/Functions";
 
-const FAMILY_CACHE_KEY = "member_family_info_cache";
+
+const FAMILY_CACHE_KEY =
+  "member_family_info_cache";
+
 
 export default function FamilyInformation() {
+
+  const navigation = useNavigation();
+
+
   const [familyData, setFamilyData] = useState({
     father: "",
     mother: "",
     sibling: "",
   });
 
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
 
   // -------------------------------------------------------
   // CLEAN VALUE
   // -------------------------------------------------------
 
   const cleanValue = useCallback((value) => {
+
     if (
       value === null ||
       value === undefined
@@ -49,20 +63,17 @@ export default function FamilyInformation() {
     }
 
     return String(value).trim();
+
   }, []);
+
 
   // -------------------------------------------------------
   // EXTRACT FAMILY DATA
-  // Handles:
-  // response
-  // response.data
-  // response.data.data
-  // response.result
-  // response.result.data
   // -------------------------------------------------------
 
   const extractFamilyData = useCallback(
     (response) => {
+
       console.log(
         "========== FAMILY RAW RESPONSE =========="
       );
@@ -75,7 +86,9 @@ export default function FamilyInformation() {
         )
       );
 
+
       let data = response;
+
 
       // Axios-like response
       if (
@@ -85,6 +98,7 @@ export default function FamilyInformation() {
         data = data.data;
       }
 
+
       // Another nested data
       if (
         data?.data &&
@@ -92,6 +106,7 @@ export default function FamilyInformation() {
       ) {
         data = data.data;
       }
+
 
       // result object
       if (
@@ -102,6 +117,7 @@ export default function FamilyInformation() {
         data = data.result;
       }
 
+
       // result.data
       if (
         data?.data &&
@@ -109,6 +125,7 @@ export default function FamilyInformation() {
       ) {
         data = data.data;
       }
+
 
       console.log(
         "========== FAMILY EXTRACTED DATA =========="
@@ -122,17 +139,20 @@ export default function FamilyInformation() {
         )
       );
 
+
       const father =
         data?.father ??
         data?.father_name ??
         data?.fatherName ??
         "";
 
+
       const mother =
         data?.mother ??
         data?.mother_name ??
         data?.motherName ??
         "";
+
 
       const sibling =
         data?.sibling ??
@@ -142,34 +162,41 @@ export default function FamilyInformation() {
         data?.siblingCount ??
         "";
 
+
       return {
         father: cleanValue(father),
         mother: cleanValue(mother),
         sibling: cleanValue(sibling),
       };
+
     },
     [cleanValue]
   );
 
+
   // -------------------------------------------------------
   // LOAD CACHE
-  // NO LOADING SCREEN
   // -------------------------------------------------------
 
   const loadCache = useCallback(
     async () => {
+
       try {
+
         const cached =
           await AsyncStorage.getItem(
             FAMILY_CACHE_KEY
           );
 
+
         if (!cached) {
           return false;
         }
 
+
         const parsed =
           JSON.parse(cached);
+
 
         if (
           !parsed ||
@@ -178,19 +205,26 @@ export default function FamilyInformation() {
           return false;
         }
 
+
         const cachedData = {
+
           father: cleanValue(
             parsed.father
           ),
+
           mother: cleanValue(
             parsed.mother
           ),
+
           sibling: cleanValue(
             parsed.sibling
           ),
+
         };
 
+
         setFamilyData(cachedData);
+
 
         console.log(
           "========== FAMILY CACHE =========="
@@ -204,8 +238,11 @@ export default function FamilyInformation() {
           )
         );
 
+
         return true;
+
       } catch (error) {
+
         console.log(
           "FAMILY CACHE ERROR:",
           error?.message
@@ -213,9 +250,11 @@ export default function FamilyInformation() {
 
         return false;
       }
+
     },
     [cleanValue]
   );
+
 
   // -------------------------------------------------------
   // SAVE CACHE
@@ -223,23 +262,31 @@ export default function FamilyInformation() {
 
   const saveCache = useCallback(
     async (data) => {
+
       try {
+
         const cacheData = {
+
           father: cleanValue(
             data?.father
           ),
+
           mother: cleanValue(
             data?.mother
           ),
+
           sibling: cleanValue(
             data?.sibling
           ),
+
         };
+
 
         await AsyncStorage.setItem(
           FAMILY_CACHE_KEY,
           JSON.stringify(cacheData)
         );
+
 
         console.log(
           "FAMILY CACHE SAVED:",
@@ -249,15 +296,19 @@ export default function FamilyInformation() {
             2
           )
         );
+
       } catch (error) {
+
         console.log(
           "FAMILY CACHE SAVE ERROR:",
           error?.message
         );
       }
+
     },
     [cleanValue]
   );
+
 
   // -------------------------------------------------------
   // GET FAMILY INFORMATION
@@ -265,13 +316,17 @@ export default function FamilyInformation() {
 
   const loadFamilyInformation =
     useCallback(async () => {
+
       try {
+
         setErrorMessage("");
+
 
         const accessToken =
           await AsyncStorage.getItem(
             "access_token"
           );
+
 
         console.log(
           "========================================"
@@ -295,13 +350,16 @@ export default function FamilyInformation() {
           "========================================"
         );
 
+
         if (!accessToken) {
+
           setErrorMessage(
             "Please login again."
           );
 
           return;
         }
+
 
         // -------------------------------------------------
         // GET API
@@ -311,6 +369,7 @@ export default function FamilyInformation() {
           await getMemberFamilyInfo(
             accessToken
           );
+
 
         console.log(
           "========================================"
@@ -332,10 +391,12 @@ export default function FamilyInformation() {
           "========================================"
         );
 
+
         const newData =
           extractFamilyData(
             response
           );
+
 
         console.log(
           "FAMILY DATA FOR SCREEN:",
@@ -346,25 +407,34 @@ export default function FamilyInformation() {
           )
         );
 
+
         const hasData =
           newData.father !== "" ||
           newData.mother !== "" ||
           newData.sibling !== "";
 
+
         if (hasData) {
+
           setFamilyData(
             newData
           );
 
+
           await saveCache(
             newData
           );
+
         } else {
+
           console.log(
             "FAMILY API RETURNED EMPTY DATA"
           );
         }
+
+
       } catch (error) {
+
         console.error(
           "========================================"
         );
@@ -396,17 +466,21 @@ export default function FamilyInformation() {
           "========================================"
         );
 
+
         // Do NOT remove cached values
+
         setErrorMessage(
           error?.response?.data?.message ||
           error?.message ||
           "Unable to load family information."
         );
       }
+
     }, [
       extractFamilyData,
       saveCache,
     ]);
+
 
   // -------------------------------------------------------
   // SCREEN FOCUS
@@ -414,30 +488,74 @@ export default function FamilyInformation() {
 
   useFocusEffect(
     useCallback(() => {
+
       let mounted = true;
 
+
       const refreshFamily = async () => {
+
         // Show saved data immediately
         await loadCache();
+
 
         if (!mounted) {
           return;
         }
 
+
         // Get latest server data
         await loadFamilyInformation();
       };
 
+
       refreshFamily();
 
+
       return () => {
+
         mounted = false;
       };
+
     }, [
       loadCache,
       loadFamilyInformation,
     ])
   );
+
+
+  // -------------------------------------------------------
+  // ANDROID BACK HANDLER
+  // -------------------------------------------------------
+
+  useFocusEffect(
+    useCallback(() => {
+
+      const onBackPress = () => {
+
+        console.log(
+          "ANDROID BACK BUTTON PRESSED"
+        );
+
+        navigation.goBack();
+
+        return true;
+      };
+
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+
+      return () => {
+        subscription.remove();
+      };
+
+    }, [navigation])
+  );
+
 
   // -------------------------------------------------------
   // EDIT FIELD
@@ -445,21 +563,24 @@ export default function FamilyInformation() {
 
   const handleEdit = useCallback(
     (field) => {
+
       console.log(
         "EDIT FAMILY FIELD:",
         field
       );
 
-      router.push({
-        pathname:
-          "/EditFamilyInformation",
-        params: {
-          field,
-        },
-      });
+
+      navigation.navigate(
+        "EditFamilyInformation",
+        {
+          field: field,
+        }
+      );
+
     },
-    []
+    [navigation]
   );
+
 
   // -------------------------------------------------------
   // EDIT ALL
@@ -467,52 +588,70 @@ export default function FamilyInformation() {
 
   const handleEditDetails =
     useCallback(() => {
-      router.push(
-        "/EditFamilyInformation"
+
+      navigation.navigate(
+        "EditFamilyInformation"
       );
-    }, []);
+
+    }, [navigation]);
+
 
   // -------------------------------------------------------
   // MORE
   // -------------------------------------------------------
 
   const handleMore = () => {
+
     console.log(
       "FAMILY INFORMATION MORE CLICKED"
     );
+
+    Alert.alert(
+      "Menu",
+      "More options"
+    );
   };
+
 
   // -------------------------------------------------------
   // UI
-  // NO LOADING
   // -------------------------------------------------------
 
   return (
+
     <SafeAreaView
       style={styles.safeArea}
     >
+
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#F5F6F8"
       />
 
+
       <View style={styles.screen}>
+
         <View style={styles.card}>
+
 
           {/* HEADER */}
 
           <View style={styles.header}>
+
             <View
               style={
                 styles.headerIconContainer
               }
             >
-              <Ionicons
-                name="people-outline"
-                size={17}
+
+              <FontAwesome5
+                name="users"
+                size={15}
                 color="#D7192A"
               />
+
             </View>
+
 
             <Text
               style={styles.headerTitle}
@@ -521,40 +660,52 @@ export default function FamilyInformation() {
               Family Information
             </Text>
 
+
             <TouchableOpacity
               style={styles.moreButton}
               onPress={handleMore}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name="ellipsis-vertical"
+
+              <Feather
+                name="more-vertical"
                 size={19}
                 color="#D7192A"
               />
+
             </TouchableOpacity>
+
           </View>
 
+
           <View style={styles.divider} />
+
 
           {/* ERROR */}
 
           {errorMessage ? (
+
             <View
               style={styles.errorBox}
             >
-              <Ionicons
-                name="alert-circle-outline"
+
+              <Feather
+                name="alert-circle"
                 size={18}
                 color="#D7192A"
               />
+
 
               <Text
                 style={styles.errorText}
               >
                 {errorMessage}
               </Text>
+
             </View>
+
           ) : null}
+
 
           {/* FATHER */}
 
@@ -565,27 +716,33 @@ export default function FamilyInformation() {
               handleEdit("father")
             }
           >
+
             <View
               style={[
                 styles.personIcon,
                 styles.fatherIcon,
               ]}
             >
-              <Ionicons
-                name="person-outline"
+
+              <Feather
+                name="user"
                 size={15}
                 color="#4A9BE8"
               />
+
             </View>
+
 
             <View
               style={styles.textContainer}
             >
+
               <Text
                 style={styles.label}
               >
                 Father
               </Text>
+
 
               <Text
                 style={styles.value}
@@ -594,10 +751,11 @@ export default function FamilyInformation() {
                 {familyData.father ||
                   "Not added"}
               </Text>
+
             </View>
 
-            
           </TouchableOpacity>
+
 
           {/* MOTHER */}
 
@@ -608,27 +766,33 @@ export default function FamilyInformation() {
               handleEdit("mother")
             }
           >
+
             <View
               style={[
                 styles.personIcon,
                 styles.motherIcon,
               ]}
             >
-              <Ionicons
-                name="person-outline"
+
+              <Feather
+                name="user"
                 size={15}
                 color="#E65A91"
               />
+
             </View>
+
 
             <View
               style={styles.textContainer}
             >
+
               <Text
                 style={styles.label}
               >
                 Mother
               </Text>
+
 
               <Text
                 style={styles.value}
@@ -637,10 +801,11 @@ export default function FamilyInformation() {
                 {familyData.mother ||
                   "Not added"}
               </Text>
+
             </View>
 
-           
           </TouchableOpacity>
+
 
           {/* SIBLING */}
 
@@ -651,27 +816,33 @@ export default function FamilyInformation() {
               handleEdit("sibling")
             }
           >
+
             <View
               style={[
                 styles.personIcon,
                 styles.siblingIcon,
               ]}
             >
-              <Ionicons
-                name="people-outline"
-                size={15}
+
+              <FontAwesome5
+                name="users"
+                size={14}
                 color="#4CAF78"
               />
+
             </View>
+
 
             <View
               style={styles.textContainer}
             >
+
               <Text
                 style={styles.label}
               >
                 Sibling
               </Text>
+
 
               <Text
                 style={styles.value}
@@ -680,10 +851,11 @@ export default function FamilyInformation() {
                 {familyData.sibling ||
                   "Not added"}
               </Text>
+
             </View>
 
-            
           </TouchableOpacity>
+
 
           {/* EDIT DETAILS */}
 
@@ -696,11 +868,13 @@ export default function FamilyInformation() {
             }
             activeOpacity={0.85}
           >
-            <Ionicons
-              name="create-outline"
+
+            <Feather
+              name="edit-3"
               size={16}
               color="#FFFFFF"
             />
+
 
             <Text
               style={
@@ -709,23 +883,30 @@ export default function FamilyInformation() {
             >
               Edit Details
             </Text>
+
           </TouchableOpacity>
 
+
         </View>
+
       </View>
+
     </SafeAreaView>
   );
 }
+
 
 // =========================================================
 // STYLES
 // =========================================================
 
 const styles = StyleSheet.create({
+
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F6F8",
   },
+
 
   screen: {
     flex: 1,
@@ -733,6 +914,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingTop: 12,
   },
+
 
   card: {
     width: "100%",
@@ -743,10 +925,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderWidth: 1,
     borderColor: "#ECECF0",
-    boxShadow:
-      "0px 2px 6px rgba(0,0,0,0.08)",
     elevation: 3,
   },
+
 
   header: {
     minHeight: 32,
@@ -754,6 +935,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 18,
   },
+
 
   headerIconContainer: {
     width: 30,
@@ -765,12 +947,14 @@ const styles = StyleSheet.create({
     marginRight: 9,
   },
 
+
   headerTitle: {
     flex: 1,
     fontSize: 17,
     fontWeight: "700",
     color: "#222222",
   },
+
 
   moreButton: {
     width: 30,
@@ -781,11 +965,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7F8",
   },
 
+
   divider: {
     height: 1,
     backgroundColor: "#F0F0F0",
     marginBottom: 20,
   },
+
 
   errorBox: {
     flexDirection: "row",
@@ -797,6 +983,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
+
   errorText: {
     flex: 1,
     marginLeft: 7,
@@ -805,6 +992,7 @@ const styles = StyleSheet.create({
     color: "#D7192A",
   },
 
+
   row: {
     minHeight: 62,
     flexDirection: "row",
@@ -812,6 +1000,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F5F5F5",
   },
+
 
   personIcon: {
     width: 32,
@@ -822,23 +1011,28 @@ const styles = StyleSheet.create({
     marginRight: 11,
   },
 
+
   fatherIcon: {
     backgroundColor: "#EAF5FF",
   },
+
 
   motherIcon: {
     backgroundColor: "#FFF0F6",
   },
 
+
   siblingIcon: {
     backgroundColor: "#EAF8F0",
   },
+
 
   textContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
   },
+
 
   label: {
     width: 65,
@@ -847,12 +1041,14 @@ const styles = StyleSheet.create({
     color: "#444444",
   },
 
+
   value: {
     flex: 1,
     fontSize: 13,
     color: "#777777",
     marginLeft: 8,
   },
+
 
   editIconButton: {
     width: 30,
@@ -864,6 +1060,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
+
   editDetailsButton: {
     height: 45,
     width: "100%",
@@ -873,10 +1070,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow:
-      "0px 3px 5px rgba(215,25,42,0.18)",
     elevation: 2,
   },
+
 
   editDetailsText: {
     marginLeft: 7,
@@ -884,4 +1080,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
   },
+
 });

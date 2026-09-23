@@ -9,64 +9,31 @@ import axios from "axios";
 
 export default async function Requestmake(url, options = {}) {
   try {
-    const method = String(options.method || "GET").toUpperCase();
+    let response = null;
+    const axiosConfig = {
+      headers: options.headers || {},
+      timeout: 15000, // 15 second timeout
+    };
 
-    console.log("=================================");
-    console.log("API REQUEST");
-    console.log("METHOD:", method);
-    console.log("URL:", url);
-
-    console.log(
-      "HEADERS:",
-      JSON.stringify(
-        {
-          ...options.headers,
-          Authorization: options.headers?.Authorization
-            ? "Bearer ***TOKEN***"
-            : undefined,
-        },
-        null,
-        2
-      )
-    );
-
-    console.log("=================================");
-
-    let response;
-
-    if (method === "GET") {
-      response = await axios.get(url, {
-        headers: options.headers || {},
-        params: options.params || undefined,
-      });
-    } else if (method === "POST") {
-      response = await axios.post(
-        url,
-        options.body || {},
-        {
-          headers: options.headers || {},
-          params: options.params || undefined,
-        }
-      );
+    if (options.method === "GET") {
+      axiosConfig.params = options.params;
+      const result = await axios.get(url, axiosConfig);
+      response = result?.data;
     } else {
-      return {
-        success: 0,
-        result: false,
-        message: `Unsupported HTTP method: ${method}`,
-      };
+      const result = await axios.post(url, options.body, axiosConfig);
+      response = result?.data;
     }
 
-    console.log("=================================");
-    console.log("API RESPONSE");
-    console.log("STATUS:", response.status);
-    console.log(
-      "DATA:",
-      JSON.stringify(response.data, null, 2)
-    );
-    console.log("=================================");
+    if (response && typeof response === "object") {
+      if (response.result === undefined && "success" in response) {
+        response.result = response.success === 1 || response.success === true;
+      }
+      if (response.success === undefined && "result" in response) {
+        response.success = response.result === true ? 1 : 0;
+      }
+    }
 
-    return response.data;
-
+    return response;
   } catch (error) {
     console.log("=================================");
     console.log("API ERROR");
@@ -84,6 +51,28 @@ export default async function Requestmake(url, options = {}) {
     console.log("=================================");
 
     const responseData = error.response?.data;
+
+    console.log("RequestMake Error Details:", {
+      hasResponse: !!error.response,
+      hasRequest: !!error.request,
+      message: error.message,
+      url: url,
+      status: error.response?.status,
+    });
+
+    if (error.response) {
+      message =
+        responseData?.message ||
+        responseData?.error ||
+        (responseData?.errors
+          ? JSON.stringify(responseData.errors)
+          : undefined) ||
+        "Validation failed";
+    } else if (error.request) {
+      message = `No response from server (${error.message})`;
+    } else {
+      message = "Request error: " + error.message;
+    }
 
     return {
       success: 0,

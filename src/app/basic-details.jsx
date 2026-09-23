@@ -1,9 +1,9 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   KeyboardAvoidingView,
   Modal,
@@ -17,20 +17,18 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import LinearGradient from "react-native-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
-
-// =========================================================
-// API
-// =========================================================
-// Change this path if your Functions.js is located elsewhere.
 import { updateMemberBasicInfo } from "../utils/Functions";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -234,17 +232,16 @@ const HEIGHT_OPTIONS = [
 // =========================================================
 
 export default function BasicDetailsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   // =======================================================
-  // BASIC API DETAILS
+  // BASIC DETAILS
   // =======================================================
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState("");
-
   const [gender, setGender] = useState("1");
   const [maritalStatus, setMaritalStatus] = useState("");
   const [onBehalf, setOnBehalf] = useState("1");
@@ -268,6 +265,33 @@ export default function BasicDetailsScreen() {
 
   const [saving, setSaving] = useState(false);
   const [dropdown, setDropdown] = useState(null);
+
+  // =======================================================
+  // ANDROID BACK HANDLER
+  // =======================================================
+
+  useEffect(() => {
+    const onBackPress = () => {
+      // If dropdown is open, close dropdown first
+      if (dropdown) {
+        setDropdown(null);
+        return true;
+      }
+
+      // Otherwise go back
+      navigation.goBack();
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [dropdown, navigation]);
 
   // =======================================================
   // OPEN DROPDOWN
@@ -328,8 +352,7 @@ export default function BasicDetailsScreen() {
 
   // =======================================================
   // FORMAT DOB
-  // API FORMAT:
-  // DD-MM-YYYY
+  // API FORMAT: DD-MM-YYYY
   // =======================================================
 
   const formatDateForApi = (value) => {
@@ -354,7 +377,9 @@ export default function BasicDetailsScreen() {
       return false;
     }
 
-    const [day, month, year] = value.split("-").map(Number);
+    const [day, month, year] = value
+      .split("-")
+      .map(Number);
 
     if (
       day < 1 ||
@@ -366,7 +391,11 @@ export default function BasicDetailsScreen() {
       return false;
     }
 
-    const date = new Date(year, month - 1, day);
+    const date = new Date(
+      year,
+      month - 1,
+      day
+    );
 
     if (
       date.getFullYear() !== year ||
@@ -398,9 +427,9 @@ export default function BasicDetailsScreen() {
       return;
     }
 
-    // -------------------------------------------------------
-    // BASIC VALIDATION
-    // -------------------------------------------------------
+    // -----------------------------------------------------
+    // VALIDATION
+    // -----------------------------------------------------
 
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim();
@@ -487,15 +516,41 @@ export default function BasicDetailsScreen() {
       return;
     }
 
-    // -------------------------------------------------------
+    if (!height) {
+      Alert.alert(
+        "Required",
+        "Please select your height."
+      );
+      return;
+    }
+
+    if (!motherTongue) {
+      Alert.alert(
+        "Required",
+        "Please select your mother tongue."
+      );
+      return;
+    }
+
+    if (!nationality) {
+      Alert.alert(
+        "Required",
+        "Please select your nationality."
+      );
+      return;
+    }
+
+    if (!city.trim()) {
+      Alert.alert(
+        "Required",
+        "Please enter your city."
+      );
+      return;
+    }
+
+    // -----------------------------------------------------
     // SPLIT FULL NAME
-    //
-    // Example:
-    // Vasanth Kumar
-    //
-    // first_name = Vasanth
-    // last_name  = Kumar
-    // -------------------------------------------------------
+    // -----------------------------------------------------
 
     const nameParts = trimmedName
       .split(/\s+/)
@@ -508,9 +563,9 @@ export default function BasicDetailsScreen() {
         ? nameParts.slice(1).join(" ")
         : "";
 
-    // -------------------------------------------------------
+    // -----------------------------------------------------
     // GET TOKEN
-    // -------------------------------------------------------
+    // -----------------------------------------------------
 
     const accessToken = await getAccessToken();
 
@@ -522,7 +577,7 @@ export default function BasicDetailsScreen() {
           {
             text: "OK",
             onPress: () => {
-              router.replace("/login");
+              navigation.replace("Login");
             },
           },
         ]
@@ -531,9 +586,9 @@ export default function BasicDetailsScreen() {
       return;
     }
 
-    // -------------------------------------------------------
+    // -----------------------------------------------------
     // API BODY
-    // -------------------------------------------------------
+    // -----------------------------------------------------
 
     const basicInfo = {
       first_name: firstName,
@@ -545,6 +600,15 @@ export default function BasicDetailsScreen() {
       date_of_birth: formattedDob,
       marital_status: Number(maritalStatus),
       children: Number(children || 0),
+
+      // Other profile fields
+      height: height,
+      weight: weight,
+      blood_group: bloodGroup,
+      mother_tongue: motherTongue,
+      languages: languages,
+      nationality: nationality,
+      city: city.trim(),
     };
 
     console.log("=================================");
@@ -556,26 +620,27 @@ export default function BasicDetailsScreen() {
     );
     console.log("=================================");
 
-    // -------------------------------------------------------
-    // CALL API
-    // -------------------------------------------------------
+    // -----------------------------------------------------
+    // API CALL
+    // -----------------------------------------------------
 
     try {
       setSaving(true);
 
-      const response = await updateMemberBasicInfo(
-        accessToken,
-        basicInfo
-      );
+      const response =
+        await updateMemberBasicInfo(
+          accessToken,
+          basicInfo
+        );
 
       console.log(
         "UPDATE BASIC INFO RESPONSE:",
         JSON.stringify(response, null, 2)
       );
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // SUCCESS CHECK
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const success =
         response?.success === 1 ||
@@ -592,7 +657,7 @@ export default function BasicDetailsScreen() {
             {
               text: "OK",
               onPress: () => {
-                router.back();
+                navigation.goBack();
               },
             },
           ]
@@ -615,15 +680,16 @@ export default function BasicDetailsScreen() {
         "Something went wrong. Please try again.";
 
       if (error?.response?.data?.message) {
-        message = error.response.data.message;
+        message =
+          error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        message =
+          error.response.data.error;
       } else if (error?.message) {
         message = error.message;
       }
 
-      Alert.alert(
-        "Error",
-        message
-      );
+      Alert.alert("Error", message);
     } finally {
       setSaving(false);
     }
@@ -658,7 +724,7 @@ export default function BasicDetailsScreen() {
           style={styles.header}
         >
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{
               top: 10,
               bottom: 10,
@@ -668,8 +734,8 @@ export default function BasicDetailsScreen() {
             activeOpacity={0.75}
             style={styles.backButton}
           >
-            <Ionicons
-              name="arrow-back"
+            <Feather
+              name="arrow-left"
               size={24}
               color={Colors.white}
             />
@@ -748,7 +814,8 @@ export default function BasicDetailsScreen() {
           />
 
           <InputField
-            icon="person-outline"
+            icon="user"
+            iconType="feather"
             value={fullName}
             onChangeText={setFullName}
             placeholder="Enter your full name"
@@ -766,7 +833,8 @@ export default function BasicDetailsScreen() {
           />
 
           <InputField
-            icon="mail-outline"
+            icon="mail"
+            iconType="feather"
             value={email}
             onChangeText={setEmail}
             placeholder="Enter your email"
@@ -786,7 +854,8 @@ export default function BasicDetailsScreen() {
           />
 
           <InputField
-            icon="call-outline"
+            icon="phone"
+            iconType="feather"
             value={phone}
             onChangeText={(value) => {
               const cleaned = value
@@ -812,6 +881,7 @@ export default function BasicDetailsScreen() {
 
           <InputField
             icon="calendar-outline"
+            iconType="ionicons"
             value={dob}
             onChangeText={(value) => {
               const cleaned = value
@@ -1002,16 +1072,21 @@ export default function BasicDetailsScreen() {
               />
             </View>
 
-            <View style={styles.colHalf}>
+            <View
+              style={[
+                styles.colHalf,
+                styles.rightColumn,
+              ]}
+            >
               <FieldLabel
                 text="Weight"
                 optional
               />
 
               <View style={styles.inputRow}>
-                <Ionicons
-                  name="barbell-outline"
-                  size={18}
+                <FontAwesome5
+                  name="weight"
+                  size={17}
                   color={Colors.primaryRed}
                   style={styles.inputIcon}
                 />
@@ -1167,7 +1242,8 @@ export default function BasicDetailsScreen() {
           />
 
           <InputField
-            icon="location-outline"
+            icon="map-pin"
+            iconType="feather"
             value={city}
             onChangeText={setCity}
             placeholder="Enter your city"
@@ -1207,7 +1283,11 @@ export default function BasicDetailsScreen() {
             onPress={handleSaveAndContinue}
           >
             {saving ? (
-              <View style={styles.saveButtonContent}>
+              <View
+                style={
+                  styles.saveButtonContent
+                }
+              >
                 <ActivityIndicator
                   size="small"
                   color={Colors.white}
@@ -1225,7 +1305,11 @@ export default function BasicDetailsScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.saveButtonContent}>
+              <View
+                style={
+                  styles.saveButtonContent
+                }
+              >
                 <Text
                   style={styles.saveButtonText}
                 >
@@ -1385,13 +1469,15 @@ function FieldLabel({
 
       {required && (
         <Text style={styles.requiredAsterisk}>
-          {" "}*
+          {" "}
+          *
         </Text>
       )}
 
       {optional && (
         <Text style={styles.optionalText}>
-          {" "}(Optional)
+          {" "}
+          (Optional)
         </Text>
       )}
     </View>
@@ -1404,19 +1490,48 @@ function FieldLabel({
 
 function InputField({
   icon,
+  iconType = "ionicons",
   value,
   onChangeText,
   placeholder,
   ...props
 }) {
-  return (
-    <View style={styles.inputRow}>
+  const renderIcon = () => {
+    if (iconType === "feather") {
+      return (
+        <Feather
+          name={icon}
+          size={18}
+          color={Colors.primaryRed}
+          style={styles.inputIcon}
+        />
+      );
+    }
+
+    if (iconType === "fontawesome") {
+      return (
+        <FontAwesome5
+          name={icon}
+          size={17}
+          color={Colors.primaryRed}
+          style={styles.inputIcon}
+        />
+      );
+    }
+
+    return (
       <Ionicons
         name={icon}
         size={19}
         color={Colors.primaryRed}
         style={styles.inputIcon}
       />
+    );
+  };
+
+  return (
+    <View style={styles.inputRow}>
+      {renderIcon()}
 
       <TextInput
         style={styles.textInput}
@@ -1515,8 +1630,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    fontSize:
-      FontSizes.welcome + 2,
+    fontSize: FontSizes.welcome + 2,
     fontFamily: Fonts.display.bold,
     color: Colors.white,
   },
@@ -1599,8 +1713,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 52,
     marginBottom: 19,
-    backgroundColor:
-      Colors.cardBackground,
+    backgroundColor: Colors.cardBackground,
   },
 
   inputIcon: {
@@ -1613,12 +1726,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.body.regular,
     color: Colors.textPrimary,
-
-    ...Platform.select({
-      web: {
-        outlineStyle: "none",
-      },
-    }),
   },
 
   unitText: {
@@ -1640,8 +1747,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 52,
     marginBottom: 19,
-    backgroundColor:
-      Colors.cardBackground,
+    backgroundColor: Colors.cardBackground,
   },
 
   selectText: {
@@ -1662,11 +1768,14 @@ const styles = StyleSheet.create({
 
   rowTwoCol: {
     flexDirection: "row",
-    gap: 12,
   },
 
   colHalf: {
     flex: 1,
+  },
+
+  rightColumn: {
+    marginLeft: 10,
   },
 
   // =======================================================
@@ -1675,7 +1784,6 @@ const styles = StyleSheet.create({
 
   genderRow: {
     flexDirection: "row",
-    gap: 9,
     marginBottom: 19,
   },
 
@@ -1689,8 +1797,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 12,
     paddingHorizontal: 5,
-    backgroundColor:
-      Colors.cardBackground,
+    backgroundColor: Colors.cardBackground,
+    marginRight: 9,
   },
 
   genderText: {
@@ -1734,8 +1842,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor:
-      Colors.primaryRedDark,
+    backgroundColor: Colors.primaryRedDark,
     borderRadius: 15,
     marginTop: 2,
   },
@@ -1757,8 +1864,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor:
-      "rgba(0,0,0,0.48)",
+    backgroundColor: "rgba(0,0,0,0.48)",
     justifyContent: "flex-end",
   },
 

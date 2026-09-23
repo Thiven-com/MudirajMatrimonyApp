@@ -1,33 +1,35 @@
 import {
-    useCallback,
-    useState,
+  useCallback,
+  useState,
 } from "react";
 
 import {
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  BackHandler,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    Ionicons,
-} from "@expo/vector-icons";
+  useFocusEffect,
+  useNavigation,
+} from "@react-navigation/native";
+
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-    router,
-    useFocusEffect,
-} from "expo-router";
-
-import {
-    getMemberLanguages,
+  getMemberLanguages,
 } from "../utils/Functions";
-
 
 // =========================================================
 // LANGUAGE CACHE KEY
@@ -35,7 +37,6 @@ import {
 
 const LANGUAGE_CACHE_KEY =
   "member_languages_cache";
-
 
 // =========================================================
 // LANGUAGE NAME LIST
@@ -78,7 +79,6 @@ const LANGUAGE_LIST = [
   "Other",
 ];
 
-
 // =========================================================
 // NORMALIZE KEY
 // =========================================================
@@ -88,7 +88,6 @@ const normalizeKey = (key) => {
     .toLowerCase()
     .replace(/[_\-\s]/g, "");
 };
-
 
 // =========================================================
 // GET VALUE DEEPLY
@@ -168,7 +167,6 @@ const findValueDeep = (
   return undefined;
 };
 
-
 // =========================================================
 // GET LANGUAGE NAME
 // =========================================================
@@ -176,7 +174,6 @@ const findValueDeep = (
 const getLanguageName = (
   item
 ) => {
-
   if (
     item === null ||
     item === undefined
@@ -206,7 +203,6 @@ const getLanguageName = (
   if (
     typeof item === "object"
   ) {
-
     const value =
       item?.name ??
       item?.language_name ??
@@ -236,7 +232,6 @@ const getLanguageName = (
   return "";
 };
 
-
 // =========================================================
 // REMOVE DUPLICATES
 // =========================================================
@@ -244,7 +239,6 @@ const getLanguageName = (
 const uniqueLanguages = (
   languages
 ) => {
-
   const result = [];
 
   if (
@@ -257,7 +251,6 @@ const uniqueLanguages = (
 
   languages.forEach(
     (item) => {
-
       const value =
         getLanguageName(
           item
@@ -283,7 +276,6 @@ const uniqueLanguages = (
   return result;
 };
 
-
 // =========================================================
 // NORMALIZE KNOWN LANGUAGES
 // =========================================================
@@ -291,7 +283,6 @@ const uniqueLanguages = (
 const normalizeKnownLanguages = (
   value
 ) => {
-
   if (
     value === null ||
     value === undefined
@@ -299,23 +290,19 @@ const normalizeKnownLanguages = (
     return [];
   }
 
-
   // Array
   if (
     Array.isArray(value)
   ) {
-
     return uniqueLanguages(
       value
     );
   }
 
-
   // String
   if (
     typeof value === "string"
   ) {
-
     const text =
       value.trim();
 
@@ -323,15 +310,12 @@ const normalizeKnownLanguages = (
       return [];
     }
 
-
     // JSON array
     if (
       text.startsWith("[") &&
       text.endsWith("]")
     ) {
-
       try {
-
         const parsed =
           JSON.parse(text);
 
@@ -344,7 +328,6 @@ const normalizeKnownLanguages = (
             parsed
           );
         }
-
       } catch (error) {
         console.log(
           "KNOWN LANGUAGES JSON ERROR:",
@@ -353,22 +336,18 @@ const normalizeKnownLanguages = (
       }
     }
 
-
     // JSON object
     if (
       text.startsWith("{") &&
       text.endsWith("}")
     ) {
-
       try {
-
         const parsed =
           JSON.parse(text);
 
         return normalizeKnownLanguages(
           parsed
         );
-
       } catch (error) {
         console.log(
           "KNOWN LANGUAGES OBJECT ERROR:",
@@ -377,12 +356,10 @@ const normalizeKnownLanguages = (
       }
     }
 
-
     // Comma separated
     if (
       text.includes(",")
     ) {
-
       return uniqueLanguages(
         text
           .split(",")
@@ -394,16 +371,13 @@ const normalizeKnownLanguages = (
       );
     }
 
-
     return [text];
   }
-
 
   // Object
   if (
     typeof value === "object"
   ) {
-
     const nested =
       value?.data ??
       value?.items ??
@@ -419,7 +393,6 @@ const normalizeKnownLanguages = (
         nested
       )
     ) {
-
       return uniqueLanguages(
         nested
       );
@@ -428,7 +401,6 @@ const normalizeKnownLanguages = (
     if (
       nested !== undefined
     ) {
-
       const result =
         normalizeKnownLanguages(
           nested
@@ -441,7 +413,6 @@ const normalizeKnownLanguages = (
       }
     }
 
-
     const single =
       getLanguageName(
         value
@@ -450,7 +421,6 @@ const normalizeKnownLanguages = (
     if (single) {
       return [single];
     }
-
 
     // Object values
     const values =
@@ -473,7 +443,6 @@ const normalizeKnownLanguages = (
   return [];
 };
 
-
 // =========================================================
 // GET MOTHER TONGUE
 // =========================================================
@@ -481,7 +450,6 @@ const normalizeKnownLanguages = (
 const getMotherTongue = (
   response
 ) => {
-
   const value =
     findValueDeep(
       response,
@@ -500,12 +468,10 @@ const getMotherTongue = (
       ]
     );
 
-
   console.log(
     "FOUND MOTHER TONGUE:",
     value
   );
-
 
   if (
     value === null ||
@@ -514,12 +480,10 @@ const getMotherTongue = (
     return "";
   }
 
-
   return getLanguageName(
     value
   );
 };
-
 
 // =========================================================
 // GET KNOWN LANGUAGES
@@ -528,7 +492,6 @@ const getMotherTongue = (
 const getKnownLanguages = (
   response
 ) => {
-
   let value =
     findValueDeep(
       response,
@@ -544,13 +507,11 @@ const getKnownLanguages = (
       ]
     );
 
-
-  // Only fallback to generic languages
-  // when known_languages doesn't exist.
+  // Fallback to generic languages
+  // only when known_languages doesn't exist.
   if (
     value === undefined
   ) {
-
     value =
       findValueDeep(
         response,
@@ -562,18 +523,15 @@ const getKnownLanguages = (
       );
   }
 
-
   console.log(
     "FOUND KNOWN LANGUAGES:",
     value
   );
 
-
   return normalizeKnownLanguages(
     value
   );
 };
-
 
 // =========================================================
 // READ CACHE
@@ -581,9 +539,7 @@ const getKnownLanguages = (
 
 const readLanguageCache =
   async () => {
-
     try {
-
       const cached =
         await AsyncStorage.getItem(
           LANGUAGE_CACHE_KEY
@@ -599,9 +555,7 @@ const readLanguageCache =
         );
 
       return parsed;
-
     } catch (error) {
-
       console.log(
         "LANGUAGE CACHE READ ERROR:",
         error
@@ -610,7 +564,6 @@ const readLanguageCache =
       return null;
     }
   };
-
 
 // =========================================================
 // SAVE CACHE
@@ -621,9 +574,7 @@ const saveLanguageCache =
     motherTongue,
     knownLanguages
   ) => {
-
     try {
-
       const value = {
         mother_tongue:
           String(
@@ -642,9 +593,7 @@ const saveLanguageCache =
           value
         )
       );
-
     } catch (error) {
-
       console.log(
         "LANGUAGE CACHE SAVE ERROR:",
         error
@@ -652,12 +601,13 @@ const saveLanguageCache =
     }
   };
 
-
 // =========================================================
 // SCREEN
 // =========================================================
 
 export default function Languages() {
+  const navigation =
+    useNavigation();
 
   const [
     motherTongue,
@@ -679,7 +629,6 @@ export default function Languages() {
     setErrorMessage,
   ] = useState("");
 
-
   // =======================================================
   // LOAD DATA
   // =======================================================
@@ -687,14 +636,11 @@ export default function Languages() {
   const loadLanguages =
     useCallback(
       async () => {
-
         try {
-
           setErrorMessage("");
 
           // -------------------------------------------------
           // FIRST: SHOW CACHE
-          // This makes updated values appear immediately.
           // -------------------------------------------------
 
           const cached =
@@ -703,7 +649,6 @@ export default function Languages() {
           if (
             cached
           ) {
-
             const cachedMother =
               String(
                 cached?.mother_tongue ||
@@ -732,7 +677,6 @@ export default function Languages() {
             }
           }
 
-
           // -------------------------------------------------
           // GET API
           // -------------------------------------------------
@@ -741,7 +685,6 @@ export default function Languages() {
             await AsyncStorage.getItem(
               "access_token"
             );
-
 
           console.log(
             "========================================"
@@ -760,9 +703,7 @@ export default function Languages() {
             "========================================"
           );
 
-
           if (!accessToken) {
-
             setErrorMessage(
               "Access token is missing. Please login again."
             );
@@ -770,15 +711,12 @@ export default function Languages() {
             return;
           }
 
-
           setLoading(true);
-
 
           const response =
             await getMemberLanguages(
               accessToken
             );
-
 
           console.log(
             "========================================"
@@ -800,7 +738,6 @@ export default function Languages() {
             "========================================"
           );
 
-
           const apiMother =
             getMotherTongue(
               response
@@ -810,7 +747,6 @@ export default function Languages() {
             getKnownLanguages(
               response
             );
-
 
           console.log(
             "========================================"
@@ -834,52 +770,46 @@ export default function Languages() {
             "========================================"
           );
 
-
           // -------------------------------------------------
-          // IMPORTANT:
-          // If API has values, use API.
-          // If API parser returns empty, keep cache.
+          // USE API VALUES WHEN AVAILABLE
           // -------------------------------------------------
 
           if (
             apiMother
           ) {
-
             setMotherTongue(
               apiMother
             );
           }
 
-
           if (
             apiKnown.length > 0
           ) {
-
             setKnownLanguages(
               apiKnown
             );
           }
 
+          // -------------------------------------------------
+          // SAVE SUCCESSFUL API RESULT
+          // -------------------------------------------------
 
-          // Save successful API result
           if (
             apiMother ||
             apiKnown.length
           ) {
-
             await saveLanguageCache(
               apiMother ||
                 cached?.mother_tongue ||
                 "",
+
               apiKnown.length
                 ? apiKnown
                 : cached?.known_languages ||
                   []
             );
           }
-
         } catch (error) {
-
           console.error(
             "========================================"
           );
@@ -905,14 +835,12 @@ export default function Languages() {
             "========================================"
           );
 
-
           const cached =
             await readLanguageCache();
 
           if (
             cached
           ) {
-
             setMotherTongue(
               String(
                 cached?.mother_tongue ||
@@ -925,25 +853,19 @@ export default function Languages() {
                 cached?.known_languages
               )
             );
-
           } else {
-
             setErrorMessage(
               error?.response?.data?.message ||
-              error?.message ||
-              "Unable to load languages."
+                error?.message ||
+                "Unable to load languages."
             );
           }
-
         } finally {
-
           setLoading(false);
         }
-
       },
       []
     );
-
 
   // =======================================================
   // REFRESH EVERY TIME SCREEN GETS FOCUS
@@ -952,9 +874,9 @@ export default function Languages() {
   useFocusEffect(
     useCallback(
       () => {
-
         loadLanguages();
 
+        return undefined;
       },
       [
         loadLanguages,
@@ -962,6 +884,32 @@ export default function Languages() {
     )
   );
 
+  // =======================================================
+  // ANDROID BACK HANDLER
+  // =======================================================
+
+  useFocusEffect(
+    useCallback(
+      () => {
+        const onBackPress =
+          () => {
+            navigation.goBack();
+
+            return true;
+          };
+
+        const subscription =
+          BackHandler.addEventListener(
+            "hardwareBackPress",
+            onBackPress
+          );
+
+        return () =>
+          subscription.remove();
+      },
+      [navigation]
+    )
+  );
 
   // =======================================================
   // EDIT MOTHER TONGUE
@@ -969,18 +917,14 @@ export default function Languages() {
 
   const editMotherTongue =
     () => {
-
-      router.push({
-        pathname:
-          "/EditLanguages",
-
-        params: {
+      navigation.navigate(
+        "EditLanguages",
+        {
           field:
             "motherTongue",
-        },
-      });
+        }
+      );
     };
-
 
   // =======================================================
   // EDIT KNOWN LANGUAGES
@@ -988,18 +932,14 @@ export default function Languages() {
 
   const editKnownLanguages =
     () => {
-
-      router.push({
-        pathname:
-          "/EditLanguages",
-
-        params: {
+      navigation.navigate(
+        "EditLanguages",
+        {
           field:
             "knownLanguages",
-        },
-      });
+        }
+      );
     };
-
 
   // =======================================================
   // RETRY
@@ -1007,10 +947,8 @@ export default function Languages() {
 
   const retry =
     () => {
-
       loadLanguages();
     };
-
 
   // =======================================================
   // UI
@@ -1020,34 +958,28 @@ export default function Languages() {
     <SafeAreaView
       style={styles.safeArea}
     >
-
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#FFFFFF"
       />
-
 
       {/* HEADER */}
 
       <View
         style={styles.header}
       >
-
         <TouchableOpacity
           style={styles.backButton}
           onPress={() =>
-            router.back()
+            navigation.goBack()
           }
         >
-
-          <Ionicons
-            name="arrow-back"
+          <Feather
+            name="arrow-left"
             size={24}
             color="#222222"
           />
-
         </TouchableOpacity>
-
 
         <Text
           style={styles.headerTitle}
@@ -1055,13 +987,10 @@ export default function Languages() {
           Languages
         </Text>
 
-
         <View
           style={styles.headerRight}
         />
-
       </View>
-
 
       <ScrollView
         style={styles.scrollView}
@@ -1072,16 +1001,14 @@ export default function Languages() {
           false
         }
       >
-
         {/* ERROR */}
 
         {errorMessage ? (
           <View
             style={styles.errorBox}
           >
-
-            <Ionicons
-              name="alert-circle-outline"
+            <Feather
+              name="alert-circle"
               size={22}
               color="#E53935"
             />
@@ -1095,52 +1022,41 @@ export default function Languages() {
             <TouchableOpacity
               onPress={retry}
             >
-
               <Text
                 style={styles.retryText}
               >
                 Retry
               </Text>
-
             </TouchableOpacity>
-
           </View>
         ) : null}
-
 
         {/* MOTHER TONGUE */}
 
         <View
           style={styles.card}
         >
-
           <View
             style={styles.cardLeft}
           >
-
             <View
               style={styles.iconCircle}
             >
-
-              <Ionicons
-                name="language-outline"
+              <Feather
+                name="message-circle"
                 size={23}
                 color="#F44336"
               />
-
             </View>
-
 
             <View
               style={styles.textContainer}
             >
-
               <Text
                 style={styles.label}
               >
                 Mother Tongue
               </Text>
-
 
               {motherTongue ? (
                 <Text
@@ -1150,93 +1066,78 @@ export default function Languages() {
                 </Text>
               ) : (
                 <Text
-                  style={styles.emptyValue}
+                  style={
+                    styles.emptyValue
+                  }
                 >
                   Not added
                 </Text>
               )}
-
             </View>
-
           </View>
 
-
           <TouchableOpacity
-            style={styles.editButton}
+            style={
+              styles.editButton
+            }
             onPress={
               editMotherTongue
             }
           >
-
-            <Ionicons
-              name="create-outline"
+            <Feather
+              name="edit-3"
               size={20}
               color="#F44336"
             />
-
           </TouchableOpacity>
-
         </View>
-
 
         {/* KNOWN LANGUAGES */}
 
         <View
           style={styles.card}
         >
-
           <View
             style={styles.cardLeft}
           >
-
             <View
               style={styles.iconCircle}
             >
-
-              <Ionicons
-                name="globe-outline"
-                size={23}
+              <FontAwesome5
+                name="globe"
+                size={21}
                 color="#F44336"
+                solid={false}
               />
-
             </View>
-
 
             <View
               style={styles.textContainer}
             >
-
               <Text
                 style={styles.label}
               >
                 Known Languages
               </Text>
 
-
               {knownLanguages.length >
               0 ? (
-
                 <View
                   style={
                     styles.languageList
                   }
                 >
-
                   {knownLanguages.map(
                     (
                       language,
                       index
                     ) => (
-
                       <View
-                        key={
-                          `${language}-${index}`
-                        }
+                        key={`${language}-${index}`}
                         style={
                           styles.languageChip
                         }
                       >
-
                         <Text
                           style={
                             styles.languageText
@@ -1244,16 +1145,11 @@ export default function Languages() {
                         >
                           {language}
                         </Text>
-
                       </View>
-
                     )
                   )}
-
                 </View>
-
               ) : (
-
                 <Text
                   style={
                     styles.emptyValue
@@ -1261,31 +1157,25 @@ export default function Languages() {
                 >
                   Not added
                 </Text>
-
               )}
-
             </View>
-
           </View>
 
-
           <TouchableOpacity
-            style={styles.editButton}
+            style={
+              styles.editButton
+            }
             onPress={
               editKnownLanguages
             }
           >
-
-            <Ionicons
-              name="create-outline"
+            <Feather
+              name="edit-3"
               size={20}
               color="#F44336"
             />
-
           </TouchableOpacity>
-
         </View>
-
 
         {/* EDIT BUTTON */}
 
@@ -1294,15 +1184,14 @@ export default function Languages() {
             styles.bottomEditButton
           }
           onPress={() =>
-            router.push(
-              "/EditLanguages"
+            navigation.navigate(
+              "EditLanguages"
             )
           }
           activeOpacity={0.85}
         >
-
-          <Ionicons
-            name="create-outline"
+          <Feather
+            name="edit-3"
             size={20}
             color="#FFFFFF"
           />
@@ -1314,26 +1203,24 @@ export default function Languages() {
           >
             Edit Languages
           </Text>
-
         </TouchableOpacity>
-
 
         {/* SMALL STATUS */}
 
         {loading ? (
           <Text
-            style={styles.refreshText}
+            style={
+              styles.refreshText
+            }
           >
-            Refreshing language information...
+            Refreshing language
+            information...
           </Text>
         ) : null}
-
       </ScrollView>
-
     </SafeAreaView>
   );
 }
-
 
 // =========================================================
 // STYLES
@@ -1341,7 +1228,6 @@ export default function Languages() {
 
 const styles =
   StyleSheet.create({
-
     safeArea: {
       flex: 1,
       backgroundColor:
@@ -1405,7 +1291,6 @@ const styles =
         "flex-start",
       justifyContent:
         "space-between",
-
       shadowColor: "#000000",
       shadowOpacity: 0.05,
       shadowRadius: 5,
@@ -1413,7 +1298,6 @@ const styles =
         width: 0,
         height: 2,
       },
-
       elevation: 2,
     },
 
@@ -1542,5 +1426,4 @@ const styles =
       color: "#999999",
       fontSize: 12,
     },
-
   });

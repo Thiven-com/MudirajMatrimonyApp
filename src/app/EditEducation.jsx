@@ -1,34 +1,40 @@
 import {
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-
-import {
-    Ionicons,
-} from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+
 import {
-    router,
-    useLocalSearchParams,
-} from "expo-router";
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
-    getMemberEducationById,
-    updateMemberEducation,
+  getMemberEducationById,
+  updateMemberEducation,
 } from "../utils/Functions";
 
 
@@ -39,19 +45,25 @@ import {
 export default function EditEducation() {
 
   /* =======================================================
-     GET EDUCATION ID FROM ROUTE
-
-     Example:
-     /EditEducation?id=1
+     NAVIGATION
   ======================================================= */
 
-  const params =
-    useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+
+
+  /* =======================================================
+     GET EDUCATION ID FROM NAVIGATION PARAMS
+
+     Navigate like:
+
+     navigation.navigate("EditEducation", {
+       id: educationId,
+     });
+  ======================================================= */
 
   const educationId =
-    Array.isArray(params.id)
-      ? params.id[0]
-      : params.id;
+    route?.params?.id;
 
 
   /* =======================================================
@@ -78,14 +90,50 @@ export default function EditEducation() {
 
 
   /* =======================================================
-     LOAD SINGLE EDUCATION
+     ANDROID HARDWARE BACK BUTTON
+  ======================================================= */
+
+  useFocusEffect(
+    useCallback(() => {
+
+      const onBackPress = () => {
+
+        if (saving) {
+          return true;
+        }
+
+        navigation.goBack();
+
+        return true;
+      };
+
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+
+      return () =>
+        subscription.remove();
+
+    }, [navigation, saving])
+  );
+
+
+  /* =======================================================
+     LOAD EDUCATION WHEN SCREEN OPENS
   ======================================================= */
 
   useEffect(() => {
 
     if (educationId) {
+
       loadEducation();
+
     } else {
+
       setLoading(false);
 
       Alert.alert(
@@ -94,7 +142,8 @@ export default function EditEducation() {
         [
           {
             text: "OK",
-            onPress: () => router.back(),
+            onPress: () =>
+              navigation.goBack(),
           },
         ]
       );
@@ -105,6 +154,7 @@ export default function EditEducation() {
 
   /* =======================================================
      GET SINGLE EDUCATION API
+
      GET /api/member/education/{id}
   ======================================================= */
 
@@ -113,6 +163,7 @@ export default function EditEducation() {
     try {
 
       setLoading(true);
+
 
       console.log(
         "======================================"
@@ -156,7 +207,8 @@ export default function EditEducation() {
           [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () =>
+                navigation.goBack(),
             },
           ]
         );
@@ -184,7 +236,8 @@ export default function EditEducation() {
           [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () =>
+                navigation.goBack(),
             },
           ]
         );
@@ -325,9 +378,6 @@ export default function EditEducation() {
 
       /* =====================================================
          START YEAR
-
-         API:
-         education_start
       ===================================================== */
 
       setStartYear(
@@ -342,9 +392,6 @@ export default function EditEducation() {
 
       /* =====================================================
          END YEAR
-
-         API:
-         education_end
       ===================================================== */
 
       setEndYear(
@@ -355,7 +402,6 @@ export default function EditEducation() {
           ""
         )
       );
-
 
     } catch (error) {
 
@@ -386,387 +432,406 @@ export default function EditEducation() {
 
     }
   };
-// =======================================================
-// SAVE / UPDATE EDUCATION
-// PUT /api/member/education/{id}
-// =======================================================
 
-const handleSave = async () => {
 
-  // -----------------------------------------------------
-  // PREVENT DOUBLE CLICK
-  // -----------------------------------------------------
+  /* =======================================================
+     SAVE / UPDATE EDUCATION
 
-  if (saving) {
-    return;
-  }
+     PUT /api/member/education/{id}
+  ======================================================= */
 
-  try {
+  const handleSave = async () => {
 
-    // ---------------------------------------------------
-    // GET TOKEN
-    // ---------------------------------------------------
+    /* =====================================================
+       PREVENT DOUBLE CLICK
+    ===================================================== */
 
-    const accessToken =
-      await AsyncStorage.getItem(
-        "access_token"
-      );
-
-    if (!accessToken) {
-
-      Alert.alert(
-        "Login Required",
-        "Your session has expired. Please login again."
-      );
-
+    if (saving) {
       return;
     }
 
-    // ---------------------------------------------------
-    // VALIDATE EDUCATION ID
-    // ---------------------------------------------------
 
-    const numericId =
-      Number(educationId);
+    try {
 
-    if (
-      !Number.isInteger(numericId) ||
-      numericId <= 0
-    ) {
+      /* ===================================================
+         GET TOKEN
+      =================================================== */
 
-      Alert.alert(
-        "Error",
-        "Invalid education ID."
-      );
+      const accessToken =
+        await AsyncStorage.getItem(
+          "access_token"
+        );
 
-      return;
-    }
 
-    // ---------------------------------------------------
-    // CLEAN FORM VALUES
-    // ---------------------------------------------------
+      if (!accessToken) {
 
-    const cleanDegree =
-      String(
-        degree || ""
-      ).trim();
+        Alert.alert(
+          "Login Required",
+          "Your session has expired. Please login again."
+        );
 
-    const cleanInstitution =
-      String(
-        institution || ""
-      ).trim();
+        return;
+      }
 
-    const cleanStartYear =
-      Number(startYear);
 
-    const cleanEndYear =
-      Number(endYear);
+      /* ===================================================
+         VALIDATE EDUCATION ID
+      =================================================== */
 
-    // ---------------------------------------------------
-    // DEGREE VALIDATION
-    // ---------------------------------------------------
+      const numericId =
+        Number(educationId);
 
-    if (!cleanDegree) {
 
-      Alert.alert(
-        "Required",
-        "Please enter Degree / Course."
-      );
+      if (
+        !Number.isInteger(numericId) ||
+        numericId <= 0
+      ) {
 
-      return;
-    }
+        Alert.alert(
+          "Error",
+          "Invalid education ID."
+        );
 
-    // ---------------------------------------------------
-    // INSTITUTION VALIDATION
-    // ---------------------------------------------------
+        return;
+      }
 
-    if (!cleanInstitution) {
 
-      Alert.alert(
-        "Required",
-        "Please enter Institution / College."
-      );
+      /* ===================================================
+         CLEAN FORM VALUES
+      =================================================== */
 
-      return;
-    }
+      const cleanDegree =
+        String(
+          degree || ""
+        ).trim();
 
-    // ---------------------------------------------------
-    // START YEAR VALIDATION
-    // ---------------------------------------------------
 
-    if (
-      !Number.isInteger(
+      const cleanInstitution =
+        String(
+          institution || ""
+        ).trim();
+
+
+      const cleanStartYear =
+        Number(startYear);
+
+
+      const cleanEndYear =
+        Number(endYear);
+
+
+      /* ===================================================
+         DEGREE VALIDATION
+      =================================================== */
+
+      if (!cleanDegree) {
+
+        Alert.alert(
+          "Required",
+          "Please enter Degree / Course."
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         INSTITUTION VALIDATION
+      =================================================== */
+
+      if (!cleanInstitution) {
+
+        Alert.alert(
+          "Required",
+          "Please enter Institution / College."
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         START YEAR VALIDATION
+      =================================================== */
+
+      if (
+        !Number.isInteger(
+          cleanStartYear
+        ) ||
+        cleanStartYear <= 0
+      ) {
+
+        Alert.alert(
+          "Required",
+          "Please enter a valid Start Year."
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         END YEAR VALIDATION
+      =================================================== */
+
+      if (
+        !Number.isInteger(
+          cleanEndYear
+        ) ||
+        cleanEndYear <= 0
+      ) {
+
+        Alert.alert(
+          "Required",
+          "Please enter a valid End Year."
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         YEAR ORDER VALIDATION
+      =================================================== */
+
+      if (
+        cleanEndYear <
         cleanStartYear
-      ) ||
-      cleanStartYear <= 0
-    ) {
+      ) {
 
-      Alert.alert(
-        "Required",
-        "Please enter a valid Start Year."
+        Alert.alert(
+          "Invalid Year",
+          "End Year cannot be before Start Year."
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         START SAVING
+      =================================================== */
+
+      setSaving(true);
+
+
+      /* ===================================================
+         REQUEST BODY
+      =================================================== */
+
+      const payload = {
+
+        degree:
+          cleanDegree,
+
+        institution:
+          cleanInstitution,
+
+        education_start:
+          cleanStartYear,
+
+        education_end:
+          cleanEndYear,
+
+      };
+
+
+      /* ===================================================
+         DEBUG REQUEST
+      =================================================== */
+
+      console.log(
+        "======================================"
       );
 
-      return;
-    }
-
-    // ---------------------------------------------------
-    // END YEAR VALIDATION
-    // ---------------------------------------------------
-
-    if (
-      !Number.isInteger(
-        cleanEndYear
-      ) ||
-      cleanEndYear <= 0
-    ) {
-
-      Alert.alert(
-        "Required",
-        "Please enter a valid End Year."
+      console.log(
+        "UPDATE EDUCATION SCREEN"
       );
 
-      return;
-    }
-
-    // ---------------------------------------------------
-    // YEAR ORDER VALIDATION
-    // ---------------------------------------------------
-
-    if (
-      cleanEndYear <
-      cleanStartYear
-    ) {
-
-      Alert.alert(
-        "Invalid Year",
-        "End Year cannot be before Start Year."
+      console.log(
+        "METHOD: PUT"
       );
 
-      return;
-    }
-
-    // ---------------------------------------------------
-    // START SAVING
-    // ---------------------------------------------------
-
-    setSaving(true);
-
-    // ---------------------------------------------------
-    // REQUEST BODY
-    // ---------------------------------------------------
-
-    const payload = {
-
-      degree:
-        cleanDegree,
-
-      institution:
-        cleanInstitution,
-
-      education_start:
-        cleanStartYear,
-
-      education_end:
-        cleanEndYear,
-
-    };
-
-    // ---------------------------------------------------
-    // DEBUG
-    // ---------------------------------------------------
-
-    console.log(
-      "======================================"
-    );
-
-    console.log(
-      "UPDATE EDUCATION SCREEN"
-    );
-
-    console.log(
-      "METHOD: PUT"
-    );
-
-    console.log(
-      "EDUCATION ID:",
-      numericId
-    );
-
-    console.log(
-      "REQUEST BODY:"
-    );
-
-    console.log(
-      JSON.stringify(
-        payload,
-        null,
-        2
-      )
-    );
-
-    console.log(
-      "======================================"
-    );
-
-    // ---------------------------------------------------
-    // CALL UPDATE API
-    // ---------------------------------------------------
-
-    const response =
-      await updateMemberEducation(
-        accessToken,
-        numericId,
-        payload
+      console.log(
+        "EDUCATION ID:",
+        numericId
       );
 
-    // ---------------------------------------------------
-    // DEBUG RESPONSE
-    // ---------------------------------------------------
+      console.log(
+        "REQUEST BODY:"
+      );
 
-    console.log(
-      "======================================"
-    );
+      console.log(
+        JSON.stringify(
+          payload,
+          null,
+          2
+        )
+      );
 
-    console.log(
-      "UPDATE EDUCATION RESPONSE:"
-    );
+      console.log(
+        "======================================"
+      );
 
-    console.log(
-      JSON.stringify(
-        response,
-        null,
-        2
-      )
-    );
 
-    console.log(
-      "======================================"
-    );
+      /* ===================================================
+         CALL UPDATE API
+      =================================================== */
 
-    // ---------------------------------------------------
-    // CHECK RESPONSE
-    // ---------------------------------------------------
+      const response =
+        await updateMemberEducation(
+          accessToken,
+          numericId,
+          payload
+        );
 
-    const success =
-      response?.success === true ||
-      response?.success === 1 ||
-      response?.result === true ||
-      response?.status === true ||
-      response?.statusCode === 200 ||
-      response?.statusCode === 201;
 
-    // ---------------------------------------------------
-    // SUCCESS
-    // ---------------------------------------------------
+      /* ===================================================
+         DEBUG RESPONSE
+      =================================================== */
 
-    if (success) {
+      console.log(
+        "======================================"
+      );
 
-      Alert.alert(
-        "Success",
-        "Education updated successfully.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.back();
+      console.log(
+        "UPDATE EDUCATION RESPONSE:"
+      );
+
+      console.log(
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "======================================"
+      );
+
+
+      /* ===================================================
+         CHECK RESPONSE
+      =================================================== */
+
+      const success =
+        response?.success === true ||
+        response?.success === 1 ||
+        response?.result === true ||
+        response?.status === true ||
+        response?.statusCode === 200 ||
+        response?.statusCode === 201;
+
+
+      /* ===================================================
+         SUCCESS
+      =================================================== */
+
+      if (success) {
+
+        Alert.alert(
+          "Success",
+          "Education updated successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                navigation.goBack();
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
 
-      return;
-    }
+        return;
+      }
 
-    // ---------------------------------------------------
-    // HANDLE RESPONSE WITHOUT SUCCESS FLAG
-    // ---------------------------------------------------
 
-    if (
-      response &&
-      !response?.message &&
-      !response?.error
-    ) {
+      /* ===================================================
+         HANDLE RESPONSE WITHOUT SUCCESS FLAG
+      =================================================== */
+
+      if (
+        response &&
+        !response?.message &&
+        !response?.error
+      ) {
+
+        Alert.alert(
+          "Success",
+          "Education updated successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+
+        return;
+      }
+
+
+      /* ===================================================
+         API ERROR
+      =================================================== */
 
       Alert.alert(
-        "Success",
-        "Education updated successfully.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.back();
-            },
-          },
-        ]
-      );
-
-      return;
-    }
-
-    // ---------------------------------------------------
-    // API RETURNED ERROR
-    // ---------------------------------------------------
-
-    Alert.alert(
-      "Update Failed",
-      response?.message ||
+        "Update Failed",
+        response?.message ||
         response?.error ||
         "Unable to update education."
-    );
+      );
 
-  } catch (error) {
+    } catch (error) {
 
-    // ---------------------------------------------------
-    // ERROR LOG
-    // ---------------------------------------------------
+      console.error(
+        "======================================"
+      );
 
-    console.error(
-      "======================================"
-    );
+      console.error(
+        "UPDATE EDUCATION ERROR"
+      );
 
-    console.error(
-      "UPDATE EDUCATION ERROR"
-    );
+      console.error(error);
 
-    console.error(
-      error
-    );
+      console.error(
+        "ERROR MESSAGE:",
+        error?.message
+      );
 
-    console.error(
-      "ERROR MESSAGE:",
-      error?.message
-    );
+      console.error(
+        "======================================"
+      );
 
-    console.error(
-      "======================================"
-    );
 
-    // ---------------------------------------------------
-    // ERROR MESSAGE
-    // ---------------------------------------------------
-
-    Alert.alert(
-      "Update Failed",
-      error?.message ||
+      Alert.alert(
+        "Update Failed",
+        error?.message ||
         "Unable to update education. Please try again."
-    );
+      );
 
-  } finally {
+    } finally {
 
-    // ---------------------------------------------------
-    // STOP LOADING
-    // ---------------------------------------------------
+      setSaving(false);
 
-    setSaving(false);
-  }
-};
+    }
+  };
+
 
   /* =======================================================
      BACK
   ======================================================= */
 
   const handleBack = () => {
-    router.back();
+
+    if (saving) {
+      return;
+    }
+
+    navigation.goBack();
   };
 
 
@@ -823,8 +888,13 @@ const handleSave = async () => {
       />
 
 
-      <View
+      <KeyboardAvoidingView
         style={styles.container}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
       >
 
         {/* =================================================
@@ -841,8 +911,8 @@ const handleSave = async () => {
             onPress={handleBack}
           >
 
-            <Ionicons
-              name="chevron-back"
+            <Feather
+              name="chevron-left"
               size={21}
               color="#EF233C"
             />
@@ -862,10 +932,11 @@ const handleSave = async () => {
             activeOpacity={0.7}
           >
 
-            <Ionicons
-              name="ellipsis-vertical"
-              size={18}
+            <FontAwesome5
+              name="ellipsis-v"
+              size={16}
               color="#EF233C"
+              solid
             />
 
           </TouchableOpacity>
@@ -898,9 +969,13 @@ const handleSave = async () => {
               style={styles.label}
             >
               Degree / Course
-              <Text style={styles.required}>
+
+              <Text
+                style={styles.required}
+              >
                 {" "}*
               </Text>
+
             </Text>
 
 
@@ -918,12 +993,6 @@ const handleSave = async () => {
 
           {/* =================================================
               SPECIALIZATION
-              
-              This field is kept in UI because it appears
-              in your Add Education design.
-
-              It is NOT sent to the API because your
-              provided API does not contain this field.
           ================================================= */}
 
           <View
@@ -959,9 +1028,13 @@ const handleSave = async () => {
               style={styles.label}
             >
               Institution / College
-              <Text style={styles.required}>
+
+              <Text
+                style={styles.required}
+              >
                 {" "}*
               </Text>
+
             </Text>
 
 
@@ -995,9 +1068,13 @@ const handleSave = async () => {
                 style={styles.label}
               >
                 Start Year
-                <Text style={styles.required}>
+
+                <Text
+                  style={styles.required}
+                >
                   {" "}*
                 </Text>
+
               </Text>
 
 
@@ -1016,7 +1093,7 @@ const handleSave = async () => {
                 />
 
 
-                <Ionicons
+                <Feather
                   name="chevron-down"
                   size={14}
                   color="#7A8491"
@@ -1037,9 +1114,13 @@ const handleSave = async () => {
                 style={styles.label}
               >
                 End Year
-                <Text style={styles.required}>
+
+                <Text
+                  style={styles.required}
+                >
                   {" "}*
                 </Text>
+
               </Text>
 
 
@@ -1058,7 +1139,7 @@ const handleSave = async () => {
                 />
 
 
-                <Ionicons
+                <Feather
                   name="chevron-down"
                   size={14}
                   color="#7A8491"
@@ -1218,7 +1299,7 @@ const handleSave = async () => {
 
         </ScrollView>
 
-      </View>
+      </KeyboardAvoidingView>
 
     </SafeAreaView>
   );
@@ -1356,7 +1437,7 @@ const styles =
     fieldContainer: {
       width: "100%",
       marginBottom: 20,
-      marginTop:20,
+      marginTop: 20,
     },
 
 

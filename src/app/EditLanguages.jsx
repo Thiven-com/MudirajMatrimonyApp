@@ -1,43 +1,46 @@
 import {
-    useCallback,
-    useState,
+  useCallback,
+  useState
 } from "react";
 
 import {
-    Alert,
-    FlatList,
-    Modal,
-    Pressable,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  FlatList,
+  Modal,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-
-import {
-    Ionicons,
-} from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-    router,
-    useFocusEffect,
-    useLocalSearchParams,
-} from "expo-router";
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
-    getMemberLanguages,
-    updateMemberLanguages,
+  getMemberLanguages,
+  updateMemberLanguages,
 } from "../utils/Functions";
 
+// =========================================================
+// CONSTANTS
+// =========================================================
 
-const LANGUAGE_CACHE_KEY =
-  "member_languages_cache";
-
+const LANGUAGE_CACHE_KEY = "member_languages_cache";
 
 const LANGUAGE_LIST = [
   "Telugu",
@@ -76,7 +79,6 @@ const LANGUAGE_LIST = [
   "Other",
 ];
 
-
 // =========================================================
 // HELPERS
 // =========================================================
@@ -86,34 +88,16 @@ const normalizeKey = (key) =>
     .toLowerCase()
     .replace(/[_\-\s]/g, "");
 
-
-const findValueDeep = (
-  data,
-  keys
-) => {
-
-  if (
-    !data ||
-    typeof data !== "object"
-  ) {
+const findValueDeep = (data, keys) => {
+  if (!data || typeof data !== "object") {
     return undefined;
   }
 
-  const wanted =
-    keys.map(
-      normalizeKey
-    );
+  const wanted = keys.map(normalizeKey);
 
-  for (
-    const key of Object.keys(data)
-  ) {
-
-    if (
-      wanted.includes(
-        normalizeKey(key)
-      )
-    ) {
-
+  // Check current level
+  for (const key of Object.keys(data)) {
+    if (wanted.includes(normalizeKey(key))) {
       if (
         data[key] !== null &&
         data[key] !== undefined
@@ -123,27 +107,20 @@ const findValueDeep = (
     }
   }
 
-  for (
-    const key of Object.keys(data)
-  ) {
-
-    const value =
-      data[key];
+  // Search nested objects
+  for (const key of Object.keys(data)) {
+    const value = data[key];
 
     if (
       value &&
       typeof value === "object"
     ) {
+      const found = findValueDeep(
+        value,
+        keys
+      );
 
-      const found =
-        findValueDeep(
-          value,
-          keys
-        );
-
-      if (
-        found !== undefined
-      ) {
+      if (found !== undefined) {
         return found;
       }
     }
@@ -152,11 +129,7 @@ const findValueDeep = (
   return undefined;
 };
 
-
-const getLanguageName = (
-  item
-) => {
-
+const getLanguageName = (item) => {
   if (
     item === null ||
     item === undefined
@@ -171,78 +144,54 @@ const getLanguageName = (
     return String(item).trim();
   }
 
-  if (
-    Array.isArray(item)
-  ) {
-
+  if (Array.isArray(item)) {
     return item.length
-      ? getLanguageName(
-          item[0]
-        )
+      ? getLanguageName(item[0])
       : "";
   }
 
   return String(
     item?.name ??
-    item?.language_name ??
-    item?.languageName ??
-    item?.language ??
-    item?.title ??
-    item?.label ??
-    item?.value ??
-    item?.text ??
-    ""
+      item?.language_name ??
+      item?.languageName ??
+      item?.language ??
+      item?.title ??
+      item?.label ??
+      item?.value ??
+      item?.text ??
+      ""
   ).trim();
 };
 
-
-const uniqueLanguages = (
-  values
-) => {
-
+const uniqueLanguages = (values) => {
   const result = [];
 
-  if (
-    !Array.isArray(values)
-  ) {
+  if (!Array.isArray(values)) {
     return result;
   }
 
-  values.forEach(
-    (item) => {
+  values.forEach((item) => {
+    const value = getLanguageName(item);
 
-      const value =
-        getLanguageName(
-          item
-        );
-
-      if (!value) {
-        return;
-      }
-
-      if (
-        !result.some(
-          (oldValue) =>
-            oldValue.toLowerCase() ===
-            value.toLowerCase()
-        )
-      ) {
-
-        result.push(
-          value
-        );
-      }
+    if (!value) {
+      return;
     }
-  );
+
+    const alreadyExists = result.some(
+      (oldValue) =>
+        oldValue.toLowerCase() ===
+        value.toLowerCase()
+    );
+
+    if (!alreadyExists) {
+      result.push(value);
+    }
+  });
 
   return result;
 };
 
-
-const normalizeKnownLanguages = (
-  value
-) => {
-
+const normalizeKnownLanguages = (value) => {
   if (
     value === null ||
     value === undefined
@@ -250,42 +199,33 @@ const normalizeKnownLanguages = (
     return [];
   }
 
-  if (
-    Array.isArray(value)
-  ) {
-    return uniqueLanguages(
-      value
-    );
+  if (Array.isArray(value)) {
+    return uniqueLanguages(value);
   }
 
-  if (
-    typeof value === "string"
-  ) {
-
-    const text =
-      value.trim();
+  if (typeof value === "string") {
+    const text = value.trim();
 
     if (!text) {
       return [];
     }
 
-    if (
-      text.startsWith("[")
-    ) {
-
+    // JSON array string
+    if (text.startsWith("[")) {
       try {
-
         return uniqueLanguages(
           JSON.parse(text)
         );
-
-      } catch (error) {}
+      } catch (error) {
+        console.log(
+          "Known languages JSON parse error:",
+          error
+        );
+      }
     }
 
-    if (
-      text.includes(",")
-    ) {
-
+    // Comma-separated string
+    if (text.includes(",")) {
       return uniqueLanguages(
         text.split(",")
       );
@@ -294,10 +234,7 @@ const normalizeKnownLanguages = (
     return [text];
   }
 
-  if (
-    typeof value === "object"
-  ) {
-
+  if (typeof value === "object") {
     const nested =
       value?.data ??
       value?.items ??
@@ -307,19 +244,13 @@ const normalizeKnownLanguages = (
       value?.values ??
       value?.list;
 
-    if (
-      nested !== undefined
-    ) {
-
+    if (nested !== undefined) {
       return normalizeKnownLanguages(
         nested
       );
     }
 
-    const single =
-      getLanguageName(
-        value
-      );
+    const single = getLanguageName(value);
 
     if (single) {
       return [single];
@@ -329,41 +260,34 @@ const normalizeKnownLanguages = (
   return [];
 };
 
-
 // =========================================================
 // SCREEN
 // =========================================================
 
 export default function EditLanguages() {
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const params =
-    useLocalSearchParams();
-
-  const field =
-    params?.field || "";
-
+  // React Navigation equivalent of useLocalSearchParams()
+  const field = route?.params?.field || "";
 
   const isMotherTongue =
     field === "motherTongue";
-
 
   const [
     motherTongue,
     setMotherTongue,
   ] = useState("");
 
-
   const [
     knownLanguages,
     setKnownLanguages,
   ] = useState([]);
 
-
   const [
     modalVisible,
     setModalVisible,
   ] = useState(false);
-
 
   const [
     modalType,
@@ -374,399 +298,118 @@ export default function EditLanguages() {
       : "knownLanguages"
   );
 
-
   const [
     searchText,
     setSearchText,
   ] = useState("");
-
 
   const [
     saving,
     setSaving,
   ] = useState(false);
 
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  // =======================================================
+  // ANDROID HARDWARE BACK BUTTON
+  // =======================================================
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+
+        navigation.goBack();
+        return true;
+      };
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+      return () =>
+        subscription.remove();
+    }, [
+      navigation,
+      modalVisible,
+    ])
+  );
 
   // =======================================================
   // LOAD CURRENT VALUES
   // =======================================================
 
   const loadCurrentLanguages =
-    useCallback(
-      async () => {
+    useCallback(async () => {
+      try {
+        setLoading(true);
 
-        try {
+        // -------------------------------------------------
+        // CACHE FIRST
+        // -------------------------------------------------
 
-          // Cache first
-          const cached =
-            await AsyncStorage.getItem(
-              LANGUAGE_CACHE_KEY
-            );
-
-          if (cached) {
-
-            try {
-
-              const parsed =
-                JSON.parse(
-                  cached
-                );
-
-              setMotherTongue(
-                String(
-                  parsed?.mother_tongue ||
-                  ""
-                ).trim()
-              );
-
-              setKnownLanguages(
-                normalizeKnownLanguages(
-                  parsed?.known_languages
-                )
-              );
-
-            } catch (error) {}
-          }
-
-
-          // API
-          const token =
-            await AsyncStorage.getItem(
-              "access_token"
-            );
-
-          if (!token) {
-            return;
-          }
-
-
-          const response =
-            await getMemberLanguages(
-              token
-            );
-
-
-          console.log(
-            "EDIT LANGUAGE GET RESPONSE:",
-            JSON.stringify(
-              response,
-              null,
-              2
-            )
+        const cached =
+          await AsyncStorage.getItem(
+            LANGUAGE_CACHE_KEY
           );
 
-
-          const motherValue =
-            findValueDeep(
-              response,
-              [
-                "mother_tongue",
-                "mothere_tongue",
-                "motherTongue",
-                "mother_tongue_name",
-                "motherTongueName",
-                "mother_language",
-                "motherLanguage",
-              ]
-            );
-
-
-          const knownValue =
-            findValueDeep(
-              response,
-              [
-                "known_languages",
-                "knownLanguages",
-                "known_language",
-                "knownLanguage",
-                "languages_known",
-                "languagesKnown",
-              ]
-            );
-
-
-          const parsedMother =
-            getLanguageName(
-              motherValue
-            );
-
-
-          const parsedKnown =
-            normalizeKnownLanguages(
-              knownValue
-            );
-
-
-          if (
-            parsedMother
-          ) {
+        if (cached) {
+          try {
+            const parsed =
+              JSON.parse(cached);
 
             setMotherTongue(
-              parsedMother
+              String(
+                parsed?.mother_tongue ||
+                  ""
+              ).trim()
             );
-          }
-
-
-          if (
-            parsedKnown.length
-          ) {
 
             setKnownLanguages(
-              parsedKnown
+              normalizeKnownLanguages(
+                parsed?.known_languages
+              )
+            );
+          } catch (error) {
+            console.log(
+              "LANGUAGE CACHE PARSE ERROR:",
+              error
             );
           }
-
-        } catch (error) {
-
-          console.log(
-            "EDIT LANGUAGES LOAD ERROR:",
-            error
-          );
         }
 
-      },
-      []
-    );
-
-
-  useFocusEffect(
-    useCallback(
-      () => {
-        loadCurrentLanguages();
-      },
-      [
-        loadCurrentLanguages,
-      ]
-    )
-  );
-
-
-  // =======================================================
-  // OPEN MODAL
-  // =======================================================
-
-  const openMotherTongue =
-    () => {
-
-      setModalType(
-        "motherTongue"
-      );
-
-      setSearchText("");
-
-      setModalVisible(
-        true
-      );
-    };
-
-
-  const openKnownLanguages =
-    () => {
-
-      setModalType(
-        "knownLanguages"
-      );
-
-      setSearchText("");
-
-      setModalVisible(
-        true
-      );
-    };
-
-
-  // =======================================================
-  // SELECT MOTHER TONGUE
-  // =======================================================
-
-  const selectMotherTongue =
-    (language) => {
-
-      setMotherTongue(
-        language
-      );
-
-      setModalVisible(
-        false
-      );
-
-      setSearchText("");
-    };
-
-
-  // =======================================================
-  // SELECT KNOWN LANGUAGE
-  // =======================================================
-
-  const toggleKnownLanguage =
-    (language) => {
-
-      setKnownLanguages(
-        (previous) => {
-
-          const exists =
-            previous.some(
-              (item) =>
-                item.toLowerCase() ===
-                language.toLowerCase()
-            );
-
-          if (exists) {
-
-            return previous.filter(
-              (item) =>
-                item.toLowerCase() !==
-                language.toLowerCase()
-            );
-          }
-
-          return [
-            ...previous,
-            language,
-          ];
-        }
-      );
-    };
-
-
-  // =======================================================
-  // REMOVE LANGUAGE
-  // =======================================================
-
-  const removeLanguage =
-    (language) => {
-
-      setKnownLanguages(
-        (previous) =>
-          previous.filter(
-            (item) =>
-              item.toLowerCase() !==
-              language.toLowerCase()
-          )
-      );
-    };
-
-
-  // =======================================================
-  // SAVE
-  // =======================================================
-
-  const handleSave =
-    async () => {
-
-      if (saving) {
-        return;
-      }
-
-
-      const cleanMotherTongue =
-        String(
-          motherTongue || ""
-        ).trim();
-
-
-      const cleanKnownLanguages =
-        uniqueLanguages(
-          knownLanguages
-        );
-
-
-      if (
-        !cleanMotherTongue
-      ) {
-
-        Alert.alert(
-          "Required",
-          "Please select your mother tongue."
-        );
-
-        return;
-      }
-
-
-      try {
-
-        setSaving(true);
-
+        // -------------------------------------------------
+        // API
+        // -------------------------------------------------
 
         const token =
           await AsyncStorage.getItem(
             "access_token"
           );
 
-
         if (!token) {
-
-          Alert.alert(
-            "Login Required",
-            "Access token is missing. Please login again."
-          );
-
           return;
         }
 
-
-        // -------------------------------------------------
-        // ALWAYS SEND BOTH VALUES
-        // -------------------------------------------------
-
-        const requestBody = {
-
-          mother_tongue:
-            cleanMotherTongue,
-
-          known_languages:
-            cleanKnownLanguages,
-        };
-
-
-        console.log(
-          "========================================"
-        );
-
-        console.log(
-          "LANGUAGE UPDATE REQUEST"
-        );
-
-        console.log(
-          "METHOD: POST"
-        );
-
-        console.log(
-          "ENDPOINT: /api/member/languages/update"
-        );
-
-        console.log(
-          "REQUEST BODY:",
-          JSON.stringify(
-            requestBody,
-            null,
-            2
-          )
-        );
-
-        console.log(
-          "========================================"
-        );
-
-
-        // -------------------------------------------------
-        // API
-        // -------------------------------------------------
-
         const response =
-          await updateMemberLanguages(
-            token,
-            requestBody
+          await getMemberLanguages(
+            token
           );
 
-
         console.log(
           "========================================"
         );
 
         console.log(
-          "LANGUAGE UPDATE RESPONSE"
+          "EDIT LANGUAGE GET RESPONSE:"
         );
 
         console.log(
@@ -781,148 +424,412 @@ export default function EditLanguages() {
           "========================================"
         );
 
-
         // -------------------------------------------------
-        // SUCCESS CHECK
-        //
-        // Important:
-        // postMethod may already return only the
-        // response body. Don't require statusCode
-        // if success/result is missing.
+        // MOTHER TONGUE
         // -------------------------------------------------
 
-        const responseStatus =
-          response?.statusCode ??
-          response?.status ??
-          response?.data?.statusCode;
-
-
-        const explicitFailure =
-          response?.success === 0 ||
-          response?.success === false ||
-          response?.result === false;
-
-
-        const explicitSuccess =
-          response?.success === 1 ||
-          response?.success === true ||
-          response?.result === true ||
-          responseStatus === 200 ||
-          responseStatus === 201;
-
-
-        // If API returned a normal object without
-        // an explicit failure, treat it as successful.
-        const success =
-          !explicitFailure &&
-          (
-            explicitSuccess ||
-            response !== null &&
-            response !== undefined
+        const motherValue =
+          findValueDeep(
+            response,
+            [
+              "mother_tongue",
+              "mothere_tongue",
+              "motherTongue",
+              "mother_tongue_name",
+              "motherTongueName",
+              "mother_language",
+              "motherLanguage",
+            ]
           );
 
+        // -------------------------------------------------
+        // KNOWN LANGUAGES
+        // -------------------------------------------------
 
-        if (!success) {
-
-          Alert.alert(
-            "Update Failed",
-            response?.message ||
-            response?.data?.message ||
-            "Unable to update languages."
+        const knownValue =
+          findValueDeep(
+            response,
+            [
+              "known_languages",
+              "knownLanguages",
+              "known_language",
+              "knownLanguage",
+              "languages_known",
+              "languagesKnown",
+            ]
           );
 
-          return;
+        const parsedMother =
+          getLanguageName(
+            motherValue
+          );
+
+        const parsedKnown =
+          normalizeKnownLanguages(
+            knownValue
+          );
+
+        if (parsedMother) {
+          setMotherTongue(
+            parsedMother
+          );
         }
 
-
-        // -------------------------------------------------
-        // SAVE CACHE
-        //
-        // This guarantees that the new values are
-        // available immediately after router.back().
-        // -------------------------------------------------
-
-        await AsyncStorage.setItem(
-          LANGUAGE_CACHE_KEY,
-          JSON.stringify({
-            mother_tongue:
-              cleanMotherTongue,
-
-            known_languages:
-              cleanKnownLanguages,
-          })
-        );
-
-
-        console.log(
-          "LANGUAGE CACHE UPDATED:"
-        );
-
-        console.log(
-          JSON.stringify(
-            {
-              mother_tongue:
-                cleanMotherTongue,
-
-              known_languages:
-                cleanKnownLanguages,
-            },
-            null,
-            2
-          )
-        );
-
-
-        // -------------------------------------------------
-        // RETURN TO LANGUAGES SCREEN
-        // -------------------------------------------------
-
-        router.back();
-
+        if (parsedKnown.length) {
+          setKnownLanguages(
+            parsedKnown
+          );
+        }
       } catch (error) {
-
-        console.error(
-          "========================================"
-        );
-
-        console.error(
-          "LANGUAGE UPDATE ERROR"
-        );
-
-        console.error(
+        console.log(
+          "EDIT LANGUAGES LOAD ERROR:",
           error
         );
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
-        console.error(
-          "ERROR RESPONSE:",
-          JSON.stringify(
-            error?.response?.data,
-            null,
-            2
+  // =======================================================
+  // LOAD WHEN SCREEN GETS FOCUS
+  // =======================================================
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentLanguages();
+    }, [
+      loadCurrentLanguages,
+    ])
+  );
+
+  // =======================================================
+  // OPEN MOTHER TONGUE MODAL
+  // =======================================================
+
+  const openMotherTongue = () => {
+    setModalType("motherTongue");
+    setSearchText("");
+    setModalVisible(true);
+  };
+
+  // =======================================================
+  // OPEN KNOWN LANGUAGES MODAL
+  // =======================================================
+
+  const openKnownLanguages = () => {
+    setModalType("knownLanguages");
+    setSearchText("");
+    setModalVisible(true);
+  };
+
+  // =======================================================
+  // SELECT MOTHER TONGUE
+  // =======================================================
+
+  const selectMotherTongue = (
+    language
+  ) => {
+    setMotherTongue(language);
+    setModalVisible(false);
+    setSearchText("");
+  };
+
+  // =======================================================
+  // SELECT / UNSELECT KNOWN LANGUAGE
+  // =======================================================
+
+  const toggleKnownLanguage = (
+    language
+  ) => {
+    setKnownLanguages(
+      (previous) => {
+        const exists =
+          previous.some(
+            (item) =>
+              item.toLowerCase() ===
+              language.toLowerCase()
+          );
+
+        if (exists) {
+          return previous.filter(
+            (item) =>
+              item.toLowerCase() !==
+              language.toLowerCase()
+          );
+        }
+
+        return [
+          ...previous,
+          language,
+        ];
+      }
+    );
+  };
+
+  // =======================================================
+  // REMOVE LANGUAGE CHIP
+  // =======================================================
+
+  const removeLanguage = (
+    language
+  ) => {
+    setKnownLanguages(
+      (previous) =>
+        previous.filter(
+          (item) =>
+            item.toLowerCase() !==
+            language.toLowerCase()
+        )
+    );
+  };
+
+  // =======================================================
+  // SAVE
+  // =======================================================
+
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+
+    const cleanMotherTongue =
+      String(
+        motherTongue || ""
+      ).trim();
+
+    const cleanKnownLanguages =
+      uniqueLanguages(
+        knownLanguages
+      );
+
+    // -----------------------------------------------------
+    // VALIDATION
+    // -----------------------------------------------------
+
+    if (!cleanMotherTongue) {
+      Alert.alert(
+        "Required",
+        "Please select your mother tongue."
+      );
+
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // ---------------------------------------------------
+      // TOKEN
+      // ---------------------------------------------------
+
+      const token =
+        await AsyncStorage.getItem(
+          "access_token"
+        );
+
+      if (!token) {
+        Alert.alert(
+          "Login Required",
+          "Access token is missing. Please login again."
+        );
+
+        return;
+      }
+
+      // ---------------------------------------------------
+      // REQUEST BODY
+      // ---------------------------------------------------
+
+      const requestBody = {
+        mother_tongue:
+          cleanMotherTongue,
+
+        known_languages:
+          cleanKnownLanguages,
+      };
+
+      console.log(
+        "========================================"
+      );
+
+      console.log(
+        "LANGUAGE UPDATE REQUEST"
+      );
+
+      console.log(
+        "METHOD: POST"
+      );
+
+      console.log(
+        "ENDPOINT: /api/member/languages/update"
+      );
+
+      console.log(
+        "REQUEST BODY:",
+        JSON.stringify(
+          requestBody,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "========================================"
+      );
+
+      // ---------------------------------------------------
+      // API
+      // ---------------------------------------------------
+
+      const response =
+        await updateMemberLanguages(
+          token,
+          requestBody
+        );
+
+      console.log(
+        "========================================"
+      );
+
+      console.log(
+        "LANGUAGE UPDATE RESPONSE"
+      );
+
+      console.log(
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "========================================"
+      );
+
+      // ---------------------------------------------------
+      // RESPONSE STATUS
+      // ---------------------------------------------------
+
+      const responseStatus =
+        response?.statusCode ??
+        response?.status ??
+        response?.data?.statusCode;
+
+      const explicitFailure =
+        response?.success === 0 ||
+        response?.success === false ||
+        response?.result === false;
+
+      const explicitSuccess =
+        response?.success === 1 ||
+        response?.success === true ||
+        response?.result === true ||
+        responseStatus === 200 ||
+        responseStatus === 201;
+
+      // ---------------------------------------------------
+      // SUCCESS CHECK
+      // ---------------------------------------------------
+
+      const success =
+        !explicitFailure &&
+        (
+          explicitSuccess ||
+          (
+            response !== null &&
+            response !== undefined
           )
         );
 
-        console.error(
-          "========================================"
+      if (!success) {
+        Alert.alert(
+          "Update Failed",
+          response?.message ||
+            response?.data?.message ||
+            "Unable to update languages."
         );
 
+        return;
+      }
 
-        Alert.alert(
-          "Error",
-          error?.response?.data?.message ||
+      // ---------------------------------------------------
+      // SAVE CACHE
+      // ---------------------------------------------------
+
+      const cacheData = {
+        mother_tongue:
+          cleanMotherTongue,
+
+        known_languages:
+          cleanKnownLanguages,
+      };
+
+      await AsyncStorage.setItem(
+        LANGUAGE_CACHE_KEY,
+        JSON.stringify(cacheData)
+      );
+
+      console.log(
+        "LANGUAGE CACHE UPDATED:"
+      );
+
+      console.log(
+        JSON.stringify(
+          cacheData,
+          null,
+          2
+        )
+      );
+
+      // ---------------------------------------------------
+      // CLOSE MODAL IF OPEN
+      // ---------------------------------------------------
+
+      setModalVisible(false);
+
+      // ---------------------------------------------------
+      // GO BACK
+      // ---------------------------------------------------
+
+      navigation.goBack();
+    } catch (error) {
+      console.error(
+        "========================================"
+      );
+
+      console.error(
+        "LANGUAGE UPDATE ERROR"
+      );
+
+      console.error(error);
+
+      console.error(
+        "ERROR RESPONSE:",
+        JSON.stringify(
+          error?.response?.data,
+          null,
+          2
+        )
+      );
+
+      console.error(
+        "========================================"
+      );
+
+      Alert.alert(
+        "Error",
+        error?.response?.data?.message ||
           error?.message ||
           "Unable to update languages."
-        );
-
-      } finally {
-
-        setSaving(false);
-      }
-    };
-
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // =======================================================
-  // FILTER
+  // FILTER LANGUAGES
   // =======================================================
 
   const filteredLanguages =
@@ -937,109 +844,82 @@ export default function EditLanguages() {
           )
     );
 
-
   // =======================================================
   // LANGUAGE ITEM
   // =======================================================
 
-  const renderLanguageItem =
-    ({
-      item,
-    }) => {
+  const renderLanguageItem = ({
+    item,
+  }) => {
+    const selected =
+      modalType ===
+      "motherTongue"
+        ? motherTongue
+            .toLowerCase() ===
+          item.toLowerCase()
+        : knownLanguages.some(
+            (language) =>
+              language.toLowerCase() ===
+              item.toLowerCase()
+          );
 
-      const selected =
-        modalType ===
-        "motherTongue"
-          ? motherTongue
-              .toLowerCase() ===
-            item.toLowerCase()
-          : knownLanguages.some(
-              (language) =>
-                language.toLowerCase() ===
-                item.toLowerCase()
+    return (
+      <TouchableOpacity
+        style={styles.languageOption}
+        onPress={() => {
+          if (
+            modalType ===
+            "motherTongue"
+          ) {
+            selectMotherTongue(
+              item
             );
-
-
-      return (
-        <TouchableOpacity
-          style={
-            styles.languageOption
+          } else {
+            toggleKnownLanguage(
+              item
+            );
           }
-          onPress={() => {
-
-            if (
-              modalType ===
-              "motherTongue"
-            ) {
-
-              selectMotherTongue(
-                item
-              );
-
-            } else {
-
-              toggleKnownLanguage(
-                item
-              );
-            }
-
-          }}
+        }}
+        activeOpacity={0.7}
+      >
+        <View
+          style={styles.optionLeft}
         >
-
           <View
-            style={
-              styles.optionLeft
-            }
+            style={styles.optionIcon}
           >
-
-            <View
-              style={
-                styles.optionIcon
-              }
-            >
-
-              <Ionicons
-                name="language-outline"
-                size={20}
-                color="#F44336"
-              />
-
-            </View>
-
-
-            <Text
-              style={
-                styles.optionText
-              }
-            >
-              {item}
-            </Text>
-
+            <Feather
+              name="globe"
+              size={19}
+              color="#F44336"
+            />
           </View>
 
-
-          <View
-            style={[
-              styles.checkbox,
-              selected &&
-                styles.checkboxSelected,
-            ]}
+          <Text
+            style={styles.optionText}
           >
+            {item}
+          </Text>
+        </View>
 
-            {selected ? (
-              <Ionicons
-                name="checkmark"
-                size={17}
-                color="#FFFFFF"
-              />
-            ) : null}
-
-          </View>
-
-        </TouchableOpacity>
-      );
-    };
-
+        <View
+          style={[
+            styles.checkbox,
+            selected &&
+              styles.checkboxSelected,
+          ]}
+        >
+          {selected ? (
+            <Feather
+              name="check"
+              size={16}
+              color="#FFFFFF"
+            />
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // =======================================================
   // UI
@@ -1048,35 +928,33 @@ export default function EditLanguages() {
   return (
     <SafeAreaView
       style={styles.safeArea}
+      edges={[
+        "top",
+        "left",
+        "right",
+      ]}
     >
-
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#FFFFFF"
       />
 
-
       {/* HEADER */}
 
-      <View
-        style={styles.header}
-      >
-
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() =>
-            router.back()
+            navigation.goBack()
           }
+          activeOpacity={0.7}
         >
-
-          <Ionicons
-            name="arrow-back"
+          <Feather
+            name="arrow-left"
             size={24}
             color="#222222"
           />
-
         </TouchableOpacity>
-
 
         <Text
           style={styles.headerTitle}
@@ -1084,43 +962,33 @@ export default function EditLanguages() {
           Edit Languages
         </Text>
 
-
         <View
           style={styles.headerRight}
         />
-
       </View>
-
 
       {/* CONTENT */}
 
-      <View
-        style={styles.container}
-      >
-
+      <View style={styles.container}>
         {/* MOTHER TONGUE */}
 
-        <Text
-          style={styles.label}
-        >
+        <Text style={styles.label}>
           Mother Tongue
         </Text>
-
 
         <TouchableOpacity
           style={styles.dropdown}
           onPress={
             openMotherTongue
           }
+          activeOpacity={0.7}
         >
-
           <View
             style={styles.dropdownLeft}
           >
-
-            <Ionicons
-              name="language-outline"
-              size={22}
+            <FontAwesome5
+              name="language"
+              size={20}
               color="#F44336"
             />
 
@@ -1134,18 +1002,14 @@ export default function EditLanguages() {
               {motherTongue ||
                 "Select Mother Tongue"}
             </Text>
-
           </View>
 
-
-          <Ionicons
+          <Feather
             name="chevron-down"
             size={21}
             color="#777777"
           />
-
         </TouchableOpacity>
-
 
         {/* KNOWN LANGUAGES */}
 
@@ -1160,20 +1024,18 @@ export default function EditLanguages() {
           Known Languages
         </Text>
 
-
         <TouchableOpacity
           style={styles.dropdown}
           onPress={
             openKnownLanguages
           }
+          activeOpacity={0.7}
         >
-
           <View
             style={styles.dropdownLeft}
           >
-
-            <Ionicons
-              name="globe-outline"
+            <Feather
+              name="globe"
               size={22}
               color="#F44336"
             />
@@ -1181,57 +1043,49 @@ export default function EditLanguages() {
             <Text
               style={[
                 styles.dropdownText,
-                knownLanguages.length === 0 &&
+                knownLanguages.length ===
+                  0 &&
                   styles.placeholder,
               ]}
             >
               {knownLanguages.length
                 ? `${knownLanguages.length} language${
-                    knownLanguages.length > 1
+                    knownLanguages.length >
+                    1
                       ? "s"
                       : ""
                   } selected`
                 : "Select Known Languages"}
             </Text>
-
           </View>
 
-
-          <Ionicons
+          <Feather
             name="chevron-down"
             size={21}
             color="#777777"
           />
-
         </TouchableOpacity>
-
 
         {/* SELECTED CHIPS */}
 
         {knownLanguages.length >
         0 ? (
-
           <View
             style={
               styles.selectedContainer
             }
           >
-
             {knownLanguages.map(
               (
                 language,
                 index
               ) => (
-
                 <View
-                  key={
-                    `${language}-${index}`
-                  }
+                  key={`${language}-${index}`}
                   style={
                     styles.selectedChip
                   }
                 >
-
                   <Text
                     style={
                       styles.selectedChipText
@@ -1240,32 +1094,27 @@ export default function EditLanguages() {
                     {language}
                   </Text>
 
-
                   <TouchableOpacity
                     onPress={() =>
                       removeLanguage(
                         language
                       )
                     }
+                    activeOpacity={
+                      0.7
+                    }
                   >
-
-                    <Ionicons
-                      name="close-circle"
+                    <Feather
+                      name="x-circle"
                       size={19}
                       color="#F44336"
                     />
-
                   </TouchableOpacity>
-
                 </View>
-
               )
             )}
-
           </View>
-
         ) : null}
-
 
         {/* SAVE */}
 
@@ -1279,13 +1128,20 @@ export default function EditLanguages() {
             handleSave
           }
           disabled={saving}
+          activeOpacity={0.8}
         >
-
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={21}
-            color="#FFFFFF"
-          />
+          {saving ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
+          ) : (
+            <Feather
+              name="check-circle"
+              size={21}
+              color="#FFFFFF"
+            />
+          )}
 
           <Text
             style={
@@ -1296,11 +1152,31 @@ export default function EditLanguages() {
               ? "Saving..."
               : "Save Languages"}
           </Text>
-
         </TouchableOpacity>
 
-      </View>
+        {/* LOADING */}
 
+        {loading && (
+          <View
+            style={
+              styles.loadingContainer
+            }
+          >
+            <ActivityIndicator
+              size="small"
+              color="#F44336"
+            />
+
+            <Text
+              style={
+                styles.loadingText
+              }
+            >
+              Loading languages...
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* LANGUAGE MODAL */}
 
@@ -1312,11 +1188,11 @@ export default function EditLanguages() {
           setModalVisible(false)
         }
       >
-
         <View
-          style={styles.modalOverlay}
+          style={
+            styles.modalOverlay
+          }
         >
-
           <Pressable
             style={styles.modalTop}
             onPress={() =>
@@ -1326,11 +1202,11 @@ export default function EditLanguages() {
             }
           />
 
-
           <View
-            style={styles.modalContainer}
+            style={
+              styles.modalContainer
+            }
           >
-
             {/* MODAL HEADER */}
 
             <View
@@ -1338,7 +1214,6 @@ export default function EditLanguages() {
                 styles.modalHeader
               }
             >
-
               <Text
                 style={
                   styles.modalTitle
@@ -1350,25 +1225,21 @@ export default function EditLanguages() {
                   : "Select Known Languages"}
               </Text>
 
-
               <TouchableOpacity
                 onPress={() =>
                   setModalVisible(
                     false
                   )
                 }
+                activeOpacity={0.7}
               >
-
-                <Ionicons
-                  name="close"
+                <Feather
+                  name="x"
                   size={25}
                   color="#222222"
                 />
-
               </TouchableOpacity>
-
             </View>
-
 
             {/* SEARCH */}
 
@@ -1377,17 +1248,14 @@ export default function EditLanguages() {
                 styles.searchBox
               }
             >
-
-              <Ionicons
-                name="search-outline"
+              <Feather
+                name="search"
                 size={20}
                 color="#888888"
               />
 
               <TextInput
-                value={
-                  searchText
-                }
+                value={searchText}
                 onChangeText={
                   setSearchText
                 }
@@ -1397,9 +1265,7 @@ export default function EditLanguages() {
                   styles.searchInput
                 }
               />
-
             </View>
-
 
             {/* LIST */}
 
@@ -1416,17 +1282,16 @@ export default function EditLanguages() {
               showsVerticalScrollIndicator={
                 false
               }
+              keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
                 paddingBottom: 25,
               }}
             />
 
-
             {/* DONE */}
 
             {modalType ===
             "knownLanguages" ? (
-
               <TouchableOpacity
                 style={
                   styles.doneButton
@@ -1436,8 +1301,8 @@ export default function EditLanguages() {
                     false
                   )
                 }
+                activeOpacity={0.8}
               >
-
                 <Text
                   style={
                     styles.doneButtonText
@@ -1445,276 +1310,263 @@ export default function EditLanguages() {
                 >
                   Done
                 </Text>
-
               </TouchableOpacity>
-
             ) : null}
-
           </View>
-
         </View>
-
       </Modal>
-
     </SafeAreaView>
   );
 }
-
 
 // =========================================================
 // STYLES
 // =========================================================
 
-const styles =
-  StyleSheet.create({
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
 
-    safeArea: {
-      flex: 1,
-      backgroundColor:
-        "#FFFFFF",
-    },
+  header: {
+    height: 60,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
 
-    header: {
-      height: 60,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        "#EEEEEE",
-    },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    backButton: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent:
-        "center",
-    },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#222222",
+  },
 
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: "#222222",
-    },
+  headerRight: {
+    width: 40,
+  },
 
-    headerRight: {
-      width: 40,
-    },
+  container: {
+    flex: 1,
+    padding: 16,
+  },
 
-    container: {
-      flex: 1,
-      padding: 16,
-    },
+  label: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#444444",
+    marginBottom: 8,
+  },
 
-    label: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: "#444444",
-      marginBottom: 8,
-    },
+  dropdown: {
+    minHeight: 54,
+    borderWidth: 1,
+    borderColor: "#E2E2E2",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    backgroundColor: "#FFFFFF",
+  },
 
-    dropdown: {
-      minHeight: 54,
-      borderWidth: 1,
-      borderColor: "#E2E2E2",
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-      backgroundColor:
-        "#FFFFFF",
-    },
+  dropdownLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
 
-    dropdownLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
+  dropdownText: {
+    fontSize: 15,
+    color: "#222222",
+    marginLeft: 10,
+    fontWeight: "500",
+  },
 
-    dropdownText: {
-      fontSize: 15,
-      color: "#222222",
-      marginLeft: 10,
-      fontWeight: "500",
-    },
+  placeholder: {
+    color: "#999999",
+    fontWeight: "400",
+  },
 
-    placeholder: {
-      color: "#999999",
-      fontWeight: "400",
-    },
+  selectedContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 12,
+  },
 
-    selectedContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginTop: 12,
-    },
+  selectedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF2F0",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
 
-    selectedChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor:
-        "#FFF2F0",
-      borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
+  selectedChipText: {
+    color: "#F44336",
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 7,
+  },
 
-    selectedChipText: {
-      color: "#F44336",
-      fontSize: 14,
-      fontWeight: "600",
-      marginRight: 7,
-    },
+  saveButton: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "#F44336",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 28,
+  },
 
-    saveButton: {
-      height: 52,
-      borderRadius: 12,
-      backgroundColor:
-        "#F44336",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginTop: 28,
-    },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
 
-    saveButtonDisabled: {
-      opacity: 0.6,
-    },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
 
-    saveButtonText: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "700",
-      marginLeft: 8,
-    },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15,
+  },
 
-    modalOverlay: {
-      flex: 1,
-      backgroundColor:
-        "rgba(0,0,0,0.35)",
-      justifyContent:
-        "flex-end",
-    },
+  loadingText: {
+    fontSize: 13,
+    color: "#777777",
+    marginLeft: 8,
+  },
 
-    modalTop: {
-      flex: 1,
-    },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor:
+      "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
 
-    modalContainer: {
-      height: "75%",
-      backgroundColor:
-        "#FFFFFF",
-      borderTopLeftRadius: 22,
-      borderTopRightRadius: 22,
-      padding: 16,
-    },
+  modalTop: {
+    flex: 1,
+  },
 
-    modalHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-      marginBottom: 14,
-    },
+  modalContainer: {
+    height: "75%",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 16,
+  },
 
-    modalTitle: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: "#222222",
-    },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    marginBottom: 14,
+  },
 
-    searchBox: {
-      height: 48,
-      borderWidth: 1,
-      borderColor: "#E5E5E5",
-      borderRadius: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      marginBottom: 10,
-    },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#222222",
+  },
 
-    searchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: "#222222",
-      marginLeft: 8,
-    },
+  searchBox: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
 
-    languageOption: {
-      minHeight: 56,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-      borderBottomWidth: 1,
-      borderBottomColor:
-        "#F2F2F2",
-    },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#222222",
+    marginLeft: 8,
+  },
 
-    optionLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
+  languageOption: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F2",
+  },
 
-    optionIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      backgroundColor:
-        "#FFF2F0",
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginRight: 10,
-    },
+  optionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-    optionText: {
-      fontSize: 15,
-      color: "#222222",
-      fontWeight: "500",
-    },
+  optionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#FFF2F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
 
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderWidth: 1.5,
-      borderColor: "#CCCCCC",
-      borderRadius: 6,
-      alignItems: "center",
-      justifyContent:
-        "center",
-    },
+  optionText: {
+    fontSize: 15,
+    color: "#222222",
+    fontWeight: "500",
+  },
 
-    checkboxSelected: {
-      backgroundColor:
-        "#F44336",
-      borderColor:
-        "#F44336",
-    },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1.5,
+    borderColor: "#CCCCCC",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    doneButton: {
-      height: 48,
-      borderRadius: 12,
-      backgroundColor:
-        "#F44336",
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginTop: 10,
-    },
+  checkboxSelected: {
+    backgroundColor: "#F44336",
+    borderColor: "#F44336",
+  },
 
-    doneButtonText: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "700",
-    },
+  doneButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#F44336",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
 
-  });
+  doneButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+});

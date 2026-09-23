@@ -1,12 +1,13 @@
 import {
-    useState,
+    useCallback,
+    useState
 } from "react";
 
 import {
     Alert,
+    BackHandler,
     Image,
     Modal,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -17,14 +18,18 @@ import {
 } from "react-native";
 
 import {
-    Ionicons,
-} from "@expo/vector-icons";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
+    useFocusEffect,
+    useNavigation,
+} from "@react-navigation/native";
 
 import {
-    router,
-} from "expo-router";
+    SafeAreaView,
+} from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import BASE_URL from "../constants/AppUrls";
 
@@ -59,15 +64,14 @@ const formatDateForApi = (date) => {
 
     const value = String(date).trim();
 
-    /* Already DD-MM-YYYY */
+    // Already DD-MM-YYYY
     if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
         return value;
     }
 
-    /* YYYY-MM-DD -> DD-MM-YYYY */
+    // YYYY-MM-DD -> DD-MM-YYYY
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        const [year, month, day] =
-            value.split("-");
+        const [year, month, day] = value.split("-");
 
         return `${day}-${month}-${year}`;
     }
@@ -83,6 +87,13 @@ const formatDateForApi = (date) => {
 export default function EditBasicInformation() {
 
     /* =======================================================
+       NAVIGATION
+    ======================================================= */
+
+    const navigation = useNavigation();
+
+
+    /* =======================================================
        BASIC INFORMATION STATES
     ======================================================= */
 
@@ -92,13 +103,6 @@ export default function EditBasicInformation() {
     const [lastName, setLastName] =
         useState("Yashwanth");
 
-    /*
-     * Email and phone are required by the API,
-     * but are not displayed in the reference UI.
-     *
-     * Replace these with your actual profile values
-     * if you already have them available.
-     */
     const [email, setEmail] =
         useState("vasanth@gmail.com");
 
@@ -196,6 +200,50 @@ export default function EditBasicInformation() {
 
 
     /* =======================================================
+       HARDWARE BACK BUTTON
+    ======================================================= */
+
+    useFocusEffect(
+        useCallback(() => {
+
+            const onBackPress = () => {
+
+                if (showMaritalModal) {
+                    setShowMaritalModal(false);
+                    return true;
+                }
+
+                if (showChildrenModal) {
+                    setShowChildrenModal(false);
+                    return true;
+                }
+
+                navigation.goBack();
+
+                return true;
+            };
+
+
+            const subscription =
+                BackHandler.addEventListener(
+                    "hardwareBackPress",
+                    onBackPress
+                );
+
+
+            return () => {
+                subscription.remove();
+            };
+
+        }, [
+            navigation,
+            showMaritalModal,
+            showChildrenModal,
+        ])
+    );
+
+
+    /* =======================================================
        GENDER -> API ID
     ======================================================= */
 
@@ -219,15 +267,6 @@ export default function EditBasicInformation() {
 
     /* =======================================================
        MARITAL STATUS -> API ID
-       
-       Assumption:
-       1 = Never Married
-       2 = Divorced
-       3 = Widowed
-       4 = Separated
-       
-       Your API example confirms marital_status is numeric
-       and shows 1, but does not provide the complete mapping.
     ======================================================= */
 
     const getMaritalStatusId = () => {
@@ -287,344 +326,381 @@ export default function EditBasicInformation() {
     ======================================================= */
 
     const handleSave = async () => {
-    if (saving) {
-        return;
-    }
 
-    try {
-        setSaving(true);
-
-        // ============================================
-        // TOKEN
-        // ============================================
-
-        const accessToken =
-            await AsyncStorage.getItem("access_token");
-
-        console.log("====================================");
-        console.log("UPDATE BASIC INFORMATION");
-        console.log("====================================");
-        console.log("BASE URL:", BASE_URL);
-        console.log(
-            "TOKEN EXISTS:",
-            !!accessToken
-        );
-
-        if (!accessToken) {
-            Alert.alert(
-                "Login Required",
-                "Access token not found. Please login again."
-            );
+        if (saving) {
             return;
         }
-
-        // ============================================
-        // VALIDATE
-        // ============================================
-
-        const cleanFirstName =
-            String(firstName || "").trim();
-
-        const cleanLastName =
-            String(lastName || "").trim();
-
-        const cleanEmail =
-            String(email || "").trim();
-
-        const cleanPhone =
-            String(phone || "")
-                .replace(/\D/g, "")
-                .slice(-10);
-
-        if (!cleanFirstName) {
-            Alert.alert(
-                "Validation",
-                "First name is required."
-            );
-            return;
-        }
-
-        if (!cleanLastName) {
-            Alert.alert(
-                "Validation",
-                "Last name is required."
-            );
-            return;
-        }
-
-        if (!cleanEmail) {
-            Alert.alert(
-                "Validation",
-                "Email is required."
-            );
-            return;
-        }
-
-        if (cleanPhone.length !== 10) {
-            Alert.alert(
-                "Validation",
-                "Enter a valid 10 digit phone number."
-            );
-            return;
-        }
-
-        // ============================================
-        // GENDER
-        // ============================================
-
-        let genderId = 0;
-
-        if (gender === "Male") {
-            genderId = 1;
-        } else if (gender === "Female") {
-            genderId = 2;
-        } else if (gender === "Other") {
-            genderId = 3;
-        }
-
-        // ============================================
-        // MARITAL STATUS
-        // ============================================
-
-        let maritalStatusId = 0;
-
-        if (maritalStatus === "Never Married") {
-            maritalStatusId = 1;
-        } else if (maritalStatus === "Divorced") {
-            maritalStatusId = 2;
-        } else if (maritalStatus === "Widowed") {
-            maritalStatusId = 3;
-        } else if (maritalStatus === "Separated") {
-            maritalStatusId = 4;
-        }
-
-        // ============================================
-        // CHILDREN
-        // ============================================
-
-        let childrenId = 0;
-
-        if (children === "No Children") {
-            childrenId = 0;
-        } else if (children === "1 Child") {
-            childrenId = 1;
-        } else if (children === "2 Children") {
-            childrenId = 2;
-        } else if (children === "3 Children") {
-            childrenId = 3;
-        } else if (children === "4+ Children") {
-            childrenId = 4;
-        }
-
-        // ============================================
-        // DATE
-        //
-        // UI = YYYY-MM-DD
-        // API = DD-MM-YYYY
-        // ============================================
-
-        let apiDate = "";
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                dateOfBirth
-            )
-        ) {
-            const [
-                year,
-                month,
-                day,
-            ] = dateOfBirth.split("-");
-
-            apiDate =
-                `${day}-${month}-${year}`;
-        } else {
-            apiDate = dateOfBirth;
-        }
-
-        // ============================================
-        // REQUEST BODY
-        // ============================================
-
-        const requestBody = {
-            first_name: cleanFirstName,
-            last_name: cleanLastName,
-            email: cleanEmail,
-            phone: cleanPhone,
-            gender: genderId,
-            on_behalf: 1,
-            date_of_birth: apiDate,
-            marital_status: maritalStatusId,
-            children: childrenId,
-        };
-
-        console.log(
-            "REQUEST BODY:",
-            JSON.stringify(
-                requestBody,
-                null,
-                2
-            )
-        );
-
-        // ============================================
-        // API URL
-        // ============================================
-
-        const apiUrl =
-            `${BASE_URL}/api/member/basic-info/update`;
-
-        console.log(
-            "FINAL API URL:",
-            apiUrl
-        );
-
-        // ============================================
-        // POST REQUEST
-        // ============================================
-
-        const response =
-            await fetch(apiUrl, {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    Accept:
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${accessToken}`,
-                },
-
-                body: JSON.stringify(
-                    requestBody
-                ),
-            });
-
-        // ============================================
-        // READ RESPONSE
-        // ============================================
-
-        const responseText =
-            await response.text();
-
-        console.log(
-            "HTTP STATUS:",
-            response.status
-        );
-
-        console.log(
-            "RESPONSE TEXT:",
-            responseText
-        );
-
-        let responseData = null;
 
         try {
-            responseData =
-                JSON.parse(
-                    responseText
+
+            setSaving(true);
+
+
+            /* ============================================
+               TOKEN
+            ============================================ */
+
+            const accessToken =
+                await AsyncStorage.getItem(
+                    "access_token"
                 );
-        } catch (parseError) {
-            responseData = {
-                message: responseText,
+
+
+            console.log(
+                "===================================="
+            );
+
+            console.log(
+                "UPDATE BASIC INFORMATION"
+            );
+
+            console.log(
+                "===================================="
+            );
+
+            console.log(
+                "BASE URL:",
+                BASE_URL
+            );
+
+            console.log(
+                "TOKEN EXISTS:",
+                !!accessToken
+            );
+
+
+            if (!accessToken) {
+
+                Alert.alert(
+                    "Login Required",
+                    "Access token not found. Please login again."
+                );
+
+                return;
+            }
+
+
+            /* ============================================
+               VALIDATE
+            ============================================ */
+
+            const cleanFirstName =
+                String(firstName || "").trim();
+
+            const cleanLastName =
+                String(lastName || "").trim();
+
+            const cleanEmail =
+                String(email || "").trim();
+
+            const cleanPhone =
+                String(phone || "")
+                    .replace(/\D/g, "")
+                    .slice(-10);
+
+
+            if (!cleanFirstName) {
+
+                Alert.alert(
+                    "Validation",
+                    "First name is required."
+                );
+
+                return;
+            }
+
+
+            if (!cleanLastName) {
+
+                Alert.alert(
+                    "Validation",
+                    "Last name is required."
+                );
+
+                return;
+            }
+
+
+            if (!cleanEmail) {
+
+                Alert.alert(
+                    "Validation",
+                    "Email is required."
+                );
+
+                return;
+            }
+
+
+            if (cleanPhone.length !== 10) {
+
+                Alert.alert(
+                    "Validation",
+                    "Enter a valid 10 digit phone number."
+                );
+
+                return;
+            }
+
+
+            /* ============================================
+               IDs
+            ============================================ */
+
+            const genderId =
+                getGenderId();
+
+            const maritalStatusId =
+                getMaritalStatusId();
+
+            const childrenId =
+                getChildrenId();
+
+
+            /* ============================================
+               DATE
+            ============================================ */
+
+            const apiDate =
+                formatDateForApi(
+                    dateOfBirth
+                );
+
+
+            /* ============================================
+               REQUEST BODY
+            ============================================ */
+
+            const requestBody = {
+
+                first_name:
+                    cleanFirstName,
+
+                last_name:
+                    cleanLastName,
+
+                email:
+                    cleanEmail,
+
+                phone:
+                    cleanPhone,
+
+                gender:
+                    genderId,
+
+                on_behalf:
+                    1,
+
+                date_of_birth:
+                    apiDate,
+
+                marital_status:
+                    maritalStatusId,
+
+                children:
+                    childrenId,
             };
-        }
 
-        console.log(
-            "RESPONSE JSON:",
-            JSON.stringify(
-                responseData,
-                null,
-                2
-            )
-        );
 
-        // ============================================
-        // HTTP ERROR
-        // ============================================
-
-        if (!response.ok) {
-
-            const serverMessage =
-                responseData?.message ||
-                responseData?.error ||
-                responseData?.errors ||
-                `Server returned HTTP ${response.status}`;
-
-            throw new Error(
-                typeof serverMessage === "string"
-                    ? serverMessage
-                    : JSON.stringify(
-                        serverMessage
-                    )
+            console.log(
+                "REQUEST BODY:",
+                JSON.stringify(
+                    requestBody,
+                    null,
+                    2
+                )
             );
-        }
 
-        // ============================================
-        // API SUCCESS CHECK
-        // ============================================
 
-        if (
-            responseData &&
-            (
-                responseData.success === false ||
-                responseData.result === false
-            )
-        ) {
+            /* ============================================
+               API URL
+            ============================================ */
 
-            throw new Error(
-                responseData.message ||
-                "API rejected the update."
+            const apiUrl =
+                `${BASE_URL}/api/member/basic-info/update`;
+
+
+            console.log(
+                "FINAL API URL:",
+                apiUrl
             );
-        }
 
-        // ============================================
-        // SUCCESS
-        // ============================================
 
-        Alert.alert(
-            "Success",
-            "Basic information updated successfully.",
-            [
-                {
-                    text: "OK",
-                    onPress: () => {
-                        router.back();
+            /* ============================================
+               POST REQUEST
+            ============================================ */
+
+            const response =
+                await fetch(
+                    apiUrl,
+                    {
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            Accept:
+                                "application/json",
+
+                            Authorization:
+                                `Bearer ${accessToken}`,
+                        },
+
+                        body:
+                            JSON.stringify(
+                                requestBody
+                            ),
+                    }
+                );
+
+
+            /* ============================================
+               READ RESPONSE
+            ============================================ */
+
+            const responseText =
+                await response.text();
+
+
+            console.log(
+                "HTTP STATUS:",
+                response.status
+            );
+
+
+            console.log(
+                "RESPONSE TEXT:",
+                responseText
+            );
+
+
+            let responseData = null;
+
+
+            try {
+
+                responseData =
+                    JSON.parse(
+                        responseText
+                    );
+
+            } catch (parseError) {
+
+                responseData = {
+                    message:
+                        responseText,
+                };
+            }
+
+
+            console.log(
+                "RESPONSE JSON:",
+                JSON.stringify(
+                    responseData,
+                    null,
+                    2
+                )
+            );
+
+
+            /* ============================================
+               HTTP ERROR
+            ============================================ */
+
+            if (!response.ok) {
+
+                const serverMessage =
+                    responseData?.message ||
+                    responseData?.error ||
+                    responseData?.errors ||
+                    `Server returned HTTP ${response.status}`;
+
+
+                throw new Error(
+
+                    typeof serverMessage ===
+                    "string"
+
+                        ? serverMessage
+
+                        : JSON.stringify(
+                            serverMessage
+                        )
+                );
+            }
+
+
+            /* ============================================
+               API SUCCESS CHECK
+            ============================================ */
+
+            if (
+                responseData &&
+                (
+                    responseData.success === false ||
+                    responseData.result === false
+                )
+            ) {
+
+                throw new Error(
+                    responseData.message ||
+                    "API rejected the update."
+                );
+            }
+
+
+            /* ============================================
+               SUCCESS
+            ============================================ */
+
+            Alert.alert(
+                "Success",
+                "Basic information updated successfully.",
+                [
+                    {
+                        text: "OK",
+
+                        onPress: () => {
+                            navigation.goBack();
+                        },
                     },
-                },
-            ]
-        );
+                ]
+            );
 
-    } catch (error) {
 
-        console.error(
-            "===================================="
-        );
+        } catch (error) {
 
-        console.error(
-            "UPDATE BASIC INFORMATION ERROR"
-        );
+            console.error(
+                "===================================="
+            );
 
-        console.error(error);
+            console.error(
+                "UPDATE BASIC INFORMATION ERROR"
+            );
 
-        console.error(
-            "===================================="
-        );
+            console.error(error);
 
-        Alert.alert(
-            "Update Failed",
-            error?.message ||
-            "Unable to update basic information."
-        );
+            console.error(
+                "===================================="
+            );
 
-    } finally {
 
-        setSaving(false);
-    }
-};
+            Alert.alert(
+                "Update Failed",
+                error?.message ||
+                "Unable to update basic information."
+            );
+
+
+        } finally {
+
+            setSaving(false);
+
+        }
+    };
+
 
     /* =======================================================
        REMOVE PHOTO
@@ -636,17 +712,21 @@ export default function EditBasicInformation() {
             "Remove Photo",
             "Are you sure you want to remove this photo?",
             [
+
                 {
                     text: "Cancel",
                     style: "cancel",
                 },
+
                 {
                     text: "Remove",
                     style: "destructive",
+
                     onPress: () => {
                         setPhoto(false);
                     },
                 },
+
             ]
         );
     };
@@ -677,7 +757,9 @@ export default function EditBasicInformation() {
         const selected =
             gender === value;
 
+
         return (
+
             <TouchableOpacity
                 style={styles.radioItem}
                 activeOpacity={0.7}
@@ -695,14 +777,17 @@ export default function EditBasicInformation() {
                 >
 
                     {selected && (
+
                         <View
                             style={
                                 styles.radioInner
                             }
                         />
+
                     )}
 
                 </View>
+
 
                 <Text
                     style={styles.radioText}
@@ -726,6 +811,7 @@ export default function EditBasicInformation() {
     }) => {
 
         return (
+
             <TouchableOpacity
                 style={styles.modalOption}
                 activeOpacity={0.7}
@@ -742,12 +828,15 @@ export default function EditBasicInformation() {
                     {title}
                 </Text>
 
+
                 {selected && (
-                    <Ionicons
-                        name="checkmark"
+
+                    <Feather
+                        name="check"
                         size={18}
                         color={COLORS.red}
                     />
+
                 )}
 
             </TouchableOpacity>
@@ -760,6 +849,7 @@ export default function EditBasicInformation() {
     ======================================================= */
 
     return (
+
         <SafeAreaView
             style={styles.safeArea}
         >
@@ -770,14 +860,19 @@ export default function EditBasicInformation() {
             />
 
 
-            <View style={styles.screen}>
+            <View
+                style={styles.screen}
+            >
 
 
                 {/* =================================================
                    HEADER
                 ================================================= */}
 
-                <View style={styles.header}>
+                <View
+                    style={styles.header}
+                >
+
 
                     {/* BACK BUTTON */}
 
@@ -785,13 +880,13 @@ export default function EditBasicInformation() {
                         style={styles.backButton}
                         activeOpacity={0.7}
                         onPress={() =>
-                            router.back()
+                            navigation.goBack()
                         }
                     >
 
-                        <Ionicons
-                            name="chevron-back"
-                            size={18}
+                        <Feather
+                            name="chevron-left"
+                            size={20}
                             color="#222222"
                         />
 
@@ -814,9 +909,9 @@ export default function EditBasicInformation() {
                         activeOpacity={0.7}
                     >
 
-                        <Ionicons
-                            name="ellipsis-vertical"
-                            size={15}
+                        <Feather
+                            name="more-vertical"
+                            size={17}
                             color={COLORS.red}
                         />
 
@@ -829,10 +924,14 @@ export default function EditBasicInformation() {
                    MAIN CARD
                 ================================================= */}
 
-                <View style={styles.card}>
+                <View
+                    style={styles.card}
+                >
 
                     <ScrollView
-                        showsVerticalScrollIndicator={false}
+                        showsVerticalScrollIndicator={
+                            false
+                        }
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={
                             styles.scrollContent
@@ -854,6 +953,7 @@ export default function EditBasicInformation() {
                                 style={styles.label}
                             >
                                 First Name{" "}
+
                                 <Text
                                     style={
                                         styles.required
@@ -861,6 +961,7 @@ export default function EditBasicInformation() {
                                 >
                                     *
                                 </Text>
+
                             </Text>
 
 
@@ -870,9 +971,7 @@ export default function EditBasicInformation() {
                                     setFirstName
                                 }
                                 placeholder="First Name"
-                                placeholderTextColor={
-                                    "#A0A0A0"
-                                }
+                                placeholderTextColor="#A0A0A0"
                                 style={styles.input}
                                 autoCapitalize="words"
                                 returnKeyType="next"
@@ -895,6 +994,7 @@ export default function EditBasicInformation() {
                                 style={styles.label}
                             >
                                 Last Name{" "}
+
                                 <Text
                                     style={
                                         styles.required
@@ -902,6 +1002,7 @@ export default function EditBasicInformation() {
                                 >
                                     *
                                 </Text>
+
                             </Text>
 
 
@@ -911,9 +1012,7 @@ export default function EditBasicInformation() {
                                     setLastName
                                 }
                                 placeholder="Last Name"
-                                placeholderTextColor={
-                                    "#A0A0A0"
-                                }
+                                placeholderTextColor="#A0A0A0"
                                 style={styles.input}
                                 autoCapitalize="words"
                                 returnKeyType="next"
@@ -936,6 +1035,7 @@ export default function EditBasicInformation() {
                                 style={styles.label}
                             >
                                 Gender{" "}
+
                                 <Text
                                     style={
                                         styles.required
@@ -943,6 +1043,7 @@ export default function EditBasicInformation() {
                                 >
                                     *
                                 </Text>
+
                             </Text>
 
 
@@ -986,6 +1087,7 @@ export default function EditBasicInformation() {
                                 style={styles.label}
                             >
                                 Date of Birth{" "}
+
                                 <Text
                                     style={
                                         styles.required
@@ -993,6 +1095,7 @@ export default function EditBasicInformation() {
                                 >
                                     *
                                 </Text>
+
                             </Text>
 
 
@@ -1010,9 +1113,7 @@ export default function EditBasicInformation() {
                                         setDateOfBirth
                                     }
                                     placeholder="YYYY-MM-DD"
-                                    placeholderTextColor={
-                                        "#A0A0A0"
-                                    }
+                                    placeholderTextColor="#A0A0A0"
                                     style={
                                         styles.dateInput
                                     }
@@ -1028,8 +1129,8 @@ export default function EditBasicInformation() {
                                     activeOpacity={0.7}
                                 >
 
-                                    <Ionicons
-                                        name="calendar-outline"
+                                    <Feather
+                                        name="calendar"
                                         size={14}
                                         color="#555555"
                                     />
@@ -1055,6 +1156,7 @@ export default function EditBasicInformation() {
                                 style={styles.label}
                             >
                                 Marital Status{" "}
+
                                 <Text
                                     style={
                                         styles.required
@@ -1062,6 +1164,7 @@ export default function EditBasicInformation() {
                                 >
                                     *
                                 </Text>
+
                             </Text>
 
 
@@ -1089,8 +1192,8 @@ export default function EditBasicInformation() {
                                 </Text>
 
 
-                                <Ionicons
-                                    name="chevron-down-outline"
+                                <Feather
+                                    name="chevron-down"
                                     size={17}
                                     color="#777777"
                                 />
@@ -1141,8 +1244,8 @@ export default function EditBasicInformation() {
                                 </Text>
 
 
-                                <Ionicons
-                                    name="chevron-down-outline"
+                                <Feather
+                                    name="chevron-down"
                                     size={17}
                                     color="#777777"
                                 />
@@ -1175,6 +1278,7 @@ export default function EditBasicInformation() {
                                 }
                             >
 
+
                                 {/* PROFILE PHOTO */}
 
                                 <View
@@ -1202,8 +1306,8 @@ export default function EditBasicInformation() {
                                             }
                                         >
 
-                                            <Ionicons
-                                                name="person-outline"
+                                            <FontAwesome5
+                                                name="user"
                                                 size={22}
                                                 color="#B5B5B5"
                                             />
@@ -1227,8 +1331,8 @@ export default function EditBasicInformation() {
                                             }
                                         >
 
-                                            <Ionicons
-                                                name="close"
+                                            <Feather
+                                                name="x"
                                                 size={10}
                                                 color={
                                                     COLORS.red
@@ -1254,8 +1358,8 @@ export default function EditBasicInformation() {
                                     }
                                 >
 
-                                    <Ionicons
-                                        name="camera-outline"
+                                    <FontAwesome5
+                                        name="camera"
                                         size={18}
                                         color={
                                             COLORS.red
@@ -1380,8 +1484,8 @@ export default function EditBasicInformation() {
                                 }
                             >
 
-                                <Ionicons
-                                    name="close"
+                                <Feather
+                                    name="x"
                                     size={19}
                                     color="#333333"
                                 />
@@ -1479,8 +1583,8 @@ export default function EditBasicInformation() {
                                 }
                             >
 
-                                <Ionicons
-                                    name="close"
+                                <Feather
+                                    name="x"
                                     size={19}
                                     color="#333333"
                                 />
@@ -1528,7 +1632,7 @@ export default function EditBasicInformation() {
 
 
 /* =========================================================
-   STYLES - REFERENCE UI
+   STYLES
 ========================================================= */
 
 const styles = StyleSheet.create({
@@ -1550,7 +1654,6 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: "#F5F5F5",
-
         paddingHorizontal: 7,
         paddingTop: 5,
         paddingBottom: 5,
@@ -1564,7 +1667,6 @@ const styles = StyleSheet.create({
     header: {
         width: "100%",
         height: 60,
-
         backgroundColor: "#FFFFFF",
 
         flexDirection: "row",
@@ -1644,7 +1746,6 @@ const styles = StyleSheet.create({
 
     card: {
         width: "100%",
-        height:30,
 
         flex: 1,
 
@@ -1680,7 +1781,6 @@ const styles = StyleSheet.create({
 
     fieldContainer: {
         width: "100%",
-        height:50,
 
         marginBottom: 50,
     },
@@ -1700,14 +1800,14 @@ const styles = StyleSheet.create({
         color: "#4D4D4D",
 
         marginBottom: 10,
-        marginTop:20,
+        marginTop: 20,
 
         includeFontPadding: false,
     },
 
 
     /* =====================================================
-       REQUIRED *
+       REQUIRED
     ===================================================== */
 
     required: {
@@ -1986,7 +2086,6 @@ const styles = StyleSheet.create({
         position: "relative",
 
         marginRight: 30,
-        
     },
 
 
@@ -2071,7 +2170,6 @@ const styles = StyleSheet.create({
         flex: 1,
 
         height: 105,
-        width:50,
 
         backgroundColor: "#FFFBFC",
 

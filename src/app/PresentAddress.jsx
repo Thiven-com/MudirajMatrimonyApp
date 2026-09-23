@@ -1,34 +1,48 @@
-
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
+
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    getMemberCities,
-    getMemberCountries,
-    getMemberPresentAddress,
-    getMemberStates,
-    updateMemberAddress,
+  useFocusEffect,
+  useNavigation,
+} from "@react-navigation/native";
+
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  getMemberCities,
+  getMemberCountries,
+  getMemberPresentAddress,
+  getMemberStates,
+  updateMemberAddress,
 } from "../utils/Functions";
+
+// =========================================================
+// COLORS
+// =========================================================
 
 const COLORS = {
   background: "#F5F6F8",
@@ -41,6 +55,10 @@ const COLORS = {
   lightRed: "#FFF0F2",
 };
 
+// =========================================================
+// EMPTY ADDRESS
+// =========================================================
+
 const emptyAddress = {
   country_id: "",
   state_id: "",
@@ -52,68 +70,136 @@ const emptyAddress = {
   address: "",
 };
 
+// =========================================================
+// GET TOKEN
+// =========================================================
+
 const getToken = async () =>
   (await AsyncStorage.getItem("access_token")) ||
   (await AsyncStorage.getItem("accessToken"));
 
+// =========================================================
+// UNWRAP RESPONSE
+// =========================================================
+
 const unwrap = (response) => {
-  // getMethod() returns the API JSON body directly.
-  // Example:
-  // { result: true, data: { country, state, city, postal_code } }
   return response ?? {};
 };
 
-const getList = (response, keys = []) => {
+// =========================================================
+// GET LIST
+// =========================================================
+
+const getList = (
+  response,
+  keys = []
+) => {
   const body = unwrap(response);
 
   const visited = new Set();
 
-  const findArray = (value, depth = 0) => {
-    if (value == null || depth > 6) return null;
+  const findArray = (
+    value,
+    depth = 0
+  ) => {
+    if (
+      value == null ||
+      depth > 6
+    ) {
+      return null;
+    }
 
-    if (Array.isArray(value)) return value;
-    if (typeof value !== "object") return null;
-    if (visited.has(value)) return null;
+    if (
+      Array.isArray(value)
+    ) {
+      return value;
+    }
+
+    if (
+      typeof value !== "object"
+    ) {
+      return null;
+    }
+
+    if (
+      visited.has(value)
+    ) {
+      return null;
+    }
 
     visited.add(value);
 
-    // Requested keys first.
-    for (const key of keys) {
-      if (Array.isArray(value?.[key])) {
+    // Requested keys first
+    for (
+      const key of keys
+    ) {
+      if (
+        Array.isArray(
+          value?.[key]
+        )
+      ) {
         return value[key];
       }
     }
 
-    // Common API/Laravel response keys.
-    for (const key of [
-      "data",
-      "result",
-      "results",
-      "items",
-      "list",
-      "countries",
-      "states",
-      "cities",
-    ]) {
-      if (Array.isArray(value?.[key])) {
+    // Common API keys
+    for (
+      const key of [
+        "data",
+        "result",
+        "results",
+        "items",
+        "list",
+        "countries",
+        "states",
+        "cities",
+      ]
+    ) {
+      if (
+        Array.isArray(
+          value?.[key]
+        )
+      ) {
         return value[key];
       }
     }
 
-    // Search nested objects.
-    for (const child of Object.values(value)) {
-      const found = findArray(child, depth + 1);
-      if (found) return found;
+    // Search nested objects
+    for (
+      const child of Object.values(
+        value
+      )
+    ) {
+      const found =
+        findArray(
+          child,
+          depth + 1
+        );
+
+      if (found) {
+        return found;
+      }
     }
 
     return null;
   };
 
-  return findArray(body) || [];
+  return (
+    findArray(body) || []
+  );
 };
 
-const normalizeOption = (item, type) => {
-  if (item == null) return null;
+// =========================================================
+// NORMALIZE OPTION
+// =========================================================
+
+const normalizeOption = (
+  item,
+  type
+) => {
+  if (item == null) {
+    return null;
+  }
 
   const id =
     typeof item === "object"
@@ -138,59 +224,78 @@ const normalizeOption = (item, type) => {
         item.countryName
       : item;
 
-  if (id == null || String(id).trim() === "" || !String(name || "").trim()) {
+  if (
+    id == null ||
+    String(id).trim() === "" ||
+    !String(name || "").trim()
+  ) {
     return null;
   }
 
   return {
-    ...(typeof item === "object" ? item : {}),
+    ...(typeof item === "object"
+      ? item
+      : {}),
     id: String(id),
     name: String(name).trim(),
   };
 };
 
-const normalizeAddress = (response) => {
-  const body = unwrap(response);
+// =========================================================
+// NORMALIZE ADDRESS
+// =========================================================
+
+const normalizeAddress = (
+  response
+) => {
+  const body =
+    unwrap(response);
 
   console.log(
     "NORMALIZE PRESENT ADDRESS BODY:",
-    JSON.stringify(body, null, 2)
+    JSON.stringify(
+      body,
+      null,
+      2
+    )
   );
-
-  // Expected response:
-  // {
-  //   "data": {
-  //     "country": "India",
-  //     "state": "Andaman and Nicobar Islands",
-  //     "city": "Bombuflat",
-  //     "postal_code": "515801"
-  //   },
-  //   "result": true
-  // }
 
   let address = null;
 
   if (
     body?.data &&
     typeof body.data === "object" &&
-    !Array.isArray(body.data)
+    !Array.isArray(
+      body.data
+    )
   ) {
     address = body.data;
   }
 
-  if (!address && body?.address) {
+  if (
+    !address &&
+    body?.address
+  ) {
     address = body.address;
   }
 
-  if (!address && body?.data?.address) {
-    address = body.data.address;
+  if (
+    !address &&
+    body?.data?.address
+  ) {
+    address =
+      body.data.address;
   }
 
-  if (!address && body?.data?.data) {
-    address = body.data.data;
+  if (
+    !address &&
+    body?.data?.data
+  ) {
+    address =
+      body.data.data;
   }
 
-  // Also support an address object returned directly.
+  // Direct address object
   if (
     !address &&
     body &&
@@ -214,90 +319,119 @@ const normalizeAddress = (response) => {
     typeof address !== "object" ||
     Array.isArray(address)
   ) {
-    console.log("NO PRESENT ADDRESS DATA FOUND");
+    console.log(
+      "NO PRESENT ADDRESS DATA FOUND"
+    );
+
     return null;
   }
 
   const country =
-    typeof address.country === "object"
+    typeof address.country ===
+    "object"
       ? String(
           address.country?.name ??
-          address.country?.country_name ??
-          ""
+            address.country
+              ?.country_name ??
+            ""
         ).trim()
-      : String(address.country ?? "").trim();
+      : String(
+          address.country ?? ""
+        ).trim();
 
   const state =
-    typeof address.state === "object"
+    typeof address.state ===
+    "object"
       ? String(
           address.state?.name ??
-          address.state?.state_name ??
-          ""
+            address.state
+              ?.state_name ??
+            ""
         ).trim()
-      : String(address.state ?? "").trim();
+      : String(
+          address.state ?? ""
+        ).trim();
 
   const city =
-    typeof address.city === "object"
+    typeof address.city ===
+    "object"
       ? String(
           address.city?.name ??
-          address.city?.city_name ??
-          ""
+            address.city
+              ?.city_name ??
+            ""
         ).trim()
-      : String(address.city ?? "").trim();
+      : String(
+          address.city ?? ""
+        ).trim();
 
   const normalized = {
     country_id: String(
       address.country_id ??
-      address.country?.id ??
-      address.countryId ??
-      ""
+        address.country?.id ??
+        address.countryId ??
+        ""
     ),
 
     state_id: String(
       address.state_id ??
-      address.state?.id ??
-      address.stateId ??
-      ""
+        address.state?.id ??
+        address.stateId ??
+        ""
     ),
 
     city_id: String(
       address.city_id ??
-      address.city?.id ??
-      address.cityId ??
-      ""
+        address.city?.id ??
+        address.cityId ??
+        ""
     ),
 
     country,
+
     state,
+
     city,
 
     postal_code: String(
       address.postal_code ??
-      address.postalCode ??
-      address.pincode ??
-      ""
+        address.postalCode ??
+        address.pincode ??
+        ""
     ).trim(),
 
     address: String(
       address.address ??
-      address.full_address ??
-      address.fullAddress ??
-      address.address_line ??
-      address.addressLine ??
-      ""
+        address.full_address ??
+        address.fullAddress ??
+        address.address_line ??
+        address.addressLine ??
+        ""
     ).trim(),
   };
 
   console.log(
     "NORMALIZED PRESENT ADDRESS:",
-    JSON.stringify(normalized, null, 2)
+    JSON.stringify(
+      normalized,
+      null,
+      2
+    )
   );
 
   return normalized;
 };
 
-const isSuccess = (response) => {
-  const body = unwrap(response);
+// =========================================================
+// SUCCESS CHECK
+// =========================================================
+
+const isSuccess = (
+  response
+) => {
+  const body =
+    unwrap(response);
+
   return (
     body?.result === true ||
     body?.result === 1 ||
@@ -309,8 +443,17 @@ const isSuccess = (response) => {
   );
 };
 
-const apiMessage = (response, fallback) => {
-  const body = unwrap(response);
+// =========================================================
+// API MESSAGE
+// =========================================================
+
+const apiMessage = (
+  response,
+  fallback
+) => {
+  const body =
+    unwrap(response);
+
   return (
     body?.message ||
     body?.msg ||
@@ -320,232 +463,530 @@ const apiMessage = (response, fallback) => {
   );
 };
 
+// =========================================================
+// SCREEN
+// =========================================================
+
 export default function PresentAddress() {
-  const [presentAddress, setPresentAddress] = useState(null);
-  const [presentAddressForm, setPresentAddressForm] =
-    useState(emptyAddress);
+  const navigation =
+    useNavigation();
 
-  const [countries, setCountries] = useState([]);
-  const [states, setStates] = useState([]);
-  const [cities, setCities] = useState([]);
+  const [
+    presentAddress,
+    setPresentAddress,
+  ] = useState(null);
 
-  const [addressDropdown, setAddressDropdown] = useState(null);
-  const [searchText, setSearchText] = useState("");
+  const [
+    presentAddressForm,
+    setPresentAddressForm,
+  ] = useState(
+    emptyAddress
+  );
 
-  const [countriesLoading, setCountriesLoading] = useState(false);
-  const [statesLoading, setStatesLoading] = useState(false);
-  const [citiesLoading, setCitiesLoading] = useState(false);
-  const [savingPresentAddress, setSavingPresentAddress] = useState(false);
-  const [loadingAddress, setLoadingAddress] = useState(false);
-  const [defaultAddress, setDefaultAddress] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [
+    countries,
+    setCountries,
+  ] = useState([]);
 
-  const loadMemberPresentAddress = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (!token) {
-        setPresentAddress(null);
-        return null;
-      }
+  const [
+    states,
+    setStates,
+  ] = useState([]);
 
-      const response = await getMemberPresentAddress(token);
-      console.log(
-        "PRESENT ADDRESS RESPONSE:",
-        JSON.stringify(response, null, 2)
-      );
+  const [
+    cities,
+    setCities,
+  ] = useState([]);
 
-      const address = normalizeAddress(response);
-      setPresentAddress(address);
+  const [
+    addressDropdown,
+    setAddressDropdown,
+  ] = useState(null);
 
-      if (address) {
-        setPresentAddressForm((prev) => ({
-          ...prev,
-          ...address,
-        }));
-      }
+  const [
+    searchText,
+    setSearchText,
+  ] = useState("");
 
-      return address;
-    } catch (error) {
-      console.error(
-        "LOAD PRESENT ADDRESS ERROR:",
-        error?.response?.data || error
-      );
-      setPresentAddress(null);
-      return null;
-    }
-  }, []);
+  const [
+    countriesLoading,
+    setCountriesLoading,
+  ] = useState(false);
 
-  const loadMemberCountries = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (!token) return [];
+  const [
+    statesLoading,
+    setStatesLoading,
+  ] = useState(false);
 
-      setCountriesLoading(true);
-      const response = await getMemberCountries(token);
-      console.log(
-        "COUNTRIES RESPONSE:",
-        JSON.stringify(response, null, 2)
-      );
+  const [
+    citiesLoading,
+    setCitiesLoading,
+  ] = useState(false);
 
-      const list = getList(response, ["countries"]);
-      const normalized = list
-        .map((item) => normalizeOption(item, "country"))
-        .filter(Boolean);
+  const [
+    savingPresentAddress,
+    setSavingPresentAddress,
+  ] = useState(false);
 
-      setCountries(normalized);
-      return normalized;
-    } catch (error) {
-      console.error("LOAD COUNTRIES ERROR:", error?.response?.data || error);
-      setCountries([]);
-      return [];
-    } finally {
-      setCountriesLoading(false);
-    }
-  }, []);
+  const [
+    loadingAddress,
+    setLoadingAddress,
+  ] = useState(false);
 
-  const loadMemberStates = useCallback(async (countryId) => {
-    if (!countryId) {
-      setStates([]);
-      setCities([]);
-      return [];
-    }
+  const [
+    defaultAddress,
+    setDefaultAddress,
+  ] = useState(true);
 
-    try {
-      const token = await getToken();
-      if (!token) return [];
+  const [
+    editing,
+    setEditing,
+  ] = useState(false);
 
-      setStatesLoading(true);
-      const response = await getMemberStates(token, countryId);
-      console.log(
-        `STATES RESPONSE (${countryId}):`,
-        JSON.stringify(response, null, 2)
-      );
+  // =======================================================
+  // LOAD PRESENT ADDRESS
+  // =======================================================
 
-      const list = getList(response, ["states"]);
-      const normalized = list
-        .map((item) => normalizeOption(item, "state"))
-        .filter(Boolean);
+  const loadMemberPresentAddress =
+    useCallback(
+      async () => {
+        try {
+          setLoadingAddress(
+            true
+          );
 
-      setStates(normalized);
-      return normalized;
-    } catch (error) {
-      console.error("LOAD STATES ERROR:", error?.response?.data || error);
-      setStates([]);
-      return [];
-    } finally {
-      setStatesLoading(false);
-    }
-  }, []);
+          const token =
+            await getToken();
 
-  const loadMemberCities = useCallback(async (stateId) => {
-    const numericStateId = Number(stateId);
+          if (!token) {
+            setPresentAddress(
+              null
+            );
 
-    if (!Number.isFinite(numericStateId) || numericStateId <= 0) {
-      console.log("CITY LOAD SKIPPED - INVALID STATE ID:", stateId);
-      setCities([]);
-      return [];
-    }
+            return null;
+          }
 
-    try {
-      const token = await getToken();
+          const response =
+            await getMemberPresentAddress(
+              token
+            );
 
-      if (!token) {
-        console.log("CITY LOAD SKIPPED - TOKEN MISSING");
-        setCities([]);
-        return [];
-      }
+          console.log(
+            "PRESENT ADDRESS RESPONSE:",
+            JSON.stringify(
+              response,
+              null,
+              2
+            )
+          );
 
-      setCitiesLoading(true);
+          const address =
+            normalizeAddress(
+              response
+            );
 
-      console.log("========================================");
-      console.log("GET MEMBER CITIES");
-      console.log(
-        "URL: /api/member/cities/" + numericStateId
-      );
-      console.log("STATE ID:", numericStateId);
-      console.log("TOKEN EXISTS:", !!token);
-      console.log("========================================");
+          setPresentAddress(
+            address
+          );
 
-      const response = await getMemberCities(
-        token,
-        numericStateId
-      );
+          if (address) {
+            setPresentAddressForm(
+              (prev) => ({
+                ...prev,
+                ...address,
+              })
+            );
+          }
 
-      console.log(
-        "CITIES API FULL RESPONSE:",
-        JSON.stringify(response, null, 2)
-      );
+          return address;
+        } catch (error) {
+          console.error(
+            "LOAD PRESENT ADDRESS ERROR:",
+            error?.response
+              ?.data || error
+          );
 
-      const body = unwrap(response);
+          setPresentAddress(
+            null
+          );
 
-      // The Functions.js API is:
-      // GET /api/member/cities/{state_id}
-      // and returns response through getMethod().
-      const rawList =
-        Array.isArray(body)
-          ? body
-          : Array.isArray(body?.cities)
-            ? body.cities
-            : Array.isArray(body?.data?.cities)
+          return null;
+        } finally {
+          setLoadingAddress(
+            false
+          );
+        }
+      },
+      []
+    );
+
+  // =======================================================
+  // LOAD COUNTRIES
+  // =======================================================
+
+  const loadMemberCountries =
+    useCallback(
+      async () => {
+        try {
+          const token =
+            await getToken();
+
+          if (!token) {
+            return [];
+          }
+
+          setCountriesLoading(
+            true
+          );
+
+          const response =
+            await getMemberCountries(
+              token
+            );
+
+          console.log(
+            "COUNTRIES RESPONSE:",
+            JSON.stringify(
+              response,
+              null,
+              2
+            )
+          );
+
+          const list =
+            getList(
+              response,
+              ["countries"]
+            );
+
+          const normalized =
+            list
+              .map(
+                (item) =>
+                  normalizeOption(
+                    item,
+                    "country"
+                  )
+              )
+              .filter(Boolean);
+
+          setCountries(
+            normalized
+          );
+
+          return normalized;
+        } catch (error) {
+          console.error(
+            "LOAD COUNTRIES ERROR:",
+            error?.response
+              ?.data || error
+          );
+
+          setCountries([]);
+
+          return [];
+        } finally {
+          setCountriesLoading(
+            false
+          );
+        }
+      },
+      []
+    );
+
+  // =======================================================
+  // LOAD STATES
+  // =======================================================
+
+  const loadMemberStates =
+    useCallback(
+      async (
+        countryId
+      ) => {
+        if (!countryId) {
+          setStates([]);
+          setCities([]);
+
+          return [];
+        }
+
+        try {
+          const token =
+            await getToken();
+
+          if (!token) {
+            return [];
+          }
+
+          setStatesLoading(
+            true
+          );
+
+          const response =
+            await getMemberStates(
+              token,
+              countryId
+            );
+
+          console.log(
+            `STATES RESPONSE (${countryId}):`,
+            JSON.stringify(
+              response,
+              null,
+              2
+            )
+          );
+
+          const list =
+            getList(
+              response,
+              ["states"]
+            );
+
+          const normalized =
+            list
+              .map(
+                (item) =>
+                  normalizeOption(
+                    item,
+                    "state"
+                  )
+              )
+              .filter(Boolean);
+
+          setStates(
+            normalized
+          );
+
+          return normalized;
+        } catch (error) {
+          console.error(
+            "LOAD STATES ERROR:",
+            error?.response
+              ?.data || error
+          );
+
+          setStates([]);
+
+          return [];
+        } finally {
+          setStatesLoading(
+            false
+          );
+        }
+      },
+      []
+    );
+
+  // =======================================================
+  // LOAD CITIES
+  // =======================================================
+
+  const loadMemberCities =
+    useCallback(
+      async (
+        stateId
+      ) => {
+        const numericStateId =
+          Number(stateId);
+
+        if (
+          !Number.isFinite(
+            numericStateId
+          ) ||
+          numericStateId <= 0
+        ) {
+          console.log(
+            "CITY LOAD SKIPPED - INVALID STATE ID:",
+            stateId
+          );
+
+          setCities([]);
+
+          return [];
+        }
+
+        try {
+          const token =
+            await getToken();
+
+          if (!token) {
+            console.log(
+              "CITY LOAD SKIPPED - TOKEN MISSING"
+            );
+
+            setCities([]);
+
+            return [];
+          }
+
+          setCitiesLoading(
+            true
+          );
+
+          console.log(
+            "========================================"
+          );
+
+          console.log(
+            "GET MEMBER CITIES"
+          );
+
+          console.log(
+            "URL: /api/member/cities/" +
+              numericStateId
+          );
+
+          console.log(
+            "STATE ID:",
+            numericStateId
+          );
+
+          console.log(
+            "TOKEN EXISTS:",
+            !!token
+          );
+
+          console.log(
+            "========================================"
+          );
+
+          const response =
+            await getMemberCities(
+              token,
+              numericStateId
+            );
+
+          console.log(
+            "CITIES API FULL RESPONSE:",
+            JSON.stringify(
+              response,
+              null,
+              2
+            )
+          );
+
+          const body =
+            unwrap(response);
+
+          const rawList =
+            Array.isArray(body)
+              ? body
+              : Array.isArray(
+                  body?.cities
+                )
+              ? body.cities
+              : Array.isArray(
+                  body?.data?.cities
+                )
               ? body.data.cities
-              : Array.isArray(body?.data?.data)
-                ? body.data.data
-                : Array.isArray(body?.data)
-                  ? body.data
-                  : Array.isArray(body?.result)
-                    ? body.result
-                    : Array.isArray(body?.data?.result)
-                      ? body.data.result
-                      : getList(response, ["cities"]);
+              : Array.isArray(
+                  body?.data?.data
+                )
+              ? body.data.data
+              : Array.isArray(
+                  body?.data
+                )
+              ? body.data
+              : Array.isArray(
+                  body?.result
+                )
+              ? body.result
+              : Array.isArray(
+                  body?.data?.result
+                )
+              ? body.data.result
+              : getList(
+                  response,
+                  ["cities"]
+                );
 
-      console.log("RAW CITY COUNT:", rawList.length);
+          console.log(
+            "RAW CITY COUNT:",
+            rawList.length
+          );
 
-      const normalizedCities = rawList
-        .map((item) => normalizeOption(item, "city"))
-        .filter(Boolean);
+          const normalizedCities =
+            rawList
+              .map(
+                (item) =>
+                  normalizeOption(
+                    item,
+                    "city"
+                  )
+              )
+              .filter(Boolean);
 
-      console.log(
-        "NORMALIZED CITY COUNT:",
-        normalizedCities.length
-      );
-      console.log(
-        "NORMALIZED CITIES:",
-        JSON.stringify(normalizedCities, null, 2)
-      );
+          console.log(
+            "NORMALIZED CITY COUNT:",
+            normalizedCities.length
+          );
 
-      setCities(normalizedCities);
+          console.log(
+            "NORMALIZED CITIES:",
+            JSON.stringify(
+              normalizedCities,
+              null,
+              2
+            )
+          );
 
-      return normalizedCities;
-    } catch (error) {
-      console.error(
-        "LOAD CITIES ERROR:",
-        error?.response?.data || error
-      );
+          setCities(
+            normalizedCities
+          );
 
-      setCities([]);
-      return [];
-    } finally {
-      setCitiesLoading(false);
-    }
-  }, []);
+          return normalizedCities;
+        } catch (error) {
+          console.error(
+            "LOAD CITIES ERROR:",
+            error?.response
+              ?.data || error
+          );
+
+          setCities([]);
+
+          return [];
+        } finally {
+          setCitiesLoading(
+            false
+          );
+        }
+      },
+      []
+    );
+
+  // =======================================================
+  // INITIAL LOAD
+  // =======================================================
 
   useEffect(() => {
     let mounted = true;
 
-    const load = async () => {
-      console.log("========================================");
-      console.log("PRESENT ADDRESS SCREEN - INITIAL LOAD");
-      console.log("========================================");
+    const load =
+      async () => {
+        console.log(
+          "========================================"
+        );
 
-      await Promise.all([
-        loadMemberPresentAddress(),
-        loadMemberCountries(),
-      ]);
+        console.log(
+          "PRESENT ADDRESS SCREEN - INITIAL LOAD"
+        );
 
-      if (mounted) {
-        setLoadingAddress(false);
-      }
-    };
+        console.log(
+          "========================================"
+        );
+
+        await Promise.all([
+          loadMemberPresentAddress(),
+          loadMemberCountries(),
+        ]);
+
+        if (mounted) {
+          setLoadingAddress(
+            false
+          );
+        }
+      };
 
     load();
 
@@ -557,37 +998,120 @@ export default function PresentAddress() {
     loadMemberCountries,
   ]);
 
-  // When editing an existing address, load the dependent
-  // state and city lists using the saved IDs.
+  // =======================================================
+  // REFRESH WHEN SCREEN GETS FOCUS
+  // =======================================================
+
+  useFocusEffect(
+    useCallback(
+      () => {
+        loadMemberPresentAddress();
+
+        return undefined;
+      },
+      [
+        loadMemberPresentAddress,
+      ]
+    )
+  );
+
+  // =======================================================
+  // ANDROID BACK HANDLER
+  // =======================================================
+
+  useFocusEffect(
+    useCallback(
+      () => {
+        const onBackPress =
+          () => {
+            if (
+              addressDropdown
+            ) {
+              setAddressDropdown(
+                null
+              );
+
+              return true;
+            }
+
+            if (editing) {
+              handleCancel();
+
+              return true;
+            }
+
+            navigation.goBack();
+
+            return true;
+          };
+
+        const subscription =
+          BackHandler.addEventListener(
+            "hardwareBackPress",
+            onBackPress
+          );
+
+        return () =>
+          subscription.remove();
+      },
+      [
+        navigation,
+        addressDropdown,
+        editing,
+      ]
+    )
+  );
+
+  // =======================================================
+  // LOAD DEPENDENCIES WHILE EDITING
+  // =======================================================
+
   useEffect(() => {
-    if (!editing) return;
+    if (!editing) {
+      return;
+    }
 
     let active = true;
 
-    const loadDependencies = async () => {
-      const countryId = Number(
-        presentAddressForm.country_id
-      );
-      const stateId = Number(
-        presentAddressForm.state_id
-      );
+    const loadDependencies =
+      async () => {
+        const countryId =
+          Number(
+            presentAddressForm.country_id
+          );
 
-      if (Number.isFinite(countryId) && countryId > 0) {
-        await loadMemberStates(countryId);
-      } else {
-        setStates([]);
-      }
+        const stateId =
+          Number(
+            presentAddressForm.state_id
+          );
 
-      if (
-        active &&
-        Number.isFinite(stateId) &&
-        stateId > 0
-      ) {
-        await loadMemberCities(stateId);
-      } else if (active) {
-        setCities([]);
-      }
-    };
+        if (
+          Number.isFinite(
+            countryId
+          ) &&
+          countryId > 0
+        ) {
+          await loadMemberStates(
+            countryId
+          );
+        } else {
+          setStates([]);
+        }
+
+        if (
+          active &&
+          Number.isFinite(
+            stateId
+          ) &&
+          stateId > 0
+        ) {
+          await loadMemberCities(
+            stateId
+          );
+        } else if (active) {
+          setCities([]);
+        }
+      };
 
     loadDependencies();
 
@@ -602,425 +1126,893 @@ export default function PresentAddress() {
     loadMemberCities,
   ]);
 
-  const selectAddressOption = async (option) => {
-    if (!option || !addressDropdown) return;
+  // =======================================================
+  // SELECT DROPDOWN OPTION
+  // =======================================================
 
-    if (addressDropdown === "country") {
-      setPresentAddressForm((prev) => ({
-        ...prev,
-        country_id: String(option.id),
-        country: option.name,
-        state_id: "",
-        state: "",
-        city_id: "",
-        city: "",
-      }));
-      setStates([]);
-      setCities([]);
-      setAddressDropdown(null);
-      await loadMemberStates(option.id);
-      return;
-    }
-
-    if (addressDropdown === "state") {
-      const selectedStateId = String(option.id);
-
-      setPresentAddressForm((prev) => ({
-        ...prev,
-        state_id: selectedStateId,
-        state: option.name,
-        city_id: "",
-        city: "",
-      }));
-
-      // City endpoint requires the selected STATE ID.
-      const loadedCities = await loadMemberCities(
-        selectedStateId
-      );
-
-      console.log(
-        "CITIES AFTER STATE SELECTION:",
-        JSON.stringify(loadedCities, null, 2)
-      );
-
-      setAddressDropdown(null);
-      return;
-    }
-
-    setPresentAddressForm((prev) => ({
-      ...prev,
-      city_id: String(option.id),
-      city: option.name,
-    }));
-    setAddressDropdown(null);
-  };
-
-  const openDropdown = async (type) => {
-    if (type === "state" && !presentAddressForm.country_id) {
-      Alert.alert("Select Country", "Please select country first.");
-      return;
-    }
-
-    if (type === "city" && !presentAddressForm.state_id) {
-      Alert.alert("Select State", "Please select state first.");
-      return;
-    }
-
-    setSearchText("");
-    setAddressDropdown(type);
-
-    if (type === "country" && countries.length === 0) {
-      await loadMemberCountries();
-    }
-
-    if (type === "state") {
-      await loadMemberStates(presentAddressForm.country_id);
-    }
-
-    if (type === "city") {
-      const stateId = Number(
-        presentAddressForm.state_id
-      );
-
-      if (!Number.isFinite(stateId) || stateId <= 0) {
-        setAddressDropdown(null);
-        Alert.alert(
-          "Select State",
-          "Please select a valid state first."
-        );
+  const selectAddressOption =
+    async (
+      option
+    ) => {
+      if (
+        !option ||
+        !addressDropdown
+      ) {
         return;
       }
 
-      const loadedCities = await loadMemberCities(
-        stateId
+      if (
+        addressDropdown ===
+        "country"
+      ) {
+        setPresentAddressForm(
+          (prev) => ({
+            ...prev,
+
+            country_id:
+              String(
+                option.id
+              ),
+
+            country:
+              option.name,
+
+            state_id: "",
+            state: "",
+
+            city_id: "",
+            city: "",
+          })
+        );
+
+        setStates([]);
+        setCities([]);
+
+        setAddressDropdown(
+          null
+        );
+
+        await loadMemberStates(
+          option.id
+        );
+
+        return;
+      }
+
+      if (
+        addressDropdown ===
+        "state"
+      ) {
+        const selectedStateId =
+          String(
+            option.id
+          );
+
+        setPresentAddressForm(
+          (prev) => ({
+            ...prev,
+
+            state_id:
+              selectedStateId,
+
+            state:
+              option.name,
+
+            city_id: "",
+            city: "",
+          })
+        );
+
+        const loadedCities =
+          await loadMemberCities(
+            selectedStateId
+          );
+
+        console.log(
+          "CITIES AFTER STATE SELECTION:",
+          JSON.stringify(
+            loadedCities,
+            null,
+            2
+          )
+        );
+
+        setAddressDropdown(
+          null
+        );
+
+        return;
+      }
+
+      setPresentAddressForm(
+        (prev) => ({
+          ...prev,
+
+          city_id:
+            String(
+              option.id
+            ),
+
+          city:
+            option.name,
+        })
       );
 
-      console.log(
-        "CITY DROPDOWN OPENED:",
-        JSON.stringify(loadedCities, null, 2)
+      setAddressDropdown(
+        null
       );
-    }
-  };
-
-  const handleEdit = () => {
-    if (presentAddress) {
-      setPresentAddressForm({
-        ...emptyAddress,
-        ...presentAddress,
-      });
-    }
-    setEditing(true);
-  };
-
-  const handleAddNew = () => {
-    setPresentAddressForm({ ...emptyAddress });
-    setStates([]);
-    setCities([]);
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    if (presentAddress) {
-      setPresentAddressForm({
-        ...emptyAddress,
-        ...presentAddress,
-      });
-    } else {
-      setPresentAddressForm({ ...emptyAddress });
-    }
-    setEditing(false);
-    setAddressDropdown(null);
-  };
-
-  const handleSavePresentAddress = async () => {
-    if (savingPresentAddress) return;
-
-    const token = await getToken();
-
-    if (!token) {
-      Alert.alert("Login Required", "Access token is missing. Please login again.");
-      return;
-    }
-
-    const countryId = Number(presentAddressForm.country_id);
-    const stateId = Number(presentAddressForm.state_id);
-    const cityId = Number(presentAddressForm.city_id);
-    const postalCode = String(
-      presentAddressForm.postal_code || ""
-    ).trim();
-
-    if (!Number.isInteger(countryId) || countryId <= 0) {
-      Alert.alert("Missing Country", "Please select a valid country.");
-      return;
-    }
-    if (!Number.isInteger(stateId) || stateId <= 0) {
-      Alert.alert("Missing State", "Please select a valid state.");
-      return;
-    }
-    if (!Number.isInteger(cityId) || cityId <= 0) {
-      Alert.alert("Missing City", "Please select a valid city.");
-      return;
-    }
-    if (!postalCode) {
-      Alert.alert("Missing Postal Code", "Please enter postal code.");
-      return;
-    }
-
-    // This matches the documented address-update fields used by this screen.
-    const body = {
-      country_id: countryId,
-      state_id: stateId,
-      city_id: cityId,
-      postal_code: postalCode,
-      address_type: "present",
     };
 
-    console.log(
-      "========================================"
-    );
-    console.log("UPDATE PRESENT ADDRESS REQUEST");
-    console.log("TOKEN EXISTS:", !!token);
-    console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
+  // =======================================================
+  // OPEN DROPDOWN
+  // =======================================================
 
-    try {
-      setSavingPresentAddress(true);
-
-      const response = await updateMemberAddress(token, body);
-
-      console.log(
-        "UPDATE PRESENT ADDRESS RESPONSE:",
-        JSON.stringify(response, null, 2)
-      );
-
-      if (!isSuccess(response)) {
+  const openDropdown =
+    async (
+      type
+    ) => {
+      if (
+        type === "state" &&
+        !presentAddressForm.country_id
+      ) {
         Alert.alert(
-          "Update Failed",
-          apiMessage(response, "Unable to update present address.")
+          "Select Country",
+          "Please select country first."
         );
+
         return;
       }
 
-      const updated = await loadMemberPresentAddress();
+      if (
+        type === "city" &&
+        !presentAddressForm.state_id
+      ) {
+        Alert.alert(
+          "Select State",
+          "Please select state first."
+        );
+
+        return;
+      }
+
+      setSearchText("");
+
+      setAddressDropdown(
+        type
+      );
+
+      if (
+        type === "country" &&
+        countries.length === 0
+      ) {
+        await loadMemberCountries();
+      }
+
+      if (
+        type === "state"
+      ) {
+        await loadMemberStates(
+          presentAddressForm.country_id
+        );
+      }
+
+      if (
+        type === "city"
+      ) {
+        const stateId =
+          Number(
+            presentAddressForm.state_id
+          );
+
+        if (
+          !Number.isFinite(
+            stateId
+          ) ||
+          stateId <= 0
+        ) {
+          setAddressDropdown(
+            null
+          );
+
+          Alert.alert(
+            "Select State",
+            "Please select a valid state first."
+          );
+
+          return;
+        }
+
+        const loadedCities =
+          await loadMemberCities(
+            stateId
+          );
+
+        console.log(
+          "CITY DROPDOWN OPENED:",
+          JSON.stringify(
+            loadedCities,
+            null,
+            2
+          )
+        );
+      }
+    };
+
+  // =======================================================
+  // EDIT
+  // =======================================================
+
+  const handleEdit =
+    () => {
+      if (
+        presentAddress
+      ) {
+        setPresentAddressForm({
+          ...emptyAddress,
+          ...presentAddress,
+        });
+      }
+
+      setEditing(true);
+    };
+
+  // =======================================================
+  // ADD NEW
+  // =======================================================
+
+  const handleAddNew =
+    () => {
+      setPresentAddressForm({
+        ...emptyAddress,
+      });
+
+      setStates([]);
+      setCities([]);
+
+      setEditing(true);
+    };
+
+  // =======================================================
+  // CANCEL
+  // =======================================================
+
+  const handleCancel =
+    () => {
+      if (
+        presentAddress
+      ) {
+        setPresentAddressForm({
+          ...emptyAddress,
+          ...presentAddress,
+        });
+      } else {
+        setPresentAddressForm({
+          ...emptyAddress,
+        });
+      }
 
       setEditing(false);
-      setAddressDropdown(null);
 
-      Alert.alert(
-        "Success",
-        apiMessage(response, "Present address updated successfully.")
+      setAddressDropdown(
+        null
+      );
+    };
+
+  // =======================================================
+  // SAVE / UPDATE
+  // =======================================================
+
+  const handleSavePresentAddress =
+    async () => {
+      if (
+        savingPresentAddress
+      ) {
+        return;
+      }
+
+      const token =
+        await getToken();
+
+      if (!token) {
+        Alert.alert(
+          "Login Required",
+          "Access token is missing. Please login again."
+        );
+
+        return;
+      }
+
+      const countryId =
+        Number(
+          presentAddressForm.country_id
+        );
+
+      const stateId =
+        Number(
+          presentAddressForm.state_id
+        );
+
+      const cityId =
+        Number(
+          presentAddressForm.city_id
+        );
+
+      const postalCode =
+        String(
+          presentAddressForm.postal_code ||
+            ""
+        ).trim();
+
+      if (
+        !Number.isInteger(
+          countryId
+        ) ||
+        countryId <= 0
+      ) {
+        Alert.alert(
+          "Missing Country",
+          "Please select a valid country."
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isInteger(
+          stateId
+        ) ||
+        stateId <= 0
+      ) {
+        Alert.alert(
+          "Missing State",
+          "Please select a valid state."
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isInteger(
+          cityId
+        ) ||
+        cityId <= 0
+      ) {
+        Alert.alert(
+          "Missing City",
+          "Please select a valid city."
+        );
+
+        return;
+      }
+
+      if (!postalCode) {
+        Alert.alert(
+          "Missing Postal Code",
+          "Please enter postal code."
+        );
+
+        return;
+      }
+
+      const body = {
+        country_id:
+          countryId,
+
+        state_id:
+          stateId,
+
+        city_id:
+          cityId,
+
+        postal_code:
+          postalCode,
+
+        address_type:
+          "present",
+      };
+
+      console.log(
+        "========================================"
       );
 
       console.log(
-        "UPDATED PRESENT ADDRESS:",
-        JSON.stringify(updated, null, 2)
-      );
-    } catch (error) {
-      console.error(
-        "UPDATE PRESENT ADDRESS ERROR:",
-        error?.response?.data || error
+        "UPDATE PRESENT ADDRESS REQUEST"
       );
 
-      Alert.alert(
-        "Error",
-        error?.response?.data?.message ||
-          error?.response?.data?.msg ||
-          error?.message ||
-          "Something went wrong while updating present address."
+      console.log(
+        "TOKEN EXISTS:",
+        !!token
       );
-    } finally {
-      setSavingPresentAddress(false);
-    }
-  };
 
-  const currentAddressText = useMemo(() => {
-    if (!presentAddress) return "No present address saved.";
+      console.log(
+        "REQUEST BODY:",
+        JSON.stringify(
+          body,
+          null,
+          2
+        )
+      );
 
-    const parts = [
-      presentAddress.address,
-      presentAddress.city,
-      presentAddress.state,
-      presentAddress.country,
-      presentAddress.postal_code,
-    ].filter(Boolean);
+      try {
+        setSavingPresentAddress(
+          true
+        );
 
-    return parts.length ? parts.join(", ") : "Present address saved";
-  }, [presentAddress]);
+        const response =
+          await updateMemberAddress(
+            token,
+            body
+          );
 
-  const displayList = useMemo(() => {
-    const list =
-      addressDropdown === "country"
-        ? countries
-        : addressDropdown === "state"
-        ? states
-        : cities;
+        console.log(
+          "UPDATE PRESENT ADDRESS RESPONSE:",
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
 
-    const query = searchText.trim().toLowerCase();
+        if (
+          !isSuccess(
+            response
+          )
+        ) {
+          Alert.alert(
+            "Update Failed",
+            apiMessage(
+              response,
+              "Unable to update present address."
+            )
+          );
 
-    if (!query) return list;
+          return;
+        }
 
-    return list.filter((item) =>
-      item.name.toLowerCase().includes(query)
-    );
-  }, [addressDropdown, countries, states, cities, searchText]);
+        const updated =
+          await loadMemberPresentAddress();
+
+        setEditing(false);
+
+        setAddressDropdown(
+          null
+        );
+
+        Alert.alert(
+          "Success",
+          apiMessage(
+            response,
+            "Present address updated successfully."
+          )
+        );
+
+        console.log(
+          "UPDATED PRESENT ADDRESS:",
+          JSON.stringify(
+            updated,
+            null,
+            2
+          )
+        );
+      } catch (error) {
+        console.error(
+          "UPDATE PRESENT ADDRESS ERROR:",
+          error?.response
+            ?.data || error
+        );
+
+        Alert.alert(
+          "Error",
+          error?.response
+            ?.data?.message ||
+            error?.response
+              ?.data?.msg ||
+            error?.message ||
+            "Something went wrong while updating present address."
+        );
+      } finally {
+        setSavingPresentAddress(
+          false
+        );
+      }
+    };
+
+  // =======================================================
+  // CURRENT ADDRESS TEXT
+  // =======================================================
+
+  const currentAddressText =
+    useMemo(() => {
+      if (
+        !presentAddress
+      ) {
+        return "No present address saved.";
+      }
+
+      const parts = [
+        presentAddress.address,
+        presentAddress.city,
+        presentAddress.state,
+        presentAddress.country,
+        presentAddress.postal_code,
+      ].filter(Boolean);
+
+      return parts.length
+        ? parts.join(", ")
+        : "Present address saved";
+    }, [
+      presentAddress,
+    ]);
+
+  // =======================================================
+  // FILTER DROPDOWN LIST
+  // =======================================================
+
+  const displayList =
+    useMemo(() => {
+      const list =
+        addressDropdown ===
+        "country"
+          ? countries
+          : addressDropdown ===
+            "state"
+          ? states
+          : cities;
+
+      const query =
+        searchText
+          .trim()
+          .toLowerCase();
+
+      if (!query) {
+        return list;
+      }
+
+      return list.filter(
+        (item) =>
+          item.name
+            .toLowerCase()
+            .includes(query)
+      );
+    }, [
+      addressDropdown,
+      countries,
+      states,
+      cities,
+      searchText,
+    ]);
+
+  // =======================================================
+  // DROPDOWN TITLE
+  // =======================================================
 
   const dropdownTitle =
-    addressDropdown === "country"
+    addressDropdown ===
+    "country"
       ? "Select Country"
-      : addressDropdown === "state"
+      : addressDropdown ===
+        "state"
       ? "Select State"
       : "Select City";
 
+  // =======================================================
+  // DROPDOWN LOADING
+  // =======================================================
+
   const dropdownLoading =
-    addressDropdown === "country"
+    addressDropdown ===
+    "country"
       ? countriesLoading
-      : addressDropdown === "state"
+      : addressDropdown ===
+        "state"
       ? statesLoading
       : citiesLoading;
 
-  const renderDropdown = () => (
-    <Modal
-      visible={!!addressDropdown}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setAddressDropdown(null)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{dropdownTitle}</Text>
-            <TouchableOpacity
-              onPress={() => setAddressDropdown(null)}
-              style={styles.closeButton}
+  // =======================================================
+  // DROPDOWN MODAL
+  // =======================================================
+
+  const renderDropdown =
+    () => (
+      <Modal
+        visible={
+          !!addressDropdown
+        }
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setAddressDropdown(
+            null
+          )
+        }
+      >
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <View
+            style={
+              styles.modalCard
+            }
+          >
+            <View
+              style={
+                styles.modalHeader
+              }
             >
-              <Ionicons name="close" size={22} color="#555" />
-            </TouchableOpacity>
-          </View>
-
-          <TextInput
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder={`Search ${addressDropdown || ""}`}
-            placeholderTextColor={COLORS.placeholder}
-          />
-
-          {dropdownLoading ? (
-            <View style={styles.loaderBox}>
-              <ActivityIndicator size="small" color={COLORS.red} />
-              <Text style={styles.loaderText}>Loading...</Text>
-            </View>
-          ) : displayList.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Ionicons
-                name="location-outline"
-                size={28}
-                color="#BBBBBB"
-              />
-
-              <Text style={styles.emptyText}>
-                No {addressDropdown || ""} found
+              <Text
+                style={
+                  styles.modalTitle
+                }
+              >
+                {dropdownTitle}
               </Text>
 
-              {addressDropdown === "city" &&
-              presentAddressForm.state_id ? (
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={() =>
-                    loadMemberCities(
-                      presentAddressForm.state_id
-                    )
-                  }
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="refresh"
-                    size={15}
-                    color={COLORS.red}
-                  />
-                  <Text style={styles.retryText}>
-                    Retry Cities
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity
+                onPress={() =>
+                  setAddressDropdown(
+                    null
+                  )
+                }
+                style={
+                  styles.closeButton
+                }
+              >
+                <Feather
+                  name="x"
+                  size={22}
+                  color="#555"
+                />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={styles.optionList}
-            >
-              {displayList.map((item) => {
-                const selected =
-                  (addressDropdown === "country" &&
-                    String(item.id) ===
-                      String(presentAddressForm.country_id)) ||
-                  (addressDropdown === "state" &&
-                    String(item.id) ===
-                      String(presentAddressForm.state_id)) ||
-                  (addressDropdown === "city" &&
-                    String(item.id) ===
-                      String(presentAddressForm.city_id));
 
-                return (
+            <TextInput
+              style={
+                styles.searchInput
+              }
+              value={
+                searchText
+              }
+              onChangeText={
+                setSearchText
+              }
+              placeholder={`Search ${
+                addressDropdown ||
+                ""
+              }`}
+              placeholderTextColor={
+                COLORS.placeholder
+              }
+            />
+
+            {dropdownLoading ? (
+              <View
+                style={
+                  styles.loaderBox
+                }
+              >
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    COLORS.red
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.loaderText
+                  }
+                >
+                  Loading...
+                </Text>
+              </View>
+            ) : displayList.length ===
+              0 ? (
+              <View
+                style={
+                  styles.emptyBox
+                }
+              >
+                <Feather
+                  name="map-pin"
+                  size={28}
+                  color="#BBBBBB"
+                />
+
+                <Text
+                  style={
+                    styles.emptyText
+                  }
+                >
+                  No{" "}
+                  {addressDropdown ||
+                    ""}{" "}
+                  found
+                </Text>
+
+                {addressDropdown ===
+                  "city" &&
+                presentAddressForm.state_id ? (
                   <TouchableOpacity
-                    key={`${addressDropdown}-${item.id}`}
-                    style={[
-                      styles.optionRow,
-                      selected && styles.selectedOption,
-                    ]}
-                    onPress={() => selectAddressOption(item)}
-                    activeOpacity={0.7}
+                    style={
+                      styles.retryButton
+                    }
+                    onPress={() =>
+                      loadMemberCities(
+                        presentAddressForm.state_id
+                      )
+                    }
+                    activeOpacity={
+                      0.8
+                    }
                   >
+                    <Feather
+                      name="refresh-cw"
+                      size={15}
+                      color={
+                        COLORS.red
+                      }
+                    />
+
                     <Text
-                      style={[
-                        styles.optionText,
-                        selected && styles.selectedOptionText,
-                      ]}
+                      style={
+                        styles.retryText
+                      }
                     >
-                      {item.name}
+                      Retry Cities
                     </Text>
-                    {selected && (
-                      <Ionicons
-                        name="checkmark"
-                        size={18}
-                        color={COLORS.red}
-                      />
-                    )}
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
+                ) : null}
+              </View>
+            ) : (
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={
+                  false
+                }
+                style={
+                  styles.optionList
+                }
+              >
+                {displayList.map(
+                  (
+                    item
+                  ) => {
+                    const selected =
+                      (addressDropdown ===
+                        "country" &&
+                        String(
+                          item.id
+                        ) ===
+                          String(
+                            presentAddressForm.country_id
+                          )) ||
+                      (addressDropdown ===
+                        "state" &&
+                        String(
+                          item.id
+                        ) ===
+                          String(
+                            presentAddressForm.state_id
+                          )) ||
+                      (addressDropdown ===
+                        "city" &&
+                        String(
+                          item.id
+                        ) ===
+                          String(
+                            presentAddressForm.city_id
+                          ));
+
+                    return (
+                      <TouchableOpacity
+                        key={`${addressDropdown}-${item.id}`}
+                        style={[
+                          styles.optionRow,
+                          selected &&
+                            styles.selectedOption,
+                        ]}
+                        onPress={() =>
+                          selectAddressOption(
+                            item
+                          )
+                        }
+                        activeOpacity={
+                          0.7
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            selected &&
+                              styles.selectedOptionText,
+                          ]}
+                        >
+                          {
+                            item.name
+                          }
+                        </Text>
+
+                        {selected && (
+                          <Feather
+                            name="check"
+                            size={18}
+                            color={
+                              COLORS.red
+                            }
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  }
+                )}
+              </ScrollView>
+            )}
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+
+  // =======================================================
+  // UI
+  // =======================================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={
+        styles.safeArea
+      }
+    >
       <StatusBar
         barStyle="dark-content"
-        backgroundColor={COLORS.background}
+        backgroundColor={
+          COLORS.background
+        }
       />
 
-      <View style={styles.screen}>
-        <View style={styles.header}>
+      <View
+        style={
+          styles.screen
+        }
+      >
+        {/* HEADER */}
+
+        <View
+          style={
+            styles.header
+          }
+        >
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
+            style={
+              styles.backButton
+            }
+            onPress={() =>
+              navigation.goBack()
+            }
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="chevron-back"
-              size={18}
-              color={COLORS.red}
+            <Feather
+              name="chevron-left"
+              size={20}
+              color={
+                COLORS.red
+              }
             />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Present Address</Text>
+          <Text
+            style={
+              styles.headerTitle
+            }
+          >
+            Present Address
+          </Text>
 
           <TouchableOpacity
-            style={styles.menuButton}
+            style={
+              styles.menuButton
+            }
             onPress={() =>
               Alert.alert(
                 "Present Address",
@@ -1029,45 +2021,84 @@ export default function PresentAddress() {
             }
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="ellipsis-vertical"
-              size={18}
-              color={COLORS.red}
+            <Feather
+              name="more-vertical"
+              size={19}
+              color={
+                COLORS.red
+              }
             />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
+        <View
+          style={
+            styles.card
+          }
+        >
           <ScrollView
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={
+              false
+            }
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={
+              styles.scrollContent
+            }
           >
-            {/* SAVED PRESENT ADDRESS */}
+            {/* SAVED ADDRESS */}
+
             {!editing ? (
               <>
-                <View style={styles.currentAddressCard}>
-                  <View style={styles.locationIcon}>
-                    <Ionicons
-                      name="location-outline"
+                <View
+                  style={
+                    styles.currentAddressCard
+                  }
+                >
+                  <View
+                    style={
+                      styles.locationIcon
+                    }
+                  >
+                    <Feather
+                      name="map-pin"
                       size={25}
-                      color={COLORS.red}
+                      color={
+                        COLORS.red
+                      }
                     />
                   </View>
 
-                  <View style={styles.currentAddressDetails}>
-                    <Text style={styles.addressTypeSmall}>
+                  <View
+                    style={
+                      styles.currentAddressDetails
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.addressTypeSmall
+                      }
+                    >
                       Present Address
                     </Text>
 
                     <Text
-                      style={styles.currentAddressText}
-                      numberOfLines={6}
+                      style={
+                        styles.currentAddressText
+                      }
+                      numberOfLines={
+                        6
+                      }
                     >
-                      {currentAddressText}
+                      {
+                        currentAddressText
+                      }
                     </Text>
 
-                    <Text style={styles.addressLoadedText}>
+                    <Text
+                      style={
+                        styles.addressLoadedText
+                      }
+                    >
                       {presentAddress
                         ? "Present address loaded from API"
                         : "No present address saved"}
@@ -1075,99 +2106,224 @@ export default function PresentAddress() {
                   </View>
 
                   <TouchableOpacity
-                    style={styles.editAddressButton}
-                    onPress={handleEdit}
-                    activeOpacity={0.7}
+                    style={
+                      styles.editAddressButton
+                    }
+                    onPress={
+                      handleEdit
+                    }
+                    activeOpacity={
+                      0.7
+                    }
                   >
-                    <Ionicons
-                      name="pencil-outline"
-                      size={11}
-                      color={COLORS.red}
+                    <Feather
+                      name="edit-3"
+                      size={12}
+                      color={
+                        COLORS.red
+                      }
                     />
-                    <Text style={styles.editAddressText}>Edit</Text>
+
+                    <Text
+                      style={
+                        styles.editAddressText
+                      }
+                    >
+                      Edit
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity
-                  style={styles.addNewAddress}
-                  onPress={handleAddNew}
-                  activeOpacity={0.8}
+                  style={
+                    styles.addNewAddress
+                  }
+                  onPress={
+                    handleAddNew
+                  }
+                  activeOpacity={
+                    0.8
+                  }
                 >
-                  <Ionicons
-                    name="add"
+                  <Feather
+                    name="plus"
                     size={18}
-                    color={COLORS.red}
+                    color={
+                      COLORS.red
+                    }
                   />
-                  <Text style={styles.addNewAddressText}>
+
+                  <Text
+                    style={
+                      styles.addNewAddressText
+                    }
+                  >
                     Add New Address
                   </Text>
                 </TouchableOpacity>
 
                 {!presentAddress && (
-                  <View style={styles.noAddressHint}>
-                    <Ionicons
-                      name="information-circle-outline"
+                  <View
+                    style={
+                      styles.noAddressHint
+                    }
+                  >
+                    <Feather
+                      name="info"
                       size={18}
                       color="#888888"
                     />
-                    <Text style={styles.noAddressHintText}>
-                      Add your present address to display it here.
+
+                    <Text
+                      style={
+                        styles.noAddressHintText
+                      }
+                    >
+                      Add your present
+                      address to
+                      display it here.
                     </Text>
                   </View>
                 )}
               </>
             ) : (
-              /* ADD / EDIT ADDRESS FORM */
-              <View style={styles.formContainer}>
-                <View style={styles.formHeader}>
+              // =================================================
+              // ADD / EDIT FORM
+              // =================================================
+
+              <View
+                style={
+                  styles.formContainer
+                }
+              >
+                <View
+                  style={
+                    styles.formHeader
+                  }
+                >
                   <View>
-                    <Text style={styles.formTitle}>
-                      {presentAddress ? "Edit Present Address" : "Add Present Address"}
+                    <Text
+                      style={
+                        styles.formTitle
+                      }
+                    >
+                      {presentAddress
+                        ? "Edit Present Address"
+                        : "Add Present Address"}
                     </Text>
-                    <Text style={styles.formSubtitle}>
-                      Enter your current address details
+
+                    <Text
+                      style={
+                        styles.formSubtitle
+                      }
+                    >
+                      Enter your current
+                      address details
                     </Text>
                   </View>
 
                   <TouchableOpacity
-                    style={styles.formCloseButton}
-                    onPress={handleCancel}
-                    activeOpacity={0.7}
+                    style={
+                      styles.formCloseButton
+                    }
+                    onPress={
+                      handleCancel
+                    }
+                    activeOpacity={
+                      0.7
+                    }
                   >
-                    <Ionicons
-                      name="close"
+                    <Feather
+                      name="x"
                       size={19}
-                      color={COLORS.red}
+                      color={
+                        COLORS.red
+                      }
                     />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>
-                    Address Type<Text style={styles.required}> *</Text>
+                {/* ADDRESS TYPE */}
+
+                <View
+                  style={
+                    styles.field
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    Address Type
+                    <Text
+                      style={
+                        styles.required
+                      }
+                    >
+                      {" "}
+                      *
+                    </Text>
                   </Text>
 
-                  <View style={styles.addressTypeBox}>
-                    <Text style={styles.addressTypeText}>
+                  <View
+                    style={
+                      styles.addressTypeBox
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.addressTypeText
+                      }
+                    >
                       Present Address
                     </Text>
-                    <Ionicons
-                      name="location-outline"
+
+                    <Feather
+                      name="map-pin"
                       size={17}
-                      color={COLORS.red}
+                      color={
+                        COLORS.red
+                      }
                     />
                   </View>
                 </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>
-                    Country<Text style={styles.required}> *</Text>
+                {/* COUNTRY */}
+
+                <View
+                  style={
+                    styles.field
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    Country
+                    <Text
+                      style={
+                        styles.required
+                      }
+                    >
+                      {" "}
+                      *
+                    </Text>
                   </Text>
 
                   <TouchableOpacity
-                    style={styles.dropdown}
-                    onPress={() => openDropdown("country")}
-                    activeOpacity={0.7}
+                    style={
+                      styles.dropdown
+                    }
+                    onPress={() =>
+                      openDropdown(
+                        "country"
+                      )
+                    }
+                    activeOpacity={
+                      0.7
+                    }
                   >
                     <Text
                       style={[
@@ -1175,12 +2331,15 @@ export default function PresentAddress() {
                         !presentAddressForm.country &&
                           styles.placeholderText,
                       ]}
-                      numberOfLines={1}
+                      numberOfLines={
+                        1
+                      }
                     >
-                      {presentAddressForm.country || "Select Country"}
+                      {presentAddressForm.country ||
+                        "Select Country"}
                     </Text>
 
-                    <Ionicons
+                    <Feather
                       name="chevron-down"
                       size={17}
                       color="#888"
@@ -1188,9 +2347,27 @@ export default function PresentAddress() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>
-                    State<Text style={styles.required}> *</Text>
+                {/* STATE */}
+
+                <View
+                  style={
+                    styles.field
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    State
+                    <Text
+                      style={
+                        styles.required
+                      }
+                    >
+                      {" "}
+                      *
+                    </Text>
                   </Text>
 
                   <TouchableOpacity
@@ -1199,8 +2376,14 @@ export default function PresentAddress() {
                       !presentAddressForm.country_id &&
                         styles.dropdownDisabled,
                     ]}
-                    onPress={() => openDropdown("state")}
-                    activeOpacity={0.7}
+                    onPress={() =>
+                      openDropdown(
+                        "state"
+                      )
+                    }
+                    activeOpacity={
+                      0.7
+                    }
                   >
                     <Text
                       style={[
@@ -1208,24 +2391,47 @@ export default function PresentAddress() {
                         !presentAddressForm.state &&
                           styles.placeholderText,
                       ]}
-                      numberOfLines={1}
+                      numberOfLines={
+                        1
+                      }
                     >
-                      {presentAddressForm.state || "Select State"}
+                      {presentAddressForm.state ||
+                        "Select State"}
                     </Text>
 
-                    <Ionicons
+                    <Feather
                       name="chevron-down"
                       size={17}
                       color={
-                        presentAddressForm.country_id ? "#888" : "#BBBBBB"
+                        presentAddressForm.country_id
+                          ? "#888"
+                          : "#BBBBBB"
                       }
                     />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>
-                    City<Text style={styles.required}> *</Text>
+                {/* CITY */}
+
+                <View
+                  style={
+                    styles.field
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    City
+                    <Text
+                      style={
+                        styles.required
+                      }
+                    >
+                      {" "}
+                      *
+                    </Text>
                   </Text>
 
                   <TouchableOpacity
@@ -1234,8 +2440,14 @@ export default function PresentAddress() {
                       !presentAddressForm.state_id &&
                         styles.dropdownDisabled,
                     ]}
-                    onPress={() => openDropdown("city")}
-                    activeOpacity={0.7}
+                    onPress={() =>
+                      openDropdown(
+                        "city"
+                      )
+                    }
+                    activeOpacity={
+                      0.7
+                    }
                   >
                     <Text
                       style={[
@@ -1243,96 +2455,197 @@ export default function PresentAddress() {
                         !presentAddressForm.city &&
                           styles.placeholderText,
                       ]}
-                      numberOfLines={1}
+                      numberOfLines={
+                        1
+                      }
                     >
-                      {presentAddressForm.city || "Select City"}
+                      {presentAddressForm.city ||
+                        "Select City"}
                     </Text>
 
-                    <Ionicons
+                    <Feather
                       name="chevron-down"
                       size={17}
                       color={
-                        presentAddressForm.state_id ? "#888" : "#BBBBBB"
+                        presentAddressForm.state_id
+                          ? "#888"
+                          : "#BBBBBB"
                       }
                     />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>
-                    Postal Code<Text style={styles.required}> *</Text>
+                {/* POSTAL CODE */}
+
+                <View
+                  style={
+                    styles.field
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    Postal Code
+                    <Text
+                      style={
+                        styles.required
+                      }
+                    >
+                      {" "}
+                      *
+                    </Text>
                   </Text>
 
                   <TextInput
-                    style={styles.input}
-                    value={presentAddressForm.postal_code}
-                    onChangeText={(text) =>
-                      setPresentAddressForm((prev) => ({
-                        ...prev,
-                        postal_code: text
-                          .replace(/\D/g, "")
-                          .slice(0, 10),
-                      }))
+                    style={
+                      styles.input
+                    }
+                    value={
+                      presentAddressForm.postal_code
+                    }
+                    onChangeText={(
+                      text
+                    ) =>
+                      setPresentAddressForm(
+                        (prev) => ({
+                          ...prev,
+                          postal_code:
+                            text
+                              .replace(
+                                /\D/g,
+                                ""
+                              )
+                              .slice(
+                                0,
+                                10
+                              ),
+                        })
+                      )
                     }
                     keyboardType="number-pad"
-                    maxLength={10}
+                    maxLength={
+                      10
+                    }
                     placeholder="Enter postal code"
-                    placeholderTextColor={COLORS.placeholder}
+                    placeholderTextColor={
+                      COLORS.placeholder
+                    }
                   />
                 </View>
 
-                <View style={styles.fieldAddress}>
-                  <Text style={styles.label}>Address</Text>
+                {/* ADDRESS */}
+
+                <View
+                  style={
+                    styles.fieldAddress
+                  }
+                >
+                  <Text
+                    style={
+                      styles.label
+                    }
+                  >
+                    Address
+                  </Text>
 
                   <TextInput
-                    style={styles.addressInput}
+                    style={
+                      styles.addressInput
+                    }
                     multiline
                     textAlignVertical="top"
-                    value={presentAddressForm.address}
-                    onChangeText={(text) =>
-                      setPresentAddressForm((prev) => ({
-                        ...prev,
-                        address: text,
-                      }))
+                    value={
+                      presentAddressForm.address
+                    }
+                    onChangeText={(
+                      text
+                    ) =>
+                      setPresentAddressForm(
+                        (prev) => ({
+                          ...prev,
+                          address:
+                            text,
+                        })
+                      )
                     }
                     placeholder="Enter address"
-                    placeholderTextColor={COLORS.placeholder}
+                    placeholderTextColor={
+                      COLORS.placeholder
+                    }
                   />
                 </View>
 
+                {/* DEFAULT ADDRESS */}
+
                 <TouchableOpacity
-                  style={styles.defaultRow}
-                  onPress={() => setDefaultAddress((v) => !v)}
-                  activeOpacity={0.7}
+                  style={
+                    styles.defaultRow
+                  }
+                  onPress={() =>
+                    setDefaultAddress(
+                      (value) =>
+                        !value
+                    )
+                  }
+                  activeOpacity={
+                    0.7
+                  }
                 >
                   <View
                     style={[
                       styles.checkbox,
-                      !defaultAddress && styles.checkboxOff,
+                      !defaultAddress &&
+                        styles.checkboxOff,
                     ]}
                   >
                     {defaultAddress && (
-                      <Ionicons
-                        name="checkmark"
+                      <Feather
+                        name="check"
                         size={14}
                         color="#FFFFFF"
                       />
                     )}
                   </View>
 
-                  <Text style={styles.defaultText}>
+                  <Text
+                    style={
+                      styles.defaultText
+                    }
+                  >
                     Set as default address
                   </Text>
                 </TouchableOpacity>
 
-                <View style={styles.buttonRow}>
+                {/* BUTTONS */}
+
+                <View
+                  style={
+                    styles.buttonRow
+                  }
+                >
                   <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancel}
-                    activeOpacity={0.8}
-                    disabled={savingPresentAddress}
+                    style={
+                      styles.cancelButton
+                    }
+                    onPress={
+                      handleCancel
+                    }
+                    activeOpacity={
+                      0.8
+                    }
+                    disabled={
+                      savingPresentAddress
+                    }
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text
+                      style={
+                        styles.cancelButtonText
+                      }
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1341,9 +2654,15 @@ export default function PresentAddress() {
                       savingPresentAddress &&
                         styles.saveButtonDisabled,
                     ]}
-                    onPress={handleSavePresentAddress}
-                    activeOpacity={0.85}
-                    disabled={savingPresentAddress}
+                    onPress={
+                      handleSavePresentAddress
+                    }
+                    activeOpacity={
+                      0.85
+                    }
+                    disabled={
+                      savingPresentAddress
+                    }
                   >
                     {savingPresentAddress ? (
                       <ActivityIndicator
@@ -1351,8 +2670,14 @@ export default function PresentAddress() {
                         color="#FFFFFF"
                       />
                     ) : (
-                      <Text style={styles.saveButtonText}>
-                        {presentAddress ? "Update Address" : "Save Address"}
+                      <Text
+                        style={
+                          styles.saveButtonText
+                        }
+                      >
+                        {presentAddress
+                          ? "Update Address"
+                          : "Save Address"}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -1368,499 +2693,578 @@ export default function PresentAddress() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 4,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  header: {
-    height: 58,
-    width: "100%",
-    backgroundColor: COLORS.white,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    borderTopLeftRadius: 7,
-    borderTopRightRadius: 7,
-    borderWidth: 1,
-    borderColor: "#E6E6E6",
-  },
-  backButton: {
-    position: "absolute",
-    left: 4,
-    top: 10,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#222222",
-    textAlign: "center",
-  },
-  menuButton: {
-    position: "absolute",
-    right: 4,
-    top: 8,
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  card: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: "#E6E6E6",
-    borderBottomLeftRadius: 7,
-    borderBottomRightRadius: 7,
-    overflow: "hidden",
-  },
-  scrollContent: {
-    paddingHorizontal: 10,
-    paddingTop: 5,
-    paddingBottom: 20,
-  },
-  initialLoader: {
-    height: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  currentAddressCard: {
-    width: "100%",
-    minHeight: 105,
-    backgroundColor: "#FFFCFC",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  locationIcon: {
-    width: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
-  },
-  currentAddressDetails: {
-    flex: 1,
-    paddingRight: 7,
-  },
-  currentAddressText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#555555",
-  },
+// =========================================================
+// STYLES
+// =========================================================
 
-  addressTypeSmall: {
-    fontSize: 11,
-    color: "#999999",
-    marginBottom: 4,
-    fontWeight: "500",
-  },
+const styles =
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor:
+        COLORS.background,
+    },
 
-  noAddressHint: {
-    width: "100%",
-    minHeight: 48,
-    borderRadius: 6,
-    backgroundColor: "#FAFAFA",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    marginBottom: 14,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor:
+        COLORS.background,
+      paddingHorizontal: 4,
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
 
-  noAddressHintText: {
-    flex: 1,
-    fontSize: 12,
-    color: "#777777",
-    marginLeft: 7,
-    lineHeight: 17,
-  },
+    header: {
+      height: 58,
+      width: "100%",
+      backgroundColor:
+        COLORS.white,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      position: "relative",
+      borderTopLeftRadius: 7,
+      borderTopRightRadius: 7,
+      borderWidth: 1,
+      borderColor: "#E6E6E6",
+    },
 
-  formContainer: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    borderRadius: 7,
-    paddingHorizontal: 10,
-    paddingTop: 12,
-    paddingBottom: 5,
-    marginTop: 10,
-  },
+    backButton: {
+      position: "absolute",
+      left: 4,
+      top: 10,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor:
+        COLORS.white,
+      borderWidth: 1,
+      borderColor: "#EEEEEE",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  formHeader: {
-    width: "100%",
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: 10,
-    marginBottom: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F1F1",
-  },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: "#222222",
+      textAlign: "center",
+    },
 
-  formTitle: {
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "700",
-  },
+    menuButton: {
+      position: "absolute",
+      right: 4,
+      top: 8,
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  formSubtitle: {
-    fontSize: 11,
-    color: "#999999",
-    marginTop: 3,
-  },
+    card: {
+      flex: 1,
+      width: "100%",
+      backgroundColor:
+        COLORS.white,
+      borderWidth: 1,
+      borderTopWidth: 0,
+      borderColor: "#E6E6E6",
+      borderBottomLeftRadius: 7,
+      borderBottomRightRadius: 7,
+      overflow: "hidden",
+    },
 
-  formCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFF0F2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    scrollContent: {
+      paddingHorizontal: 10,
+      paddingTop: 5,
+      paddingBottom: 20,
+    },
 
-  addressTypeBox: {
-    width: "100%",
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#E7E7E7",
-    borderRadius: 4,
-    backgroundColor: "#F9F9F9",
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    currentAddressCard: {
+      width: "100%",
+      minHeight: 105,
+      backgroundColor:
+        "#FFFCFC",
+      borderWidth: 1,
+      borderColor: "#EEEEEE",
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+      marginTop: 10,
+    },
 
-  addressTypeText: {
-    fontSize: 15,
-    color: "#555555",
-    fontWeight: "500",
-  },
-  addressLoadedText: {
-    marginTop: 6,
-    fontSize: 11,
-    color: "#777777",
-  },
+    locationIcon: {
+      width: 30,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 4,
+    },
 
-  editAddressButton: {
+    currentAddressDetails: {
+      flex: 1,
+      paddingRight: 7,
+    },
 
-    height: 28,
-    minWidth: 48,
-    borderRadius: 8,
-    backgroundColor: COLORS.lightRed,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  editAddressText: {
-    fontSize: 11,
-    color: COLORS.red,
-    fontWeight: "700",
-    marginLeft: 3,
-  },
-  addNewAddress: {
-    minHeight: 53,
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    borderRadius: 5,
-    backgroundColor: "#FFFCFC",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    marginBottom: 18,
-  },
-  addNewAddressText: {
-    fontSize: 15,
-    color: COLORS.red,
-    fontWeight: "700",
-    marginLeft: 5,
-  },
-  field: {
-    width: "100%",
-    marginBottom: 20,
-  },
-  fieldAddress: {
-    width: "100%",
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 15,
-    color: "#555555",
-    fontWeight: "500",
-    marginBottom: 8,
-  },
-  required: {
-    color: COLORS.red,
-    fontSize: 12,
-  },
-  dropdown: {
-    width: "100%",
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#E7E7E7",
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropdownDisabled: {
-    width: "100%",
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#E7E7E7",
-    borderRadius: 4,
-    backgroundColor: "#F7F7F7",
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropdownText: {
-    flex: 1,
-    fontSize: 15,
-    color: "#555555",
-  },
-  placeholderText: {
-    color: COLORS.placeholder,
-  },
-  input: {
-    width: "100%",
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#E7E7E7",
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
-    paddingVertical: 0,
-    fontSize: 15,
-    color: "#555555",
-  },
-  addressInput: {
-    width: "100%",
-    height: 80,
-    borderWidth: 1,
-    borderColor: "#E7E7E7",
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 15,
-    color: "#555555",
-  },
-  defaultRow: {
-    minHeight: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 3,
-    backgroundColor: COLORS.red,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 7,
-  },
-  checkboxOff: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-  },
-  defaultText: {
-    fontSize: 14,
-    color: "#2E2B2B",
-  },
-  buttonRow: {
-    width: "100%",
-    minHeight: 70,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  cancelButton: {
-    width: "39%",
-    height: 44,
-    borderRadius: 4,
-    backgroundColor: "#FFF0F2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: COLORS.red,
-    fontWeight: "700",
-  },
-  saveButton: {
-    width: "49%",
-    height: 44,
-    borderRadius: 4,
-    backgroundColor: COLORS.red,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonDisabled: {
-    opacity: 0.65,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    color: COLORS.white,
-    fontWeight: "700",
-  },
-  permanentInfo: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 6,
-    backgroundColor: "#FAFAFA",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-  },
-  permanentTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 5,
-  },
-  permanentText: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#666",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    maxHeight: "78%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  modalHeader: {
-    minHeight: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#222",
-  },
-  closeButton: {
-    width: 35,
-    height: 35,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchInput: {
-    height: 42,
-    margin: 12,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "#E4E4E4",
-    borderRadius: 7,
-    color: "#333",
-    fontSize: 14,
-  },
-  optionList: {
-    paddingHorizontal: 8,
-    paddingBottom: 10,
-  },
-  optionRow: {
-    minHeight: 46,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F2",
-  },
-  selectedOption: {
-    backgroundColor: "#FFF4F5",
-  },
-  optionText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#444",
-  },
-  selectedOptionText: {
-    color: COLORS.red,
-    fontWeight: "600",
-  },
-  retryButton: {
-    marginTop: 12,
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: 7,
-    backgroundColor: "#FFF0F2",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    currentAddressText: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: "#555555",
+    },
 
-  retryText: {
-    marginLeft: 6,
-    fontSize: 13,
-    color: COLORS.red,
-    fontWeight: "700",
-  },
+    addressTypeSmall: {
+      fontSize: 11,
+      color: "#999999",
+      marginBottom: 4,
+      fontWeight: "500",
+    },
 
-  loaderBox: {
-    minHeight: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  loaderText: {
-    fontSize: 13,
-    color: "#666",
-  },
-  emptyBox: {
-    minHeight: 100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#888",
-  },
-});
+    noAddressHint: {
+      width: "100%",
+      minHeight: 48,
+      borderRadius: 6,
+      backgroundColor:
+        "#FAFAFA",
+      borderWidth: 1,
+      borderColor: "#EEEEEE",
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 10,
+      marginBottom: 14,
+    },
+
+    noAddressHintText: {
+      flex: 1,
+      fontSize: 12,
+      color: "#777777",
+      marginLeft: 7,
+      lineHeight: 17,
+    },
+
+    formContainer: {
+      width: "100%",
+      backgroundColor:
+        "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#EEEEEE",
+      borderRadius: 7,
+      paddingHorizontal: 10,
+      paddingTop: 12,
+      paddingBottom: 5,
+      marginTop: 10,
+    },
+
+    formHeader: {
+      width: "100%",
+      minHeight: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      paddingBottom: 10,
+      marginBottom: 5,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        "#F1F1F1",
+    },
+
+    formTitle: {
+      fontSize: 16,
+      color: "#333333",
+      fontWeight: "700",
+    },
+
+    formSubtitle: {
+      fontSize: 11,
+      color: "#999999",
+      marginTop: 3,
+    },
+
+    formCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor:
+        "#FFF0F2",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    addressTypeBox: {
+      width: "100%",
+      minHeight: 44,
+      borderWidth: 1,
+      borderColor: "#E7E7E7",
+      borderRadius: 4,
+      backgroundColor:
+        "#F9F9F9",
+      paddingHorizontal: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    addressTypeText: {
+      fontSize: 15,
+      color: "#555555",
+      fontWeight: "500",
+    },
+
+    addressLoadedText: {
+      marginTop: 6,
+      fontSize: 11,
+      color: "#777777",
+    },
+
+    editAddressButton: {
+      height: 28,
+      minWidth: 48,
+      borderRadius: 8,
+      backgroundColor:
+        COLORS.lightRed,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      paddingHorizontal: 8,
+    },
+
+    editAddressText: {
+      fontSize: 11,
+      color: COLORS.red,
+      fontWeight: "700",
+      marginLeft: 3,
+    },
+
+    addNewAddress: {
+      minHeight: 53,
+      width: "100%",
+      borderWidth: 1,
+      borderColor: "#F0F0F0",
+      borderRadius: 5,
+      backgroundColor:
+        "#FFFCFC",
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 8,
+      marginBottom: 18,
+    },
+
+    addNewAddressText: {
+      fontSize: 15,
+      color: COLORS.red,
+      fontWeight: "700",
+      marginLeft: 5,
+    },
+
+    field: {
+      width: "100%",
+      marginBottom: 20,
+    },
+
+    fieldAddress: {
+      width: "100%",
+      marginBottom: 20,
+    },
+
+    label: {
+      fontSize: 15,
+      color: "#555555",
+      fontWeight: "500",
+      marginBottom: 8,
+    },
+
+    required: {
+      color: COLORS.red,
+      fontSize: 12,
+    },
+
+    dropdown: {
+      width: "100%",
+      minHeight: 44,
+      borderWidth: 1,
+      borderColor: "#E7E7E7",
+      borderRadius: 4,
+      backgroundColor:
+        "#FFFFFF",
+      paddingHorizontal: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    dropdownDisabled: {
+      width: "100%",
+      minHeight: 44,
+      borderWidth: 1,
+      borderColor: "#E7E7E7",
+      borderRadius: 4,
+      backgroundColor:
+        "#F7F7F7",
+      paddingHorizontal: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    dropdownText: {
+      flex: 1,
+      fontSize: 15,
+      color: "#555555",
+    },
+
+    placeholderText: {
+      color: COLORS.placeholder,
+    },
+
+    input: {
+      width: "100%",
+      minHeight: 44,
+      borderWidth: 1,
+      borderColor: "#E7E7E7",
+      borderRadius: 4,
+      backgroundColor:
+        "#FFFFFF",
+      paddingHorizontal: 10,
+      paddingVertical: 0,
+      fontSize: 15,
+      color: "#555555",
+    },
+
+    addressInput: {
+      width: "100%",
+      height: 80,
+      borderWidth: 1,
+      borderColor: "#E7E7E7",
+      borderRadius: 4,
+      backgroundColor:
+        "#FFFFFF",
+      paddingHorizontal: 10,
+      paddingTop: 10,
+      paddingBottom: 10,
+      fontSize: 15,
+      color: "#555555",
+    },
+
+    defaultRow: {
+      minHeight: 28,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+
+    checkbox: {
+      width: 18,
+      height: 18,
+      borderRadius: 3,
+      backgroundColor:
+        COLORS.red,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 7,
+    },
+
+    checkboxOff: {
+      backgroundColor:
+        "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#CCCCCC",
+    },
+
+    defaultText: {
+      fontSize: 14,
+      color: "#2E2B2B",
+    },
+
+    buttonRow: {
+      width: "100%",
+      minHeight: 70,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    cancelButton: {
+      width: "39%",
+      height: 44,
+      borderRadius: 4,
+      backgroundColor:
+        "#FFF0F2",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    cancelButtonText: {
+      fontSize: 16,
+      color: COLORS.red,
+      fontWeight: "700",
+    },
+
+    saveButton: {
+      width: "49%",
+      height: 44,
+      borderRadius: 4,
+      backgroundColor:
+        COLORS.red,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    saveButtonDisabled: {
+      opacity: 0.65,
+    },
+
+    saveButtonText: {
+      fontSize: 16,
+      color: COLORS.white,
+      fontWeight: "700",
+    },
+
+    modalOverlay: {
+      flex: 1,
+      backgroundColor:
+        "rgba(0,0,0,0.35)",
+      justifyContent:
+        "center",
+      paddingHorizontal: 20,
+    },
+
+    modalCard: {
+      maxHeight: "78%",
+      backgroundColor:
+        "#FFFFFF",
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+
+    modalHeader: {
+      minHeight: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        "#EEEEEE",
+    },
+
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: "#222",
+    },
+
+    closeButton: {
+      width: 35,
+      height: 35,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    searchInput: {
+      height: 42,
+      margin: 12,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: "#E4E4E4",
+      borderRadius: 7,
+      color: "#333",
+      fontSize: 14,
+    },
+
+    optionList: {
+      paddingHorizontal: 8,
+      paddingBottom: 10,
+    },
+
+    optionRow: {
+      minHeight: 46,
+      paddingHorizontal: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      borderBottomWidth: 1,
+      borderBottomColor:
+        "#F2F2F2",
+    },
+
+    selectedOption: {
+      backgroundColor:
+        "#FFF4F5",
+    },
+
+    optionText: {
+      flex: 1,
+      fontSize: 14,
+      color: "#444",
+    },
+
+    selectedOptionText: {
+      color: COLORS.red,
+      fontWeight: "600",
+    },
+
+    retryButton: {
+      marginTop: 12,
+      minHeight: 36,
+      paddingHorizontal: 14,
+      borderRadius: 7,
+      backgroundColor:
+        "#FFF0F2",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    retryText: {
+      marginLeft: 6,
+      fontSize: 13,
+      color: COLORS.red,
+      fontWeight: "700",
+    },
+
+    loaderBox: {
+      minHeight: 100,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      flexDirection: "row",
+      gap: 8,
+    },
+
+    loaderText: {
+      fontSize: 13,
+      color: "#666",
+    },
+
+    emptyBox: {
+      minHeight: 100,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    emptyText: {
+      fontSize: 14,
+      color: "#888",
+      marginTop: 5,
+    },
+  });

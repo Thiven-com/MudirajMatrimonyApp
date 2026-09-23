@@ -1,28 +1,58 @@
-import { useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
-
-import { router } from "expo-router";
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
-    addMemberEducation,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import {
+  addMemberEducation,
 } from "../utils/Functions";
 
+
 export default function AddEducation() {
+
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
+
+  const navigation = useNavigation();
+  const route = useRoute();
+
+
+  // =========================================================
+  // ROUTE PARAMS
+  // =========================================================
+
+  const selectedField =
+    String(route?.params?.field || "").toLowerCase();
+
 
   // =========================================================
   // STATES
@@ -77,11 +107,71 @@ export default function AddEducation() {
 
 
   // =========================================================
+  // CLOSE DROPDOWNS
+  // =========================================================
+
+  useEffect(() => {
+    if (showStartYears) {
+      setShowEndYears(false);
+    }
+  }, [showStartYears]);
+
+  useEffect(() => {
+    if (showEndYears) {
+      setShowStartYears(false);
+    }
+  }, [showEndYears]);
+
+
+  // =========================================================
+  // HARDWARE BACK BUTTON
+  // =========================================================
+
+  useFocusEffect(
+    useCallback(() => {
+
+      const onBackPress = () => {
+
+        // Prevent leaving while saving
+        if (saving) {
+          return true;
+        }
+
+        navigation.goBack();
+
+        return true;
+      };
+
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+
+      return () => {
+        subscription.remove();
+      };
+
+    }, [
+      navigation,
+      saving,
+    ])
+  );
+
+
+  // =========================================================
   // BACK
   // =========================================================
 
   const handleBack = () => {
-    router.back();
+
+    if (saving) {
+      return;
+    }
+
+    navigation.goBack();
   };
 
 
@@ -90,7 +180,9 @@ export default function AddEducation() {
   // =========================================================
 
   const handleStartYear = (year) => {
+
     setStartYear(year);
+
     setShowStartYears(false);
   };
 
@@ -100,284 +192,349 @@ export default function AddEducation() {
   // =========================================================
 
   const handleEndYear = (year) => {
+
     setEndYear(year);
+
     setShowEndYears(false);
   };
 
-// =========================================================
-// SAVE EDUCATION
-// =========================================================
 
-const handleSave = async () => {
+  // =========================================================
+  // SAVE EDUCATION
+  // =========================================================
 
-  console.log(
-    "======================================"
-  );
-
-  console.log(
-    "SAVE EDUCATION BUTTON CLICKED"
-  );
-
-  // Prevent double click
-  if (saving) {
-    console.log(
-      "Already saving..."
-    );
-    return;
-  }
-
-  try {
-
-    // =====================================================
-    // VALIDATION
-    // =====================================================
-
-    const cleanDegree =
-      String(degree || "").trim();
-
-    const cleanInstitution =
-      String(institution || "").trim();
-
-    const cleanStartYear =
-      Number(startYear);
-
-    const cleanEndYear =
-      Number(endYear);
-
-
-    console.log(
-      "DEGREE:",
-      cleanDegree
-    );
-
-    console.log(
-      "INSTITUTION:",
-      cleanInstitution
-    );
-
-    console.log(
-      "START YEAR:",
-      cleanStartYear
-    );
-
-    console.log(
-      "END YEAR:",
-      cleanEndYear
-    );
-
-
-    if (!cleanDegree) {
-
-      Alert.alert(
-        "Required",
-        "Please enter Degree / Course."
-      );
-
-      return;
-    }
-
-
-    if (!cleanInstitution) {
-
-      Alert.alert(
-        "Required",
-        "Please enter Institution / College."
-      );
-
-      return;
-    }
-
-
-    if (
-      !Number.isInteger(cleanStartYear) ||
-      cleanStartYear <= 0
-    ) {
-
-      Alert.alert(
-        "Required",
-        "Please select a valid Start Year."
-      );
-
-      return;
-    }
-
-
-    if (
-      !Number.isInteger(cleanEndYear) ||
-      cleanEndYear <= 0
-    ) {
-
-      Alert.alert(
-        "Required",
-        "Please select a valid End Year."
-      );
-
-      return;
-    }
-
-
-    if (cleanEndYear < cleanStartYear) {
-
-      Alert.alert(
-        "Invalid Year",
-        "End Year cannot be before Start Year."
-      );
-
-      return;
-    }
-
-
-    // =====================================================
-    // GET ACCESS TOKEN
-    // =====================================================
-
-    const accessToken =
-      await AsyncStorage.getItem(
-        "access_token"
-      );
-
-
-    console.log(
-      "TOKEN EXISTS:",
-      !!accessToken
-    );
-
-
-    if (!accessToken) {
-
-      Alert.alert(
-        "Session Expired",
-        "Please login again."
-      );
-
-      return;
-    }
-
-
-    // =====================================================
-    // START LOADING
-    // =====================================================
-
-    setSaving(true);
-
-
-    // =====================================================
-    // API REQUEST
-    // =====================================================
-
-    const payload = {
-
-      degree: cleanDegree,
-
-      institution: cleanInstitution,
-
-      education_start:
-        cleanStartYear,
-
-      education_end:
-        cleanEndYear,
-
-    };
-
+  const handleSave = async () => {
 
     console.log(
       "======================================"
     );
 
     console.log(
-      "CALLING ADD EDUCATION API"
-    );
-
-    console.log(
-      "PAYLOAD:",
-      JSON.stringify(
-        payload,
-        null,
-        2
-      )
-    );
-
-    console.log(
-      "======================================"
+      "SAVE EDUCATION BUTTON CLICKED"
     );
 
 
-    const response =
-      await addMemberEducation(
-        accessToken,
-        payload
+    // Prevent double click
+    if (saving) {
+
+      console.log(
+        "Already saving..."
+      );
+
+      return;
+    }
+
+
+    try {
+
+      // =====================================================
+      // VALIDATION
+      // =====================================================
+
+      const cleanDegree =
+        String(degree || "").trim();
+
+      const cleanInstitution =
+        String(institution || "").trim();
+
+      const cleanStartYear =
+        Number(startYear);
+
+      const cleanEndYear =
+        Number(endYear);
+
+
+      console.log(
+        "DEGREE:",
+        cleanDegree
+      );
+
+      console.log(
+        "INSTITUTION:",
+        cleanInstitution
+      );
+
+      console.log(
+        "START YEAR:",
+        cleanStartYear
+      );
+
+      console.log(
+        "END YEAR:",
+        cleanEndYear
       );
 
 
-    // =====================================================
-    // API RESPONSE
-    // =====================================================
+      // =====================================================
+      // DEGREE VALIDATION
+      // =====================================================
 
-    console.log(
-      "ADD EDUCATION RESPONSE:",
-      JSON.stringify(
-        response,
-        null,
-        2
-      )
-    );
+      if (!cleanDegree) {
+
+        Alert.alert(
+          "Required",
+          "Please enter Degree / Course."
+        );
+
+        return;
+      }
 
 
-    // =====================================================
-    // SUCCESS
-    // =====================================================
+      // =====================================================
+      // INSTITUTION VALIDATION
+      // =====================================================
 
-    Alert.alert(
-      "Success",
-      "Education saved successfully.",
-      [
-        {
-          text: "OK",
-          onPress: () => {
+      if (!cleanInstitution) {
 
-            router.back();
+        Alert.alert(
+          "Required",
+          "Please enter Institution / College."
+        );
 
+        return;
+      }
+
+
+      // =====================================================
+      // START YEAR VALIDATION
+      // =====================================================
+
+      if (
+        !Number.isInteger(cleanStartYear) ||
+        cleanStartYear <= 0
+      ) {
+
+        Alert.alert(
+          "Required",
+          "Please select a valid Start Year."
+        );
+
+        return;
+      }
+
+
+      // =====================================================
+      // END YEAR VALIDATION
+      // =====================================================
+
+      if (
+        !Number.isInteger(cleanEndYear) ||
+        cleanEndYear <= 0
+      ) {
+
+        Alert.alert(
+          "Required",
+          "Please select a valid End Year."
+        );
+
+        return;
+      }
+
+
+      // =====================================================
+      // YEAR COMPARISON
+      // =====================================================
+
+      if (cleanEndYear < cleanStartYear) {
+
+        Alert.alert(
+          "Invalid Year",
+          "End Year cannot be before Start Year."
+        );
+
+        return;
+      }
+
+
+      // =====================================================
+      // GET ACCESS TOKEN
+      // =====================================================
+
+      const accessToken =
+        await AsyncStorage.getItem(
+          "access_token"
+        );
+
+
+      console.log(
+        "TOKEN EXISTS:",
+        !!accessToken
+      );
+
+
+      if (!accessToken) {
+
+        Alert.alert(
+          "Session Expired",
+          "Please login again."
+        );
+
+        return;
+      }
+
+
+      // =====================================================
+      // START LOADING
+      // =====================================================
+
+      setSaving(true);
+
+
+      // =====================================================
+      // API PAYLOAD
+      // =====================================================
+
+      const payload = {
+
+        degree:
+          cleanDegree,
+
+        institution:
+          cleanInstitution,
+
+        education_start:
+          cleanStartYear,
+
+        education_end:
+          cleanEndYear,
+
+      };
+
+
+      console.log(
+        "======================================"
+      );
+
+      console.log(
+        "CALLING ADD EDUCATION API"
+      );
+
+      console.log(
+        "PAYLOAD:",
+        JSON.stringify(
+          payload,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "======================================"
+      );
+
+
+      // =====================================================
+      // API REQUEST
+      // =====================================================
+
+      const response =
+        await addMemberEducation(
+          accessToken,
+          payload
+        );
+
+
+      // =====================================================
+      // API RESPONSE
+      // =====================================================
+
+      console.log(
+        "ADD EDUCATION RESPONSE:",
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
+
+
+      // =====================================================
+      // SUCCESS CHECK
+      // =====================================================
+
+      const isSuccess =
+        response?.success === 1 ||
+        response?.success === true ||
+        response?.result === true ||
+        response?.status === true ||
+        response?.status === 200;
+
+
+      if (!isSuccess) {
+
+        const message =
+          response?.message ||
+          response?.error ||
+          "Unable to save education.";
+
+        Alert.alert(
+          "Error",
+          message
+        );
+
+        return;
+      }
+
+
+      // =====================================================
+      // SUCCESS
+      // =====================================================
+
+      Alert.alert(
+        "Success",
+        "Education saved successfully.",
+        [
+          {
+            text: "OK",
+
+            onPress: () => {
+
+              navigation.goBack();
+
+            },
           },
-        },
-      ]
-    );
-
-  } catch (error) {
-
-    console.error(
-      "======================================"
-    );
-
-    console.error(
-      "SAVE EDUCATION ERROR:",
-      error
-    );
-
-    console.error(
-      "======================================"
-    );
+        ]
+      );
 
 
-    // =====================================================
-    // ERROR MESSAGE
-    // =====================================================
+    } catch (error) {
 
-    const errorMessage =
-      error?.message ||
-      "Unable to save education. Please try again.";
+      console.error(
+        "======================================"
+      );
+
+      console.error(
+        "SAVE EDUCATION ERROR:",
+        error
+      );
+
+      console.error(
+        "======================================"
+      );
 
 
-    Alert.alert(
-      "Error",
-      errorMessage
-    );
+      // =====================================================
+      // ERROR MESSAGE
+      // =====================================================
 
-  } finally {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to save education. Please try again.";
 
-    setSaving(false);
 
-  }
-};
+      Alert.alert(
+        "Error",
+        errorMessage
+      );
+
+
+    } finally {
+
+      setSaving(false);
+
+    }
+  };
 
 
   // =========================================================
@@ -385,37 +542,61 @@ const handleSave = async () => {
   // =========================================================
 
   const handleCancel = () => {
-    router.back();
+
+    if (saving) {
+      return;
+    }
+
+    navigation.goBack();
   };
 
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "bottom"]}
+    >
 
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#FFFFFF"
       />
 
-      <View style={styles.container}>
 
-        {/* =====================================================
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
+      >
+
+
+        {/* ===================================================
             HEADER
-        ===================================================== */}
+        =================================================== */}
 
         <View style={styles.header}>
 
-          {/* BACK */}
+
+          {/* BACK BUTTON */}
 
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
             activeOpacity={0.7}
+            disabled={saving}
           >
 
-            <Ionicons
-              name="chevron-back"
-              size={19}
+            <Feather
+              name="chevron-left"
+              size={20}
               color="#EF233C"
             />
 
@@ -429,16 +610,17 @@ const handleSave = async () => {
           </Text>
 
 
-          {/* MENU */}
+          {/* MENU BUTTON */}
 
           <TouchableOpacity
             style={styles.menuButton}
             activeOpacity={0.7}
+            disabled={saving}
           >
 
-            <Ionicons
-              name="ellipsis-vertical"
-              size={19}
+            <FontAwesome5
+              name="ellipsis-v"
+              size={16}
               color="#EF233C"
             />
 
@@ -447,27 +629,43 @@ const handleSave = async () => {
         </View>
 
 
-        {/* =====================================================
+        {/* ===================================================
             FORM
-        ===================================================== */}
+        =================================================== */}
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={
+            styles.scrollContent
+          }
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
 
-          {/* ===================================================
-              DEGREE / COURSE
-          =================================================== */}
 
-          <View style={styles.fieldContainer}>
+          {/* =================================================
+              DEGREE / COURSE
+          ================================================= */}
+
+          <View
+            style={[
+              styles.fieldContainer,
+
+              selectedField === "degree" &&
+                styles.selectedField,
+            ]}
+          >
 
             <Text style={styles.label}>
+
               Degree / Course
-              <Text style={styles.required}> *</Text>
+
+              <Text style={styles.required}>
+                {" "}*
+              </Text>
+
             </Text>
+
 
             <TextInput
               style={styles.input}
@@ -475,42 +673,69 @@ const handleSave = async () => {
               onChangeText={setDegree}
               placeholder="Enter degree / course"
               placeholderTextColor="#999999"
+              editable={!saving}
             />
 
           </View>
 
 
-          {/* ===================================================
+          {/* =================================================
               SPECIALIZATION
-          =================================================== */}
+          ================================================= */}
 
-          <View style={styles.fieldContainer}>
+          <View
+            style={[
+              styles.fieldContainer,
+
+              selectedField ===
+                "specialization" &&
+                styles.selectedField,
+            ]}
+          >
 
             <Text style={styles.label}>
               Specialization
             </Text>
 
+
             <TextInput
               style={styles.input}
               value={specialization}
-              onChangeText={setSpecialization}
+              onChangeText={
+                setSpecialization
+              }
               placeholder="Enter specialization"
               placeholderTextColor="#999999"
+              editable={!saving}
             />
 
           </View>
 
 
-          {/* ===================================================
+          {/* =================================================
               INSTITUTION / COLLEGE
-          =================================================== */}
+          ================================================= */}
 
-          <View style={styles.fieldContainer}>
+          <View
+            style={[
+              styles.fieldContainer,
+
+              selectedField ===
+                "institution" &&
+                styles.selectedField,
+            ]}
+          >
 
             <Text style={styles.label}>
+
               Institution / College
-              <Text style={styles.required}> *</Text>
+
+              <Text style={styles.required}>
+                {" "}*
+              </Text>
+
             </Text>
+
 
             <TextInput
               style={styles.input}
@@ -518,16 +743,18 @@ const handleSave = async () => {
               onChangeText={setInstitution}
               placeholder="Enter institution / college"
               placeholderTextColor="#999999"
+              editable={!saving}
             />
 
           </View>
 
 
-          {/* ===================================================
+          {/* =================================================
               START YEAR + END YEAR
-          =================================================== */}
+          ================================================= */}
 
           <View style={styles.yearRow}>
+
 
             {/* START YEAR */}
 
@@ -541,19 +768,29 @@ const handleSave = async () => {
             >
 
               <Text style={styles.label}>
+
                 Start Year
-                <Text style={styles.required}> *</Text>
+
+                <Text style={styles.required}>
+                  {" "}*
+                </Text>
+
               </Text>
 
 
               <TouchableOpacity
                 style={styles.dropdown}
                 activeOpacity={0.7}
-                onPress={() =>
+                disabled={saving}
+                onPress={() => {
+
                   setShowStartYears(
                     !showStartYears
-                  )
-                }
+                  );
+
+                  setShowEndYears(false);
+
+                }}
               >
 
                 <Text
@@ -562,13 +799,14 @@ const handleSave = async () => {
                   {startYear}
                 </Text>
 
-                <Ionicons
+
+                <Feather
                   name={
                     showStartYears
                       ? "chevron-up"
                       : "chevron-down"
                   }
-                  size={13}
+                  size={14}
                   color="#8B939E"
                 />
 
@@ -590,6 +828,9 @@ const handleSave = async () => {
                     style={
                       styles.dropdownScroll
                     }
+                    showsVerticalScrollIndicator={
+                      false
+                    }
                   >
 
                     {years.map((year) => (
@@ -599,6 +840,7 @@ const handleSave = async () => {
                         style={
                           styles.dropdownOption
                         }
+                        activeOpacity={0.7}
                         onPress={() =>
                           handleStartYear(
                             year
@@ -634,19 +876,29 @@ const handleSave = async () => {
             >
 
               <Text style={styles.label}>
+
                 End Year
-                <Text style={styles.required}> *</Text>
+
+                <Text style={styles.required}>
+                  {" "}*
+                </Text>
+
               </Text>
 
 
               <TouchableOpacity
                 style={styles.dropdown}
                 activeOpacity={0.7}
-                onPress={() =>
+                disabled={saving}
+                onPress={() => {
+
                   setShowEndYears(
                     !showEndYears
-                  )
-                }
+                  );
+
+                  setShowStartYears(false);
+
+                }}
               >
 
                 <Text
@@ -655,13 +907,14 @@ const handleSave = async () => {
                   {endYear}
                 </Text>
 
-                <Ionicons
+
+                <Feather
                   name={
                     showEndYears
                       ? "chevron-up"
                       : "chevron-down"
                   }
-                  size={13}
+                  size={14}
                   color="#8B939E"
                 />
 
@@ -683,6 +936,9 @@ const handleSave = async () => {
                     style={
                       styles.dropdownScroll
                     }
+                    showsVerticalScrollIndicator={
+                      false
+                    }
                   >
 
                     {years.map((year) => (
@@ -692,6 +948,7 @@ const handleSave = async () => {
                         style={
                           styles.dropdownOption
                         }
+                        activeOpacity={0.7}
                         onPress={() =>
                           handleEndYear(
                             year
@@ -722,9 +979,9 @@ const handleSave = async () => {
           </View>
 
 
-          {/* ===================================================
+          {/* =================================================
               STATUS
-          =================================================== */}
+          ================================================= */}
 
           <View
             style={styles.statusSection}
@@ -739,11 +996,13 @@ const handleSave = async () => {
               style={styles.radioRow}
             >
 
+
               {/* COMPLETED */}
 
               <TouchableOpacity
                 style={styles.radioOption}
                 activeOpacity={0.7}
+                disabled={saving}
                 onPress={() =>
                   setStatus("Completed")
                 }
@@ -752,6 +1011,7 @@ const handleSave = async () => {
                 <View
                   style={[
                     styles.radioOuter,
+
                     status === "Completed" &&
                       styles.radioSelected,
                   ]}
@@ -759,14 +1019,17 @@ const handleSave = async () => {
 
                   {status ===
                     "Completed" && (
+
                     <View
                       style={
                         styles.radioInner
                       }
                     />
+
                   )}
 
                 </View>
+
 
                 <Text
                   style={styles.radioText}
@@ -782,6 +1045,7 @@ const handleSave = async () => {
               <TouchableOpacity
                 style={styles.radioOption}
                 activeOpacity={0.7}
+                disabled={saving}
                 onPress={() =>
                   setStatus("Pursuing")
                 }
@@ -790,6 +1054,7 @@ const handleSave = async () => {
                 <View
                   style={[
                     styles.radioOuter,
+
                     status === "Pursuing" &&
                       styles.radioSelected,
                   ]}
@@ -797,14 +1062,17 @@ const handleSave = async () => {
 
                   {status ===
                     "Pursuing" && (
+
                     <View
                       style={
                         styles.radioInner
                       }
                     />
+
                   )}
 
                 </View>
+
 
                 <Text
                   style={styles.radioText}
@@ -820,14 +1088,18 @@ const handleSave = async () => {
               <TouchableOpacity
                 style={styles.radioOption}
                 activeOpacity={0.7}
+                disabled={saving}
                 onPress={() =>
-                  setStatus("Discontinued")
+                  setStatus(
+                    "Discontinued"
+                  )
                 }
               >
 
                 <View
                   style={[
                     styles.radioOuter,
+
                     status ===
                       "Discontinued" &&
                       styles.radioSelected,
@@ -836,14 +1108,17 @@ const handleSave = async () => {
 
                   {status ===
                     "Discontinued" && (
+
                     <View
                       style={
                         styles.radioInner
                       }
                     />
+
                   )}
 
                 </View>
+
 
                 <Text
                   style={styles.radioText}
@@ -858,13 +1133,14 @@ const handleSave = async () => {
           </View>
 
 
-          {/* ===================================================
+          {/* =================================================
               BUTTONS
-          =================================================== */}
+          ================================================= */}
 
           <View
             style={styles.buttonRow}
           >
+
 
             {/* CANCEL */}
 
@@ -872,6 +1148,7 @@ const handleSave = async () => {
               style={styles.cancelButton}
               onPress={handleCancel}
               activeOpacity={0.8}
+              disabled={saving}
             >
 
               <Text
@@ -888,6 +1165,7 @@ const handleSave = async () => {
             <TouchableOpacity
               style={[
                 styles.saveButton,
+
                 saving &&
                   styles.saveButtonDisabled,
               ]}
@@ -899,9 +1177,11 @@ const handleSave = async () => {
               <Text
                 style={styles.saveText}
               >
+
                 {saving
                   ? "Saving..."
                   : "Save Education"}
+
               </Text>
 
             </TouchableOpacity>
@@ -910,7 +1190,7 @@ const handleSave = async () => {
 
         </ScrollView>
 
-      </View>
+      </KeyboardAvoidingView>
 
     </SafeAreaView>
   );
@@ -1034,7 +1314,13 @@ const styles = StyleSheet.create({
     width: "100%",
 
     marginBottom: 40,
-    marginTop:20,
+
+    marginTop: 20,
+  },
+
+  selectedField: {
+    // Kept for route-field compatibility.
+    // Add custom selected styling here if required.
   },
 
   label: {

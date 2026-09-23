@@ -1,12 +1,11 @@
 import {
     useCallback,
-    useEffect,
-    useState,
+    useState
 } from "react";
 
 import {
+    BackHandler,
     Modal,
-    SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
@@ -16,9 +15,12 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
     deleteMemberCareerById,
@@ -50,10 +52,12 @@ const COLORS = {
 // =========================================================
 
 export default function CareerInformation() {
+    const navigation = useNavigation();
+
     const [careers, setCareers] = useState([]);
 
     // -------------------------------------------------------
-    // DELETE CONFIRMATION MODAL
+    // DELETE CONFIRMATION
     // -------------------------------------------------------
 
     const [confirmVisible, setConfirmVisible] = useState(false);
@@ -61,7 +65,7 @@ export default function CareerInformation() {
     const [deleting, setDeleting] = useState(false);
 
     // -------------------------------------------------------
-    // RESULT ALERT MODAL
+    // ALERT MODAL
     // -------------------------------------------------------
 
     const [alertVisible, setAlertVisible] = useState(false);
@@ -70,27 +74,26 @@ export default function CareerInformation() {
     const [alertType, setAlertType] = useState("success");
 
     // =======================================================
-    // SHOW CUSTOM ALERT
+    // SHOW ALERT
     // =======================================================
 
-    const showAlert = (
-        title,
-        message,
-        type = "success"
-    ) => {
-        setAlertTitle(String(title || ""));
-        setAlertMessage(String(message || ""));
-        setAlertType(type);
-        setAlertVisible(true);
-    };
+    const showAlert = useCallback(
+        (title, message, type = "success") => {
+            setAlertTitle(String(title || ""));
+            setAlertMessage(String(message || ""));
+            setAlertType(type);
+            setAlertVisible(true);
+        },
+        []
+    );
 
     // =======================================================
     // CLOSE ALERT
     // =======================================================
 
-    const closeAlert = () => {
+    const closeAlert = useCallback(() => {
         setAlertVisible(false);
-    };
+    }, []);
 
     // =======================================================
     // NORMALIZE CAREER RESPONSE
@@ -103,41 +106,30 @@ export default function CareerInformation() {
             );
 
             console.log(
-                JSON.stringify(
-                    response,
-                    null,
-                    2
-                )
+                JSON.stringify(response, null, 2)
             );
 
             let data = response;
 
-            // -----------------------------------------------
             // response.data
-            // -----------------------------------------------
-
             if (
                 data?.data &&
-                typeof data.data === "object"
+                typeof data.data === "object" &&
+                !Array.isArray(data.data)
             ) {
                 data = data.data;
             }
 
-            // -----------------------------------------------
             // response.data.data
-            // -----------------------------------------------
-
             if (
                 data?.data &&
-                typeof data.data === "object"
+                typeof data.data === "object" &&
+                !Array.isArray(data.data)
             ) {
                 data = data.data;
             }
 
-            // -----------------------------------------------
             // result object
-            // -----------------------------------------------
-
             if (
                 data?.result &&
                 typeof data.result === "object" &&
@@ -146,42 +138,27 @@ export default function CareerInformation() {
                 data = data.result;
             }
 
-            // -----------------------------------------------
             // careers array
-            // -----------------------------------------------
-
             if (Array.isArray(data?.careers)) {
                 return data.careers;
             }
 
-            // -----------------------------------------------
             // data array
-            // -----------------------------------------------
-
             if (Array.isArray(data)) {
                 return data;
             }
 
-            // -----------------------------------------------
             // data.data array
-            // -----------------------------------------------
-
             if (Array.isArray(data?.data)) {
                 return data.data;
             }
 
-            // -----------------------------------------------
             // result array
-            // -----------------------------------------------
-
             if (Array.isArray(data?.result)) {
                 return data.result;
             }
 
-            // -----------------------------------------------
             // Single career object
-            // -----------------------------------------------
-
             if (
                 data &&
                 typeof data === "object" &&
@@ -217,23 +194,12 @@ export default function CareerInformation() {
                 console.log(
                     "========================================"
                 );
-
-                console.log(
-                    "CAREER SCREEN - GET CAREER"
-                );
-
+                console.log("CAREER SCREEN - GET CAREER");
                 console.log("METHOD: GET");
-
                 console.log(
                     "TOKEN EXISTS:",
                     !!accessToken
                 );
-
-                console.log(
-                    "TOKEN LENGTH:",
-                    accessToken?.length || 0
-                );
-
                 console.log(
                     "========================================"
                 );
@@ -254,23 +220,12 @@ export default function CareerInformation() {
                     );
 
                 console.log(
-                    "========================================"
-                );
-
-                console.log(
-                    "GET CAREER API RESPONSE"
-                );
-
-                console.log(
+                    "GET CAREER API RESPONSE:",
                     JSON.stringify(
                         response,
                         null,
                         2
                     )
-                );
-
-                console.log(
-                    "========================================"
                 );
 
                 const careerData =
@@ -279,10 +234,7 @@ export default function CareerInformation() {
                     );
 
                 console.log(
-                    "NORMALIZED CAREER DATA:"
-                );
-
-                console.log(
+                    "NORMALIZED CAREER DATA:",
                     JSON.stringify(
                         careerData,
                         null,
@@ -297,55 +249,62 @@ export default function CareerInformation() {
                 );
             } catch (error) {
                 console.error(
-                    "========================================"
+                    "GET CAREER ERROR:",
+                    error
                 );
 
-                console.error(
-                    "GET CAREER ERROR"
-                );
-
-                console.error(
-                    "MESSAGE:",
-                    error?.message
-                );
-
-                console.error(
-                    "STATUS:",
-                    error?.response?.status
-                );
-
-                console.error(
-                    "RESPONSE:",
-                    JSON.stringify(
-                        error?.response?.data,
-                        null,
-                        2
-                    )
-                );
-
-                console.error(
-                    "========================================"
-                );
+                const errorMessage =
+                    error?.response?.data?.message ||
+                    error?.response?.data?.msg ||
+                    error?.message ||
+                    "Unable to load career information.";
 
                 showAlert(
                     "Error",
-                    error?.response?.data?.message ||
-                        error?.message ||
-                        "Unable to load career information.",
+                    errorMessage,
                     "error"
                 );
             }
         },
-        [normalizeCareerResponse]
+        [
+            normalizeCareerResponse,
+            showAlert,
+        ]
     );
 
     // =======================================================
-    // LOAD SCREEN
+    // LOAD WHEN SCREEN GETS FOCUS
     // =======================================================
 
-    useEffect(() => {
-        loadCareer();
-    }, [loadCareer]);
+    useFocusEffect(
+        useCallback(() => {
+            loadCareer();
+        }, [loadCareer])
+    );
+
+    // =======================================================
+    // ANDROID HARDWARE BACK BUTTON
+    // =======================================================
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                navigation.goBack();
+
+                return true;
+            };
+
+            const subscription =
+                BackHandler.addEventListener(
+                    "hardwareBackPress",
+                    onBackPress
+                );
+
+            return () => {
+                subscription.remove();
+            };
+        }, [navigation])
+    );
 
     // =======================================================
     // REFRESH
@@ -368,19 +327,59 @@ export default function CareerInformation() {
             "ADD CAREER CLICKED"
         );
 
-        router.push("/AddCareer");
+        navigation.navigate(
+            "AddCareer"
+        );
     };
 
     // =======================================================
     // GET CAREER ID
     // =======================================================
 
-    const getCareerId = (career) => {
-        return (
-            career?.id ??
-            career?.career_id ??
-            career?.careerId ??
-            null
+    const getCareerId = useCallback(
+        (career) => {
+            return (
+                career?.id ??
+                career?.career_id ??
+                career?.careerId ??
+                null
+            );
+        },
+        []
+    );
+
+    // =======================================================
+    // EDIT CAREER
+    // =======================================================
+
+    const handleEditCareer = (career) => {
+        const careerId =
+            getCareerId(career);
+
+        console.log(
+            "EDIT CAREER ID:",
+            careerId
+        );
+
+        if (
+            careerId === null ||
+            careerId === undefined ||
+            String(careerId).trim() === ""
+        ) {
+            showAlert(
+                "Error",
+                "Career ID not found.",
+                "error"
+            );
+
+            return;
+        }
+
+        navigation.navigate(
+            "EditCareer",
+            {
+                id: String(careerId),
+            }
         );
     };
 
@@ -418,10 +417,6 @@ export default function CareerInformation() {
             "========================================"
         );
 
-        // -----------------------------------------------
-        // ID NOT FOUND
-        // -----------------------------------------------
-
         if (
             careerId === null ||
             careerId === undefined ||
@@ -436,16 +431,8 @@ export default function CareerInformation() {
             return;
         }
 
-        // -----------------------------------------------
-        // CONVERT ID TO NUMBER
-        // -----------------------------------------------
-
         const deleteId =
             Number(careerId);
-
-        // -----------------------------------------------
-        // INVALID ID
-        // -----------------------------------------------
 
         if (
             !Number.isInteger(deleteId) ||
@@ -460,17 +447,9 @@ export default function CareerInformation() {
             return;
         }
 
-        // -----------------------------------------------
-        // SAVE ID
-        // -----------------------------------------------
-
         setSelectedCareerId(
             deleteId
         );
-
-        // -----------------------------------------------
-        // OPEN CUSTOM MODAL
-        // -----------------------------------------------
 
         setConfirmVisible(true);
     };
@@ -570,24 +549,10 @@ export default function CareerInformation() {
                     "========================================"
                 );
 
-                // -------------------------------------------
-                // TOKEN
-                // -------------------------------------------
-
                 const accessToken =
                     await AsyncStorage.getItem(
                         "access_token"
                     );
-
-                console.log(
-                    "TOKEN EXISTS:",
-                    !!accessToken
-                );
-
-                console.log(
-                    "TOKEN LENGTH:",
-                    accessToken?.length || 0
-                );
 
                 if (!accessToken) {
                     showAlert(
@@ -610,23 +575,12 @@ export default function CareerInformation() {
                     );
 
                 console.log(
-                    "========================================"
-                );
-
-                console.log(
-                    "DELETE API RESPONSE"
-                );
-
-                console.log(
+                    "DELETE API RESPONSE:",
                     JSON.stringify(
                         response,
                         null,
                         2
                     )
-                );
-
-                console.log(
-                    "========================================"
                 );
 
                 // -------------------------------------------
@@ -638,15 +592,6 @@ export default function CareerInformation() {
                     typeof response.data === "object"
                         ? response.data
                         : response;
-
-                console.log(
-                    "DELETE RESPONSE DATA:",
-                    JSON.stringify(
-                        responseData,
-                        null,
-                        2
-                    )
-                );
 
                 // -------------------------------------------
                 // STATUS
@@ -670,31 +615,27 @@ export default function CareerInformation() {
                     response?.result ??
                     responseData?.result;
 
-                console.log(
-                    "DELETE STATUS CODE:",
-                    statusCode
-                );
-
-                console.log(
-                    "DELETE SUCCESS VALUE:",
-                    success
-                );
-
-                console.log(
-                    "DELETE RESULT VALUE:",
-                    result
-                );
-
-                // -------------------------------------------
-                // SERVER MESSAGE
-                // -------------------------------------------
-
                 const serverMessage =
                     response?.message ??
                     responseData?.message ??
                     responseData?.msg ??
                     response?.msg ??
                     "";
+
+                console.log(
+                    "DELETE STATUS:",
+                    statusCode
+                );
+
+                console.log(
+                    "DELETE SUCCESS:",
+                    success
+                );
+
+                console.log(
+                    "DELETE RESULT:",
+                    result
+                );
 
                 // -------------------------------------------
                 // FAILURE CHECK
@@ -707,16 +648,15 @@ export default function CareerInformation() {
                 const apiFailure =
                     success === false ||
                     success === 0 ||
-                    result === false;
+                    success === "false" ||
+                    result === false ||
+                    result === 0 ||
+                    result === "false";
 
                 if (
                     httpFailure ||
                     apiFailure
                 ) {
-                    console.error(
-                        "DELETE API FAILED"
-                    );
-
                     showAlert(
                         "Delete Failed",
                         serverMessage ||
@@ -728,9 +668,7 @@ export default function CareerInformation() {
                 }
 
                 // -------------------------------------------
-                // IMPORTANT:
-                // REMOVE FROM LOCAL SCREEN IMMEDIATELY
-                // AFTER SUCCESSFUL API RESPONSE
+                // REMOVE FROM SCREEN
                 // -------------------------------------------
 
                 setCareers(
@@ -744,10 +682,6 @@ export default function CareerInformation() {
                         )
                 );
 
-                console.log(
-                    `CAREER ID ${deleteId} REMOVED FROM SCREEN`
-                );
-
                 // -------------------------------------------
                 // SUCCESS MESSAGE
                 // -------------------------------------------
@@ -756,85 +690,25 @@ export default function CareerInformation() {
                     serverMessage ||
                     `Career ID ${deleteId} deleted successfully.`;
 
-                console.log(
-                    "========================================"
-                );
-
-                console.log(
-                    "DELETE SUCCESSFUL"
-                );
-
-                console.log(
-                    "MESSAGE:",
-                    successMessage
-                );
-
-                console.log(
-                    "========================================"
-                );
-
                 showAlert(
                     "Delete Successful",
                     successMessage,
                     "success"
                 );
 
-                // -------------------------------------------
-                // CLEAR SELECTED ID
-                // -------------------------------------------
-
                 setSelectedCareerId(
                     null
                 );
 
                 // -------------------------------------------
-                // GET LATEST SERVER DATA
+                // GET LATEST DATA
                 // -------------------------------------------
 
-                console.log(
-                    "GETTING LATEST CAREER DATA..."
-                );
-
                 await loadCareer();
-
-                console.log(
-                    "LATEST CAREER DATA LOADED"
-                );
             } catch (error) {
                 console.error(
-                    "========================================"
-                );
-
-                console.error(
-                    "DELETE CAREER API ERROR"
-                );
-
-                console.error(
-                    "CAREER ID:",
-                    deleteId
-                );
-
-                console.error(
-                    "MESSAGE:",
-                    error?.message
-                );
-
-                console.error(
-                    "STATUS:",
-                    error?.response?.status
-                );
-
-                console.error(
-                    "RESPONSE:",
-                    JSON.stringify(
-                        error?.response?.data,
-                        null,
-                        2
-                    )
-                );
-
-                console.error(
-                    "========================================"
+                    "DELETE CAREER API ERROR:",
+                    error
                 );
 
                 const errorMessage =
@@ -898,8 +772,10 @@ export default function CareerInformation() {
         const isPresent =
             career?.present === true ||
             career?.present === 1 ||
+            career?.present === "1" ||
             career?.is_present === true ||
-            career?.is_present === 1;
+            career?.is_present === 1 ||
+            career?.is_present === "1";
 
         let duration = "";
 
@@ -939,9 +815,9 @@ export default function CareerInformation() {
                         styles.briefcaseCircle
                     }
                 >
-                    <Ionicons
-                        name="briefcase-outline"
-                        size={20}
+                    <FontAwesome5
+                        name="briefcase"
+                        size={18}
                         color={
                             COLORS.red
                         }
@@ -1001,35 +877,14 @@ export default function CareerInformation() {
                             styles.editButton
                         }
                         activeOpacity={0.7}
-                        onPress={() => {
-                            if (
-                                careerId ===
-                                    undefined ||
-                                careerId ===
-                                    null
-                            ) {
-                                showAlert(
-                                    "Error",
-                                    "Career ID not found.",
-                                    "error"
-                                );
-
-                                return;
-                            }
-
-                            router.push({
-                                pathname:
-                                    "/EditCareer",
-                                params: {
-                                    id: String(
-                                        careerId
-                                    ),
-                                },
-                            });
-                        }}
+                        onPress={() =>
+                            handleEditCareer(
+                                career
+                            )
+                        }
                     >
-                        <Ionicons
-                            name="pencil-outline"
+                        <Feather
+                            name="edit-2"
                             size={15}
                             color="#444444"
                         />
@@ -1051,9 +906,9 @@ export default function CareerInformation() {
                             )
                         }
                     >
-                        <Ionicons
-                            name="trash-outline"
-                            size={17}
+                        <Feather
+                            name="trash-2"
+                            size={16}
                             color={
                                 COLORS.red
                             }
@@ -1073,6 +928,11 @@ export default function CareerInformation() {
             style={
                 styles.safeArea
             }
+            edges={[
+                "top",
+                "left",
+                "right",
+            ]}
         >
             <StatusBar
                 barStyle="dark-content"
@@ -1095,23 +955,27 @@ export default function CareerInformation() {
                         styles.header
                     }
                 >
+                    {/* BACK */}
+
                     <TouchableOpacity
                         style={
                             styles.backButton
                         }
                         activeOpacity={0.7}
                         onPress={() =>
-                            router.back()
+                            navigation.goBack()
                         }
                     >
-                        <Ionicons
-                            name="chevron-back"
-                            size={19}
+                        <Feather
+                            name="chevron-left"
+                            size={20}
                             color={
                                 COLORS.red
                             }
                         />
                     </TouchableOpacity>
+
+                    {/* TITLE */}
 
                     <Text
                         style={
@@ -1120,6 +984,8 @@ export default function CareerInformation() {
                     >
                         Career Information
                     </Text>
+
+                    {/* REFRESH */}
 
                     <TouchableOpacity
                         style={
@@ -1130,8 +996,8 @@ export default function CareerInformation() {
                             handleRefresh
                         }
                     >
-                        <Ionicons
-                            name="ellipsis-vertical"
+                        <Feather
+                            name="refresh-cw"
                             size={18}
                             color={
                                 COLORS.red
@@ -1171,9 +1037,9 @@ export default function CareerInformation() {
                                         styles.addIconCircle
                                     }
                                 >
-                                    <Ionicons
-                                        name="briefcase-outline"
-                                        size={24}
+                                    <FontAwesome5
+                                        name="briefcase"
+                                        size={23}
                                         color={
                                             COLORS.red
                                         }
@@ -1213,8 +1079,8 @@ export default function CareerInformation() {
                                         handleAddCareer
                                     }
                                 >
-                                    <Ionicons
-                                        name="add"
+                                    <Feather
+                                        name="plus"
                                         size={18}
                                         color={
                                             COLORS.white
@@ -1242,9 +1108,9 @@ export default function CareerInformation() {
                                     styles.addIconCircle
                                 }
                             >
-                                <Ionicons
-                                    name="briefcase-outline"
-                                    size={24}
+                                <FontAwesome5
+                                    name="briefcase"
+                                    size={23}
                                     color={
                                         COLORS.red
                                     }
@@ -1284,8 +1150,8 @@ export default function CareerInformation() {
                                     handleAddCareer
                                 }
                             >
-                                <Ionicons
-                                    name="add"
+                                <Feather
+                                    name="plus"
                                     size={18}
                                     color={
                                         COLORS.white
@@ -1334,9 +1200,9 @@ export default function CareerInformation() {
                                 styles.confirmIconCircle
                             }
                         >
-                            <Ionicons
-                                name="trash-outline"
-                                size={28}
+                            <Feather
+                                name="trash-2"
+                                size={27}
                                 color={
                                     COLORS.red
                                 }
@@ -1397,8 +1263,8 @@ export default function CareerInformation() {
                                     deleting
                                 }
                             >
-                                <Ionicons
-                                    name="trash-outline"
+                                <Feather
+                                    name="trash-2"
                                     size={16}
                                     color={
                                         COLORS.white
@@ -1447,18 +1313,17 @@ export default function CareerInformation() {
                         <View
                             style={[
                                 styles.alertIconCircle,
-                                alertType ===
-                                    "error"
+                                alertType === "error"
                                     ? styles.errorIconCircle
                                     : styles.successIconCircle,
                             ]}
                         >
-                            <Ionicons
+                            <Feather
                                 name={
                                     alertType ===
                                     "error"
-                                        ? "close"
-                                        : "checkmark"
+                                        ? "x"
+                                        : "check"
                                 }
                                 size={30}
                                 color={
@@ -1514,450 +1379,408 @@ export default function CareerInformation() {
 // STYLES
 // =========================================================
 
-const styles =
-    StyleSheet.create({
-        safeArea: {
-            flex: 1,
-            backgroundColor:
-                COLORS.background,
-        },
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
 
-        screen: {
-            flex: 1,
-            backgroundColor:
-                COLORS.background,
-            paddingHorizontal: 4,
-            paddingTop: 4,
-            paddingBottom: 4,
-        },
+    screen: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 4,
+        paddingTop: 4,
+        paddingBottom: 4,
+    },
 
-        // =====================================================
-        // HEADER
-        // =====================================================
+    // =====================================================
+    // HEADER
+    // =====================================================
 
-        header: {
-            width: "100%",
-            height: 62,
-            backgroundColor:
-                COLORS.white,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderWidth: 1,
-            borderColor:
-                COLORS.border,
-        },
+    header: {
+        width: "100%",
+        height: 62,
+        backgroundColor: COLORS.white,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
 
-        backButton: {
-            position: "absolute",
-            left: 7,
-            top: 5,
-            width: 31,
-            height: 31,
-            borderRadius: 16,
-            backgroundColor:
-                COLORS.white,
-            borderWidth: 1,
-            borderColor: "#EEEEEE",
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    backButton: {
+        position: "absolute",
+        left: 7,
+        top: 15,
+        width: 31,
+        height: 31,
+        borderRadius: 16,
+        backgroundColor: COLORS.white,
+        borderWidth: 1,
+        borderColor: "#EEEEEE",
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        headerTitle: {
-            fontSize: 20,
-            lineHeight: 22,
-            fontWeight: "600",
-            color:
-                COLORS.text,
-            includeFontPadding: false,
-            textAlign: "center",
-        },
+    headerTitle: {
+        fontSize: 20,
+        lineHeight: 22,
+        fontWeight: "600",
+        color: COLORS.text,
+        includeFontPadding: false,
+        textAlign: "center",
+    },
 
-        menuButton: {
-            position: "absolute",
-            right: 8,
-            top: 5,
-            width: 30,
-            height: 31,
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    menuButton: {
+        position: "absolute",
+        right: 8,
+        top: 15,
+        width: 32,
+        height: 31,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        // =====================================================
-        // CARD
-        // =====================================================
+    // =====================================================
+    // CARD
+    // =====================================================
 
-        card: {
-            flex: 1,
-            width: "100%",
-            backgroundColor:
-                COLORS.white,
-            borderWidth: 1,
-            borderTopWidth: 0,
-            borderColor:
-                COLORS.border,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 10,
-            overflow: "hidden",
-        },
+    card: {
+        flex: 1,
+        width: "100%",
+        backgroundColor: COLORS.white,
+        borderWidth: 1,
+        borderTopWidth: 0,
+        borderColor: COLORS.border,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 10,
+        overflow: "hidden",
+    },
 
-        careerList: {
-            flex: 1,
-        },
+    careerList: {
+        flex: 1,
+        padding: 10,
+    },
 
-        // =====================================================
-        // CAREER ITEM
-        // =====================================================
+    // =====================================================
+    // CAREER ITEM
+    // =====================================================
 
-        careerItem: {
-            width: "100%",
-            minHeight: 82,
-            paddingHorizontal: 10,
-            paddingVertical: 10,
-            flexDirection: "row",
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: "#EEEEEE",
-            borderRadius: 9,
-            backgroundColor:
-                COLORS.white,
-            marginBottom: 10,
-        },
+    careerItem: {
+        width: "100%",
+        minHeight: 82,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#EEEEEE",
+        borderRadius: 9,
+        backgroundColor: COLORS.white,
+        marginBottom: 10,
+    },
 
-        briefcaseCircle: {
-            width: 45,
-            height: 45,
-            borderRadius: 23,
-            backgroundColor:
-                COLORS.iconBg,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 10,
-        },
+    briefcaseCircle: {
+        width: 45,
+        height: 45,
+        borderRadius: 23,
+        backgroundColor: COLORS.iconBg,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 10,
+    },
 
-        careerDetails: {
-            flex: 1,
-            justifyContent: "center",
-        },
+    careerDetails: {
+        flex: 1,
+        justifyContent: "center",
+    },
 
-        jobTitle: {
-            fontSize: 18,
-            lineHeight: 21,
-            fontWeight: "500",
-            color:
-                COLORS.text,
-            marginBottom: 2,
-            includeFontPadding: false,
-        },
+    jobTitle: {
+        fontSize: 18,
+        lineHeight: 21,
+        fontWeight: "500",
+        color: COLORS.text,
+        marginBottom: 2,
+        includeFontPadding: false,
+    },
 
-        companyName: {
-            fontSize: 13,
-            lineHeight: 16,
-            color:
-                COLORS.secondary,
-            marginBottom: 1,
-            includeFontPadding: false,
-        },
+    companyName: {
+        fontSize: 13,
+        lineHeight: 16,
+        color: COLORS.secondary,
+        marginBottom: 1,
+        includeFontPadding: false,
+    },
 
-        duration: {
-            fontSize: 12,
-            lineHeight: 14,
-            color:
-                COLORS.lightText,
-            includeFontPadding: false,
-        },
+    duration: {
+        fontSize: 12,
+        lineHeight: 14,
+        color: COLORS.lightText,
+        includeFontPadding: false,
+    },
 
-        // =====================================================
-        // ACTION BUTTONS
-        // =====================================================
+    // =====================================================
+    // ACTION BUTTONS
+    // =====================================================
 
-        actionButtons: {
-            flexDirection: "row",
-            alignItems: "center",
-            marginLeft: 5,
-        },
+    actionButtons: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: 5,
+    },
 
-        editButton: {
-            width: 31,
-            height: 31,
-            borderRadius: 16,
-            backgroundColor:
-                COLORS.editBg,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 7,
-        },
+    editButton: {
+        width: 31,
+        height: 31,
+        borderRadius: 16,
+        backgroundColor: COLORS.editBg,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 7,
+    },
 
-        deleteButton: {
-            width: 34,
-            height: 34,
-            borderRadius: 17,
-            backgroundColor:
-                COLORS.lightRed,
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: "#FFD9DE",
-        },
+    deleteButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: COLORS.lightRed,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#FFD9DE",
+    },
 
-        // =====================================================
-        // ADD CAREER
-        // =====================================================
+    // =====================================================
+    // ADD CAREER
+    // =====================================================
 
-        addCareerSection: {
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingVertical: 20,
-        },
+    addCareerSection: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+    },
 
-        emptyCareerSection: {
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingBottom: 12,
-        },
+    emptyCareerSection: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+    },
 
-        addIconCircle: {
-            width: 62,
-            height: 62,
-            borderRadius: 31,
-            backgroundColor:
-                COLORS.iconBg,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 12,
-        },
+    addIconCircle: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: COLORS.iconBg,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
+    },
 
-        addCareerTitle: {
-            fontSize: 18,
-            lineHeight: 21,
-            fontWeight: "600",
-            color:
-                COLORS.text,
-            textAlign: "center",
-            marginBottom: 4,
-            includeFontPadding: false,
-        },
+    addCareerTitle: {
+        fontSize: 18,
+        lineHeight: 21,
+        fontWeight: "600",
+        color: COLORS.text,
+        textAlign: "center",
+        marginBottom: 4,
+        includeFontPadding: false,
+    },
 
-        addCareerDescription: {
-            fontSize: 14,
-            lineHeight: 17,
-            color:
-                COLORS.lightText,
-            textAlign: "center",
-            includeFontPadding: false,
-        },
+    addCareerDescription: {
+        fontSize: 14,
+        lineHeight: 17,
+        color: COLORS.lightText,
+        textAlign: "center",
+        includeFontPadding: false,
+    },
 
-        addButton: {
-            height: 41,
-            minWidth: 131,
-            paddingHorizontal: 15,
-            marginTop: 10,
-            borderRadius: 7,
-            backgroundColor:
-                COLORS.red,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    addButton: {
+        height: 41,
+        minWidth: 131,
+        paddingHorizontal: 15,
+        marginTop: 10,
+        borderRadius: 7,
+        backgroundColor: COLORS.red,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        addButtonText: {
-            fontSize: 16,
-            lineHeight: 19,
-            fontWeight: "600",
-            color:
-                COLORS.white,
-            marginLeft: 4,
-            includeFontPadding: false,
-        },
+    addButtonText: {
+        fontSize: 16,
+        lineHeight: 19,
+        fontWeight: "600",
+        color: COLORS.white,
+        marginLeft: 4,
+        includeFontPadding: false,
+    },
 
-        // =====================================================
-        // MODAL OVERLAY
-        // =====================================================
+    // =====================================================
+    // MODAL
+    // =====================================================
 
-        modalOverlay: {
-            flex: 1,
-            backgroundColor:
-                "rgba(0,0,0,0.45)",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 20,
-        },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+    },
 
-        // =====================================================
-        // CONFIRM MODAL
-        // =====================================================
+    confirmModal: {
+        width: "100%",
+        maxWidth: 400,
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        paddingHorizontal: 22,
+        paddingVertical: 25,
+        alignItems: "center",
+    },
 
-        confirmModal: {
-            width: "100%",
-            maxWidth: 400,
-            backgroundColor:
-                COLORS.white,
-            borderRadius: 16,
-            paddingHorizontal: 22,
-            paddingVertical: 25,
-            alignItems: "center",
-        },
+    confirmIconCircle: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: COLORS.lightRed,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 14,
+    },
 
-        confirmIconCircle: {
-            width: 62,
-            height: 62,
-            borderRadius: 31,
-            backgroundColor:
-                COLORS.lightRed,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 14,
-        },
+    modalTitle: {
+        fontSize: 20,
+        lineHeight: 24,
+        fontWeight: "700",
+        color: COLORS.text,
+        textAlign: "center",
+        marginBottom: 8,
+    },
 
-        modalTitle: {
-            fontSize: 20,
-            lineHeight: 24,
-            fontWeight: "700",
-            color:
-                COLORS.text,
-            textAlign: "center",
-            marginBottom: 8,
-        },
+    modalMessage: {
+        fontSize: 14,
+        lineHeight: 21,
+        color: COLORS.secondary,
+        textAlign: "center",
+        marginBottom: 22,
+    },
 
-        modalMessage: {
-            fontSize: 14,
-            lineHeight: 21,
-            color:
-                COLORS.secondary,
-            textAlign: "center",
-            marginBottom: 22,
-        },
+    modalButtons: {
+        width: "100%",
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
 
-        modalButtons: {
-            width: "100%",
-            flexDirection: "row",
-            justifyContent: "space-between",
-        },
+    cancelButton: {
+        flex: 1,
+        height: 44,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 6,
+    },
 
-        cancelButton: {
-            flex: 1,
-            height: 44,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor:
-                COLORS.border,
-            backgroundColor:
-                COLORS.white,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 6,
-        },
+    cancelButtonText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: COLORS.secondary,
+    },
 
-        cancelButtonText: {
-            fontSize: 15,
-            fontWeight: "600",
-            color:
-                COLORS.secondary,
-        },
+    confirmDeleteButton: {
+        flex: 1,
+        height: 44,
+        borderRadius: 8,
+        backgroundColor: COLORS.red,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 6,
+    },
 
-        confirmDeleteButton: {
-            flex: 1,
-            height: 44,
-            borderRadius: 8,
-            backgroundColor:
-                COLORS.red,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            marginLeft: 6,
-        },
+    confirmDeleteText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: COLORS.white,
+        marginLeft: 5,
+    },
 
-        confirmDeleteText: {
-            fontSize: 15,
-            fontWeight: "600",
-            color:
-                COLORS.white,
-            marginLeft: 5,
-        },
+    // =====================================================
+    // ALERT
+    // =====================================================
 
-        // =====================================================
-        // SUCCESS / ERROR MODAL
-        // =====================================================
+    alertModal: {
+        width: "100%",
+        maxWidth: 400,
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        paddingHorizontal: 22,
+        paddingVertical: 25,
+        alignItems: "center",
+    },
 
-        alertModal: {
-            width: "100%",
-            maxWidth: 400,
-            backgroundColor:
-                COLORS.white,
-            borderRadius: 16,
-            paddingHorizontal: 22,
-            paddingVertical: 25,
-            alignItems: "center",
-        },
+    alertIconCircle: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 14,
+    },
 
-        alertIconCircle: {
-            width: 62,
-            height: 62,
-            borderRadius: 31,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 14,
-        },
+    successIconCircle: {
+        backgroundColor: COLORS.green,
+    },
 
-        successIconCircle: {
-            backgroundColor:
-                COLORS.green,
-        },
+    errorIconCircle: {
+        backgroundColor: COLORS.red,
+    },
 
-        errorIconCircle: {
-            backgroundColor:
-                COLORS.red,
-        },
+    alertTitle: {
+        fontSize: 20,
+        lineHeight: 24,
+        fontWeight: "700",
+        color: COLORS.text,
+        textAlign: "center",
+        marginBottom: 8,
+    },
 
-        alertTitle: {
-            fontSize: 20,
-            lineHeight: 24,
-            fontWeight: "700",
-            color:
-                COLORS.text,
-            textAlign: "center",
-            marginBottom: 8,
-        },
+    alertMessage: {
+        fontSize: 14,
+        lineHeight: 21,
+        color: COLORS.secondary,
+        textAlign: "center",
+        marginBottom: 20,
+    },
 
-        alertMessage: {
-            fontSize: 14,
-            lineHeight: 21,
-            color:
-                COLORS.secondary,
-            textAlign: "center",
-            marginBottom: 20,
-        },
+    successOkButton: {
+        width: "100%",
+        height: 44,
+        borderRadius: 8,
+        backgroundColor: COLORS.green,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        successOkButton: {
-            width: "100%",
-            height: 44,
-            borderRadius: 8,
-            backgroundColor:
-                COLORS.green,
-            alignItems: "center",
-            justifyContent: "center",
-        },
+    errorOkButton: {
+        width: "100%",
+        height: 44,
+        borderRadius: 8,
+        backgroundColor: COLORS.red,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-        errorOkButton: {
-            width: "100%",
-            height: 44,
-            borderRadius: 8,
-            backgroundColor:
-                COLORS.red,
-            alignItems: "center",
-            justifyContent: "center",
-        },
-
-        alertOkText: {
-            fontSize: 15,
-            fontWeight: "700",
-            color:
-                COLORS.white,
-        },
-    });
+    alertOkText: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: COLORS.white,
+    },
+});

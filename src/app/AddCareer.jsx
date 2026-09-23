@@ -1,7 +1,14 @@
-import { useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useState,
+} from "react";
 
 import {
-    SafeAreaView,
+    Alert,
+    BackHandler,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -11,14 +18,27 @@ import {
     View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+
+import {
+    useFocusEffect,
+    useNavigation,
+    useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
     addMemberCareer,
 } from "../utils/Functions";
 
+
+/* =========================================================
+   COLORS
+========================================================= */
 
 const COLORS = {
     background: "#F4F5F7",
@@ -37,7 +57,34 @@ const COLORS = {
 };
 
 
+/* =========================================================
+   COMPONENT
+========================================================= */
+
 export default function AddCareer() {
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    const navigation = useNavigation();
+
+    const route = useRoute();
+
+
+    // =====================================================
+    // ROUTE PARAM
+    // =====================================================
+
+    const selectedField =
+        String(
+            route?.params?.field || ""
+        ).toLowerCase();
+
+
+    // =====================================================
+    // STATES
+    // =====================================================
 
     const [designation, setDesignation] =
         useState("Manager");
@@ -65,7 +112,134 @@ export default function AddCareer() {
     const [saving, setSaving] =
         useState(false);
 
+    const [showStartYears, setShowStartYears] =
+        useState(false);
 
+    const [showEndYears, setShowEndYears] =
+        useState(false);
+
+
+    // =====================================================
+    // YEAR DATA
+    // =====================================================
+
+    const years = [
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026",
+    ];
+
+
+    // =====================================================
+    // CLOSE OTHER DROPDOWN
+    // =====================================================
+
+    useEffect(() => {
+
+        if (showStartYears) {
+            setShowEndYears(false);
+        }
+
+    }, [showStartYears]);
+
+
+    useEffect(() => {
+
+        if (showEndYears) {
+            setShowStartYears(false);
+        }
+
+    }, [showEndYears]);
+
+
+    // =====================================================
+    // HARDWARE BACK BUTTON
+    // =====================================================
+
+    useFocusEffect(
+        useCallback(() => {
+
+            const onBackPress = () => {
+
+                // Don't leave screen while saving
+                if (saving) {
+                    return true;
+                }
+
+                navigation.goBack();
+
+                return true;
+            };
+
+
+            const subscription =
+                BackHandler.addEventListener(
+                    "hardwareBackPress",
+                    onBackPress
+                );
+
+
+            return () => {
+                subscription.remove();
+            };
+
+        }, [
+            navigation,
+            saving,
+        ])
+    );
+
+
+    // =====================================================
+    // HANDLE BACK
+    // =====================================================
+
+    const handleBack = () => {
+
+        if (saving) {
+            return;
+        }
+
+        navigation.goBack();
+    };
+
+
+    // =====================================================
+    // HANDLE START YEAR
+    // =====================================================
+
+    const handleStartYear = (year) => {
+
+        setStartYear(year);
+
+        setShowStartYears(false);
+    };
+
+
+    // =====================================================
+    // HANDLE END YEAR
+    // =====================================================
+
+    const handleEndYear = (year) => {
+
+        setEndYear(year);
+
+        setShowEndYears(false);
+    };
+
+
+    // =====================================================
+    // SAVE CAREER
+    // =====================================================
 
     const handleSaveCareer = async () => {
 
@@ -79,9 +253,9 @@ export default function AddCareer() {
             setSaving(true);
 
 
-            // ================================================
+            // =============================================
             // GET TOKEN
-            // ================================================
+            // =============================================
 
             const accessToken =
                 await AsyncStorage.getItem(
@@ -109,30 +283,133 @@ export default function AddCareer() {
 
             if (!accessToken) {
 
-                throw new Error(
+                Alert.alert(
+                    "Session Expired",
                     "Access token is missing. Please login again."
                 );
 
+                return;
             }
 
 
-            // ================================================
+            // =============================================
+            // CLEAN DATA
+            // =============================================
+
+            const cleanDesignation =
+                String(
+                    designation || ""
+                ).trim();
+
+            const cleanCompany =
+                String(
+                    company || ""
+                ).trim();
+
+            const cleanStartYear =
+                Number(startYear);
+
+            const cleanEndYear =
+                Number(endYear);
+
+
+            // =============================================
+            // VALIDATION
+            // =============================================
+
+            if (!cleanDesignation) {
+
+                Alert.alert(
+                    "Required",
+                    "Please enter designation."
+                );
+
+                return;
+            }
+
+
+            if (!cleanCompany) {
+
+                Alert.alert(
+                    "Required",
+                    "Please enter company."
+                );
+
+                return;
+            }
+
+
+            if (
+                !Number.isInteger(
+                    cleanStartYear
+                ) ||
+                cleanStartYear <= 0
+            ) {
+
+                Alert.alert(
+                    "Required",
+                    "Please select a valid Start Year."
+                );
+
+                return;
+            }
+
+
+            // End year is optional when
+            // currently working
+
+            if (
+                !currentlyWorking &&
+                (
+                    !Number.isInteger(
+                        cleanEndYear
+                    ) ||
+                    cleanEndYear <= 0
+                )
+            ) {
+
+                Alert.alert(
+                    "Required",
+                    "Please select a valid End Year."
+                );
+
+                return;
+            }
+
+
+            if (
+                !currentlyWorking &&
+                cleanEndYear < cleanStartYear
+            ) {
+
+                Alert.alert(
+                    "Invalid Year",
+                    "End Year cannot be before Start Year."
+                );
+
+                return;
+            }
+
+
+            // =============================================
             // PREPARE CAREER DATA
-            // ================================================
+            // =============================================
 
             const careerData = {
 
                 company:
-                    String(company || "").trim(),
+                    cleanCompany,
 
                 designation:
-                    String(designation || "").trim(),
+                    cleanDesignation,
 
                 start:
-                    Number(startYear),
+                    cleanStartYear,
 
                 end:
-                    Number(endYear),
+                    currentlyWorking
+                        ? null
+                        : cleanEndYear,
 
             };
 
@@ -147,9 +424,9 @@ export default function AddCareer() {
             );
 
 
-            // ================================================
+            // =============================================
             // CALL POST API
-            // ================================================
+            // =============================================
 
             const response =
                 await addMemberCareer(
@@ -168,33 +445,45 @@ export default function AddCareer() {
             );
 
 
-            // ================================================
-            // SUCCESS
-            // ================================================
+            // =============================================
+            // SUCCESS CHECK
+            // =============================================
 
-            if (
+            const isSuccess =
                 response?.success === 1 ||
+                response?.success === true ||
                 response?.result === true ||
                 response?.statusCode === 200 ||
-                response?.statusCode === 201
-            ) {
+                response?.statusCode === 201;
 
-                alert(
-                    "Career added successfully."
+
+            if (isSuccess) {
+
+                Alert.alert(
+                    "Success",
+                    "Career added successfully.",
+                    [
+                        {
+                            text: "OK",
+
+                            onPress: () => {
+                                navigation.goBack();
+                            },
+                        },
+                    ]
                 );
-
-
-                // Go back to Career Information
-                router.back();
 
             } else {
 
-                alert(
+                Alert.alert(
+                    "Error",
                     response?.message ||
+                    response?.error ||
                     "Unable to add career."
                 );
 
             }
+
 
         } catch (error) {
 
@@ -204,10 +493,17 @@ export default function AddCareer() {
             );
 
 
-            alert(
+            const errorMessage =
+                error?.response?.data?.message ||
                 error?.message ||
-                "Something went wrong while adding career."
+                "Something went wrong while adding career.";
+
+
+            Alert.alert(
+                "Error",
+                errorMessage
             );
+
 
         } finally {
 
@@ -217,15 +513,34 @@ export default function AddCareer() {
     };
 
 
+    // =====================================================
+    // RENDER
+    // =====================================================
+
     return (
-        <SafeAreaView style={styles.safeArea}>
+
+        <SafeAreaView
+            style={styles.safeArea}
+            edges={["top", "bottom"]}
+        >
 
             <StatusBar
                 barStyle="dark-content"
-                backgroundColor={COLORS.background}
+                backgroundColor={
+                    COLORS.background
+                }
             />
 
-            <View style={styles.screen}>
+
+            <KeyboardAvoidingView
+                style={styles.screen}
+                behavior={
+                    Platform.OS === "ios"
+                        ? "padding"
+                        : undefined
+                }
+            >
+
 
                 {/* =================================================
                     HEADER
@@ -233,33 +548,44 @@ export default function AddCareer() {
 
                 <View style={styles.header}>
 
+
+                    {/* BACK */}
+
                     <TouchableOpacity
                         style={styles.backButton}
                         activeOpacity={0.7}
-                        onPress={() => router.back()}
+                        onPress={handleBack}
+                        disabled={saving}
                     >
 
-                        <Ionicons
-                            name="chevron-back"
-                            size={15}
+                        <Feather
+                            name="chevron-left"
+                            size={18}
                             color={COLORS.red}
                         />
 
                     </TouchableOpacity>
 
 
-                    <Text style={styles.headerTitle}>
+                    {/* TITLE */}
+
+                    <Text
+                        style={styles.headerTitle}
+                    >
                         Add Career
                     </Text>
 
 
+                    {/* MENU */}
+
                     <TouchableOpacity
                         style={styles.menuButton}
                         activeOpacity={0.7}
+                        disabled={saving}
                     >
 
-                        <Ionicons
-                            name="ellipsis-vertical"
+                        <FontAwesome5
+                            name="ellipsis-v"
                             size={14}
                             color={COLORS.red}
                         />
@@ -275,39 +601,64 @@ export default function AddCareer() {
 
                 <View style={styles.card}>
 
+
                     <ScrollView
-                        showsVerticalScrollIndicator={false}
+                        showsVerticalScrollIndicator={
+                            false
+                        }
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={
                             styles.scrollContent
                         }
                     >
 
-                        {/* =================================================
-                            ROW 1
-                        ================================================= */}
 
-                        <View style={styles.twoColumnRow}>
+                        {/* =========================================
+                            ROW 1
+                        ========================================= */}
+
+                        <View
+                            style={
+                                styles.twoColumnRow
+                            }
+                        >
+
 
                             {/* DESIGNATION */}
 
                             <View
-                                style={styles.column}
+                                style={[
+                                    styles.column,
+
+                                    selectedField ===
+                                        "designation" &&
+                                        styles.selectedField,
+                                ]}
                             >
 
-                                <Text style={styles.label}>
+                                <Text
+                                    style={styles.label}
+                                >
                                     Designation
+
                                     <Text
-                                        style={styles.required}
+                                        style={
+                                            styles.required
+                                        }
                                     >
                                         *
                                     </Text>
+
                                 </Text>
 
 
                                 <TextInput
-                                    style={styles.input}
-                                    value={designation}
+                                    style={
+                                        styles.input
+                                    }
+                                    value={
+                                        designation
+                                    }
                                     onChangeText={
                                         setDesignation
                                     }
@@ -315,6 +666,7 @@ export default function AddCareer() {
                                     placeholderTextColor={
                                         COLORS.placeholder
                                     }
+                                    editable={!saving}
                                 />
 
                             </View>
@@ -323,22 +675,38 @@ export default function AddCareer() {
                             {/* COMPANY */}
 
                             <View
-                                style={styles.column}
+                                style={[
+                                    styles.column,
+
+                                    selectedField ===
+                                        "company" &&
+                                        styles.selectedField,
+                                ]}
                             >
 
-                                <Text style={styles.label}>
+                                <Text
+                                    style={styles.label}
+                                >
                                     Company
+
                                     <Text
-                                        style={styles.required}
+                                        style={
+                                            styles.required
+                                        }
                                     >
                                         *
                                     </Text>
+
                                 </Text>
 
 
                                 <TextInput
-                                    style={styles.input}
-                                    value={company}
+                                    style={
+                                        styles.input
+                                    }
+                                    value={
+                                        company
+                                    }
                                     onChangeText={
                                         setCompany
                                     }
@@ -346,6 +714,7 @@ export default function AddCareer() {
                                     placeholderTextColor={
                                         COLORS.placeholder
                                     }
+                                    editable={!saving}
                                 />
 
                             </View>
@@ -353,25 +722,40 @@ export default function AddCareer() {
                         </View>
 
 
-                        {/* =================================================
+                        {/* =========================================
                             ROW 2
-                        ================================================= */}
+                        ========================================= */}
 
-                        <View style={styles.twoColumnRow}>
+                        <View
+                            style={
+                                styles.twoColumnRow
+                            }
+                        >
+
 
                             {/* START YEAR */}
 
                             <View
-                                style={styles.column}
+                                style={
+                                    styles.column
+                                }
                             >
 
-                                <Text style={styles.label}>
+                                <Text
+                                    style={
+                                        styles.label
+                                    }
+                                >
                                     Start Year
+
                                     <Text
-                                        style={styles.required}
+                                        style={
+                                            styles.required
+                                        }
                                     >
                                         *
                                     </Text>
+
                                 </Text>
 
 
@@ -379,7 +763,23 @@ export default function AddCareer() {
                                     style={
                                         styles.selectInput
                                     }
-                                    activeOpacity={0.7}
+                                    activeOpacity={
+                                        0.7
+                                    }
+                                    disabled={
+                                        saving
+                                    }
+                                    onPress={() => {
+
+                                        setShowStartYears(
+                                            !showStartYears
+                                        );
+
+                                        setShowEndYears(
+                                            false
+                                        );
+
+                                    }}
                                 >
 
                                     <Text
@@ -391,13 +791,79 @@ export default function AddCareer() {
                                     </Text>
 
 
-                                    <Ionicons
-                                        name="chevron-down"
-                                        size={9}
+                                    <Feather
+                                        name={
+                                            showStartYears
+                                                ? "chevron-up"
+                                                : "chevron-down"
+                                        }
+                                        size={13}
                                         color="#888888"
                                     />
 
                                 </TouchableOpacity>
+
+
+                                {/* START YEAR LIST */}
+
+                                {showStartYears && (
+
+                                    <View
+                                        style={
+                                            styles.dropdownList
+                                        }
+                                    >
+
+                                        <ScrollView
+                                            nestedScrollEnabled
+                                            showsVerticalScrollIndicator={
+                                                false
+                                            }
+                                            style={
+                                                styles.dropdownScroll
+                                            }
+                                        >
+
+                                            {years.map(
+                                                (year) => (
+
+                                                    <TouchableOpacity
+                                                        key={
+                                                            year
+                                                        }
+                                                        style={
+                                                            styles.dropdownOption
+                                                        }
+                                                        activeOpacity={
+                                                            0.7
+                                                        }
+                                                        onPress={() =>
+                                                            handleStartYear(
+                                                                year
+                                                            )
+                                                        }
+                                                    >
+
+                                                        <Text
+                                                            style={
+                                                                styles.optionText
+                                                            }
+                                                        >
+                                                            {
+                                                                year
+                                                            }
+                                                        </Text>
+
+                                                    </TouchableOpacity>
+
+                                                )
+                                            )}
+
+                                        </ScrollView>
+
+                                    </View>
+
+                                )}
 
                             </View>
 
@@ -405,19 +871,45 @@ export default function AddCareer() {
                             {/* END YEAR */}
 
                             <View
-                                style={styles.column}
+                                style={
+                                    styles.column
+                                }
                             >
 
-                                <Text style={styles.label}>
+                                <Text
+                                    style={
+                                        styles.label
+                                    }
+                                >
                                     End Year
                                 </Text>
 
 
                                 <TouchableOpacity
-                                    style={
-                                        styles.selectInput
+                                    style={[
+                                        styles.selectInput,
+
+                                        currentlyWorking &&
+                                            styles.disabledInput,
+                                    ]}
+                                    activeOpacity={
+                                        0.7
                                     }
-                                    activeOpacity={0.7}
+                                    disabled={
+                                        saving ||
+                                        currentlyWorking
+                                    }
+                                    onPress={() => {
+
+                                        setShowEndYears(
+                                            !showEndYears
+                                        );
+
+                                        setShowStartYears(
+                                            false
+                                        );
+
+                                    }}
                                 >
 
                                     <Text
@@ -425,26 +917,95 @@ export default function AddCareer() {
                                             styles.selectText
                                         }
                                     >
-                                        {endYear}
+                                        {currentlyWorking
+                                            ? "Present"
+                                            : endYear}
                                     </Text>
 
 
-                                    <Ionicons
-                                        name="chevron-down"
-                                        size={9}
+                                    <Feather
+                                        name={
+                                            showEndYears
+                                                ? "chevron-up"
+                                                : "chevron-down"
+                                        }
+                                        size={13}
                                         color="#888888"
                                     />
 
                                 </TouchableOpacity>
+
+
+                                {/* END YEAR LIST */}
+
+                                {showEndYears &&
+                                    !currentlyWorking && (
+
+                                        <View
+                                            style={
+                                                styles.dropdownList
+                                            }
+                                        >
+
+                                            <ScrollView
+                                                nestedScrollEnabled
+                                                showsVerticalScrollIndicator={
+                                                    false
+                                                }
+                                                style={
+                                                    styles.dropdownScroll
+                                                }
+                                            >
+
+                                                {years.map(
+                                                    (year) => (
+
+                                                        <TouchableOpacity
+                                                            key={
+                                                                year
+                                                            }
+                                                            style={
+                                                                styles.dropdownOption
+                                                            }
+                                                            activeOpacity={
+                                                                0.7
+                                                            }
+                                                            onPress={() =>
+                                                                handleEndYear(
+                                                                    year
+                                                                )
+                                                            }
+                                                        >
+
+                                                            <Text
+                                                                style={
+                                                                    styles.optionText
+                                                                }
+                                                            >
+                                                                {
+                                                                    year
+                                                                }
+                                                            </Text>
+
+                                                        </TouchableOpacity>
+
+                                                    )
+                                                )}
+
+                                            </ScrollView>
+
+                                        </View>
+
+                                    )}
 
                             </View>
 
                         </View>
 
 
-                        {/* =================================================
+                        {/* =========================================
                             CURRENTLY WORKING
-                        ================================================= */}
+                        ========================================= */}
 
                         <View
                             style={
@@ -455,23 +1016,37 @@ export default function AddCareer() {
                             <TouchableOpacity
                                 style={[
                                     styles.checkbox,
+
                                     currentlyWorking &&
-                                    styles.checkboxSelected,
+                                        styles.checkboxSelected,
                                 ]}
-                                activeOpacity={0.8}
-                                onPress={() =>
+                                activeOpacity={
+                                    0.8
+                                }
+                                disabled={
+                                    saving
+                                }
+                                onPress={() => {
+
                                     setCurrentlyWorking(
                                         !currentlyWorking
-                                    )
-                                }
+                                    );
+
+                                    setShowEndYears(
+                                        false
+                                    );
+
+                                }}
                             >
 
                                 {currentlyWorking && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={8}
+
+                                    <Feather
+                                        name="check"
+                                        size={12}
                                         color="#FFFFFF"
                                     />
+
                                 )}
 
                             </TouchableOpacity>
@@ -488,20 +1063,32 @@ export default function AddCareer() {
                         </View>
 
 
-                        {/* =================================================
+                        {/* =========================================
                             JOB LOCATION
-                        ================================================= */}
+                        ========================================= */}
 
-                        <View style={styles.fullField}>
+                        <View
+                            style={
+                                styles.fullField
+                            }
+                        >
 
-                            <Text style={styles.label}>
+                            <Text
+                                style={
+                                    styles.label
+                                }
+                            >
                                 Job Location
                             </Text>
 
 
                             <TextInput
-                                style={styles.fullInput}
-                                value={jobLocation}
+                                style={
+                                    styles.fullInput
+                                }
+                                value={
+                                    jobLocation
+                                }
                                 onChangeText={
                                     setJobLocation
                                 }
@@ -509,14 +1096,15 @@ export default function AddCareer() {
                                 placeholderTextColor={
                                     COLORS.placeholder
                                 }
+                                editable={!saving}
                             />
 
                         </View>
 
 
-                        {/* =================================================
+                        {/* =========================================
                             JOB DESCRIPTION
-                        ================================================= */}
+                        ========================================= */}
 
                         <View
                             style={
@@ -524,7 +1112,11 @@ export default function AddCareer() {
                             }
                         >
 
-                            <Text style={styles.label}>
+                            <Text
+                                style={
+                                    styles.label
+                                }
+                            >
                                 Job Description
                             </Text>
 
@@ -533,7 +1125,9 @@ export default function AddCareer() {
                                 style={
                                     styles.descriptionInput
                                 }
-                                value={jobDescription}
+                                value={
+                                    jobDescription
+                                }
                                 onChangeText={
                                     setJobDescription
                                 }
@@ -543,24 +1137,37 @@ export default function AddCareer() {
                                 }
                                 multiline
                                 textAlignVertical="top"
+                                editable={!saving}
                             />
 
                         </View>
 
 
-                        {/* =================================================
+                        {/* =========================================
                             BUTTONS
-                        ================================================= */}
+                        ========================================= */}
 
-                        <View style={styles.buttonRow}>
+                        <View
+                            style={
+                                styles.buttonRow
+                            }
+                        >
+
 
                             {/* CANCEL */}
 
                             <TouchableOpacity
-                                style={styles.cancelButton}
-                                activeOpacity={0.8}
-                                onPress={() =>
-                                    router.back()
+                                style={
+                                    styles.cancelButton
+                                }
+                                activeOpacity={
+                                    0.8
+                                }
+                                disabled={
+                                    saving
+                                }
+                                onPress={
+                                    handleBack
                                 }
                             >
 
@@ -580,29 +1187,41 @@ export default function AddCareer() {
                             <TouchableOpacity
                                 style={[
                                     styles.saveButton,
+
                                     saving && {
                                         opacity: 0.6,
                                     },
                                 ]}
-                                activeOpacity={0.85}
-                                disabled={saving}
-                                onPress={handleSaveCareer}
+                                activeOpacity={
+                                    0.85
+                                }
+                                disabled={
+                                    saving
+                                }
+                                onPress={
+                                    handleSaveCareer
+                                }
                             >
 
-                                <Text style={styles.saveText}>
+                                <Text
+                                    style={
+                                        styles.saveText
+                                    }
+                                >
                                     {saving
                                         ? "Saving..."
                                         : "Save Career"}
                                 </Text>
 
                             </TouchableOpacity>
+
                         </View>
 
                     </ScrollView>
 
                 </View>
 
-            </View>
+            </KeyboardAvoidingView>
 
         </SafeAreaView>
     );
@@ -621,7 +1240,9 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: COLORS.background,
+
+        backgroundColor:
+            COLORS.background,
     },
 
 
@@ -778,7 +1399,7 @@ const styles = StyleSheet.create({
 
         paddingTop: 7,
 
-        paddingBottom: 6,
+        paddingBottom: 20,
     },
 
 
@@ -791,7 +1412,8 @@ const styles = StyleSheet.create({
 
         flexDirection: "row",
 
-        justifyContent: "space-between",
+        justifyContent:
+            "space-between",
 
         marginBottom: 30,
     },
@@ -803,6 +1425,17 @@ const styles = StyleSheet.create({
 
     column: {
         width: "48.5%",
+
+        position: "relative",
+    },
+
+
+    /* =====================================================
+       SELECTED FIELD
+    ===================================================== */
+
+    selectedField: {
+        borderRadius: 5,
     },
 
 
@@ -820,6 +1453,7 @@ const styles = StyleSheet.create({
         color: "#555555",
 
         marginBottom: 20,
+
         marginTop: 30,
 
         includeFontPadding: false,
@@ -840,7 +1474,7 @@ const styles = StyleSheet.create({
 
 
     /* =====================================================
-       SMALL INPUT
+       INPUT
     ===================================================== */
 
     input: {
@@ -897,7 +1531,19 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        justifyContent: "space-between",
+        justifyContent:
+            "space-between",
+    },
+
+
+    /* =====================================================
+       DISABLED INPUT
+    ===================================================== */
+
+    disabledInput: {
+        backgroundColor: "#F5F5F5",
+
+        borderColor: "#E0E0E0",
     },
 
 
@@ -919,6 +1565,78 @@ const styles = StyleSheet.create({
 
 
     /* =====================================================
+       DROPDOWN LIST
+    ===================================================== */
+
+    dropdownList: {
+        position: "absolute",
+
+        top: 77,
+
+        left: 0,
+
+        right: 0,
+
+        backgroundColor:
+            "#FFFFFF",
+
+        borderWidth: 1,
+
+        borderColor:
+            "#E4E4E4",
+
+        borderRadius: 5,
+
+        zIndex: 1000,
+
+        elevation: 6,
+
+        overflow: "hidden",
+    },
+
+
+    /* =====================================================
+       DROPDOWN SCROLL
+    ===================================================== */
+
+    dropdownScroll: {
+        maxHeight: 130,
+    },
+
+
+    /* =====================================================
+       DROPDOWN OPTION
+    ===================================================== */
+
+    dropdownOption: {
+        height: 28,
+
+        paddingHorizontal: 9,
+
+        justifyContent:
+            "center",
+
+        borderBottomWidth: 1,
+
+        borderBottomColor:
+            "#F2F2F2",
+    },
+
+
+    /* =====================================================
+       OPTION TEXT
+    ===================================================== */
+
+    optionText: {
+        fontSize: 13,
+
+        color: "#555555",
+
+        includeFontPadding: false,
+    },
+
+
+    /* =====================================================
        CURRENTLY WORKING
     ===================================================== */
 
@@ -927,7 +1645,7 @@ const styles = StyleSheet.create({
 
         marginLeft: "51.5%",
 
-        height: 17,
+        minHeight: 20,
 
         flexDirection: "row",
 
@@ -952,14 +1670,16 @@ const styles = StyleSheet.create({
 
         borderWidth: 1,
 
-        borderColor: "#D0D0D0",
+        borderColor:
+            "#D0D0D0",
 
         backgroundColor:
             "#FFFFFF",
 
         alignItems: "center",
 
-        justifyContent: "center",
+        justifyContent:
+            "center",
 
         marginRight: 4,
     },
@@ -994,7 +1714,7 @@ const styles = StyleSheet.create({
 
 
     /* =====================================================
-       FULL WIDTH FIELD
+       FULL FIELD
     ===================================================== */
 
     fullField: {
@@ -1090,15 +1810,18 @@ const styles = StyleSheet.create({
     buttonRow: {
         width: "100%",
 
-        height: 29,
+        minHeight: 37,
 
         flexDirection: "row",
 
-        justifyContent: "space-between",
+        justifyContent:
+            "space-between",
 
         alignItems: "center",
 
         marginTop: 20,
+
+        marginBottom: 5,
     },
 
 
@@ -1118,7 +1841,8 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        justifyContent: "center",
+        justifyContent:
+            "center",
     },
 
 
@@ -1155,7 +1879,8 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        justifyContent: "center",
+        justifyContent:
+            "center",
     },
 
 

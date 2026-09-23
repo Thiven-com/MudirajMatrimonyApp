@@ -1,11 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
   Platform,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,16 +12,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+// React Native CLI icons
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Navigation
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
-import { login, verifyMobile } from "../../utils/Functions";
+import { verifyLoginOtp } from "../../utils/Functions";
 
 const LOGO = require("../../../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -37,16 +43,20 @@ const OTP_LENGTH = 4;
 const RESEND_SECONDS = 60;
 
 export default function OtpScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const params = route.params || {};
   const mobile = params?.mobile || "98765 43210";
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const inputRefs = useRef([]);
-
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const inputRefs = useRef([]);
+
+  
+ 
   const isComplete = otp.every((digit) => digit !== "");
   const formattedTimer = `00:${String(secondsLeft).padStart(2, "0")}`;
 
@@ -60,10 +70,7 @@ export default function OtpScreen() {
     return () => clearInterval(timer);
   }, [secondsLeft]);
 
-  const handleEditNumber = () => {
-    router.back();
-  };
-
+  
   const handleChange = (text, index) => {
     const digit = text.replace(/\D/g, "").slice(-1);
     setOtp((current) => {
@@ -78,129 +85,110 @@ export default function OtpScreen() {
   };
 
   const handleKeyPress = (event, index) => {
-    if (
-      event.nativeEvent.key === "Backspace" &&
-      !otp[index] &&
-      index > 0
-    ) {
+    // Handle both native and web events
+    const key = event.nativeEvent?.key || event.key;
+
+    if (key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
+      const nextOtp = [...otp];
+      nextOtp[index - 1] = "";
+      setOtp(nextOtp);
     }
   };
 
-  const handleResend = async () => {
-    if (secondsLeft > 0 || loading) return;
+  const handleVerify = async () => {
+    const code = otp.join("");
+    if (code.length !== OTP_LENGTH) return;
 
-    setErrorText("");
     setLoading(true);
+    setErrorText("");
+    setIsPendingApproval(false);
 
     try {
-      await login(mobile);
-      setSecondsLeft(RESEND_SECONDS);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      const result = await verifyLoginOtp(mobile, code);
+      console.log("OTP verification result:", result);
+
+      // User not found - redirect to registration
+      if (result?.userNotFound === true) {
+        setErrorText("User account not found. Redirecting to registration...");
+        setTimeout(() => {
+          navigation.replace("Register");
+        }, 1500);
+        return;
+      }
+
+      // Account exists and OTP matched, but an admin hasn't approved it yet
+      if (
+        result?.result === false &&
+        result?.message?.toLowerCase().includes("approval")
+      ) {
+        setIsPendingApproval(true);
+        setErrorText(
+          result?.message || "Your account is pending admin approval.",
+        );
+        return;
+      }
+
+      // Verification failed
+      if (result?.result === false || result?.success === 0) {
+        setErrorText(
+          result?.message || "OTP verification failed. Please try again.",
+        );
+        return;
+      }
+
+      // Successful login
+      if (result?.user || result?.token) {
+        console.log("Login successful, user:", result?.user);
+
+        // Persist token and user so authenticated requests work after this screen
+        try {
+          if (result?.token) {
+            await AsyncStorage.setItem("authToken", result.token);
+          }
+          if (result?.user) {
+            await AsyncStorage.setItem("userData", JSON.stringify(result.user));
+          }
+        } catch (storageError) {
+          console.log("Failed to persist auth data:", storageError);
+          setErrorText(
+            "Login succeeded but failed to save session. Please try again.",
+          );
+          return;
+        }
+
+        navigation.replace("Home");
+        return;
+      }
+
+      setErrorText("Unexpected response from server.");
     } catch (error) {
-      setErrorText(error?.message || "Unable to resend OTP. Please try again.");
+      console.log("OTP verify Error:", error);
+      setErrorText(error?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyWithWhatsapp = () => {
-    handleVerify();
+    console.log("Verify with WhatsApp for", mobile);
+    // TODO: trigger WhatsApp-based verification flow
   };
 
-  /* =====================================================
-     API ERROR MESSAGE HELPER
-  ===================================================== */
-
-  const getApiErrorMessage = (message) => {
-    if (typeof message === "string") {
-      return message;
-    }
-
-    if (message && typeof message === "object") {
-      return Object.values(message)
-        .flat()
-        .filter(Boolean)
-        .join("\n");
-    }
-
-    return "Invalid OTP. Please try again.";
+  const handleResend = () => {
+    if (secondsLeft > 0) return;
+    setSecondsLeft(RESEND_SECONDS);
+    setOtp(Array(OTP_LENGTH).fill(""));
+    inputRefs.current[0]?.focus();
+    // TODO: call your resend-OTP API
   };
 
-  /* =====================================================
-     VERIFY OTP
-  ===================================================== */
-
-  const handleVerify = async () => {
-    if (loading) return;
-
-    const code = otp.join("");
-
-    if (code.length !== OTP_LENGTH) {
-      setErrorText(`Enter the ${OTP_LENGTH}-digit OTP`);
-      return;
-    }
-
-    const cleanedMobile = String(mobile || "")
-      .replace(/\D/g, "")
-      .slice(-10);
-
-    if (cleanedMobile.length !== 10) {
-      setErrorText("Invalid mobile number.");
-      return;
-    }
-
-    setErrorText("");
-    setLoading(true);
-
-    try {
-      console.log("=================================");
-      console.log("VERIFY OTP START");
-      console.log("PHONE:", cleanedMobile);
-      console.log("OTP:", code);
-      console.log("=================================");
-
-      
-const result = await verifyMobile(mobile, code);
-
-console.log(
-  "VERIFY MOBILE RESPONSE:",
-  JSON.stringify(result, null, 2)
-);
-
-// Save access token returned by API
-const accessToken =
-  result?.access_token ||
-  result?.data?.access_token ||
-  result?.user?.access_token;
-
-if (!accessToken) {
-  throw new Error("Access token was not returned by the API");
-}
-
-await AsyncStorage.setItem("access_token", String(accessToken));
-
-console.log("ACCESS TOKEN SAVED");
-
-router.replace("/home");
-
-
-    } catch (error) {
-      console.log("VERIFY OTP ERROR:", error);
-
-      setErrorText(
-        error?.message ||
-        "Unable to verify OTP. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleEditNumber = () => {
+    navigation.goBack();
   };
-
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -213,7 +201,7 @@ router.replace("/home");
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -280,73 +268,108 @@ router.replace("/home");
         ))}
       </View>
 
-      {/* ================= RESEND ROW ================= */}
-      <View style={styles.resendRow}>
-        <Text style={styles.resendText}>Didn't receive the code? </Text>
-        {secondsLeft > 0 ? (
-          <Text style={styles.resendText}>
-            Resend OTP in{" "}
-            <Text style={styles.resendTimer}>{formattedTimer}</Text>
-          </Text>
-        ) : (
-          <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
-            <Text style={styles.resendLink}>Resend OTP</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* ================= VERIFY BUTTON ================= */}
-      <TouchableOpacity
-        style={[
-          styles.verifyButtonTouchable,
-          !isComplete && styles.verifyButtonDisabled,
-        ]}
-        activeOpacity={0.85}
-        onPress={handleVerify}
-        disabled={!isComplete || loading}
-      >
-        <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>
-          <Defs>
-            <SvgGradient id="otpBtnGrad" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0" stopColor={Colors.primaryRed} />
-              <Stop offset="0.55" stopColor="#DC2626" />
-              <Stop offset="1" stopColor={Colors.gold} />
-            </SvgGradient>
-          </Defs>
-          <Path
-            d={`M14,0 H${SCREEN_WIDTH} V54 H14 A14,14 0 0 1 0,40 V14 A14,14 0 0 1 14,0 Z`}
-            fill="url(#otpBtnGrad)"
-          />
-        </Svg>
-        <View style={styles.verifyButtonContent}>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={20}
-            color={Colors.white}
-            style={{ marginRight: 8 }}
-          />
-
-
-          {errorText ? (
-            <Text style={styles.errorText}>
-              {errorText}
-            </Text>
-          ) : null}
-          <Text style={styles.verifyButtonText}>
-            {loading ? "VERIFYING..." : "VERIFY OTP"}
+      {/* ================= PENDING APPROVAL MESSAGE ================= */}
+      {isPendingApproval && (
+        <View style={styles.pendingContainer}>
+          <View style={styles.pendingIconCircle}>
+            <Ionicons name="time-outline" size={22} color={Colors.warning} />
+          </View>
+          <Text style={styles.pendingTitle}>Awaiting Admin Approval</Text>
+          <Text style={styles.pendingText}>
+            Your number is verified, but your account still needs to be approved
+            by an admin before you can log in. This usually doesn't take long —
+            please check back shortly.
           </Text>
         </View>
-      </TouchableOpacity>
+      )}
 
-      {/* ================= VERIFY WITH WHATSAPP ================= */}
-      <TouchableOpacity
-        style={styles.whatsappButton}
-        activeOpacity={0.8}
-        onPress={handleVerifyWithWhatsapp}
-      >
-        <Ionicons name="logo-whatsapp" size={20} color={Colors.primaryRed} />
-        <Text style={styles.whatsappText}>Verify with WhatsApp</Text>
-      </TouchableOpacity>
+      {/* ================= ERROR MESSAGE ================= */}
+      {!isPendingApproval && errorText.length > 0 && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={18} color={Colors.primaryRed} />
+          <Text style={styles.errorText}>{errorText}</Text>
+        </View>
+      )}
+
+      {!isPendingApproval && (
+        <>
+          {/* ================= RESEND ROW ================= */}
+          <View style={styles.resendRow}>
+            <Text style={styles.resendText}>Didn't receive the code? </Text>
+            {secondsLeft > 0 ? (
+              <Text style={styles.resendText}>
+                Resend OTP in{" "}
+                <Text style={styles.resendTimer}>{formattedTimer}</Text>
+              </Text>
+            ) : (
+              <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
+                <Text style={styles.resendLink}>Resend OTP</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ================= VERIFY BUTTON ================= */}
+          <TouchableOpacity
+            style={[
+              styles.verifyButtonTouchable,
+              !isComplete && styles.verifyButtonDisabled,
+            ]}
+            activeOpacity={0.85}
+            onPress={handleVerify}
+            disabled={!isComplete || loading}
+          >
+            <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>
+              <Defs>
+                <SvgGradient id="otpBtnGrad" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0" stopColor={Colors.primaryRed} />
+                  <Stop offset="0.55" stopColor="#DC2626" />
+                  <Stop offset="1" stopColor={Colors.gold} />
+                </SvgGradient>
+              </Defs>
+              <Path
+                d={`M14,0 H${SCREEN_WIDTH} V54 H14 A14,14 0 0 1 0,40 V14 A14,14 0 0 1 14,0 Z`}
+                fill="url(#otpBtnGrad)"
+              />
+            </Svg>
+            <View style={styles.verifyButtonContent}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={20}
+                color={Colors.white}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.verifyButtonText}>
+                {loading ? "VERIFYING..." : "VERIFY OTP"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* ================= VERIFY WITH WHATSAPP ================= */}
+          <TouchableOpacity
+            style={styles.whatsappButton}
+            activeOpacity={0.8}
+            onPress={handleVerifyWithWhatsapp}
+          >
+            <Ionicons
+              name="logo-whatsapp"
+              size={20}
+              color={Colors.primaryRed}
+            />
+            <Text style={styles.whatsappText}>Verify with WhatsApp</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {isPendingApproval && (
+        <TouchableOpacity
+          style={styles.whatsappButton}
+          activeOpacity={0.8}
+          onPress={() => navigation.replace("Login")}
+        >
+          <Ionicons name="arrow-back" size={18} color={Colors.primaryRed} />
+          <Text style={styles.whatsappText}>Back to Login</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ================= PRIVACY NOTE ================= */}
       <View style={styles.privacyRow}>
@@ -487,7 +510,7 @@ const styles = StyleSheet.create({
     left: 16,
     zIndex: 10,
     width: 36,
-    height: 36,
+    height: 35,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -614,6 +637,63 @@ const styles = StyleSheet.create({
   otpBoxFilled: {
     borderColor: Colors.primaryRed,
     borderWidth: 2,
+  },
+
+  /* ===== ERROR MESSAGE ===== */
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: "5%",
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primaryRed,
+  },
+  errorText: {
+    fontSize: FontSizes.label,
+    fontFamily: Fonts.body.regular,
+    color: Colors.primaryRed,
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  /* ===== PENDING APPROVAL ===== */
+  pendingContainer: {
+    width: "90%",
+    alignItems: "center",
+    backgroundColor: "#FEF6E7",
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F5DFA3",
+  },
+  pendingIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FDECC8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  pendingTitle: {
+    fontSize: FontSizes.welcome - 2,
+    fontFamily: Fonts.display.bold,
+    color: Colors.textPrimary,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  pendingText: {
+    fontSize: FontSizes.label,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    textAlign: "center",
   },
 
   /* ===== RESEND ROW ===== */

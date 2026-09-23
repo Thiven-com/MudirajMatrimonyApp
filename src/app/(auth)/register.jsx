@@ -1,12 +1,10 @@
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Dimensions,
   Image,
   Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,13 +13,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+// React Native CLI icons
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+// React Native CLI gradient
+import LinearGradient from "react-native-linear-gradient";
+
+// React Navigation
+import { useNavigation } from "@react-navigation/native";
+
 import Svg, {
   Defs,
   Path,
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import { Colors } from "../../constants/colors";
 import { Fonts, FontSizes } from "../../constants/Fonts";
 import { signup } from "../../utils/Functions";
@@ -41,39 +50,41 @@ const ON_BEHALF_OPTIONS = [
   { label: "For Myself", value: 0 },
   { label: "For Someone Else", value: 1 },
 ];
- 
+
 export default function RegisterScreen() {
-  const router = useRouter();
- 
+  const navigation = useNavigation();
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
-  const [onBehalf, setOnBehalf] = useState(null);
+  const [onBehalf, setOnBehalf] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [onBehalfModalVisible, setOnBehalfModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
- 
+
   const handleRegister = async () => {
     if (
-  !firstName.trim() ||
-  !lastName.trim() ||
-  !mobile.trim() ||
-  !dob.trim() ||
-  !gender.trim() ||
-  onBehalf === null
-) {
-  setErrorText("Please fill all required fields");
-  return;
-}
- 
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !mobile.trim() ||
+      !email.trim() ||
+      !dob ||
+      !gender ||
+      !onBehalf ||
+      !agreed
+    ) {
+      setErrorText("Please fill all required fields");
+      return;
+    }
+
     setErrorText("");
     setLoading(true);
- 
+
     try {
       // signup() in utils/Functions.js handles mapping these fields
       // (firstName -> first_name, mobile -> phone, dob -> date_of_birth,
@@ -96,9 +107,9 @@ export default function RegisterScreen() {
         setErrorText(result?.message || "Unable to create account right now.");
         return;
       }
- 
+
       // Registration successful
-      router.replace("/login");
+      navigation.replace("Login");
     } catch (error) {
       console.log("signup Error:", error);
       setErrorText(error?.message || "Something went wrong. Please try again.");
@@ -108,7 +119,7 @@ export default function RegisterScreen() {
   };
  
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -125,7 +136,7 @@ export default function RegisterScreen() {
  
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -185,7 +196,7 @@ export default function RegisterScreen() {
               />
             }
           />
- 
+
           <FieldCard
             icon={
               <Ionicons
@@ -306,7 +317,7 @@ export default function RegisterScreen() {
               }
             />
           </TouchableOpacity>
- 
+
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setOnBehalfModalVisible(true)}
@@ -358,7 +369,7 @@ export default function RegisterScreen() {
             <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
         </TouchableOpacity>
- 
+
         {/* ================= ERROR MESSAGE ================= */}
         {errorText.length > 0 && (
           <View style={styles.errorContainer}>
@@ -366,7 +377,7 @@ export default function RegisterScreen() {
             <Text style={styles.errorText}>{errorText}</Text>
           </View>
         )}
- 
+
         {/* ================= REGISTER BUTTON ================= */}
         <TouchableOpacity
           style={[
@@ -419,7 +430,7 @@ export default function RegisterScreen() {
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity
-            onPress={() => router.push("/login")}
+            onPress={() => navigation.navigate("Login")}
             activeOpacity={0.7}
           >
             <Text style={styles.loginLink}>Login</Text>
@@ -468,7 +479,7 @@ export default function RegisterScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
- 
+
       {/* ================= ON BEHALF PICKER MODAL ================= */}
       <Modal
         visible={onBehalfModalVisible}
@@ -849,7 +860,7 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
     fontFamily: Fonts.body.semiBold,
   },
- 
+
   /* ===== ERROR MESSAGE ===== */
   errorContainer: {
     flexDirection: "row",
@@ -870,7 +881,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
- 
+
   /* ===== REGISTER BUTTON ===== */
   registerButtonTouchable: {
     width: "90%",

@@ -7,9 +7,9 @@ import {
 
 import {
   Alert,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -19,13 +19,18 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
-  router,
-  useLocalSearchParams,
-} from "expo-router";
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 import {
   getMemberFamilyInfo,
@@ -43,10 +48,15 @@ const FAMILY_CACHE_KEY = "member_family_info_cache";
 ========================================================= */
 
 export default function EditFamilyInformation() {
-  const params = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  /* =======================================================
+     ROUTE PARAMS
+  ======================================================= */
 
   const selectedField = String(
-    params?.field || ""
+    route?.params?.field || ""
   ).toLowerCase();
 
   /* =======================================================
@@ -191,10 +201,6 @@ export default function EditFamilyInformation() {
 
   /* =======================================================
      LOAD FAMILY INFORMATION
-     
-     IMPORTANT:
-     No loading state is used.
-     Cache is loaded first so inputs can appear immediately.
   ======================================================= */
 
   const loadFamilyInformation =
@@ -243,6 +249,7 @@ export default function EditFamilyInformation() {
           setErrorMessage(
             "Please login again."
           );
+
           return;
         }
 
@@ -280,10 +287,9 @@ export default function EditFamilyInformation() {
           familyData
         );
 
-        /*
-          Only update the UI when the API actually
-          returned at least one family value.
-        */
+        /* -----------------------------------------------
+           CHECK API DATA
+        ------------------------------------------------ */
 
         const hasApiValue =
           familyData.father !== "" ||
@@ -308,10 +314,6 @@ export default function EditFamilyInformation() {
           error
         );
 
-        /*
-          Do not clear already loaded values.
-        */
-
         setErrorMessage(
           error?.response?.data?.message ||
           error?.message ||
@@ -324,14 +326,47 @@ export default function EditFamilyInformation() {
     ]);
 
   /* =======================================================
-     INITIAL LOAD
+     LOAD WHEN SCREEN GETS FOCUS
   ======================================================= */
 
-  useEffect(() => {
-    loadFamilyInformation();
-  }, [
-    loadFamilyInformation,
-  ]);
+  useFocusEffect(
+    useCallback(() => {
+      loadFamilyInformation();
+
+      return () => {};
+    }, [loadFamilyInformation])
+  );
+
+  /* =======================================================
+     HARDWARE BACK HANDLER
+  ======================================================= */
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (saving) {
+          return true;
+        }
+
+        navigation.goBack();
+
+        return true;
+      };
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [
+      navigation,
+      saving,
+    ])
+  );
 
   /* =======================================================
      AUTO FOCUS
@@ -584,9 +619,9 @@ export default function EditFamilyInformation() {
           sibling: siblingValue,
         };
 
-        /*
-          Update cache immediately.
-        */
+        /* -------------------------------------------
+           UPDATE CACHE
+        -------------------------------------------- */
 
         await AsyncStorage.setItem(
           FAMILY_CACHE_KEY,
@@ -595,9 +630,9 @@ export default function EditFamilyInformation() {
           )
         );
 
-        /*
-          Keep the current screen values immediately.
-        */
+        /* -------------------------------------------
+           KEEP SCREEN VALUES
+        -------------------------------------------- */
 
         setFather(fatherValue);
         setMother(motherValue);
@@ -610,7 +645,7 @@ export default function EditFamilyInformation() {
             {
               text: "OK",
               onPress: () => {
-                router.back();
+                navigation.goBack();
               },
             },
           ],
@@ -619,9 +654,7 @@ export default function EditFamilyInformation() {
           }
         );
       } else {
-        setErrorMessage(
-          message
-        );
+        setErrorMessage(message);
 
         Alert.alert(
           "Update Failed",
@@ -649,9 +682,7 @@ export default function EditFamilyInformation() {
         error?.message ||
         "Unable to update family information.";
 
-      setErrorMessage(
-        message
-      );
+      setErrorMessage(message);
 
       Alert.alert(
         "Update Failed",
@@ -669,6 +700,7 @@ export default function EditFamilyInformation() {
   return (
     <SafeAreaView
       style={styles.safeArea}
+      edges={["top", "bottom"]}
     >
       <StatusBar
         barStyle="dark-content"
@@ -704,13 +736,13 @@ export default function EditFamilyInformation() {
                 activeOpacity={0.7}
                 onPress={() => {
                   if (!saving) {
-                    router.back();
+                    navigation.goBack();
                   }
                 }}
                 disabled={saving}
               >
-                <Ionicons
-                  name="chevron-back"
+                <Feather
+                  name="chevron-left"
                   size={25}
                   color="#D7192A"
                 />
@@ -721,9 +753,9 @@ export default function EditFamilyInformation() {
                   styles.headerIconContainer
                 }
               >
-                <Ionicons
-                  name="people-outline"
-                  size={17}
+                <FontAwesome5
+                  name="users"
+                  size={16}
                   color="#D7192A"
                 />
               </View>
@@ -752,8 +784,8 @@ export default function EditFamilyInformation() {
               <View
                 style={styles.errorBox}
               >
-                <Ionicons
-                  name="alert-circle-outline"
+                <Feather
+                  name="alert-circle"
                   size={18}
                   color="#D7192A"
                 />
@@ -791,8 +823,8 @@ export default function EditFamilyInformation() {
                     },
                   ]}
                 >
-                  <Ionicons
-                    name="person-outline"
+                  <Feather
+                    name="user"
                     size={18}
                     color="#4A9BE8"
                   />
@@ -848,8 +880,8 @@ export default function EditFamilyInformation() {
                     },
                   ]}
                 >
-                  <Ionicons
-                    name="person-outline"
+                  <Feather
+                    name="user"
                     size={18}
                     color="#E65A91"
                   />
@@ -905,9 +937,9 @@ export default function EditFamilyInformation() {
                     },
                   ]}
                 >
-                  <Ionicons
-                    name="people-outline"
-                    size={18}
+                  <FontAwesome5
+                    name="users"
+                    size={16}
                     color="#4CAF78"
                   />
                 </View>
@@ -968,11 +1000,11 @@ export default function EditFamilyInformation() {
               onPress={handleSave}
               disabled={saving}
             >
-              <Ionicons
+              <Feather
                 name={
                   saving
-                    ? "sync-outline"
-                    : "checkmark-circle-outline"
+                    ? "refresh-cw"
+                    : "check-circle"
                 }
                 size={19}
                 color="#FFFFFF"
@@ -994,7 +1026,7 @@ export default function EditFamilyInformation() {
               activeOpacity={0.75}
               onPress={() => {
                 if (!saving) {
-                  router.back();
+                  navigation.goBack();
                 }
               }}
               disabled={saving}

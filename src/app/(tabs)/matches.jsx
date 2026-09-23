@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import {
+  ActivityIndicator,
   Image,
   SafeAreaView,
   ScrollView,
@@ -11,10 +13,22 @@ import {
   View,
 } from "react-native";
 
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+// React Native CLI icons
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+
+// AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// React Navigation
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+// API
+import { postMemberListing } from "../../utils/Functions";
+
+/* =========================================================
+   COLORS
+========================================================= */
 
 const COLORS = {
   primary: "#B20D08",
@@ -27,169 +41,533 @@ const COLORS = {
   background: "#FAF9F7",
 };
 
-/* =========================
-   MATCH DATA
-========================= */
+/* =========================================================
+   FALLBACK IMAGE
+========================================================= */
 
-const matches = [
-  {
-    id: 1,
-    name: "Priyanka",
-    age: 25,
-    profession: "Software Engineer",
-    location: "Hyderabad, Telangana",
-    education: "B.Tech, Computer Science",
-    height: `5'4"`,
-    community: "Hindu - Mudhiraj",
-    image: require("../../../assets/images/Match3.png"),
-    online: true,
-    newMember: true,
-    recentlyActive: true,
+const FALLBACK_IMAGE = require("../../../assets/images/Match1.png");
+
+/* =========================================================
+   GET TOKEN
+========================================================= */
+
+const getToken = async () => {
+  try {
+    // 1. Login token
+    const authToken = await AsyncStorage.getItem("authToken");
+
+    if (authToken) {
+      console.log("getToken: authToken FOUND");
+      return authToken;
+    }
+
+    // 2. Complete user data
+    const userdata = await AsyncStorage.getItem("userdata");
+
+    if (userdata) {
+      try {
+        const parsed = JSON.parse(userdata);
+
+        const token =
+          parsed?.data?.token ||
+          parsed?.token ||
+          parsed?.access_token ||
+          parsed?.data?.access_token ||
+          null;
+
+        if (token) {
+          console.log("getToken: userdata token FOUND");
+          return token;
+        }
+      } catch (error) {
+        console.log("getToken userdata parse error:", error);
+      }
+    }
+
+    // 3. Other token keys
+    const fallbackKeys = ["token", "access_token", "userToken", "auth_token"];
+
+    for (const key of fallbackKeys) {
+      const value = await AsyncStorage.getItem(key);
+
+      if (value) {
+        console.log(`getToken: ${key} FOUND`);
+        return value;
+      }
+    }
+
+    // 4. User fallback
+    const userStr =
+      (await AsyncStorage.getItem("user")) ||
+      (await AsyncStorage.getItem("user_data"));
+
+    if (userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+
+        const token =
+          parsed?.data?.token || parsed?.token || parsed?.access_token || null;
+
+        if (token) {
+          console.log("getToken: user/user_data token FOUND");
+          return token;
+        }
+      } catch (error) {
+        console.log("getToken user parse error:", error);
+      }
+    }
+
+    console.log("getToken: NO TOKEN FOUND");
+
+    return null;
+  } catch (error) {
+    console.log("getToken Error:", error);
+
+    return null;
+  }
+};
+
+/* =========================================================
+   FORMAT HEIGHT
+========================================================= */
+
+function formatHeight(value) {
+  if (value == null || value === "") {
+    return "";
+  }
+
+  if (typeof value === "string" && value.includes("'")) {
+    return value;
+  }
+
+  const num = Number(value);
+
+  if (!Number.isFinite(num)) {
+    return String(value);
+  }
+
+  const feet = Math.floor(num);
+  const inches = Math.round((num - feet) * 10);
+
+  return `${feet}'${inches}"`;
+}
+
+/* =========================================================
+   ID MAPS
+========================================================= */
+
+const ID_MAPS = {
+  maritalStatus: {
+    "Never Married": 1,
+    Divorced: 2,
+    Widowed: 3,
   },
 
-  {
-    id: 2,
-    name: "Deepika",
-    age: 23,
-    profession: "Teacher",
-    location: "Warangal, Telangana",
-    education: "B.Ed",
-    height: `5'3"`,
-    community: "Hindu - Mudhiraj",
-    image: require("../../../assets/images/Match1.png"),
-    online: true,
-    newMember: true,
-    recentlyActive: false,
+  religion: {
+    "Hindu - Mudhiraj": 1,
+    Hindu: 2,
   },
 
-  {
-    id: 3,
-    name: "Rohit",
-    age: 27,
-    profession: "Civil Engineer",
-    location: "Vijayawada, Andhra Pradesh",
-    education: "B.Tech, Civil Engineering",
-    height: `5'7"`,
-    community: "Hindu - Mudhiraj",
-    image: require("../../../assets/images/Match2.png"),
-    online: false,
-    newMember: false,
-    recentlyActive: true,
+  caste: {
+    Mudhiraj: 2,
+    Other: 3,
   },
 
-  {
-    id: 4,
-    name: "Ananya",
-    age: 26,
-    profession: "Doctor",
-    location: "Bengaluru, Karnataka",
-    education: "MBBS, MD",
-    height: `5'5"`,
-    community: "Hindu - Mudhiraj",
-    image: require("../../../assets/images/Match3.png"),
-    online: true,
-    newMember: false,
-    recentlyActive: true,
+  country: {
+    India: 1,
+    USA: 2,
+    "United Kingdom": 3,
+    Australia: 4,
+    Canada: 5,
   },
 
-  {
-    id: 5,
-    name: "Kiran",
-    age: 28,
-    profession: "Business Analyst",
-    location: "Hyderabad, Telangana",
-    education: "MBA",
-    height: `5'8"`,
-    community: "Hindu - Mudhiraj",
-    image: require("../../../assets/images/Match2.png"),
-    online: false,
-    newMember: true,
-    recentlyActive: false,
-  },
-];
+  location: {
+    "Hyderabad, Telangana": {
+      state_id: 1,
+      city_id: 1,
+    },
 
-/* =========================
+    "Warangal, Telangana": {
+      state_id: 1,
+      city_id: 2,
+    },
+
+    "Vijayawada, Andhra Pradesh": {
+      state_id: 2,
+      city_id: 3,
+    },
+
+    "Bengaluru, Karnataka": {
+      state_id: 3,
+      city_id: 4,
+    },
+  },
+
+  lookingFor: {
+    Bride: 1,
+    Groom: 2,
+  },
+};
+
+/* =========================================================
+   PARSE HEIGHT RANGE
+========================================================= */
+
+function parseHeightRange(heightLabel) {
+  if (!heightLabel || typeof heightLabel !== "string") {
+    return {};
+  }
+
+  const pairs = [...heightLabel.matchAll(/(\d+)'(\d+)"/g)].map(
+    ([, feet, inches]) => Number(`${feet}.${inches}`),
+  );
+
+  if (pairs.length === 0) {
+    return {};
+  }
+
+  const result = {
+    min_height: pairs[0],
+  };
+
+  if (pairs.length > 1) {
+    result.max_height = pairs[1];
+  }
+
+  return result;
+}
+
+/* =========================================================
+   PARSE AGE RANGE
+========================================================= */
+
+function parseAgeRange(ageLabel) {
+  if (!ageLabel || typeof ageLabel !== "string") {
+    return {};
+  }
+
+  const numbers = ageLabel.match(/\d+/g);
+
+  if (!numbers || numbers.length === 0) {
+    return {};
+  }
+
+  const age_from = Number(numbers[0]);
+
+  const age_to = numbers.length > 1 ? Number(numbers[1]) : undefined;
+
+  return {
+    ...(Number.isFinite(age_from) ? { age_from } : {}),
+    ...(Number.isFinite(age_to) ? { age_to } : {}),
+  };
+}
+
+/* =========================================================
+   BUILD FILTERS
+========================================================= */
+
+function buildFiltersFromParams(params) {
+  if (!params) {
+    return {};
+  }
+
+  const isSet = (value) =>
+    !!value && value !== "Select" && value !== "Select City";
+
+  const filters = {
+    member_code: "",
+  };
+
+  /* AGE */
+
+  const { age_from, age_to } = parseAgeRange(params.age);
+
+  if (age_from !== undefined) {
+    filters.age_from = age_from;
+  }
+
+  if (age_to !== undefined) {
+    filters.age_to = age_to;
+  }
+
+  /* HEIGHT */
+
+  const { min_height, max_height } = parseHeightRange(params.height);
+
+  if (min_height !== undefined) {
+    filters.min_height = min_height;
+  }
+
+  if (max_height !== undefined) {
+    filters.max_height = max_height;
+  }
+
+  /* MARITAL STATUS */
+
+  if (isSet(params.maritalStatus)) {
+    const id = ID_MAPS.maritalStatus[params.maritalStatus];
+
+    if (id !== undefined) {
+      filters.marital_status = id;
+    }
+  }
+
+  /* RELIGION */
+
+  if (isSet(params.religion)) {
+    const id = ID_MAPS.religion[params.religion];
+
+    if (id !== undefined) {
+      filters.religion_id = id;
+    }
+  }
+
+  /* CASTE */
+
+  if (isSet(params.caste)) {
+    const id = ID_MAPS.caste[params.caste];
+
+    if (id !== undefined) {
+      filters.caste_id = id;
+    }
+  }
+
+  /* MOTHER TONGUE */
+
+  if (isSet(params.motherTongue)) {
+    filters.mother_tongue = params.motherTongue;
+  }
+
+  /* PROFESSION */
+
+  if (isSet(params.profession)) {
+    filters.profession = params.profession;
+  }
+
+  /* COUNTRY */
+
+  if (isSet(params.country)) {
+    const id = ID_MAPS.country[params.country];
+
+    if (id !== undefined) {
+      filters.country_id = id;
+    }
+  }
+
+  /* LOCATION */
+
+  if (isSet(params.location)) {
+    const ids = ID_MAPS.location[params.location];
+
+    if (ids) {
+      filters.state_id = ids.state_id;
+      filters.city_id = ids.city_id;
+    }
+  }
+
+  /* LOOKING FOR */
+
+  if (isSet(params.lookingFor)) {
+    const id = ID_MAPS.lookingFor[params.lookingFor];
+
+    if (id !== undefined) {
+      filters.member_type = id;
+    }
+  }
+
+  return filters;
+}
+
+/* =========================================================
+   API MEMBER -> UI MEMBER
+========================================================= */
+
+function mapMember(api) {
+  const joinedName = [api.first_name, api.last_name].filter(Boolean).join(" ");
+
+  return {
+    id: api.user_id ?? api.id ?? api.member_id,
+
+    name: api.name ?? api.full_name ?? joinedName ?? "Unknown",
+
+    age: api.age ?? null,
+
+    // membership:
+    // 1 = Free
+    // 2 = Premium
+    membership: Number(api.membership ?? 1),
+
+    profession: api.profession ?? api.occupation ?? "",
+
+    location:
+      api.location ??
+      [api.city, api.state, api.country].filter(Boolean).join(", "),
+
+    education: api.education ?? api.qualification ?? "",
+
+    height: formatHeight(api.height ?? api.max_height),
+
+    community:
+      api.community ?? [api.religion, api.caste].filter(Boolean).join(" - "),
+
+    image: api.photo_url
+      ? {
+          uri: api.photo_url,
+        }
+      : api.photo
+        ? {
+            uri: api.photo,
+          }
+        : api.profile_photo
+          ? {
+              uri: api.profile_photo,
+            }
+          : FALLBACK_IMAGE,
+
+    online: !!(api.is_online ?? api.online),
+
+    newMember: !!(api.is_new ?? api.new_member),
+
+    recentlyActive: !!(api.recently_active ?? api.last_active_recent),
+  };
+}
+
+/* =========================================================
    TABS
-========================= */
+========================================================= */
 
 const tabs = [
   {
-    key: "All Matches",
-    label: "All Matches",
+    key: "All Members",
+    label: "All Members",
     icon: "people",
   },
 
   {
-    key: "Online Now",
-    label: "Online Now",
+    key: "Premium",
+    label: "Premium Members",
     icon: "radio",
   },
 
   {
-    key: "New Members",
-    label: "New Members",
+    key: "Free",
+    label: "Free",
     icon: "star-outline",
-  },
-
-  {
-    key: "Recently Active",
-    label: "Recently Active",
-    icon: "time-outline",
   },
 ];
 
-/* =========================
+/* =========================================================
    COMPONENT
-========================= */
+========================================================= */
 
 export default function MatchesScreen() {
-  const [activeTab, setActiveTab] =
-    useState("All Matches");
+  const navigation = useNavigation();
+
+  const route = useRoute();
+
+  const params = route.params || {};
+
+  /* =======================================================
+     STATE
+  ======================================================= */
+
+  const [matches, setMatches] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [loadError, setLoadError] = useState("");
+
+  const [activeTab, setActiveTab] = useState("All Members");
 
   const [liked, setLiked] = useState([]);
 
-  const [searchText, setSearchText] =
-    useState("");
+  const [searchText, setSearchText] = useState(
+    typeof params.search === "string" ? params.search : "",
+  );
 
-  const [showFilters, setShowFilters] =
-    useState(false);
+  /* =======================================================
+     LOAD MATCHES
+  ======================================================= */
 
-  const [selectedProfession, setSelectedProfession] =
-    useState("All");
+  const loadMatches = async () => {
+    setLoading(true);
 
-  const [selectedLocation, setSelectedLocation] =
-    useState("All");
+    setLoadError("");
 
-  /* =========================
-     PROFESSION LIST
-  ========================= */
+    try {
+      const token = await getToken();
 
-  const professions = [
-    "All",
-    ...Array.from(
-      new Set(matches.map((item) => item.profession))
-    ),
-  ];
+      console.log("loadMatches Token:", token ? "FOUND" : "NOT FOUND");
 
-  /* =========================
-     LOCATION LIST
-  ========================= */
+      if (!token) {
+        setLoadError("Authentication token not found. Please login again.");
 
-  const locations = [
-    "All",
-    ...Array.from(
-      new Set(matches.map((item) => item.location))
-    ),
-  ];
+        return;
+      }
 
-  /* =========================
+      /* BUILD FILTERS */
+
+      const filters = buildFiltersFromParams(params);
+
+      console.log("postMemberListing filters:", JSON.stringify(filters));
+
+      /* API */
+
+      const result = await postMemberListing(filters, token);
+
+      console.log("postMemberListing result:", JSON.stringify(result));
+
+      /* SUCCESS */
+
+      if (result?.success === 1 || result?.result === true) {
+        const apiData = Array.isArray(result?.data?.members)
+          ? result.data.members
+          : Array.isArray(result?.data)
+            ? result.data
+            : [];
+
+        setMatches(apiData.filter(Boolean).map(mapMember));
+      } else {
+        setMatches([]);
+
+        setLoadError(result?.message || "Unable to load matches.");
+      }
+    } catch (error) {
+      console.log("loadMatches Error:", error);
+
+      setLoadError(error?.message || "Unable to load matches.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
+  useEffect(() => {
+    loadMatches();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    params.age,
+    params.height,
+    params.maritalStatus,
+    params.religion,
+    params.caste,
+    params.motherTongue,
+    params.profession,
+    params.country,
+    params.location,
+    params.lookingFor,
+  ]);
+
+  /* =======================================================
      FILTER MATCHES
-  ========================= */
+  ======================================================= */
 
   const filteredMatches = useMemo(() => {
-    const query = searchText
-      .trim()
-      .toLowerCase();
+    const query = searchText.trim().toLowerCase();
 
     return matches.filter((item) => {
       const searchableText = [
@@ -202,143 +580,96 @@ export default function MatchesScreen() {
         .join(" ")
         .toLowerCase();
 
-      /* SEARCH */
-
-      const matchesSearch =
-        !query ||
-        searchableText.includes(query);
-
-      /* TABS */
+      const matchesSearch = !query || searchableText.includes(query);
 
       const matchesTab =
-        activeTab === "All Matches" ||
-        (activeTab === "Online Now" &&
-          item.online) ||
-        (activeTab === "New Members" &&
-          item.newMember) ||
-        (activeTab === "Recently Active" &&
-          item.recentlyActive);
+        activeTab === "All Members" ||
+        (activeTab === "Premium" && item.membership === 2) ||
+        (activeTab === "Free" && item.membership === 1);
 
-      /* PROFESSION FILTER */
-
-      const matchesProfession =
-        selectedProfession === "All" ||
-        item.profession === selectedProfession;
-
-      /* LOCATION FILTER */
-
-      const matchesLocation =
-        selectedLocation === "All" ||
-        item.location === selectedLocation;
-
-      return (
-        matchesSearch &&
-        matchesTab &&
-        matchesProfession &&
-        matchesLocation
-      );
+      return matchesSearch && matchesTab;
     });
-  }, [
-    activeTab,
-    searchText,
-    selectedProfession,
-    selectedLocation,
-  ]);
+  }, [matches, activeTab, searchText]);
 
-  /* =========================
+  /* =======================================================
      LIKE
-  ========================= */
+  ======================================================= */
 
   const toggleLike = (id) => {
     setLiked((previous) =>
       previous.includes(id)
-        ? previous.filter(
-          (item) => item !== id
-        )
-        : [...previous, id]
+        ? previous.filter((item) => item !== id)
+        : [...previous, id],
     );
   };
 
-  /* =========================
+  /* =======================================================
      CLEAR FILTERS
-  ========================= */
+  ======================================================= */
 
   const clearFilters = () => {
     setSearchText("");
 
-    setSelectedProfession("All");
-
-    setSelectedLocation("All");
-
-    setActiveTab("All Matches");
+    setActiveTab("All Members");
   };
 
-  /* =========================
-     NEXT SELECT VALUE
-  ========================= */
+  /* =======================================================
+     LOADING
+  ======================================================= */
 
-  const getNextValue = (
-    values,
-    currentValue
-  ) => {
-    const index =
-      values.indexOf(currentValue);
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={COLORS.red} />
 
-    return values[
-      (index + 1) % values.length
-    ];
-  };
+          <Text style={styles.centerStateText}>Loading matches...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     MAIN UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={COLORS.background}
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.container}>
-
-        {/* ================= HEADER ================= */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <View style={styles.headerArea}>
-
-          {/* BACK BUTTON */}
+          {/* BACK */}
 
           <TouchableOpacity
             style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name="arrow-back"
-              size={28}
-              color="#252525"
-            />
+            <Ionicons name="arrow-back" size={28} color="#252525" />
           </TouchableOpacity>
 
           {/* TITLE */}
 
           <View style={styles.titleSection}>
             <Text style={styles.title}>
-              <Text style={styles.titleRed}>
-                Matches
-              </Text>{" "}
-              for You
+              <Text style={styles.titleRed}>Members</Text>
             </Text>
 
             <Text style={styles.matchesFound}>
               {filteredMatches.length}{" "}
-              {filteredMatches.length === 1
-                ? "Match"
-                : "Matches"}{" "}
-              Found
+              {filteredMatches.length === 1 ? "Match" : "Members"} Found
             </Text>
           </View>
 
-          {/* ================= SEARCH ================= */}
+          {/* SEARCH */}
 
           <View style={styles.searchRow}>
-
             <View style={styles.searchContainer}>
-
               <Ionicons
                 name="search-outline"
                 size={23}
@@ -356,264 +687,122 @@ export default function MatchesScreen() {
               />
 
               {searchText.length > 0 && (
-                <TouchableOpacity
-                  onPress={() =>
-                    setSearchText("")
-                  }
-                >
-                  <Ionicons
-                    name="close-circle"
-                    size={20}
-                    color="#999"
-                  />
+                <TouchableOpacity onPress={() => setSearchText("")}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
                 </TouchableOpacity>
               )}
-
             </View>
-
-            {/* FILTER BUTTON */}
-
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                showFilters &&
-                styles.filterButtonActive,
-              ]}
-              onPress={() =>
-                setShowFilters((value) => !value)
-              }
-            >
-              <Ionicons
-                name="options-outline"
-                size={23}
-                color="#1B1B1B"
-              />
-
-              <Text style={styles.filterText}>
-                Filters
-              </Text>
-            </TouchableOpacity>
-
           </View>
 
-          {/* ================= FILTER PANEL ================= */}
-
-          {showFilters && (
-            <View style={styles.filterPanel}>
-
-              <View
-                style={styles.filterPanelHeader}
-              >
-                <Text
-                  style={styles.filterPanelTitle}
-                >
-                  Filter Matches
-                </Text>
-
-                <TouchableOpacity
-                  onPress={clearFilters}
-                >
-                  <Text style={styles.clearText}>
-                    Clear All
-                  </Text>
-                </TouchableOpacity>
-
-              </View>
-
-              {/* PROFESSION */}
-
-              <Text style={styles.filterLabel}>
-                Profession
-              </Text>
-
-              <TouchableOpacity
-                style={styles.selectBox}
-                onPress={() =>
-                  setSelectedProfession(
-                    getNextValue(
-                      professions,
-                      selectedProfession
-                    )
-                  )
-                }
-              >
-                <Text
-                  style={styles.selectText}
-                  numberOfLines={1}
-                >
-                  {selectedProfession}
-                </Text>
-
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color="#555"
-                />
-              </TouchableOpacity>
-
-              {/* LOCATION */}
-
-              <Text style={styles.filterLabel}>
-                Location
-              </Text>
-
-              <TouchableOpacity
-                style={styles.selectBox}
-                onPress={() =>
-                  setSelectedLocation(
-                    getNextValue(
-                      locations,
-                      selectedLocation
-                    )
-                  )
-                }
-              >
-                <Text
-                  style={styles.selectText}
-                  numberOfLines={1}
-                >
-                  {selectedLocation}
-                </Text>
-
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color="#555"
-                />
-              </TouchableOpacity>
-
-              <Text style={styles.filterHint}>
-                Tap a selection box to change
-                available options.
-              </Text>
-
-            </View>
-          )}
-
-          {/* ================= ACTION TABS ================= */}
+          {/* TABS */}
 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={
-              styles.tabsScroll
-            }
+            contentContainerStyle={styles.tabsScroll}
             style={styles.tabsContainer}
           >
             {tabs.map((tab) => {
-              const isActive =
-                activeTab === tab.key;
+              const isActive = activeTab === tab.key;
 
               return (
                 <TouchableOpacity
                   key={tab.key}
-                  onPress={() =>
-                    setActiveTab(tab.key)
-                  }
-                  style={[
-                    styles.tab,
-                    isActive &&
-                    styles.activeTab,
-                  ]}
+                  onPress={() => setActiveTab(tab.key)}
+                  style={[styles.tab, isActive && styles.activeTab]}
+                  activeOpacity={0.8}
                 >
-
-                  {tab.key ===
-                    "Online Now" ? (
+                  {tab.key === "Premium" ? (
                     <View
                       style={[
                         styles.onlineDot,
-                        isActive &&
-                        styles.onlineDotActive,
+                        isActive && styles.onlineDotActive,
                       ]}
                     />
                   ) : (
                     <Ionicons
                       name={tab.icon}
                       size={20}
-                      color={
-                        isActive
-                          ? "#FFFFFF"
-                          : "#444"
-                      }
+                      color={isActive ? "#FFFFFF" : "#444"}
                     />
                   )}
 
                   <Text
-                    style={[
-                      styles.tabText,
-                      isActive &&
-                      styles.activeTabText,
-                    ]}
+                    style={[styles.tabText, isActive && styles.activeTabText]}
                   >
                     {tab.label}
                   </Text>
-
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-
         </View>
 
-        {/* ================= MATCH LIST ================= */}
+        {/* =================================================
+            MATCH LIST
+        ================================================= */}
 
         <ScrollView
           style={styles.list}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            styles.scrollContent
-          }
+          contentContainerStyle={styles.scrollContent}
         >
+          {/* ERROR */}
 
-          {/* EMPTY STATE */}
-
-          {filteredMatches.length === 0 ? (
-
+          {!!loadError && (
             <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={50} color="#B5B5B5" />
 
-              <Ionicons
-                name="search-outline"
-                size={50}
-                color="#B5B5B5"
-              />
+              <Text style={styles.emptyTitle}>Couldn't load matches</Text>
 
-              <Text style={styles.emptyTitle}>
-                No Matches Found
-              </Text>
+              <Text style={styles.emptyText}>{loadError}</Text>
+
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={loadMatches}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emptyButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* EMPTY */}
+
+          {!loadError && filteredMatches.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="search-outline" size={50} color="#B5B5B5" />
+
+              <Text style={styles.emptyTitle}>No Matches Found</Text>
 
               <Text style={styles.emptyText}>
-                Try another search or clear
-                your filters.
+                Try another search or clear your filters.
               </Text>
 
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={clearFilters}
+                activeOpacity={0.8}
               >
-                <Text
-                  style={styles.emptyButtonText}
-                >
-                  Clear Filters
-                </Text>
+                <Text style={styles.emptyButtonText}>Clear Filters</Text>
               </TouchableOpacity>
-
             </View>
-
           ) : (
-
+            !loadError &&
             filteredMatches.map((item) => (
-
-              <View
-                key={item.id}
+              <TouchableOpacity
+                key={String(item.id)}
                 style={styles.matchCard}
+                activeOpacity={0.85}
+                onPress={() =>
+                  navigation.navigate("MatchesDetail", {
+                    id: String(item.id),
+                  })
+                }
               >
+                {/* IMAGE */}
 
-                {/* ================= IMAGE ================= */}
-
-                <View
-                  style={styles.imageContainer}
-                >
-
+                <View style={styles.imageContainer}>
                   <Image
                     source={item.image}
                     style={styles.profileImage}
@@ -623,50 +812,40 @@ export default function MatchesScreen() {
                   {/* ONLINE */}
 
                   {item.online && (
-                    <View
-                      style={styles.onlineBadge}
-                    >
-                      <Text
-                        style={styles.onlineText}
-                      >
-                        Online
-                      </Text>
+                    <View style={styles.onlineBadge}>
+                      <Text style={styles.onlineText}>Online</Text>
                     </View>
                   )}
 
-                  {/* COMMUNITY BADGE */}
+                  {/* PREMIUM */}
 
-                  <View
-                    style={styles.communityBadge}
-                  >
+                  {item.membership === 2 && (
+                    <View style={styles.premiumTag}>
+                      <Text style={styles.premiumTagText}>♛ Premium</Text>
+                    </View>
+                  )}
+
+                  {/* COMMUNITY */}
+
+                  <View style={styles.communityBadge}>
                     <MaterialCommunityIcons
                       name="flower-outline"
                       size={20}
                       color="#FFD11A"
                     />
                   </View>
-
                 </View>
 
-                {/* ================= DETAILS ================= */}
+                {/* DETAILS */}
 
-                <View
-                  style={styles.detailsContainer}
-                >
-
-                  <View
-                    style={styles.detailsLeft}
-                  >
-
+                <View style={styles.detailsContainer}>
+                  <View style={styles.detailsLeft}>
                     {/* NAME */}
 
                     <View style={styles.nameRow}>
-
-                      <Text
-                        style={styles.name}
-                        numberOfLines={1}
-                      >
-                        {item.name}, {item.age}
+                      <Text style={styles.name} numberOfLines={1}>
+                        {item.name}
+                        {item.age ? `, ${item.age}` : ""}
                       </Text>
 
                       <Ionicons
@@ -675,112 +854,95 @@ export default function MatchesScreen() {
                         color={COLORS.green}
                         style={styles.verifiedIcon}
                       />
-
                     </View>
 
                     {/* PROFESSION */}
 
-                    <Text
-                      style={styles.profession}
-                      numberOfLines={1}
-                    >
-                      {item.profession}
-                    </Text>
+                    {!!item.profession && (
+                      <Text style={styles.profession} numberOfLines={1}>
+                        {item.profession}
+                      </Text>
+                    )}
 
                     {/* LOCATION */}
 
-                    <View style={styles.infoRow}>
+                    {!!item.location && (
+                      <View style={styles.infoRow}>
+                        <Ionicons
+                          name="location-outline"
+                          size={17}
+                          color={COLORS.red}
+                        />
 
-                      <Ionicons
-                        name="location-outline"
-                        size={17}
-                        color={COLORS.red}
-                      />
-
-                      <Text
-                        style={styles.infoText}
-                        numberOfLines={1}
-                      >
-                        {item.location}
-                      </Text>
-
-                    </View>
+                        <Text style={styles.infoText} numberOfLines={1}>
+                          {item.location}
+                        </Text>
+                      </View>
+                    )}
 
                     {/* EDUCATION */}
 
-                    <View style={styles.infoRow}>
+                    {!!item.education && (
+                      <View style={styles.infoRow}>
+                        <Ionicons
+                          name="school-outline"
+                          size={17}
+                          color={COLORS.red}
+                        />
 
-                      <Ionicons
-                        name="school-outline"
-                        size={17}
-                        color={COLORS.red}
-                      />
-
-                      <Text
-                        style={styles.infoText}
-                        numberOfLines={1}
-                      >
-                        {item.education}
-                      </Text>
-
-                    </View>
+                        <Text style={styles.infoText} numberOfLines={1}>
+                          {item.education}
+                        </Text>
+                      </View>
+                    )}
 
                     {/* HEIGHT */}
 
-                    <View style={styles.infoRow}>
+                    {!!item.height && (
+                      <View style={styles.infoRow}>
+                        <MaterialCommunityIcons
+                          name="human-male-height"
+                          size={18}
+                          color={COLORS.red}
+                        />
 
-                      <MaterialCommunityIcons
-                        name="human-male-height"
-                        size={18}
-                        color={COLORS.red}
-                      />
-
-                      <Text style={styles.infoText}>
-                        {item.height}
-                      </Text>
-
-                    </View>
+                        <Text style={styles.infoText}>{item.height}</Text>
+                      </View>
+                    )}
 
                     {/* COMMUNITY */}
 
-                    <View style={styles.infoRow}>
+                    {!!item.community && (
+                      <View style={styles.infoRow}>
+                        <MaterialCommunityIcons
+                          name="account-group-outline"
+                          size={18}
+                          color={COLORS.red}
+                        />
 
-                      <MaterialCommunityIcons
-                        name="account-group-outline"
-                        size={18}
-                        color={COLORS.red}
-                      />
-
-                      <Text
-                        style={styles.infoText}
-                        numberOfLines={1}
-                      >
-                        {item.community}
-                      </Text>
-
-                    </View>
-
+                        <Text style={styles.infoText} numberOfLines={1}>
+                          {item.community}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* ================= ACTION BUTTONS ================= */}
+                  {/* ACTIONS */}
 
-                  <View
-                    style={styles.actionsContainer}
-                  >
-
+                  <View style={styles.actionsContainer}>
                     {/* LIKE */}
 
                     <TouchableOpacity
                       style={styles.heartButton}
-                      onPress={() =>
-                        toggleLike(item.id)
-                      }
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        toggleLike(item.id);
+                      }}
+                      activeOpacity={0.8}
                     >
                       <Ionicons
                         name={
-                          liked.includes(item.id)
-                            ? "heart"
-                            : "heart-outline"
+                          liked.includes(item.id) ? "heart" : "heart-outline"
                         }
                         size={25}
                         color={COLORS.red}
@@ -791,6 +953,12 @@ export default function MatchesScreen() {
 
                     <TouchableOpacity
                       style={styles.chatButton}
+                      onPress={(event) => {
+                        event.stopPropagation();
+
+                        console.log("Chat member:", item.id);
+                      }}
+                      activeOpacity={0.8}
                     >
                       <Ionicons
                         name="chatbubble-ellipses"
@@ -798,36 +966,30 @@ export default function MatchesScreen() {
                         color="#8E1600"
                       />
                     </TouchableOpacity>
-
                   </View>
-
                 </View>
-
-              </View>
+              </TouchableOpacity>
             ))
           )}
 
-          {/* ================= PREMIUM ================= */}
+          {/* =================================================
+              PREMIUM BANNER
+          ================================================= */}
 
           <View style={styles.premiumBanner}>
-
-            {/* LEFT PREMIUM ICON */}
             <View style={styles.premiumIconCircle}>
               <Text style={styles.crownText}>♛</Text>
             </View>
 
-            {/* PREMIUM TEXT */}
             <View style={styles.premiumTextContainer}>
-              <Text style={styles.premiumTitle}>
-                Upgrade to Premium
-              </Text>
+              <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
 
               <Text style={styles.premiumDescription}>
-                Unlock contact details, chat unlimited{"\n"}& more premium features.
+                Unlock contact details, chat unlimited{"\n"}& more premium
+                features.
               </Text>
             </View>
 
-            {/* UPGRADE BUTTON */}
             <TouchableOpacity
               style={styles.upgradeButton}
               activeOpacity={0.8}
@@ -835,29 +997,26 @@ export default function MatchesScreen() {
             >
               <Text style={styles.buttonCrown}>♛</Text>
 
-              <Text style={styles.upgradeText}>
-                Upgrade Now
-              </Text>
+              <Text style={styles.upgradeText}>Upgrade Now</Text>
             </TouchableOpacity>
-
           </View>
 
-          <View style={{ height: 24 }} />
-
+          <View
+            style={{
+              height: 24,
+            }}
+          />
         </ScrollView>
-
-
       </View>
     </SafeAreaView>
   );
 }
 
-/* =========================
+/* =========================================================
    STYLES
-========================= */
+========================================================= */
 
 const styles = StyleSheet.create({
-
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -868,7 +1027,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  /* ================= HEADER ================= */
+  centerState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  centerStateText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666",
+  },
 
   headerArea: {
     backgroundColor: COLORS.background,
@@ -903,8 +1072,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 
-  /* ================= SEARCH ================= */
-
   searchRow: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -934,94 +1101,6 @@ const styles = StyleSheet.create({
     color: "#333",
     minWidth: 0,
   },
-
-  filterButton: {
-    width: 80,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: COLORS.yellow,
-    marginLeft: 10,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  filterButtonActive: {
-    borderWidth: 2,
-    borderColor: "#E4A600",
-  },
-
-  filterText: {
-    marginLeft: 7,
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1C1C1C",
-  },
-
-  /* ================= FILTER PANEL ================= */
-
-  filterPanel: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#EEE7E1",
-    padding: 10,
-  },
-
-  filterPanelHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  filterPanelTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#222",
-  },
-
-  clearText: {
-    color: COLORS.red,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#555",
-    marginTop: 8,
-    marginBottom: 5,
-  },
-
-  selectBox: {
-    height: 44,
-    borderWidth: 1,
-    borderColor: "#E5E0DB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  selectText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#333",
-    marginRight: 8,
-  },
-
-  filterHint: {
-    marginTop: 8,
-    fontSize: 11,
-    color: "#888",
-  },
-
-  /* ================= TABS ================= */
 
   tabsContainer: {
     marginTop: 18,
@@ -1073,8 +1152,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  /* ================= LIST ================= */
-
   list: {
     flex: 1,
     marginTop: 16,
@@ -1084,8 +1161,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 92,
   },
-
-  /* ================= MATCH CARD ================= */
 
   matchCard: {
     minHeight: 190,
@@ -1098,18 +1173,14 @@ const styles = StyleSheet.create({
     borderColor: "#EEE8E3",
 
     shadowColor: "#888",
-
     shadowOffset: {
       width: 0,
       height: 3,
     },
-
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
-
-  /* IMAGE */
 
   imageContainer: {
     width: "37%",
@@ -1139,13 +1210,27 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
+  premiumTag: {
+    position: "absolute",
+    bottom: 9,
+    left: 9,
+    backgroundColor: "#C90804",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+
+  premiumTagText: {
+    color: "#FFD333",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
   communityBadge: {
     position: "absolute",
     right: 8,
     top: 10,
   },
-
-  /* DETAILS */
 
   detailsContainer: {
     flex: 1,
@@ -1196,8 +1281,6 @@ const styles = StyleSheet.create({
     color: "#626262",
   },
 
-  /* ================= ACTIONS ================= */
-
   actionsContainer: {
     width: 50,
     alignItems: "center",
@@ -1211,17 +1294,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-
     borderWidth: 1,
     borderColor: "#EEE9E5",
 
     shadowColor: "#888",
-
     shadowOffset: {
       width: 0,
       height: 2,
     },
-
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
@@ -1238,131 +1318,106 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* ================= PREMIUM ================= */
-
   premiumBanner: {
-  width: "100%",
-  minHeight: 76,
+    width: "100%",
+    minHeight: 76,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#F0E8E3",
 
-  backgroundColor: "#FFFFFF",
-
-  borderRadius: 10,
-
-  flexDirection: "row",
-  alignItems: "center",
-
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-
-  marginTop: 12,
-  marginBottom: 16,
-
-  borderWidth: 1,
-  borderColor: "#F0E8E3",
-
-  shadowColor: "#A99A92",
-  shadowOffset: {
-    width: 0,
-    height: 3,
+    shadowColor: "#A99A92",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  shadowOpacity: 0.12,
-  shadowRadius: 6,
-  elevation: 4,
-},
 
-/* LEFT RED CIRCLE */
+  premiumIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#C90804",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
 
-premiumIconCircle: {
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-
-  backgroundColor: "#C90804",
-
-  justifyContent: "center",
-  alignItems: "center",
-
-  marginRight: 10,
-
-  shadowColor: "#C90804",
-  shadowOffset: {
-    width: 0,
-    height: 2,
+    shadowColor: "#C90804",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  elevation: 3,
-},
 
-crownText: {
-  fontSize: 27,
-  color: "#FFD333",
-  fontWeight: "bold",
-},
-
-/* TEXT AREA */
-
-premiumTextContainer: {
-  flex: 1,
-  justifyContent: "center",
-},
-
-premiumTitle: {
-  fontSize: 14,
-  fontWeight: "800",
-  color: "#A51B16",
-
-  marginBottom: 3,
-},
-
-premiumDescription: {
-  fontSize: 9,
-  lineHeight: 13,
-  color: "#716864",
-  fontWeight: "500",
-},
-
-/* RED BUTTON */
-
-upgradeButton: {
-  height: 38,
-  minWidth: 82,
-
-  backgroundColor: "#C90804",
-
-  borderRadius: 7,
-
-  paddingHorizontal: 9,
-
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-
-  marginLeft: 8,
-
-  shadowColor: "#B00000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
+  crownText: {
+    fontSize: 27,
+    color: "#FFD333",
+    fontWeight: "bold",
   },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  elevation: 3,
-},
 
-buttonCrown: {
-  fontSize: 13,
-  color: "#FFD333",
-  marginRight: 4,
-},
+  premiumTextContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
 
-upgradeText: {
-  fontSize: 10,
-  fontWeight: "800",
-  color: "#FFFFFF",
-},
+  premiumTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#A51B16",
+    marginBottom: 3,
+  },
 
-  /* ================= EMPTY STATE ================= */
+  premiumDescription: {
+    fontSize: 9,
+    lineHeight: 13,
+    color: "#716864",
+    fontWeight: "500",
+  },
+
+  upgradeButton: {
+    height: 38,
+    minWidth: 82,
+    backgroundColor: "#C90804",
+    borderRadius: 7,
+    paddingHorizontal: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+
+    shadowColor: "#B00000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  buttonCrown: {
+    fontSize: 13,
+    color: "#FFD333",
+    marginRight: 4,
+  },
+
+  upgradeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
 
   emptyState: {
     minHeight: 260,
@@ -1389,7 +1444,7 @@ upgradeText: {
   },
 
   emptyButton: {
-    marginTop: 18,
+    marginTop: 17,
     backgroundColor: COLORS.red,
     paddingHorizontal: 20,
     paddingVertical: 11,
@@ -1400,7 +1455,4 @@ upgradeText: {
     color: "#FFFFFF",
     fontWeight: "800",
   },
-
-
-
 });

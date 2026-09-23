@@ -1,13 +1,14 @@
 import {
+  useCallback,
   useEffect,
-  useState
+  useState,
 } from "react";
 
 import {
   Alert,
+  BackHandler,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -17,9 +18,18 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+
+import Feather from "react-native-vector-icons/Feather";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   getMemberCasts,
@@ -33,7 +43,8 @@ import {
 const CACHE_KEY = "@social_background_cache";
 
 const EditSocialBackground = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
+  const route = useRoute();
 
   // =========================================================
   // FORM STATE
@@ -72,7 +83,9 @@ const EditSocialBackground = () => {
   const [religionLoading, setReligionLoading] = useState(false);
   const [casteLoading, setCasteLoading] = useState(false);
   const [subCasteLoading, setSubCasteLoading] = useState(false);
-  const [familyValueLoading, setFamilyValueLoading] = useState(false);
+  const [familyValueLoading, setFamilyValueLoading] =
+    useState(false);
+
   const [saving, setSaving] = useState(false);
 
   // =========================================================
@@ -81,18 +94,77 @@ const EditSocialBackground = () => {
 
   const [religionModal, setReligionModal] = useState(false);
   const [casteModal, setCasteModal] = useState(false);
-  const [subCasteModal, setSubCasteModal] = useState(false);
-  const [familyValueModal, setFamilyValueModal] = useState(false);
+  const [subCasteModal, setSubCasteModal] =
+    useState(false);
+  const [familyValueModal, setFamilyValueModal] =
+    useState(false);
+
+  // =========================================================
+  // HARDWARE BACK HANDLER
+  // =========================================================
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (saving) {
+          return true;
+        }
+
+        // Close open modal first
+        if (religionModal) {
+          setReligionModal(false);
+          return true;
+        }
+
+        if (casteModal) {
+          setCasteModal(false);
+          return true;
+        }
+
+        if (subCasteModal) {
+          setSubCasteModal(false);
+          return true;
+        }
+
+        if (familyValueModal) {
+          setFamilyValueModal(false);
+          return true;
+        }
+
+        navigation.goBack();
+
+        return true;
+      };
+
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
+
+      return () => subscription.remove();
+    }, [
+      navigation,
+      saving,
+      religionModal,
+      casteModal,
+      subCasteModal,
+      familyValueModal,
+    ])
+  );
 
   // =========================================================
   // TOKEN
   // =========================================================
 
   const getToken = async () => {
-    const token = await AsyncStorage.getItem("access_token");
+    const token =
+      await AsyncStorage.getItem("access_token");
 
     if (!token) {
-      throw new Error("Access token is missing. Please login again.");
+      throw new Error(
+        "Access token is missing. Please login again."
+      );
     }
 
     return token;
@@ -101,93 +173,94 @@ const EditSocialBackground = () => {
   // =========================================================
   // GET ID
   // =========================================================
-const getId = (item) => {
-  if (
-    item === null ||
-    item === undefined
-  ) {
-    return "";
-  }
 
-  if (typeof item === "number") {
-    return item > 0
-      ? String(item)
-      : "";
-  }
+  const getId = (item) => {
+    if (
+      item === null ||
+      item === undefined
+    ) {
+      return "";
+    }
 
-  if (typeof item === "string") {
-    const value = item.trim();
+    if (typeof item === "number") {
+      return item > 0
+        ? String(item)
+        : "";
+    }
+
+    if (typeof item === "string") {
+      const value = item.trim();
+
+      return /^\d+$/.test(value)
+        ? value
+        : "";
+    }
+
+    if (typeof item !== "object") {
+      return "";
+    }
+
+    const id =
+      item?.id ??
+      item?.religion_id ??
+      item?.religionId ??
+      item?.caste_id ??
+      item?.casteId ??
+      item?.sub_caste_id ??
+      item?.subCasteId ??
+      item?.family_value_id ??
+      item?.familyValueId;
+
+    if (
+      id === null ||
+      id === undefined
+    ) {
+      return "";
+    }
+
+    const value = String(id).trim();
 
     return /^\d+$/.test(value)
       ? value
       : "";
-  }
-
-  if (typeof item !== "object") {
-    return "";
-  }
-
-  const id =
-    item?.id ??
-    item?.religion_id ??
-    item?.religionId ??
-    item?.caste_id ??
-    item?.casteId ??
-    item?.sub_caste_id ??
-    item?.subCasteId ??
-    item?.family_value_id ??
-    item?.familyValueId;
-
-  if (
-    id === null ||
-    id === undefined
-  ) {
-    return "";
-  }
-
-  const value =
-    String(id).trim();
-
-  return /^\d+$/.test(value)
-    ? value
-    : "";
-};
+  };
 
   // =========================================================
   // GET NAME
   // =========================================================
 
- const getName = (item) => {
-  if (
-    item === null ||
-    item === undefined
-  ) {
-    return "";
-  }
+  const getName = (item) => {
+    if (
+      item === null ||
+      item === undefined
+    ) {
+      return "";
+    }
 
-  if (
-    typeof item === "string" ||
-    typeof item === "number"
-  ) {
-    return String(item).trim();
-  }
+    if (
+      typeof item === "string" ||
+      typeof item === "number"
+    ) {
+      return String(item).trim();
+    }
 
-  if (typeof item !== "object") {
-    return "";
-  }
+    if (typeof item !== "object") {
+      return "";
+    }
 
-  return String(
-    item?.name ??
-      item?.religion_name ??
-      item?.caste_name ??
-      item?.sub_caste_name ??
-      item?.family_value_name ??
-      item?.label ??
-      item?.title ??
-      item?.value ??
-      ""
-  ).trim();
-};
+    return String(
+      item?.name ??
+        item?.religion_name ??
+        item?.caste_name ??
+        item?.sub_caste_name ??
+        item?.family_value_name ??
+        item?.label ??
+        item?.title ??
+        item?.value ??
+        ""
+    ).trim();
+  };
+
   // =========================================================
   // EXTRACT ARRAY
   // =========================================================
@@ -292,17 +365,27 @@ const getId = (item) => {
 
       const token = await getToken();
 
-      console.log("======================================");
+      console.log(
+        "======================================"
+      );
       console.log("GET RELIGIONS");
-      console.log("GET /api/member/religions");
-      console.log("======================================");
+      console.log(
+        "GET /api/member/religions"
+      );
+      console.log(
+        "======================================"
+      );
 
       const response =
         await getMemberReligions(token);
 
       console.log(
         "RELIGIONS RESPONSE:",
-        JSON.stringify(response, null, 2)
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
       );
 
       const formatted =
@@ -310,7 +393,11 @@ const getId = (item) => {
 
       console.log(
         "FORMATTED RELIGIONS:",
-        JSON.stringify(formatted, null, 2)
+        JSON.stringify(
+          formatted,
+          null,
+          2
+        )
       );
 
       setReligions(formatted);
@@ -341,8 +428,12 @@ const getId = (item) => {
   // LOAD CASTES
   // =========================================================
 
-  const loadCasts = async (selectedReligionId) => {
-    const id = Number(selectedReligionId);
+  const loadCasts = async (
+    selectedReligionId
+  ) => {
+    const id = Number(
+      selectedReligionId
+    );
 
     if (
       !Number.isInteger(id) ||
@@ -354,6 +445,7 @@ const getId = (item) => {
       );
 
       setCasts([]);
+
       return [];
     }
 
@@ -362,13 +454,20 @@ const getId = (item) => {
 
       const token = await getToken();
 
-      console.log("======================================");
+      console.log(
+        "======================================"
+      );
       console.log("GET CASTES");
       console.log(
         "GET /api/member/casts/" + id
       );
-      console.log("RELIGION ID:", id);
-      console.log("======================================");
+      console.log(
+        "RELIGION ID:",
+        id
+      );
+      console.log(
+        "======================================"
+      );
 
       const response =
         await getMemberCasts(
@@ -378,7 +477,11 @@ const getId = (item) => {
 
       console.log(
         "CASTES RESPONSE:",
-        JSON.stringify(response, null, 2)
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
       );
 
       const formatted =
@@ -386,7 +489,11 @@ const getId = (item) => {
 
       console.log(
         "FORMATTED CASTES:",
-        JSON.stringify(formatted, null, 2)
+        JSON.stringify(
+          formatted,
+          null,
+          2
+        )
       );
 
       setCasts(formatted);
@@ -417,8 +524,12 @@ const getId = (item) => {
   // LOAD SUB CASTES
   // =========================================================
 
-  const loadSubCasts = async (selectedCasteId) => {
-    const id = Number(selectedCasteId);
+  const loadSubCasts = async (
+    selectedCasteId
+  ) => {
+    const id = Number(
+      selectedCasteId
+    );
 
     if (
       !Number.isInteger(id) ||
@@ -430,6 +541,7 @@ const getId = (item) => {
       );
 
       setSubCasts([]);
+
       return [];
     }
 
@@ -438,13 +550,20 @@ const getId = (item) => {
 
       const token = await getToken();
 
-      console.log("======================================");
+      console.log(
+        "======================================"
+      );
       console.log("GET SUB CASTES");
       console.log(
         "GET /api/member/sub-casts/" + id
       );
-      console.log("CASTE ID:", id);
-      console.log("======================================");
+      console.log(
+        "CASTE ID:",
+        id
+      );
+      console.log(
+        "======================================"
+      );
 
       const response =
         await getMemberSubCasts(
@@ -454,7 +573,11 @@ const getId = (item) => {
 
       console.log(
         "SUB CASTES RESPONSE:",
-        JSON.stringify(response, null, 2)
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
       );
 
       const formatted =
@@ -462,7 +585,11 @@ const getId = (item) => {
 
       console.log(
         "FORMATTED SUB CASTES:",
-        JSON.stringify(formatted, null, 2)
+        JSON.stringify(
+          formatted,
+          null,
+          2
+        )
       );
 
       setSubCasts(formatted);
@@ -499,19 +626,31 @@ const getId = (item) => {
 
       const token = await getToken();
 
-      console.log("======================================");
-      console.log("GET FAMILY VALUES");
+      console.log(
+        "======================================"
+      );
+      console.log(
+        "GET FAMILY VALUES"
+      );
       console.log(
         "GET /api/member/family-values"
       );
-      console.log("======================================");
+      console.log(
+        "======================================"
+      );
 
       const response =
-        await getMemberFamilyValues(token);
+        await getMemberFamilyValues(
+          token
+        );
 
       console.log(
         "FAMILY VALUES RESPONSE:",
-        JSON.stringify(response, null, 2)
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
       );
 
       const formatted =
@@ -519,7 +658,11 @@ const getId = (item) => {
 
       console.log(
         "FORMATTED FAMILY VALUES:",
-        JSON.stringify(formatted, null, 2)
+        JSON.stringify(
+          formatted,
+          null,
+          2
+        )
       );
 
       setFamilyValues(formatted);
@@ -588,546 +731,536 @@ const getId = (item) => {
   // SAVE CACHE
   // =========================================================
 
-  const saveBackgroundCache = async (
-    payload
-  ) => {
-    try {
-      await AsyncStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify(payload)
-      );
+  const saveBackgroundCache =
+    async (payload) => {
+      try {
+        await AsyncStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify(payload)
+        );
 
-      console.log(
-        "SOCIAL BACKGROUND CACHE SAVED:",
-        JSON.stringify(
-          payload,
-          null,
-          2
-        )
-      );
-    } catch (error) {
-      console.error(
-        "CACHE SAVE ERROR:",
-        error
-      );
-    }
-  };
+        console.log(
+          "SOCIAL BACKGROUND CACHE SAVED:",
+          JSON.stringify(
+            payload,
+            null,
+            2
+          )
+        );
+      } catch (error) {
+        console.error(
+          "CACHE SAVE ERROR:",
+          error
+        );
+      }
+    };
 
   // =========================================================
   // LOAD EXISTING SPIRITUAL BACKGROUND
   // =========================================================
 
-  const loadSpiritualBackground = async (
-  religionList = religions,
-  familyList = familyValues
-) => {
-  try {
-    const token = await getToken();
+  const loadSpiritualBackground =
+    async (
+      religionList = religions,
+      familyList = familyValues
+    ) => {
+      try {
+        const token = await getToken();
 
-    console.log("======================================");
-    console.log("GET SPIRITUAL BACKGROUND");
-    console.log(
-      "GET /api/member/spiritual-background"
-    );
-    console.log("======================================");
+        console.log(
+          "======================================"
+        );
+        console.log(
+          "GET SPIRITUAL BACKGROUND"
+        );
+        console.log(
+          "GET /api/member/spiritual-background"
+        );
+        console.log(
+          "======================================"
+        );
 
-    const response =
-      await getMemberSpiritualBackground(token);
+        const response =
+          await getMemberSpiritualBackground(
+            token
+          );
 
-    console.log(
-      "FULL SPIRITUAL RESPONSE:",
-      JSON.stringify(response, null, 2)
-    );
+        console.log(
+          "FULL SPIRITUAL RESPONSE:",
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
 
-    const serverData =
-      extractSpiritualObject(response);
+        const serverData =
+          extractSpiritualObject(
+            response
+          );
 
-    console.log(
-      "SERVER SPIRITUAL DATA:",
-      JSON.stringify(serverData, null, 2)
-    );
+        console.log(
+          "SERVER SPIRITUAL DATA:",
+          JSON.stringify(
+            serverData,
+            null,
+            2
+          )
+        );
 
-    const cached =
-      await getCachedBackground();
+        const cached =
+          await getCachedBackground();
 
-    // =====================================================
-    // HELPER: FIND ID BY NAME
-    // =====================================================
+        // ===================================================
+        // FIND ID BY NAME
+        // ===================================================
 
-    const findIdByName = (list, name) => {
-      if (!Array.isArray(list) || !name) {
-        return "";
-      }
+        const findIdByName = (
+          list,
+          name
+        ) => {
+          if (
+            !Array.isArray(list) ||
+            !name
+          ) {
+            return "";
+          }
 
-      const searchName = String(name)
-        .trim()
-        .toLowerCase();
+          const searchName =
+            String(name)
+              .trim()
+              .toLowerCase();
 
-      if (!searchName) {
-        return "";
-      }
+          if (!searchName) {
+            return "";
+          }
 
-      const found = list.find((item) => {
-        const itemName = String(
-          item?.name ?? ""
-        )
-          .trim()
-          .toLowerCase();
+          const found = list.find(
+            (item) => {
+              const itemName =
+                String(
+                  item?.name ?? ""
+                )
+                  .trim()
+                  .toLowerCase();
 
-        return itemName === searchName;
-      });
+              return (
+                itemName ===
+                searchName
+              );
+            }
+          );
 
-      return found?.id
-        ? String(found.id)
-        : "";
-    };
+          return found?.id
+            ? String(found.id)
+            : "";
+        };
 
-    // =====================================================
-    // RELIGION
-    // =====================================================
+        // ===================================================
+        // RELIGION
+        // ===================================================
 
-    const religionRaw =
-      serverData?.religion_id ??
-      serverData?.religionId ??
-      serverData?.religion;
+        const religionRaw =
+          serverData?.religion_id ??
+          serverData?.religionId ??
+          serverData?.religion;
 
-    let finalReligionId =
-      getId(religionRaw);
+        let finalReligionId =
+          getId(religionRaw);
 
-    let finalReligionName =
-      getName(serverData?.religion);
+        let finalReligionName =
+          getName(
+            serverData?.religion
+          );
 
-    // If API gives only religion name, find its ID
-    if (!finalReligionId && finalReligionName) {
-      finalReligionId =
-        findIdByName(
-          religionList,
+        if (
+          !finalReligionId &&
+          finalReligionName
+        ) {
+          finalReligionId =
+            findIdByName(
+              religionList,
+              finalReligionName
+            );
+        }
+
+        if (!finalReligionId) {
+          finalReligionId =
+            getId(
+              cached?.religion_id
+            );
+        }
+
+        if (!finalReligionName) {
+          const religionItem =
+            religionList.find(
+              (item) =>
+                String(item.id) ===
+                String(
+                  finalReligionId
+                )
+            );
+
+          finalReligionName =
+            religionItem?.name ||
+            cached?.religion_name ||
+            "";
+        }
+
+        // ===================================================
+        // FAMILY VALUE
+        // ===================================================
+
+        const familyRaw =
+          serverData?.family_value_id ??
+          serverData?.familyValueId ??
+          serverData?.family_value ??
+          serverData?.familyValue;
+
+        let finalFamilyValueId =
+          getId(familyRaw);
+
+        let finalFamilyValueName =
+          getName(
+            serverData?.family_value ??
+              serverData?.familyValue
+          );
+
+        if (
+          !finalFamilyValueId &&
+          finalFamilyValueName
+        ) {
+          finalFamilyValueId =
+            findIdByName(
+              familyList,
+              finalFamilyValueName
+            );
+        }
+
+        if (!finalFamilyValueId) {
+          finalFamilyValueId =
+            getId(
+              cached?.family_value_id
+            );
+        }
+
+        if (!finalFamilyValueName) {
+          const familyItem =
+            familyList.find(
+              (item) =>
+                String(item.id) ===
+                String(
+                  finalFamilyValueId
+                )
+            );
+
+          finalFamilyValueName =
+            familyItem?.name ||
+            cached?.family_value_name ||
+            "";
+        }
+
+        // ===================================================
+        // ETHNICITY
+        // ===================================================
+
+        const finalEthnicity =
+          serverData?.ethnicity !==
+          undefined
+            ? String(
+                serverData.ethnicity ??
+                  ""
+              )
+            : String(
+                cached?.ethnicity ??
+                  ""
+              );
+
+        // ===================================================
+        // PERSONAL VALUE
+        // ===================================================
+
+        const finalPersonalValue =
+          serverData?.personal_value !==
+          undefined
+            ? String(
+                serverData.personal_value ??
+                  ""
+              )
+            : String(
+                cached?.personal_value ??
+                  ""
+              );
+
+        // ===================================================
+        // COMMUNITY VALUE
+        // ===================================================
+
+        const finalCommunityValue =
+          serverData?.community_value !==
+          undefined
+            ? String(
+                serverData.community_value ??
+                  ""
+              )
+            : String(
+                cached?.community_value ??
+                  ""
+              );
+
+        // ===================================================
+        // SET RELIGION
+        // ===================================================
+
+        setReligionId(
+          finalReligionId
+        );
+
+        setReligion(
           finalReligionName
         );
 
-      console.log(
-        "RELIGION ID FOUND FROM NAME:",
-        finalReligionName,
-        "=>",
-        finalReligionId
-      );
-    }
+        // ===================================================
+        // SET FAMILY
+        // ===================================================
 
-    // Cache fallback
-    if (!finalReligionId) {
-      finalReligionId =
-        getId(cached?.religion_id);
-    }
-
-    if (!finalReligionName) {
-      const religionItem =
-        religionList.find(
-          (item) =>
-            String(item.id) ===
-            String(finalReligionId)
+        setFamilyValueId(
+          finalFamilyValueId
         );
 
-      finalReligionName =
-        religionItem?.name ||
-        cached?.religion_name ||
-        "";
-    }
-
-    // =====================================================
-    // FAMILY VALUE
-    // =====================================================
-
-    const familyRaw =
-      serverData?.family_value_id ??
-      serverData?.familyValueId ??
-      serverData?.family_value ??
-      serverData?.familyValue;
-
-    let finalFamilyValueId =
-      getId(familyRaw);
-
-    let finalFamilyValueName =
-      getName(
-        serverData?.family_value ??
-          serverData?.familyValue
-      );
-
-    // Name -> ID
-    if (
-      !finalFamilyValueId &&
-      finalFamilyValueName
-    ) {
-      finalFamilyValueId =
-        findIdByName(
-          familyList,
+        setFamilyValue(
           finalFamilyValueName
         );
 
-      console.log(
-        "FAMILY VALUE ID FOUND FROM NAME:",
-        finalFamilyValueName,
-        "=>",
-        finalFamilyValueId
-      );
-    }
-
-    // Cache fallback
-    if (!finalFamilyValueId) {
-      finalFamilyValueId =
-        getId(
-          cached?.family_value_id
-        );
-    }
-
-    if (!finalFamilyValueName) {
-      const familyItem =
-        familyList.find(
-          (item) =>
-            String(item.id) ===
-            String(finalFamilyValueId)
+        setEthnicity(
+          finalEthnicity
         );
 
-      finalFamilyValueName =
-        familyItem?.name ||
-        cached?.family_value_name ||
-        "";
-    }
-
-    // =====================================================
-    // ETHNICITY
-    // =====================================================
-
-    const finalEthnicity =
-      serverData?.ethnicity !== undefined
-        ? String(
-            serverData.ethnicity ?? ""
-          )
-        : String(
-            cached?.ethnicity ?? ""
-          );
-
-    // =====================================================
-    // PERSONAL VALUE
-    // =====================================================
-
-    const finalPersonalValue =
-      serverData?.personal_value !== undefined
-        ? String(
-            serverData.personal_value ?? ""
-          )
-        : String(
-            cached?.personal_value ?? ""
-          );
-
-    // =====================================================
-    // COMMUNITY VALUE
-    // =====================================================
-
-    const finalCommunityValue =
-      serverData?.community_value !== undefined
-        ? String(
-            serverData.community_value ?? ""
-          )
-        : String(
-            cached?.community_value ?? ""
-          );
-
-    // =====================================================
-    // SET RELIGION
-    // =====================================================
-
-    setReligionId(
-      finalReligionId
-    );
-
-    setReligion(
-      finalReligionName
-    );
-
-    setFamilyValueId(
-      finalFamilyValueId
-    );
-
-    setFamilyValue(
-      finalFamilyValueName
-    );
-
-    setEthnicity(
-      finalEthnicity
-    );
-
-    setPersonalValue(
-      finalPersonalValue
-    );
-
-    setCommunityValue(
-      finalCommunityValue
-    );
-
-    console.log("======================================");
-    console.log("RESOLVED RELIGION");
-    console.log(
-      "NAME:",
-      finalReligionName
-    );
-    console.log(
-      "ID:",
-      finalReligionId
-    );
-    console.log("======================================");
-
-    // =====================================================
-    // LOAD CASTES USING RELIGION ID
-    // =====================================================
-
-    let casteList = [];
-
-    if (finalReligionId) {
-      casteList =
-        await loadCasts(
-          finalReligionId
+        setPersonalValue(
+          finalPersonalValue
         );
-    } else {
-      setCasts([]);
-    }
 
-    // =====================================================
-    // CASTE
-    // =====================================================
+        setCommunityValue(
+          finalCommunityValue
+        );
 
-    const casteRaw =
-      serverData?.caste_id ??
-      serverData?.casteId ??
-      serverData?.caste;
+        // ===================================================
+        // LOAD CASTES
+        // ===================================================
 
-    let finalCasteId =
-      getId(casteRaw);
+        let casteList = [];
 
-    let finalCasteName =
-      getName(
-        serverData?.caste
-      );
+        if (finalReligionId) {
+          casteList =
+            await loadCasts(
+              finalReligionId
+            );
+        } else {
+          setCasts([]);
+        }
 
-    // If caste ID is empty, find by name
-    if (
-      !finalCasteId &&
-      finalCasteName
-    ) {
-      finalCasteId =
-        findIdByName(
-          casteList,
+        // ===================================================
+        // CASTE
+        // ===================================================
+
+        const casteRaw =
+          serverData?.caste_id ??
+          serverData?.casteId ??
+          serverData?.caste;
+
+        let finalCasteId =
+          getId(casteRaw);
+
+        let finalCasteName =
+          getName(
+            serverData?.caste
+          );
+
+        if (
+          !finalCasteId &&
+          finalCasteName
+        ) {
+          finalCasteId =
+            findIdByName(
+              casteList,
+              finalCasteName
+            );
+        }
+
+        if (!finalCasteId) {
+          finalCasteId =
+            getId(
+              cached?.caste_id
+            );
+        }
+
+        if (!finalCasteName) {
+          const casteItem =
+            casteList.find(
+              (item) =>
+                String(item.id) ===
+                String(
+                  finalCasteId
+                )
+            );
+
+          finalCasteName =
+            casteItem?.name ||
+            cached?.caste_name ||
+            "";
+        }
+
+        setCasteId(
+          finalCasteId
+        );
+
+        setCaste(
           finalCasteName
         );
 
-      console.log(
-        "CASTE ID FOUND FROM NAME:",
-        finalCasteName,
-        "=>",
-        finalCasteId
-      );
-    }
+        // ===================================================
+        // LOAD SUB CASTES
+        // ===================================================
 
-    // Cache fallback
-    if (!finalCasteId) {
-      finalCasteId =
-        getId(
-          cached?.caste_id
+        let subCasteList = [];
+
+        if (finalCasteId) {
+          subCasteList =
+            await loadSubCasts(
+              finalCasteId
+            );
+        } else {
+          setSubCasts([]);
+        }
+
+        // ===================================================
+        // SUB CASTE
+        // ===================================================
+
+        const subCasteRaw =
+          serverData?.sub_caste_id ??
+          serverData?.subCasteId ??
+          serverData?.sub_caste ??
+          serverData?.subCaste;
+
+        let finalSubCasteId =
+          getId(
+            subCasteRaw
+          );
+
+        let finalSubCasteName =
+          getName(
+            serverData?.sub_caste ??
+              serverData?.subCaste
+          );
+
+        if (
+          !finalSubCasteId &&
+          finalSubCasteName
+        ) {
+          finalSubCasteId =
+            findIdByName(
+              subCasteList,
+              finalSubCasteName
+            );
+        }
+
+        if (!finalSubCasteId) {
+          finalSubCasteId =
+            getId(
+              cached?.sub_caste_id
+            );
+        }
+
+        if (!finalSubCasteName) {
+          const subCasteItem =
+            subCasteList.find(
+              (item) =>
+                String(item.id) ===
+                String(
+                  finalSubCasteId
+                )
+            );
+
+          finalSubCasteName =
+            subCasteItem?.name ||
+            cached?.sub_caste_name ||
+            "";
+        }
+
+        setSubCasteId(
+          finalSubCasteId
         );
-    }
 
-    // Find caste name from ID
-    if (!finalCasteName) {
-      const casteItem =
-        casteList.find(
-          (item) =>
-            String(item.id) ===
-            String(finalCasteId)
-        );
-
-      finalCasteName =
-        casteItem?.name ||
-        cached?.caste_name ||
-        "";
-    }
-
-    setCasteId(
-      finalCasteId
-    );
-
-    setCaste(
-      finalCasteName
-    );
-
-    console.log("======================================");
-    console.log("RESOLVED CASTE");
-    console.log(
-      "NAME:",
-      finalCasteName
-    );
-    console.log(
-      "ID:",
-      finalCasteId
-    );
-    console.log("======================================");
-
-    // =====================================================
-    // LOAD SUB CASTES USING RESOLVED CASTE ID
-    // =====================================================
-
-    let subCasteList = [];
-
-    if (finalCasteId) {
-      subCasteList =
-        await loadSubCasts(
-          finalCasteId
-        );
-    } else {
-      setSubCasts([]);
-    }
-
-    // =====================================================
-    // SUB CASTE
-    // =====================================================
-
-    const subCasteRaw =
-      serverData?.sub_caste_id ??
-      serverData?.subCasteId ??
-      serverData?.sub_caste ??
-      serverData?.subCaste;
-
-    let finalSubCasteId =
-      getId(subCasteRaw);
-
-    let finalSubCasteName =
-      getName(
-        serverData?.sub_caste ??
-          serverData?.subCaste
-      );
-
-    // Name -> ID
-    if (
-      !finalSubCasteId &&
-      finalSubCasteName
-    ) {
-      finalSubCasteId =
-        findIdByName(
-          subCasteList,
+        setSubCaste(
           finalSubCasteName
         );
 
-      console.log(
-        "SUB CASTE ID FOUND FROM NAME:",
-        finalSubCasteName,
-        "=>",
-        finalSubCasteId
-      );
-    }
+        console.log(
+          "FINAL RESOLVED SPIRITUAL DATA:",
+          JSON.stringify(
+            {
+              religion_id:
+                finalReligionId,
 
-    // Cache fallback
-    if (!finalSubCasteId) {
-      finalSubCasteId =
-        getId(
-          cached?.sub_caste_id
+              religion:
+                finalReligionName,
+
+              caste_id:
+                finalCasteId,
+
+              caste:
+                finalCasteName,
+
+              sub_caste_id:
+                finalSubCasteId,
+
+              sub_caste:
+                finalSubCasteName,
+
+              ethnicity:
+                finalEthnicity,
+
+              personal_value:
+                finalPersonalValue,
+
+              family_value_id:
+                finalFamilyValueId,
+
+              family_value:
+                finalFamilyValueName,
+
+              community_value:
+                finalCommunityValue,
+            },
+            null,
+            2
+          )
         );
-    }
-
-    // ID -> name
-    if (!finalSubCasteName) {
-      const subCasteItem =
-        subCasteList.find(
-          (item) =>
-            String(item.id) ===
-            String(finalSubCasteId)
+      } catch (error) {
+        console.error(
+          "SPIRITUAL BACKGROUND ERROR:",
+          error
         );
 
-      finalSubCasteName =
-        subCasteItem?.name ||
-        cached?.sub_caste_name ||
-        "";
-    }
+        console.error(
+          "ERROR RESPONSE:",
+          JSON.stringify(
+            error?.response?.data ??
+              {},
+            null,
+            2
+          )
+        );
 
-    setSubCasteId(
-      finalSubCasteId
-    );
-
-    setSubCaste(
-      finalSubCasteName
-    );
-
-    // =====================================================
-    // FINAL DEBUG
-    // =====================================================
-
-    console.log("======================================");
-    console.log(
-      "FINAL RESOLVED SPIRITUAL DATA"
-    );
-    console.log(
-      JSON.stringify(
-        {
-          religion_id:
-            finalReligionId,
-
-          religion:
-            finalReligionName,
-
-          caste_id:
-            finalCasteId,
-
-          caste:
-            finalCasteName,
-
-          sub_caste_id:
-            finalSubCasteId,
-
-          sub_caste:
-            finalSubCasteName,
-
-          ethnicity:
-            finalEthnicity,
-
-          personal_value:
-            finalPersonalValue,
-
-          family_value_id:
-            finalFamilyValueId,
-
-          family_value:
-            finalFamilyValueName,
-
-          community_value:
-            finalCommunityValue,
-        },
-        null,
-        2
-      )
-    );
-    console.log("======================================");
-
-  } catch (error) {
-    console.error(
-      "SPIRITUAL BACKGROUND ERROR:",
-      error
-    );
-
-    console.error(
-      "ERROR RESPONSE:",
-      JSON.stringify(
-        error?.response?.data ??
-          {},
-        null,
-        2
-      )
-    );
-
-    Alert.alert(
-      "Error",
-      error?.response?.data?.message ||
-        error?.message ||
-        "Unable to load social background."
-    );
-  }
-};
+        Alert.alert(
+          "Error",
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to load social background."
+        );
+      }
+    };
 
   // =========================================================
   // INITIAL LOAD
@@ -1138,14 +1271,13 @@ const getId = (item) => {
 
     const init = async () => {
       try {
-        // IMPORTANT:
-        // Load lists first.
-        // Then load saved background.
-        const [religionList, familyList] =
-          await Promise.all([
-            loadReligions(),
-            loadFamilyValues(),
-          ]);
+        const [
+          religionList,
+          familyList,
+        ] = await Promise.all([
+          loadReligions(),
+          loadFamilyValues(),
+        ]);
 
         if (!mounted) {
           return;
@@ -1174,7 +1306,9 @@ const getId = (item) => {
   // SELECT RELIGION
   // =========================================================
 
-  const selectReligion = async (item) => {
+  const selectReligion = async (
+    item
+  ) => {
     const id = getId(item);
     const name = getName(item);
 
@@ -1186,25 +1320,14 @@ const getId = (item) => {
       return;
     }
 
-    console.log("======================================");
-    console.log(
-      "RELIGION SELECTED"
-    );
-    console.log("NAME:", name);
-    console.log("ID:", id);
-    console.log(
-      "CAST API:",
-      `/api/member/casts/${id}`
-    );
-    console.log("======================================");
-
     setReligion(name);
     setReligionId(id);
 
-    // Reset dependent values
+    // Reset caste
     setCaste("");
     setCasteId("");
 
+    // Reset sub caste
     setSubCaste("");
     setSubCasteId("");
 
@@ -1220,7 +1343,9 @@ const getId = (item) => {
   // SELECT CASTE
   // =========================================================
 
-  const selectCaste = async (item) => {
+  const selectCaste = async (
+    item
+  ) => {
     const id = getId(item);
     const name = getName(item);
 
@@ -1231,18 +1356,6 @@ const getId = (item) => {
       );
       return;
     }
-
-    console.log("======================================");
-    console.log(
-      "CASTE SELECTED"
-    );
-    console.log("NAME:", name);
-    console.log("ID:", id);
-    console.log(
-      "SUB CASTE API:",
-      `/api/member/sub-casts/${id}`
-    );
-    console.log("======================================");
 
     setCaste(name);
     setCasteId(id);
@@ -1261,7 +1374,9 @@ const getId = (item) => {
   // SELECT SUB CASTE
   // =========================================================
 
-  const selectSubCaste = (item) => {
+  const selectSubCaste = (
+    item
+  ) => {
     const id = getId(item);
     const name = getName(item);
 
@@ -1277,21 +1392,15 @@ const getId = (item) => {
     setSubCasteId(id);
 
     setSubCasteModal(false);
-
-    console.log("======================================");
-    console.log(
-      "SUB CASTE SELECTED"
-    );
-    console.log("NAME:", name);
-    console.log("ID:", id);
-    console.log("======================================");
   };
 
   // =========================================================
   // SELECT FAMILY VALUE
   // =========================================================
 
-  const selectFamilyValue = (item) => {
+  const selectFamilyValue = (
+    item
+  ) => {
     const id = getId(item);
     const name = getName(item);
 
@@ -1307,14 +1416,6 @@ const getId = (item) => {
     setFamilyValueId(id);
 
     setFamilyValueModal(false);
-
-    console.log("======================================");
-    console.log(
-      "FAMILY VALUE SELECTED"
-    );
-    console.log("NAME:", name);
-    console.log("ID:", id);
-    console.log("======================================");
   };
 
   // =========================================================
@@ -1325,10 +1426,6 @@ const getId = (item) => {
     if (saving) {
       return;
     }
-
-    // =======================================================
-    // VALIDATE BEFORE LOADING TOKEN
-    // =======================================================
 
     const religion_id =
       Number(religionId);
@@ -1342,8 +1439,14 @@ const getId = (item) => {
     const family_value_id =
       Number(familyValueId);
 
+    // -------------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------------
+
     if (
-      !Number.isInteger(religion_id) ||
+      !Number.isInteger(
+        religion_id
+      ) ||
       religion_id <= 0
     ) {
       Alert.alert(
@@ -1354,7 +1457,9 @@ const getId = (item) => {
     }
 
     if (
-      !Number.isInteger(caste_id) ||
+      !Number.isInteger(
+        caste_id
+      ) ||
       caste_id <= 0
     ) {
       Alert.alert(
@@ -1365,7 +1470,9 @@ const getId = (item) => {
     }
 
     if (
-      !Number.isInteger(sub_caste_id) ||
+      !Number.isInteger(
+        sub_caste_id
+      ) ||
       sub_caste_id <= 0
     ) {
       Alert.alert(
@@ -1376,7 +1483,9 @@ const getId = (item) => {
     }
 
     if (
-      !Number.isInteger(family_value_id) ||
+      !Number.isInteger(
+        family_value_id
+      ) ||
       family_value_id <= 0
     ) {
       Alert.alert(
@@ -1391,6 +1500,10 @@ const getId = (item) => {
 
       const token =
         await getToken();
+
+      // -----------------------------------------------------
+      // PAYLOAD
+      // -----------------------------------------------------
 
       const payload = {
         religion_id,
@@ -1415,10 +1528,14 @@ const getId = (item) => {
           ).trim(),
       };
 
-      console.log("======================================");
+      console.log(
+        "======================================"
+      );
+
       console.log(
         "FINAL UPDATE PAYLOAD"
       );
+
       console.log(
         JSON.stringify(
           payload,
@@ -1426,7 +1543,10 @@ const getId = (item) => {
           2
         )
       );
-      console.log("======================================");
+
+      console.log(
+        "======================================"
+      );
 
       const response =
         await updateMemberSpiritualBackground(
@@ -1434,18 +1554,14 @@ const getId = (item) => {
           payload
         );
 
-      console.log("======================================");
       console.log(
-        "UPDATE API RESPONSE"
-      );
-      console.log(
+        "UPDATE API RESPONSE:",
         JSON.stringify(
           response,
           null,
           2
         )
       );
-      console.log("======================================");
 
       const responseData =
         response?.data &&
@@ -1458,9 +1574,12 @@ const getId = (item) => {
         response?.success === 1 ||
         response?.success === true ||
         response?.result === true ||
-        response?.statusCode === 200 ||
-        response?.statusCode === 201 ||
-        responseData?.success === 1 ||
+        response?.statusCode ===
+          200 ||
+        response?.statusCode ===
+          201 ||
+        responseData?.success ===
+          1 ||
         responseData?.success === true;
 
       if (!success) {
@@ -1474,22 +1593,22 @@ const getId = (item) => {
         return;
       }
 
-      // =====================================================
-      // SAVE SUCCESSFUL VALUES LOCALLY
-      //
-      // This is a fallback because your current GET API
-      // returns empty religion/caste/sub-caste IDs.
-      // =====================================================
+      // -----------------------------------------------------
+      // SAVE LOCAL CACHE
+      // -----------------------------------------------------
 
       const cacheData = {
         religion_id,
-        religion_name: religion,
+        religion_name:
+          religion,
 
         caste_id,
-        caste_name: caste,
+        caste_name:
+          caste,
 
         sub_caste_id,
-        sub_caste_name: subCaste,
+        sub_caste_name:
+          subCaste,
 
         ethnicity:
           String(
@@ -1518,9 +1637,9 @@ const getId = (item) => {
         cacheData
       );
 
-      // =====================================================
+      // -----------------------------------------------------
       // SUCCESS
-      // =====================================================
+      // -----------------------------------------------------
 
       Alert.alert(
         "Success",
@@ -1531,32 +1650,22 @@ const getId = (item) => {
           {
             text: "OK",
             onPress: () => {
-              /*
-               * Go back to SocialBackgroundScreen.
-               *
-               * That screen should use useFocusEffect
-               * to call its GET API again.
-               */
-              router.back();
+              navigation.goBack();
             },
           },
         ]
       );
     } catch (error) {
       console.error(
-        "======================================"
+        "UPDATE ERROR:",
+        error
       );
-      console.error(
-        "UPDATE ERROR"
-      );
-      console.error(
-        "MESSAGE:",
-        error?.message
-      );
+
       console.error(
         "STATUS:",
         error?.response?.status
       );
+
       console.error(
         "RESPONSE:",
         JSON.stringify(
@@ -1566,13 +1675,11 @@ const getId = (item) => {
           2
         )
       );
-      console.error(
-        "======================================"
-      );
 
       Alert.alert(
         "Update Failed",
-        error?.response?.data?.message ||
+        error?.response?.data
+          ?.message ||
           error?.message ||
           "Something went wrong while updating."
       );
@@ -1594,22 +1701,32 @@ const getId = (item) => {
   }) => {
     return (
       <View style={styles.field}>
-        <View style={styles.labelRow}>
-          <Ionicons
+        <View
+          style={styles.labelRow}
+        >
+          <Feather
             name={icon}
             size={17}
             color="#D92332"
           />
 
-          <Text style={styles.label}>
+          <Text
+            style={styles.label}
+          >
             {label}
           </Text>
         </View>
 
         <TextInput
-          value={String(value ?? "")}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
+          value={String(
+            value ?? ""
+          )}
+          onChangeText={
+            onChangeText
+          }
+          placeholder={
+            placeholder
+          }
           placeholderTextColor="#AAAAAA"
           style={styles.input}
           autoCapitalize="sentences"
@@ -1633,14 +1750,18 @@ const getId = (item) => {
   }) => {
     return (
       <View style={styles.field}>
-        <View style={styles.labelRow}>
-          <Ionicons
+        <View
+          style={styles.labelRow}
+        >
+          <Feather
             name={icon}
             size={17}
             color="#D92332"
           />
 
-          <Text style={styles.label}>
+          <Text
+            style={styles.label}
+          >
             {label}
           </Text>
         </View>
@@ -1667,13 +1788,14 @@ const getId = (item) => {
           >
             {loading
               ? "Loading..."
-              : value || placeholder}
+              : value ||
+                placeholder}
           </Text>
 
-          <Ionicons
+          <Feather
             name={
               loading
-                ? "sync-outline"
+                ? "loader"
                 : "chevron-down"
             }
             size={18}
@@ -1699,7 +1821,9 @@ const getId = (item) => {
   ) => {
     return (
       <TouchableOpacity
-        key={String(item.id)}
+        key={String(
+          item.id
+        )}
         style={[
           styles.option,
           selected &&
@@ -1708,7 +1832,9 @@ const getId = (item) => {
         activeOpacity={0.7}
         onPress={onPress}
       >
-        <View style={styles.optionLeft}>
+        <View
+          style={styles.optionLeft}
+        >
           <Text
             style={[
               styles.optionText,
@@ -1719,14 +1845,16 @@ const getId = (item) => {
             {item.name}
           </Text>
 
-          <Text style={styles.optionId}>
+          <Text
+            style={styles.optionId}
+          >
             ID: {item.id}
           </Text>
         </View>
 
         {selected && (
-          <Ionicons
-            name="checkmark-circle"
+          <Feather
+            name="check-circle"
             size={21}
             color="#D92332"
           />
@@ -1745,9 +1873,13 @@ const getId = (item) => {
     onClose,
   }) => {
     return (
-      <View style={styles.modalHeader}>
+      <View
+        style={styles.modalHeader}
+      >
         <View
-          style={styles.modalHeaderText}
+          style={
+            styles.modalHeaderText
+          }
         >
           <Text
             style={styles.modalTitle}
@@ -1770,8 +1902,8 @@ const getId = (item) => {
           onPress={onClose}
           style={styles.closeButton}
         >
-          <Ionicons
-            name="close"
+          <Feather
+            name="x"
             size={23}
             color="#555555"
           />
@@ -1795,15 +1927,17 @@ const getId = (item) => {
 
       {/* HEADER */}
 
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() =>
-            router.back()
+            navigation.goBack()
           }
         >
-          <Ionicons
-            name="chevron-back"
+          <Feather
+            name="chevron-left"
             size={25}
             color="#D92332"
           />
@@ -1817,7 +1951,13 @@ const getId = (item) => {
 
         <View
           style={styles.headerRight}
-        />
+        >
+          <FontAwesome5
+            name="ellipsis-h"
+            size={17}
+            color="#D92332"
+          />
+        </View>
       </View>
 
       {/* CONTENT */}
@@ -1831,7 +1971,9 @@ const getId = (item) => {
           styles.content
         }
       >
-        <View style={styles.card}>
+        <View
+          style={styles.card}
+        >
           {/* RELIGION */}
 
           <Dropdown
@@ -1839,7 +1981,9 @@ const getId = (item) => {
             value={religion}
             placeholder="Select Religion"
             onPress={() =>
-              setReligionModal(true)
+              setReligionModal(
+                true
+              )
             }
             disabled={
               religionLoading
@@ -1847,7 +1991,7 @@ const getId = (item) => {
             loading={
               religionLoading
             }
-            icon="flower-outline"
+            icon="globe"
           />
 
           {/* CASTE */}
@@ -1873,7 +2017,7 @@ const getId = (item) => {
             loading={
               casteLoading
             }
-            icon="people-outline"
+            icon="users"
           />
 
           {/* SUB CASTE */}
@@ -1889,7 +2033,9 @@ const getId = (item) => {
                 : "Select Sub Caste"
             }
             onPress={() =>
-              setSubCasteModal(true)
+              setSubCasteModal(
+                true
+              )
             }
             disabled={
               !casteId ||
@@ -1899,7 +2045,7 @@ const getId = (item) => {
             loading={
               subCasteLoading
             }
-            icon="planet-outline"
+            icon="map"
           />
 
           {/* ETHNICITY */}
@@ -1911,19 +2057,21 @@ const getId = (item) => {
               setEthnicity
             }
             placeholder="Enter Ethnicity"
-            icon="globe-outline"
+            icon="globe"
           />
 
           {/* PERSONAL VALUE */}
 
           <InputField
             label="Personal Value"
-            value={personalValue}
+            value={
+              personalValue
+            }
             onChangeText={
               setPersonalValue
             }
             placeholder="Enter Personal Value"
-            icon="star-outline"
+            icon="star"
           />
 
           {/* FAMILY VALUE */}
@@ -1944,24 +2092,27 @@ const getId = (item) => {
             }
             disabled={
               familyValueLoading ||
-              familyValues.length === 0
+              familyValues.length ===
+                0
             }
             loading={
               familyValueLoading
             }
-            icon="home-outline"
+            icon="home"
           />
 
           {/* COMMUNITY VALUE */}
 
           <InputField
             label="Community Value"
-            value={communityValue}
+            value={
+              communityValue
+            }
             onChangeText={
               setCommunityValue
             }
             placeholder="Enter Community Value"
-            icon="people-circle-outline"
+            icon="users"
           />
 
           {/* SAVE */}
@@ -1976,15 +2127,19 @@ const getId = (item) => {
             onPress={handleSave}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name={
-                saving
-                  ? "sync-outline"
-                  : "checkmark-circle-outline"
-              }
-              size={20}
-              color="#FFFFFF"
-            />
+            {saving ? (
+              <Feather
+                name="loader"
+                size={20}
+                color="#FFFFFF"
+              />
+            ) : (
+              <FontAwesome5
+                name="check-circle"
+                size={18}
+                color="#FFFFFF"
+              />
+            )}
 
             <Text
               style={styles.saveText}
@@ -2024,7 +2179,9 @@ const getId = (item) => {
             <ModalHeader
               title="Select Religion"
               onClose={() =>
-                setReligionModal(false)
+                setReligionModal(
+                  false
+                )
               }
             />
 
@@ -2032,8 +2189,8 @@ const getId = (item) => {
               <View
                 style={styles.empty}
               >
-                <Ionicons
-                  name="sync-outline"
+                <Feather
+                  name="loader"
                   size={28}
                   color="#D92332"
                 />
@@ -2077,8 +2234,8 @@ const getId = (item) => {
                       styles.empty
                     }
                   >
-                    <Ionicons
-                      name="alert-circle-outline"
+                    <Feather
+                      name="alert-circle"
                       size={28}
                       color="#AAAAAA"
                     />
@@ -2088,7 +2245,8 @@ const getId = (item) => {
                         styles.emptyText
                       }
                     >
-                      No religions found.
+                      No religions
+                      found.
                     </Text>
 
                     <TouchableOpacity
@@ -2155,8 +2313,8 @@ const getId = (item) => {
               <View
                 style={styles.empty}
               >
-                <Ionicons
-                  name="sync-outline"
+                <Feather
+                  name="loader"
                   size={28}
                   color="#D92332"
                 />
@@ -2200,8 +2358,8 @@ const getId = (item) => {
                       styles.empty
                     }
                   >
-                    <Ionicons
-                      name="alert-circle-outline"
+                    <Feather
+                      name="alert-circle"
                       size={28}
                       color="#AAAAAA"
                     />
@@ -2284,8 +2442,8 @@ const getId = (item) => {
               <View
                 style={styles.empty}
               >
-                <Ionicons
-                  name="sync-outline"
+                <Feather
+                  name="loader"
                   size={28}
                   color="#D92332"
                 />
@@ -2329,8 +2487,8 @@ const getId = (item) => {
                       styles.empty
                     }
                   >
-                    <Ionicons
-                      name="alert-circle-outline"
+                    <Feather
+                      name="alert-circle"
                       size={28}
                       color="#AAAAAA"
                     />
@@ -2340,7 +2498,8 @@ const getId = (item) => {
                         styles.emptyText
                       }
                     >
-                      No sub castes found.
+                      No sub castes
+                      found.
                     </Text>
 
                     {casteId ? (
@@ -2380,13 +2539,17 @@ const getId = (item) => {
         transparent
         animationType="fade"
         onRequestClose={() =>
-          setFamilyValueModal(false)
+          setFamilyValueModal(
+            false
+          )
         }
       >
         <Pressable
           style={styles.overlay}
           onPress={() =>
-            setFamilyValueModal(false)
+            setFamilyValueModal(
+              false
+            )
           }
         >
           <Pressable
@@ -2408,8 +2571,8 @@ const getId = (item) => {
               <View
                 style={styles.empty}
               >
-                <Ionicons
-                  name="sync-outline"
+                <Feather
+                  name="loader"
                   size={28}
                   color="#D92332"
                 />
@@ -2419,7 +2582,8 @@ const getId = (item) => {
                     styles.emptyText
                   }
                 >
-                  Loading family values...
+                  Loading family
+                  values...
                 </Text>
               </View>
             ) : (
@@ -2453,8 +2617,8 @@ const getId = (item) => {
                       styles.empty
                     }
                   >
-                    <Ionicons
-                      name="alert-circle-outline"
+                    <Feather
+                      name="alert-circle"
                       size={28}
                       color="#AAAAAA"
                     />
@@ -2464,7 +2628,8 @@ const getId = (item) => {
                         styles.emptyText
                       }
                     >
-                      No family values found.
+                      No family
+                      values found.
                     </Text>
 
                     <TouchableOpacity
@@ -2534,6 +2699,8 @@ const styles = StyleSheet.create({
 
   headerRight: {
     width: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   content: {
@@ -2629,7 +2796,8 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor:
+      "rgba(0,0,0,0.45)",
     justifyContent: "center",
     paddingHorizontal: 22,
   },
