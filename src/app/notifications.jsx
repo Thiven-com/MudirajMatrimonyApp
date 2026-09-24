@@ -1,17 +1,17 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import Feather from "react-native-vector-icons/Feather";
+
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 // ================= MOCK DATA =================
 // Replace with the notifications feed from your backend.
@@ -147,7 +147,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
       {/* ================= HEADER ================= */}
@@ -156,7 +156,7 @@ export default function NotificationsScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
         >
-          <Ionicons name="menu" size={24} color={Colors.white} />
+          <Feather name="menu" size={24} color={Colors.white} />
         </TouchableOpacity>
 
         <View style={styles.headerTitleBlock}>
@@ -172,17 +172,13 @@ export default function NotificationsScreen() {
             activeOpacity={0.75}
             style={{ marginRight: 16 }}
           >
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={Colors.white}
-            />
+            <Feather name="bell" size={22} color={Colors.white} />
           </TouchableOpacity>
           <TouchableOpacity
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.75}
           >
-            <Ionicons name="settings-outline" size={22} color={Colors.white} />
+            <Feather name="settings" size={22} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -203,7 +199,7 @@ export default function NotificationsScreen() {
                 activeOpacity={0.8}
                 onPress={() => setActiveFilter(filter.key)}
               >
-                <Ionicons
+                <Feather
                   name={filter.icon}
                   size={15}
                   color={isActive ? Colors.white : Colors.textPrimary}
@@ -238,8 +234,8 @@ export default function NotificationsScreen() {
                   onPress={handleMarkAllRead}
                 >
                   <Text style={styles.markReadText}>Mark all as read</Text>
-                  <Ionicons
-                    name="checkmark"
+                  <Feather
+                    name="check"
                     size={14}
                     color={Colors.primaryRed}
                     style={{ marginLeft: 3 }}
@@ -279,7 +275,7 @@ function NotificationRow({ item, isLast, onPress }) {
           { backgroundColor: item.iconBg },
         ]}
       >
-        <Ionicons name={item.icon} size={18} color={item.iconColor} />
+        <Feather name={item.icon} size={18} color={item.iconColor} />
       </View>
 
       <View style={styles.notificationTextBlock}>
@@ -320,13 +316,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   headerTitle: {
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.white,
   },
   headerSubtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: "#FCE4D6",
     marginTop: 2,
   },
@@ -360,8 +356,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryRed,
   },
   filterChipText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
   },
   filterChipTextActive: {
@@ -379,8 +375,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
   },
   markReadRow: {
@@ -388,8 +384,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   markReadText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   sectionCard: {
@@ -431,19 +427,19 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     flex: 1,
-    fontSize: 13.5,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     marginRight: 8,
   },
   notificationTime: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   notificationDescription: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 3,
     lineHeight: 17,

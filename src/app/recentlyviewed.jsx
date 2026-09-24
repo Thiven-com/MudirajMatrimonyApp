@@ -1,17 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import {
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 // Swap for real profile photos, e.g. { uri: profile.photoUrl }
 const PHOTO_PLACEHOLDER = require("../../assets/images/Match7.png");
@@ -30,9 +29,9 @@ const RECENTLY_VIEWED_PROFILES = [
     location: "Delhi, India",
     viewedLabel: "Viewed 2 hours ago",
     tags: [
-      { icon: "sparkles-outline", label: "Hindu" },
-      { icon: "flower-outline", label: "Kashyapa" },
-      { icon: "person-outline", label: "Never Married" },
+      { icon: "star", label: "Hindu" },
+      { icon: "feather", label: "Kashyapa" },
+      { icon: "user", label: "Never Married" },
     ],
   },
   {
@@ -46,9 +45,9 @@ const RECENTLY_VIEWED_PROFILES = [
     location: "Bengaluru, India",
     viewedLabel: "Viewed yesterday",
     tags: [
-      { icon: "sparkles-outline", label: "Hindu" },
-      { icon: "people-outline", label: "Iyer" },
-      { icon: "person-outline", label: "Never Married" },
+      { icon: "star", label: "Hindu" },
+      { icon: "users", label: "Iyer" },
+      { icon: "user", label: "Never Married" },
     ],
   },
   {
@@ -62,9 +61,9 @@ const RECENTLY_VIEWED_PROFILES = [
     location: "Pune, India",
     viewedLabel: "Viewed 2 days ago",
     tags: [
-      { icon: "sparkles-outline", label: "Hindu" },
-      { icon: "flower-outline", label: "Deshmukh" },
-      { icon: "person-outline", label: "Never Married" },
+      { icon: "star", label: "Hindu" },
+      { icon: "feather", label: "Deshmukh" },
+      { icon: "user", label: "Never Married" },
     ],
   },
   {
@@ -78,18 +77,18 @@ const RECENTLY_VIEWED_PROFILES = [
     location: "Hyderabad, India",
     viewedLabel: "Viewed 3 days ago",
     tags: [
-      { icon: "sparkles-outline", label: "Hindu" },
-      { icon: "flower-outline", label: "Reddy" },
-      { icon: "person-outline", label: "Never Married" },
+      { icon: "star", label: "Hindu" },
+      { icon: "feather", label: "Reddy" },
+      { icon: "user", label: "Never Married" },
     ],
   },
 ];
 
 export default function RecentlyViewedScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const handleViewProfile = (profile) => {
-    router.push(`/profile/${profile.id}`);
+    navigation.navigate("ProfileDetail", { id: profile.id });
   };
 
   const handleInterested = (profile) => {
@@ -98,7 +97,7 @@ export default function RecentlyViewedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
       {/* ================= HEADER ================= */}
@@ -106,9 +105,9 @@ export default function RecentlyViewedScreen() {
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.primaryRed} />
+          <Feather name="arrow-left" size={24} color={Colors.primaryRed} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -120,7 +119,7 @@ export default function RecentlyViewedScreen() {
           activeOpacity={0.75}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="filter-outline" size={16} color={Colors.primaryRed} />
+          <Feather name="filter" size={16} color={Colors.primaryRed} />
           <Text style={styles.filterButtonText}> Filter</Text>
         </TouchableOpacity>
       </View>
@@ -132,7 +131,7 @@ export default function RecentlyViewedScreen() {
         {/* ================= INTRO BANNER ================= */}
         <View style={styles.introBanner}>
           <View style={styles.introIconCircle}>
-            <Ionicons name="eye-outline" size={20} color={Colors.primaryRed} />
+            <Feather name="eye" size={20} color={Colors.primaryRed} />
           </View>
           <View style={styles.introTextBlock}>
             <Text style={styles.introTitle}>
@@ -176,7 +175,7 @@ function ProfileRow({ profile, onInterested, onViewProfile }) {
             </Text>
             {profile.verified && (
               <Ionicons
-                name="checkmark-circle"
+                name="check-circle"
                 size={15}
                 color="#3E9B5C"
                 style={{ marginLeft: 5 }}
@@ -195,7 +194,7 @@ function ProfileRow({ profile, onInterested, onViewProfile }) {
         <View style={styles.tagRow}>
           {profile.tags.map((tag) => (
             <View key={tag.label} style={styles.tagPill}>
-              <Ionicons name={tag.icon} size={11} color={Colors.primaryRed} />
+              <Feather name={tag.icon} size={11} color={Colors.primaryRed} />
               <Text style={styles.tagPillText}> {tag.label}</Text>
             </View>
           ))}
@@ -216,7 +215,7 @@ function ProfileRow({ profile, onInterested, onViewProfile }) {
           activeOpacity={0.8}
           onPress={onInterested}
         >
-          <Ionicons name="heart-outline" size={18} color={Colors.primaryRed} />
+          <Feather name="heart" size={18} color={Colors.primaryRed} />
         </TouchableOpacity>
       </View>
     </View>
@@ -226,7 +225,7 @@ function ProfileRow({ profile, onInterested, onViewProfile }) {
 function RowDetail({ icon, text }) {
   return (
     <View style={styles.rowDetailRow}>
-      <Ionicons name={icon} size={12.5} color={Colors.textMuted} />
+      <Feather name={icon} size={12.5} color={Colors.textMuted} />
       <Text style={styles.rowDetailText} numberOfLines={1}>
         {" "}
         {text}
@@ -257,8 +256,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     marginHorizontal: 8,
   },
@@ -267,8 +266,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   filterButtonText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -294,13 +293,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   introTitle: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
   },
   introSubtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 2,
   },
@@ -340,14 +339,14 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   rowNameText: {
-    fontSize: 15,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     flexShrink: 1,
   },
   viewedLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginLeft: 8,
   },
@@ -357,8 +356,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   rowDetailText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     flexShrink: 1,
   },
@@ -377,8 +376,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   tagPillText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -398,8 +397,8 @@ const styles = StyleSheet.create({
     marginBottom: "auto",
   },
   viewProfileButtonText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   interestButton: {

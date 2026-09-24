@@ -1,27 +1,28 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  BackHandler,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import Feather from "react-native-vector-icons/Feather";
+
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 // ================= MOCK DATA =================
 // Replace with the real topics / channels config from your backend.
 const QUICK_HELP_TOPICS = [
   {
     key: "account",
-    icon: "person-outline",
+    icon: "user",
     iconColor: Colors.primaryRed,
     iconBg: "#FCE4D6",
     title: "Account Help",
@@ -29,7 +30,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "privacy",
-    icon: "shield-checkmark-outline",
+    icon: "shield",
     iconColor: "#B8860B",
     iconBg: "#FCEFC9",
     title: "Privacy & Safety",
@@ -37,7 +38,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "matches",
-    icon: "heart-outline",
+    icon: "heart",
     iconColor: Colors.primaryRed,
     iconBg: "#FCE4D6",
     title: "Matches & Interests",
@@ -45,7 +46,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "payments",
-    icon: "card-outline",
+    icon: "credit-card",
     iconColor: "#B8860B",
     iconBg: "#FCEFC9",
     title: "Payments & Plans",
@@ -53,7 +54,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "search",
-    icon: "search-outline",
+    icon: "search",
     iconColor: "#B8860B",
     iconBg: "#FCEFC9",
     title: "Search & Filters",
@@ -61,7 +62,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "notifications",
-    icon: "notifications-outline",
+    icon: "bell",
     iconColor: Colors.primaryRed,
     iconBg: "#FCE4D6",
     title: "Notifications",
@@ -69,7 +70,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "photos",
-    icon: "image-outline",
+    icon: "image",
     iconColor: "#B8860B",
     iconBg: "#FCEFC9",
     title: "Photos & Profile",
@@ -77,7 +78,7 @@ const QUICK_HELP_TOPICS = [
   },
   {
     key: "other",
-    icon: "ellipsis-horizontal",
+    icon: "more-horizontal",
     iconColor: Colors.primaryRed,
     iconBg: "#FCE4D6",
     title: "Other Topics",
@@ -88,7 +89,7 @@ const QUICK_HELP_TOPICS = [
 const SUPPORT_CHANNELS = [
   {
     key: "chat",
-    icon: "chatbubble-ellipses-outline",
+    icon: "message-circle",
     title: "Chat with Us",
     subtitle: "Chat live with our support team",
     status: "Online",
@@ -96,7 +97,7 @@ const SUPPORT_CHANNELS = [
   },
   {
     key: "email",
-    icon: "mail-outline",
+    icon: "mail",
     iconBg: "#FCEFC9",
     title: "Email Support",
     subtitle: "Send us an email and we'll respond within 24 hours",
@@ -104,7 +105,7 @@ const SUPPORT_CHANNELS = [
   },
   {
     key: "call",
-    icon: "call-outline",
+    icon: "phone",
     title: "Call Us",
     subtitle: "Speak with our support team\nMon - Sat, 9:00 AM - 6:00 PM",
     ctaLabel: "Call Now",
@@ -112,38 +113,57 @@ const SUPPORT_CHANNELS = [
 ];
 
 const TAB_ITEMS = [
-  { key: "home", label: "Home", icon: "home-outline", activeIcon: "home" },
+  { key: "home", label: "Home", icon: "home", activeIcon: "home" },
   {
     key: "matches",
     label: "Matches",
-    icon: "heart-outline",
+    icon: "heart",
     activeIcon: "heart",
   },
   {
     key: "messages",
     label: "Messages",
-    icon: "chatbubble-ellipses-outline",
-    activeIcon: "chatbubble-ellipses",
+    icon: "message-circle",
+    activeIcon: "message-circle",
     badge: 2,
   },
   {
     key: "notifications",
     label: "Notifications",
-    icon: "notifications-outline",
-    activeIcon: "notifications",
+    icon: "bell",
+    activeIcon: "bell",
     badge: 5,
   },
   {
     key: "profile",
     label: "Profile",
-    icon: "person-outline",
-    activeIcon: "person",
+    icon: "user",
+    activeIcon: "user",
   },
 ];
 
 export default function HelpSupportScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   const handleTopicPress = (topic) => {
     // TODO: navigate to the topic's help articles
@@ -161,7 +181,7 @@ export default function HelpSupportScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
       {/* ================= HEADER ================= */}
@@ -169,9 +189,9 @@ export default function HelpSupportScreen() {
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Feather name="arrow-left" size={24} color={Colors.white} />
         </TouchableOpacity>
 
         <View style={styles.headerTitleBlock}>
@@ -183,7 +203,7 @@ export default function HelpSupportScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
         >
-          <Ionicons name="headset-outline" size={24} color={Colors.white} />
+          <Feather name="headphones" size={24} color={Colors.white} />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -194,13 +214,9 @@ export default function HelpSupportScreen() {
         {/* ================= HERO SEARCH BANNER ================= */}
         <View style={styles.heroBanner}>
           <View style={styles.heroIconCircle}>
-            <Ionicons name="headset" size={30} color={Colors.primaryRed} />
+            <Feather name="headphones" size={30} color={Colors.primaryRed} />
             <View style={styles.heroIconBubble}>
-              <Ionicons
-                name="ellipsis-horizontal"
-                size={12}
-                color={Colors.white}
-              />
+              <Feather name="more-horizontal" size={12} color={Colors.white} />
             </View>
           </View>
 
@@ -217,7 +233,7 @@ export default function HelpSupportScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
-            <Ionicons name="search" size={18} color={Colors.primaryRed} />
+            <Feather name="search" size={18} color={Colors.primaryRed} />
           </View>
         </View>
 
@@ -237,12 +253,12 @@ export default function HelpSupportScreen() {
                   { backgroundColor: topic.iconBg },
                 ]}
               >
-                <Ionicons name={topic.icon} size={22} color={topic.iconColor} />
+                <Feather name={topic.icon} size={22} color={topic.iconColor} />
               </View>
               <Text style={styles.topicTitle}>{topic.title}</Text>
               <Text style={styles.topicSubtitle}>{topic.subtitle}</Text>
-              <Ionicons
-                name="chevron-forward"
+              <Feather
+                name="chevron-right"
                 size={15}
                 color={Colors.textMuted}
                 style={styles.topicChevron}
@@ -269,7 +285,7 @@ export default function HelpSupportScreen() {
                   { backgroundColor: channel.iconBg || "#FCE4D6" },
                 ]}
               >
-                <Ionicons
+                <Feather
                   name={channel.icon}
                   size={19}
                   color={Colors.primaryRed}
@@ -309,7 +325,7 @@ export default function HelpSupportScreen() {
           onPress={() => handleNavigate("faqs")}
         >
           <View style={styles.faqIconCircle}>
-            <Ionicons name="help-circle-outline" size={22} color="#B8860B" />
+            <Feather name="help-circle" size={22} color="#B8860B" />
           </View>
           <View style={styles.faqTextBlock}>
             <Text style={styles.faqTitle}>FAQs</Text>
@@ -317,17 +333,13 @@ export default function HelpSupportScreen() {
               Find answers to common questions
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          <Feather name="chevron-right" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
 
         {/* ================= STAY SAFE ONLINE ================= */}
         <View style={styles.safeBanner}>
           <View style={styles.safeIconCircle}>
-            <Ionicons
-              name="shield-checkmark"
-              size={19}
-              color={Colors.primaryRed}
-            />
+            <Feather name="shield" size={19} color={Colors.primaryRed} />
           </View>
           <View style={styles.safeTextBlock}>
             <Text style={styles.safeTitle}>Stay Safe Online</Text>
@@ -357,7 +369,7 @@ export default function HelpSupportScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Ionicons
+                <Feather
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={22}
                   color={isActive ? Colors.primaryRed : Colors.textMuted}
@@ -404,13 +416,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   headerTitle: {
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.white,
   },
   headerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: "#FCE4D6",
     marginTop: 2,
   },
@@ -446,14 +458,14 @@ const styles = StyleSheet.create({
     borderColor: "#FDF3E7",
   },
   heroTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     marginBottom: 6,
   },
   heroSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     lineHeight: 18,
     marginBottom: 14,
@@ -468,15 +480,15 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
   },
 
   /* ===== SECTION HEADING ===== */
   sectionHeading: {
-    fontSize: 15,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     marginBottom: 12,
   },
@@ -509,14 +521,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   topicTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     marginBottom: 3,
   },
   topicSubtitle: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     lineHeight: 15,
   },
@@ -564,8 +576,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   channelTitle: {
-    fontSize: 13.5,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
     marginRight: 8,
   },
@@ -585,13 +597,13 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   statusPillText: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: "#1F7A3D",
   },
   channelSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 3,
     lineHeight: 16,
@@ -604,8 +616,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   channelButtonText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -631,13 +643,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   faqTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
   },
   faqSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 2,
   },
@@ -667,13 +679,13 @@ const styles = StyleSheet.create({
     minWidth: 160,
   },
   safeTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
   },
   safeSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 3,
     lineHeight: 16,
@@ -688,8 +700,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   safetyTipsButtonText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -722,18 +734,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   tabBadgeText: {
-    fontSize: 9,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   tabLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 3,
   },
   tabLabelActive: {
     color: Colors.primaryRed,
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 });

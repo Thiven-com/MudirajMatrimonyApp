@@ -13,10 +13,10 @@ import {
   View,
 } from "react-native";
 
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
+import LinearGradient from "react-native-linear-gradient";
+import Feather from "react-native-vector-icons/Feather";
 
 import Fonts from "../../constants/Fonts";
 import { getChatList, getToken } from "../../utils/Functions";
@@ -246,7 +246,7 @@ export default function ChatsScreen() {
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={23} color={COLORS.red} />
+          <Feather name="arrow-left" size={23} color={COLORS.red} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Chats</Text>
@@ -264,7 +264,7 @@ export default function ChatsScreen() {
       {/* ================= SEARCH BAR ================= */}
 
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color={COLORS.mutedGray} />
+        <Feather name="search" size={20} color={COLORS.mutedGray} />
 
         <TextInput
           style={styles.searchInput}
@@ -277,7 +277,7 @@ export default function ChatsScreen() {
         />
 
         <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.8}>
-          <Ionicons name="options-outline" size={20} color={COLORS.darkRed} />
+          <Feather name="sliders" size={20} color={COLORS.darkRed} />
         </TouchableOpacity>
       </View>
 
@@ -306,7 +306,7 @@ export default function ChatsScreen() {
                   style={[styles.filterDot, { backgroundColor: item.dot }]}
                 />
               ) : (
-                <Ionicons
+                <Feather
                   name={item.icon}
                   size={16}
                   color={active ? "#FFFFFF" : COLORS.text}
@@ -372,11 +372,7 @@ export default function ChatsScreen() {
                 style={styles.premiumCard}
               >
                 <View style={styles.crownCircle}>
-                  <FontAwesome5
-                    name="crown"
-                    size={22}
-                    color={COLORS.goldDeep}
-                  />
+                  <Feather name="award" size={22} color={COLORS.goldDeep} />
                 </View>
 
                 <View style={styles.premiumContent}>
@@ -394,8 +390,8 @@ export default function ChatsScreen() {
                   onPress={handleUpgrade}
                 >
                   <Text style={styles.premiumUpgradeText}>Upgrade Now</Text>
-                  <Ionicons
-                    name="chevron-forward"
+                  <Feather
+                    name="chevron-right"
                     size={16}
                     color={COLORS.darkRed}
                   />
@@ -472,11 +468,7 @@ function ChatRow({ chat, onPress }) {
             </Text>
 
             {chat.verified && (
-              <Ionicons
-                name="checkmark-circle"
-                size={15}
-                color={COLORS.green}
-              />
+              <Feather name="check-circle" size={15} color={COLORS.green} />
             )}
           </View>
 
@@ -521,7 +513,7 @@ function EmptyState({ errorMessage, onRetry }) {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconCircle}>
-        <Ionicons name="chatbubbles-outline" size={30} color={COLORS.red} />
+        <Feather name="message-circle" size={30} color={COLORS.red} />
       </View>
 
       <Text style={styles.emptyTitle}>
@@ -539,7 +531,7 @@ function EmptyState({ errorMessage, onRetry }) {
           onPress={onRetry}
           activeOpacity={0.8}
         >
-          <Ionicons name="refresh" size={15} color="#FFFFFF" />
+          <Feather name="refresh-cw" size={15} color="#FFFFFF" />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -579,7 +571,7 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
     color: COLORS.text,
   },
@@ -600,14 +592,14 @@ const styles = StyleSheet.create({
   },
 
   screenTitle: {
-    fontSize: width <= 430 ? 30 : 34,
+    fontSize: width <= 430 ? Fonts.size.title : Fonts.size.heading,
     fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     letterSpacing: 0.2,
   },
 
   screenSubtitle: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginTop: SPACING.xs,
@@ -633,7 +625,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.text,
     paddingVertical: 0,
@@ -689,7 +681,7 @@ const styles = StyleSheet.create({
   },
 
   filterChipText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
     color: COLORS.text,
   },
@@ -762,7 +754,7 @@ const styles = StyleSheet.create({
 
   avatarFallbackText: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: Fonts.size.lg,
     fontFamily: Fonts.extraBold,
   },
 
@@ -800,21 +792,21 @@ const styles = StyleSheet.create({
   },
 
   chatName: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     flexShrink: 1,
   },
 
   chatTime: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     marginLeft: SPACING.sm,
   },
 
   chatProfession: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.medium,
     color: COLORS.gray,
     marginTop: 2,
@@ -828,7 +820,7 @@ const styles = StyleSheet.create({
   },
 
   chatLastMessage: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     flex: 1,
@@ -872,7 +864,7 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: 10,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
   },
@@ -899,7 +891,7 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontSize: 18,
+    fontSize: Fonts.size.lg,
     fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     textAlign: "center",
@@ -907,7 +899,7 @@ const styles = StyleSheet.create({
   },
 
   emptySubtitle: {
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     lineHeight: 18,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
@@ -933,7 +925,7 @@ const styles = StyleSheet.create({
 
   retryButtonText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.bold,
   },
 
@@ -978,14 +970,14 @@ const styles = StyleSheet.create({
 
   premiumTitle: {
     color: COLORS.goldLight,
-    fontSize: width <= 430 ? 13.5 : 15,
+    fontSize: width <= 430 ? Fonts.size.md : Fonts.size.md,
     fontFamily: Fonts.extraBold,
     marginBottom: 3,
   },
 
   premiumSubtitle: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: width <= 430 ? 10.5 : 12,
+    fontSize: width <= 430 ? Fonts.size.xs : Fonts.size.sm,
     fontFamily: Fonts.regular,
     lineHeight: 15,
   },
@@ -1005,6 +997,6 @@ const styles = StyleSheet.create({
   premiumUpgradeText: {
     color: COLORS.darkRed,
     fontFamily: Fonts.extraBold,
-    fontSize: width <= 430 ? 11.5 : 13,
+    fontSize: width <= 430 ? Fonts.size.sm : Fonts.size.md,
   },
 });

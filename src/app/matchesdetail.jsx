@@ -1,8 +1,3 @@
-import {
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   useFocusEffect,
@@ -15,6 +10,7 @@ import {
   BackHandler,
   Image,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -22,9 +18,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Feather from "react-native-vector-icons/Feather";
+
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 import {
   addToShortlist,
   expressInterest,
@@ -662,7 +659,7 @@ export default function ProfileDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerState}>
-          <Ionicons name="alert-circle-outline" size={50} color="#B5B5B5" />
+          <Feather name="alert-circle" size={50} color="#B5B5B5" />
           <Text style={styles.centerStateText}>
             {loadError || "Unable to load profile."}
           </Text>
@@ -701,7 +698,7 @@ export default function ProfileDetailScreen() {
   const hasMoreText = profile.aboutMyself.length > 140;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -713,7 +710,7 @@ export default function ProfileDetailScreen() {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={26} color={Colors.primaryRed} />
+            <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
           </TouchableOpacity>
 
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
@@ -734,12 +731,12 @@ export default function ProfileDetailScreen() {
               </View>
             )}
             <View style={styles.photoCounter}>
-              <Ionicons name="images-outline" size={12} color={Colors.white} />
+              <Feather name="image" size={12} color={Colors.white} />
               <Text style={styles.photoCounterText}>
                 1/{profile.photoCount}
               </Text>
-              <Ionicons
-                name="expand-outline"
+              <Feather
+                name="maximize"
                 size={12}
                 color={Colors.white}
                 style={{ marginLeft: 4 }}
@@ -754,8 +751,8 @@ export default function ProfileDetailScreen() {
                 {profile.age ? `, ${profile.age}` : ""}
               </Text>
               {profile.verified && (
-                <Ionicons
-                  name="checkmark-circle"
+                <Feather
+                  name="check-circle"
                   size={20}
                   color={Colors.success}
                   style={{ marginLeft: 6 }}
@@ -765,11 +762,7 @@ export default function ProfileDetailScreen() {
               <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons
-                  name="share-social-outline"
-                  size={20}
-                  color={Colors.primaryRed}
-                />
+                <Feather name="share-2" size={20} color={Colors.primaryRed} />
               </TouchableOpacity>
               <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -783,8 +776,8 @@ export default function ProfileDetailScreen() {
                     color={Colors.textSecondary}
                   />
                 ) : (
-                  <Ionicons
-                    name="ellipsis-vertical"
+                  <Feather
+                    name="more-vertical"
                     size={20}
                     color={
                       interestRejected ? Colors.textMuted : Colors.textSecondary
@@ -827,8 +820,8 @@ export default function ProfileDetailScreen() {
               <DetailRow icon="call-outline" text={profile.phone} />
             ) : profile.hasPhone ? (
               <View style={styles.lockedContactRow}>
-                <Ionicons
-                  name="lock-closed-outline"
+                <Feather
+                  name="lock"
                   size={16}
                   color={Colors.textMuted}
                   style={styles.detailIcon}
@@ -842,11 +835,7 @@ export default function ProfileDetailScreen() {
             {profile.verified && (
               <View style={styles.verifiedBanner}>
                 <View style={styles.verifiedIconCircle}>
-                  <Ionicons
-                    name="shield-checkmark"
-                    size={18}
-                    color={Colors.primaryRed}
-                  />
+                  <Feather name="shield" size={18} color={Colors.primaryRed} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.verifiedTitle}>
@@ -910,7 +899,7 @@ export default function ProfileDetailScreen() {
                 onPress={() => setActiveTab(tab.key)}
                 activeOpacity={0.7}
               >
-                <Ionicons
+                <Feather
                   name={tab.icon}
                   size={20}
                   color={isActive ? Colors.primaryRed : Colors.textMuted}
@@ -966,7 +955,7 @@ export default function ProfileDetailScreen() {
                     <Text style={styles.showMoreText}>
                       {showMore ? "Show Less" : "Show More"}
                     </Text>
-                    <Ionicons
+                    <Feather
                       name={showMore ? "chevron-up" : "chevron-down"}
                       size={16}
                       color={Colors.primaryRed}
@@ -996,7 +985,7 @@ export default function ProfileDetailScreen() {
           {shortlisting ? (
             <ActivityIndicator size="small" color={Colors.primaryRed} />
           ) : (
-            <Ionicons
+            <Feather
               name={isShortlisted ? "heart" : "heart-outline"}
               size={18}
               color={Colors.primaryRed}
@@ -1012,11 +1001,7 @@ export default function ProfileDetailScreen() {
           activeOpacity={0.85}
           onPress={() => navigation.navigate("ChatConversion")}
         >
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={18}
-            color={Colors.white}
-          />
+          <Feather name="message-circle" size={18} color={Colors.white} />
 
           <Text style={styles.bottomRedText}>Message</Text>
         </TouchableOpacity>
@@ -1032,7 +1017,7 @@ export default function ProfileDetailScreen() {
           {sendingInterest ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <Ionicons
+            <Feather
               name={interestSent ? "checkmark-circle" : "star"}
               size={18}
               color={Colors.white}
@@ -1050,21 +1035,21 @@ export default function ProfileDetailScreen() {
 
       {!!interestError && (
         <View style={styles.interestErrorBanner}>
-          <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+          <Feather name="alert-circle" size={16} color="#B42318" />
           <Text style={styles.interestErrorText}>{interestError}</Text>
         </View>
       )}
 
       {!!rejectError && (
         <View style={styles.interestErrorBanner}>
-          <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+          <Feather name="alert-circle" size={16} color="#B42318" />
           <Text style={styles.interestErrorText}>{rejectError}</Text>
         </View>
       )}
 
       {!!shortlistError && (
         <View style={styles.interestErrorBanner}>
-          <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+          <Feather name="alert-circle" size={16} color="#B42318" />
           <Text style={styles.interestErrorText}>{shortlistError}</Text>
         </View>
       )}
@@ -1080,7 +1065,7 @@ function DetailRow({ icon, text }) {
       {isOm ? (
         <Text style={styles.omSymbol}>ॐ</Text>
       ) : (
-        <Ionicons
+        <Feather
           name={icon}
           size={16}
           color={Colors.primaryRed}
@@ -1103,7 +1088,7 @@ function QuickAction({ icon, label, color, onPress, disabled, loading }) {
       {loading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
-        <Ionicons name={icon} size={22} color={color} />
+        <Feather name={icon} size={22} color={color} />
       )}
       <Text style={[styles.quickActionLabel, { color }]}>{label}</Text>
     </TouchableOpacity>
@@ -1125,65 +1110,31 @@ function AboutItem({ icon, label, value }) {
 function renderAboutIcon(icon) {
   switch (icon) {
     case "calendar":
-      return (
-        <Ionicons name="calendar-outline" size={16} color={Colors.primaryRed} />
-      );
+      return <Feather name="calendar" size={16} color={Colors.primaryRed} />;
     case "AGE":
       return <Text style={styles.aboutIconText}>AGE</Text>;
     case "ruler":
-      return (
-        <MaterialCommunityIcons
-          name="ruler"
-          size={16}
-          color={Colors.primaryRed}
-        />
-      );
+      return <Feather name="move" size={16} color={Colors.primaryRed} />;
     case "marital":
-      return (
-        <MaterialCommunityIcons
-          name="ring"
-          size={16}
-          color={Colors.primaryRed}
-        />
-      );
+      return <Feather name="circle" size={16} color={Colors.primaryRed} />;
     case "gender":
-      return (
-        <Ionicons
-          name="male-female-outline"
-          size={16}
-          color={Colors.primaryRed}
-        />
-      );
+      return <Feather name="users" size={16} color={Colors.primaryRed} />;
     case "R":
       return <Text style={styles.aboutIconText}>R</Text>;
     case "blood":
-      return (
-        <Ionicons name="water-outline" size={16} color={Colors.primaryRed} />
-      );
+      return <Feather name="droplet" size={16} color={Colors.primaryRed} />;
     case "om":
       return <Text style={styles.omSymbolSmall}>ॐ</Text>;
     case "people":
-      return (
-        <Ionicons name="people-outline" size={16} color={Colors.primaryRed} />
-      );
+      return <Feather name="users" size={16} color={Colors.primaryRed} />;
     case "people2":
-      return <Ionicons name="people" size={16} color={Colors.primaryRed} />;
+      return <Feather name="users" size={16} color={Colors.primaryRed} />;
     case "school":
-      return (
-        <Ionicons name="school-outline" size={16} color={Colors.primaryRed} />
-      );
+      return <Feather name="book-open" size={16} color={Colors.primaryRed} />;
     case "briefcase":
-      return (
-        <Ionicons
-          name="briefcase-outline"
-          size={16}
-          color={Colors.primaryRed}
-        />
-      );
+      return <Feather name="briefcase" size={16} color={Colors.primaryRed} />;
     case "rupee":
-      return (
-        <FontAwesome5 name="rupee-sign" size={13} color={Colors.primaryRed} />
-      );
+      return <Feather name="dollar-sign" size={13} color={Colors.primaryRed} />;
     default:
       return null;
   }
@@ -1201,8 +1152,8 @@ const styles = StyleSheet.create({
   },
   centerStateText: {
     marginTop: 12,
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     textAlign: "center",
   },
@@ -1215,7 +1166,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: Colors.white,
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 
   topBar: {
@@ -1254,8 +1205,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   onlineText: {
-    fontSize: 11,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.semiBold,
     color: Colors.textPrimary,
   },
   photoCounter: {
@@ -1270,8 +1221,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   photoCounterText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.medium,
     color: Colors.white,
     marginHorizontal: 3,
   },
@@ -1279,13 +1230,13 @@ const styles = StyleSheet.create({
   infoPanel: { flex: 1 },
   nameRow: { flexDirection: "row", alignItems: "center" },
   nameText: {
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xl,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRedDark,
   },
   professionText: {
-    fontSize: FontSizes.input,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
     color: Colors.textPrimary,
     marginTop: 4,
     marginBottom: 8,
@@ -1293,15 +1244,15 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   detailIcon: { marginRight: 8, width: 16 },
   omSymbol: {
-    fontSize: 15,
+    fontSize: Fonts.size.sm,
     color: Colors.primaryRed,
     marginRight: 8,
     width: 16,
     textAlign: "center",
   },
   detailText: {
-    fontSize: FontSizes.label,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     flexShrink: 1,
   },
@@ -1311,8 +1262,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   lockedContactText: {
-    fontSize: FontSizes.label,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     fontStyle: "italic",
     flexShrink: 1,
@@ -1336,13 +1287,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   verifiedTitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRedDark,
   },
   verifiedSubtitle: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 1,
   },
@@ -1364,8 +1315,8 @@ const styles = StyleSheet.create({
   quickAction: { alignItems: "center", flex: 1 },
   quickActionDisabled: { opacity: 0.5 },
   quickActionLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.semiBold,
     marginTop: 4,
     textAlign: "center",
   },
@@ -1377,13 +1328,13 @@ const styles = StyleSheet.create({
   },
   tabItem: { alignItems: "center", flex: 1, paddingBottom: 10 },
   tabLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.medium,
     color: Colors.textMuted,
     marginTop: 4,
     textAlign: "center",
   },
-  tabLabelActive: { color: Colors.primaryRed, fontFamily: Fonts.body.bold },
+  tabLabelActive: { color: Colors.primaryRed, fontFamily: Fonts.bold },
   tabUnderline: {
     position: "absolute",
     bottom: 0,
@@ -1396,8 +1347,8 @@ const styles = StyleSheet.create({
 
   aboutSection: { marginTop: 20 },
   aboutHeading: {
-    fontSize: FontSizes.welcome - 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
     marginBottom: 14,
   },
@@ -1418,19 +1369,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   aboutIconText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
-  omSymbolSmall: { fontSize: 15, color: Colors.primaryRed },
+  omSymbolSmall: { fontSize: Fonts.size.sm, color: Colors.primaryRed },
   aboutItemLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
     color: Colors.textPrimary,
   },
   aboutItemValue: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 1,
   },
@@ -1442,8 +1393,8 @@ const styles = StyleSheet.create({
   },
 
   aboutMyselfText: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     lineHeight: 21,
   },
@@ -1454,16 +1405,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   showMoreText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
     marginRight: 4,
   },
 
   placeholderSection: { marginTop: 30, alignItems: "center" },
   placeholderText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
 
@@ -1493,8 +1444,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomOutlineText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   bottomRedButton: {
@@ -1508,8 +1459,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomRedText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   bottomGoldButton: {
@@ -1523,8 +1474,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomGoldText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   bottomButtonDisabled: {
@@ -1545,8 +1496,8 @@ const styles = StyleSheet.create({
   },
   interestErrorText: {
     flex: 1,
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: "#B42318",
   },
 });

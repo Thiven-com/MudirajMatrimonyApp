@@ -1,6 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
 import {
   BackHandler,
@@ -14,10 +12,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -91,10 +90,7 @@ export default function BasicDetailsScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
       {/* ================= HEADER ================= */}
@@ -106,7 +102,7 @@ export default function BasicDetailsScreen() {
             activeOpacity={0.75}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <Feather name="arrow-left" size={24} color={Colors.white} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Basic Details</Text>
@@ -144,8 +140,8 @@ export default function BasicDetailsScreen() {
         {/* ---- Full Name ---- */}
         <FieldLabel text="Full Name" required />
         <View style={styles.inputRow}>
-          <Ionicons
-            name="person-outline"
+          <Feather
+            name="user"
             size={18}
             color={Colors.primaryRed}
             style={styles.inputIcon}
@@ -164,18 +160,14 @@ export default function BasicDetailsScreen() {
           <View style={styles.colHalf}>
             <FieldLabel text="Date of Birth" required />
             <SelectField
-              icon="calendar-outline"
+              icon="calendar"
               placeholder="DD / MM / YYYY"
               value={dob}
             />
           </View>
           <View style={styles.colHalf}>
             <FieldLabel text="Time of Birth" required />
-            <SelectField
-              icon="time-outline"
-              placeholder="Select time"
-              value={tob}
-            />
+            <SelectField icon="clock" placeholder="Select time" value={tob} />
           </View>
         </View>
 
@@ -197,7 +189,7 @@ export default function BasicDetailsScreen() {
                 activeOpacity={0.8}
                 onPress={() => setGender(option.key)}
               >
-                <Ionicons
+                <Feather
                   name={isActive ? "person" : "person-outline"}
                   size={16}
                   color={option.activeColor}
@@ -208,7 +200,7 @@ export default function BasicDetailsScreen() {
                     styles.genderText,
                     isActive && {
                       color: option.activeColor,
-                      fontFamily: Fonts.body.bold,
+                      fontFamily: Fonts.bold,
                     },
                   ]}
                 >
@@ -222,7 +214,7 @@ export default function BasicDetailsScreen() {
         {/* ---- Marital Status ---- */}
         <FieldLabel text="Marital Status" required />
         <SelectField
-          icon="heart-outline"
+          icon="heart"
           placeholder="Select marital status"
           value={maritalStatus}
         />
@@ -232,7 +224,7 @@ export default function BasicDetailsScreen() {
           <View style={styles.colHalf}>
             <FieldLabel text="Height" required />
             <SelectField
-              icon="resize-outline"
+              icon="maximize"
               placeholder="Select height"
               value={height}
             />
@@ -240,8 +232,8 @@ export default function BasicDetailsScreen() {
           <View style={styles.colHalf}>
             <FieldLabel text="Weight" optional />
             <View style={styles.inputRow}>
-              <Ionicons
-                name="barbell-outline"
+              <Feather
+                name="activity"
                 size={18}
                 color={Colors.primaryRed}
                 style={styles.inputIcon}
@@ -262,7 +254,7 @@ export default function BasicDetailsScreen() {
         {/* ---- Blood Group ---- */}
         <FieldLabel text="Blood Group" optional />
         <SelectField
-          icon="water-outline"
+          icon="droplet"
           placeholder="Select blood group"
           value={bloodGroup}
         />
@@ -270,7 +262,7 @@ export default function BasicDetailsScreen() {
         {/* ---- Mother Tongue ---- */}
         <FieldLabel text="Mother Tongue" required />
         <SelectField
-          icon="chatbubble-outline"
+          icon="message-circle"
           placeholder="Select mother tongue"
           value={motherTongue}
         />
@@ -278,7 +270,7 @@ export default function BasicDetailsScreen() {
         {/* ---- Languages Known ---- */}
         <FieldLabel text="Languages Known" optional />
         <SelectField
-          icon="language-outline"
+          icon="globe"
           placeholder="Select languages"
           value={languages}
         />
@@ -286,18 +278,14 @@ export default function BasicDetailsScreen() {
         {/* ---- Nationality ---- */}
         <FieldLabel text="Nationality" required />
         <SelectField
-          icon="flag-outline"
+          icon="flag"
           placeholder="Select nationality"
           value={nationality}
         />
 
         {/* ---- Currently Living In ---- */}
         <FieldLabel text="Currently Living In" required />
-        <SelectField
-          icon="location-outline"
-          placeholder="Enter city"
-          value={city}
-        />
+        <SelectField icon="map-pin" placeholder="Enter city" value={city} />
 
         {/* ================= SAVE BUTTON ================= */}
         <TouchableOpacity
@@ -306,8 +294,8 @@ export default function BasicDetailsScreen() {
           onPress={handleSaveAndContinue}
         >
           <Text style={styles.saveButtonText}>Save & Continue</Text>
-          <Ionicons
-            name="chevron-forward"
+          <Feather
+            name="chevron-right"
             size={18}
             color={Colors.white}
             style={{ marginLeft: 6 }}
@@ -332,7 +320,7 @@ function FieldLabel({ text, required, optional }) {
 function SelectField({ icon, placeholder, value }) {
   return (
     <TouchableOpacity style={styles.selectRow} activeOpacity={0.7}>
-      <Ionicons
+      <Feather
         name={icon}
         size={18}
         color={Colors.primaryRed}
@@ -341,7 +329,7 @@ function SelectField({ icon, placeholder, value }) {
       <Text style={[styles.selectText, value ? styles.selectTextFilled : null]}>
         {value || placeholder}
       </Text>
-      <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
+      <Feather name="chevron-down" size={16} color={Colors.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -373,8 +361,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    fontSize: FontSizes.welcome + 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.title,
+    fontFamily: Fonts.extraBold,
     color: Colors.white,
   },
   headerSpacer: {
@@ -386,14 +374,14 @@ const styles = StyleSheet.create({
 
   /* ===== PAGE TITLE ===== */
   pageTitle: {
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
     marginBottom: 6,
   },
   pageSubtitle: {
-    fontSize: 13,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginBottom: 24,
     lineHeight: 19,
@@ -406,18 +394,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   fieldLabelText: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
   },
   requiredAsterisk: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   optionalText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
 
@@ -438,14 +426,14 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     ...Platform.select({ web: { outlineStyle: "none" } }),
   },
   unitText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.medium,
     color: Colors.textMuted,
   },
 
@@ -463,13 +451,13 @@ const styles = StyleSheet.create({
   },
   selectText: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
   },
   selectTextFilled: {
     color: Colors.textPrimary,
-    fontFamily: Fonts.body.medium,
+    fontFamily: Fonts.medium,
   },
 
   /* ===== TWO-COLUMN ROWS ===== */
@@ -499,8 +487,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
   },
   genderText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
   },
 
@@ -515,8 +503,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 });

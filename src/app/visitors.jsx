@@ -1,31 +1,32 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useMemo, useState } from "react";
 import {
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  BackHandler,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Feather from "react-native-vector-icons/Feather";
+
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 const LOGO = require("../../assets/images/logo.png");
 // Swap each of these for the visitor's actual avatar, e.g. { uri: visitor.photoUrl }
 const AVATAR_PLACEHOLDER = require("../../assets/images/Match5.png");
 
 const FILTER_TABS = [
-  { key: "all", label: "All Visitors", icon: "people" },
-  { key: "recent", label: "Recent Visitors", icon: "time-outline" },
-  { key: "frequent", label: "Frequent Visitors", icon: "flame-outline" },
-  { key: "hidden", label: "Hidden Visitors", icon: "eye-off-outline" },
+  { key: "all", label: "All Visitors", icon: "users" },
+  { key: "recent", label: "Recent Visitors", icon: "clock" },
+  { key: "frequent", label: "Frequent Visitors", icon: "flame" },
+  { key: "hidden", label: "Hidden Visitors", icon: "eye-off" },
 ];
 
 // `tags` drives which filter tab(s) a visitor shows up under.
@@ -101,7 +102,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function ProfileVisitorsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -115,6 +116,25 @@ export default function ProfileVisitorsScreen() {
   const [draftOnlineOnly, setDraftOnlineOnly] = useState(onlineOnly);
   const [draftVerifiedOnly, setDraftVerifiedOnly] = useState(verifiedOnly);
   const [draftSortBy, setDraftSortBy] = useState(sortBy);
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return true;
+    }
+    return false;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
 
   const activeFilterCount = (onlineOnly ? 1 : 0) + (verifiedOnly ? 1 : 0);
 
@@ -163,10 +183,7 @@ export default function ProfileVisitorsScreen() {
   }, [search, activeFilter, onlineOnly, verifiedOnly, sortBy]);
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -175,10 +192,10 @@ export default function ProfileVisitorsScreen() {
         {/* ================= TOP BAR ================= */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={26} color={Colors.primaryRed} />
+            <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
           </TouchableOpacity>
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
@@ -186,7 +203,7 @@ export default function ProfileVisitorsScreen() {
         {/* ================= TITLE ================= */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconCircle}>
-            <Ionicons name="eye-outline" size={24} color={Colors.gold} />
+            <Feather name="eye" size={24} color={Colors.gold} />
           </View>
           <View style={styles.titleTextBlock}>
             <Text style={styles.titleText}>Profile Visitors</Text>
@@ -221,7 +238,7 @@ export default function ProfileVisitorsScreen() {
         {/* ================= PREMIUM BANNER ================= */}
         <View style={styles.premiumBanner}>
           <View style={styles.premiumIconCircle}>
-            <Ionicons name="ribbon" size={22} color={Colors.white} />
+            <Feather name="award" size={22} color={Colors.white} />
           </View>
           <View style={styles.premiumTextBlock}>
             <Text style={styles.premiumTitle}>
@@ -234,13 +251,13 @@ export default function ProfileVisitorsScreen() {
         </View>
         <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
           <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
-          <Ionicons name="chevron-forward" size={17} color={Colors.white} />
+          <Feather name="chevron-right" size={17} color={Colors.white} />
         </TouchableOpacity>
 
         {/* ================= SEARCH + FILTERS ================= */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={19} color={Colors.textMuted} />
+            <Feather name="search" size={19} color={Colors.textMuted} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search visitors"
@@ -254,7 +271,7 @@ export default function ProfileVisitorsScreen() {
             activeOpacity={0.85}
             onPress={openFilters}
           >
-            <Ionicons name="options-outline" size={19} color={Colors.white} />
+            <Feather name="sliders" size={19} color={Colors.white} />
             <Text style={styles.filtersButtonText}>Filters</Text>
             {activeFilterCount > 0 && (
               <View style={styles.filtersCountBadge}>
@@ -279,7 +296,7 @@ export default function ProfileVisitorsScreen() {
                 onPress={() => setActiveFilter(tab.key)}
                 activeOpacity={0.8}
               >
-                <Ionicons
+                <Feather
                   name={tab.icon}
                   size={16}
                   color={isActive ? Colors.white : Colors.textSecondary}
@@ -316,11 +333,7 @@ export default function ProfileVisitorsScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons
-                name="eye-off-outline"
-                size={30}
-                color={Colors.textMuted}
-              />
+              <Feather name="eye-off" size={30} color={Colors.textMuted} />
               <Text style={styles.emptyStateText}>
                 No visitors match these filters.
               </Text>
@@ -331,7 +344,7 @@ export default function ProfileVisitorsScreen() {
         {/* ================= UNLOCK PREMIUM BANNER ================= */}
         <View style={styles.unlockBanner}>
           <View style={styles.unlockIconCircle}>
-            <Ionicons name="ribbon-outline" size={22} color={Colors.gold} />
+            <Feather name="award" size={22} color={Colors.gold} />
           </View>
           <View style={styles.unlockTextBlock}>
             <Text style={styles.unlockTitle}>Unlock Visitor Details</Text>
@@ -343,7 +356,7 @@ export default function ProfileVisitorsScreen() {
         </View>
         <TouchableOpacity style={styles.unlockButton} activeOpacity={0.85}>
           <Text style={styles.unlockButtonText}>Upgrade Now</Text>
-          <Ionicons name="chevron-forward" size={15} color={Colors.white} />
+          <Feather name="chevron-right" size={15} color={Colors.white} />
         </TouchableOpacity>
       </ScrollView>
 
@@ -367,7 +380,7 @@ export default function ProfileVisitorsScreen() {
                 onPress={() => setFiltersVisible(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={22} color={Colors.textSecondary} />
+                <Feather name="x" size={22} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -430,7 +443,7 @@ function StatCard({ icon, iconBg, value, label }) {
   return (
     <View style={styles.statCard}>
       <View style={[styles.statIconCircle, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={17} color={Colors.white} />
+        <Feather name={icon} size={17} color={Colors.white} />
       </View>
       <View style={styles.statTextBlock}>
         <Text style={styles.statValue}>{value}</Text>
@@ -454,8 +467,8 @@ function VisitorCard({ visitor }) {
             {visitor.name}, {visitor.age}
           </Text>
           {visitor.verified && (
-            <Ionicons
-              name="checkmark-circle"
+            <Feather
+              name="check-circle"
               size={16}
               color={Colors.success}
               style={{ marginLeft: 6 }}
@@ -464,7 +477,7 @@ function VisitorCard({ visitor }) {
         </View>
         <Text style={styles.visitorProfession}>{visitor.profession}</Text>
         <View style={styles.visitorLocationRow}>
-          <Ionicons name="location" size={13} color={Colors.primaryRed} />
+          <Feather name="map-pin" size={13} color={Colors.primaryRed} />
           <Text style={styles.visitorLocation}>{visitor.location}</Text>
         </View>
       </View>
@@ -472,7 +485,7 @@ function VisitorCard({ visitor }) {
       <View style={styles.visitorRight}>
         <Text style={styles.visitorTime}>{visitor.time}</Text>
         <TouchableOpacity style={styles.viewProfileButton} activeOpacity={0.8}>
-          <Ionicons name="eye-outline" size={14} color={Colors.gold} />
+          <Feather name="eye" size={14} color={Colors.gold} />
           <Text style={styles.viewProfileText}>View Profile</Text>
         </TouchableOpacity>
       </View>
@@ -487,7 +500,7 @@ function ToggleChip({ icon, label, active, onPress }) {
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Ionicons
+      <Feather
         name={icon}
         size={15}
         color={active ? Colors.white : Colors.textSecondary}
@@ -544,13 +557,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    fontSize: FontSizes.welcome + 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.title,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRedDark,
   },
   subtitleText: {
-    fontSize: FontSizes.subtitle + 1,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
   },
@@ -582,13 +595,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   statValue: {
-    fontSize: 19,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
   },
   statLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
     marginTop: 2,
     lineHeight: 13,
@@ -616,13 +629,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   premiumTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   premiumSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 4,
     lineHeight: 17,
@@ -638,8 +651,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   upgradeButtonText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 
@@ -662,8 +675,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: FontSizes.input,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     paddingVertical: 14,
     ...Platform.select({ web: { outlineStyle: "none" } }),
@@ -677,8 +690,8 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   filtersButtonText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   filtersCountBadge: {
@@ -692,8 +705,8 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   filtersCountText: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.gold,
   },
 
@@ -717,13 +730,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryRed,
   },
   filterTabText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
   },
   filterTabTextActive: {
     color: Colors.white,
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 
   /* ===== VISITORS HEADING ===== */
@@ -734,13 +747,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   recentHeading: {
-    fontSize: FontSizes.welcome - 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
   },
   recentCount: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -783,13 +796,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   visitorName: {
-    fontSize: 16,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRedDark,
   },
   visitorProfession: {
-    fontSize: 13,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     marginTop: 3,
   },
@@ -800,16 +813,16 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   visitorLocation: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   visitorRight: {
     alignItems: "flex-end",
   },
   visitorTime: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginBottom: 10,
   },
@@ -824,8 +837,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   viewProfileText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.gold,
   },
 
@@ -836,8 +849,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   emptyStateText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
 
@@ -863,13 +876,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   unlockTitle: {
-    fontSize: 14.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   unlockSubtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 4,
     lineHeight: 16,
@@ -884,8 +897,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   unlockButtonText: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 
@@ -918,13 +931,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   modalTitle: {
-    fontSize: FontSizes.welcome - 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
   },
   modalSectionLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
     color: Colors.textPrimary,
     marginBottom: 10,
   },
@@ -949,13 +962,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryRed,
   },
   toggleChipText: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
   },
   toggleChipTextActive: {
     color: Colors.white,
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
   modalActionsRow: {
     flexDirection: "row",
@@ -972,8 +985,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   modalResetText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   modalApplyButton: {
@@ -985,8 +998,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   modalApplyText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 });

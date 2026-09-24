@@ -14,13 +14,13 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import {
   useFocusEffect,
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Feather from "react-native-vector-icons/Feather";
 import {
   getChatView,
   getOldMessages,
@@ -415,7 +415,7 @@ export default function ChatConversationScreen() {
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.red} />
+            <Feather name="arrow-left" size={24} color={COLORS.red} />
           </TouchableOpacity>
         </View>
         <View style={styles.centerState}>
@@ -443,7 +443,7 @@ export default function ChatConversationScreen() {
           onPress={handleBack}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.red} />
+          <Feather name="arrow-left" size={24} color={COLORS.red} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -471,11 +471,7 @@ export default function ChatConversationScreen() {
                 {chat.name}
               </Text>
               {chat.verified && (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={14}
-                  color={COLORS.green}
-                />
+                <Feather name="check-circle" size={14} color={COLORS.green} />
               )}
             </View>
             <Text style={styles.headerStatus}>
@@ -486,14 +482,10 @@ export default function ChatConversationScreen() {
 
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-            <Ionicons name="call-outline" size={20} color={COLORS.darkRed} />
+            <Feather name="phone" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-            <Ionicons
-              name="ellipsis-vertical"
-              size={20}
-              color={COLORS.darkRed}
-            />
+            <Feather name="more-vertical" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
         </View>
       </View>
@@ -513,7 +505,7 @@ export default function ChatConversationScreen() {
 
       {/* ================= SAFETY NOTICE ================= */}
       <View style={styles.safetyBanner}>
-        <Ionicons name="shield-checkmark" size={14} color={COLORS.green} />
+        <Feather name="shield" size={14} color={COLORS.green} />
         <Text style={styles.safetyText}>
           Never share OTPs, bank details or make payments outside the app.
         </Text>
@@ -565,7 +557,7 @@ export default function ChatConversationScreen() {
         {/* ================= INPUT BAR ================= */}
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
-            <Ionicons name="add" size={24} color={COLORS.darkRed} />
+            <Feather name="plus" size={24} color={COLORS.darkRed} />
           </TouchableOpacity>
 
           <View style={styles.inputWrapper}>
@@ -592,7 +584,7 @@ export default function ChatConversationScreen() {
             {sending ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Ionicons name="send" size={18} color={COLORS.white} />
+              <Feather name="send" size={18} color={COLORS.white} />
             )}
           </TouchableOpacity>
         </View>
@@ -647,7 +639,7 @@ function MessageBubble({ message }) {
           )}
 
           {fromMe && status === "failed" ? (
-            <Ionicons
+            <Feather
               name="alert-circle"
               size={14}
               color={COLORS.badgeRed}
@@ -655,8 +647,8 @@ function MessageBubble({ message }) {
             />
           ) : (
             fromMe && (
-              <MaterialIcons
-                name={status === "read" ? "done-all" : "done"}
+              <Feather
+                name="check"
                 size={14}
                 color={
                   status === "read" ? COLORS.goldLight : "rgba(255,255,255,0.7)"
@@ -696,7 +688,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     textAlign: "center",
@@ -761,14 +753,14 @@ const styles = StyleSheet.create({
   headerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 
   headerName: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     maxWidth: width * 0.4,
   },
 
   headerStatus: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     marginTop: 1,
@@ -792,7 +784,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
 
-  debugText: { fontSize: 10, fontFamily: Fonts.regular, color: COLORS.text },
+  debugText: {
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
+    color: COLORS.text,
+  },
 
   /* ================= SAFETY BANNER ================= */
 
@@ -806,7 +802,7 @@ const styles = StyleSheet.create({
   },
 
   safetyText: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     color: COLORS.gray,
     flexShrink: 1,
@@ -837,7 +833,7 @@ const styles = StyleSheet.create({
   },
 
   dateSeparatorText: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.bold,
     color: COLORS.mutedGray,
   },
@@ -875,14 +871,14 @@ const styles = StyleSheet.create({
   },
 
   bubbleTextSent: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.white,
     lineHeight: 19,
   },
 
   bubbleTextReceived: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.text,
     lineHeight: 19,
@@ -896,13 +892,13 @@ const styles = StyleSheet.create({
   },
 
   bubbleTimeSent: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
     fontFamily: Fonts.regular,
     color: "rgba(255,255,255,0.75)",
   },
 
   bubbleTimeReceived: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
     fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
   },
@@ -941,7 +937,7 @@ const styles = StyleSheet.create({
   },
 
   textInput: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: COLORS.text,
     maxHeight: 90,
