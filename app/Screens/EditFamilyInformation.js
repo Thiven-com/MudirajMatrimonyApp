@@ -1,0 +1,1093 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+  Alert,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+import {
+  getMemberFamilyInfo,
+  updateMemberFamilyInfo,
+} from "../utils/Functions";
+const InputField = ({
+  label,
+  value,
+  onChangeText,
+  inputRef,
+  icon,
+  iconColor,
+  placeholder,
+  keyboardType = "default",
+  autoCapitalize = "words",
+  isSelected = false,
+  editable = true,
+}) => {
+  return (
+    <View style={styles.fieldContainer}>
+      <View style={styles.fieldHeader}>
+        <View
+          style={[
+            styles.iconCircle,
+            {
+              backgroundColor: iconColor + "18",
+            },
+          ]}
+        >
+          <Feather name={icon} size={18} color={iconColor} />
+        </View>
+
+        <Text style={styles.fieldLabel}>{label}</Text>
+      </View>
+
+      <View
+        style={[styles.inputWrapper, isSelected && styles.selectedInputWrapper]}
+      >
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#AAAAAA"
+          style={styles.input}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          returnKeyType="next"
+          editable={editable}
+        />
+      </View>
+    </View>
+  );
+};
+
+/* =========================================================
+   EDIT FAMILY INFORMATION
+========================================================= */
+
+export default function EditFamilyInformation() {
+  /* =======================================================
+     NAVIGATION / ROUTE PARAMS
+  ======================================================= */
+
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const selectedField = route?.params?.field || "";
+
+  /* =======================================================
+     STATES
+  ======================================================= */
+
+  const [father, setFather] = useState("");
+
+  const [mother, setMother] = useState("");
+
+  const [sibling, setSibling] = useState("");
+
+  /* =======================================================
+     SCREEN STATES
+  ======================================================= */
+
+  const [loading, setLoading] = useState(true);
+
+  const [saving, setSaving] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState("");
+
+  /* =======================================================
+     INPUT REFS
+  ======================================================= */
+
+  const fatherRef = useRef(null);
+
+  const motherRef = useRef(null);
+
+  const siblingRef = useRef(null);
+
+  /* =======================================================
+     BACK
+  ======================================================= */
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
+  /* =======================================================
+     ANDROID HARDWARE BACK
+     Same pattern as ChatsScreen / OtpScreen / EditCareer /
+     EditEducation: intercept the hardware back button and
+     route it through handleBack(), ignored while saving.
+  ======================================================= */
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (saving) {
+        return true;
+      }
+
+      handleBack();
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleHardwareBack,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBack, saving]);
+
+  /* =======================================================
+     GET FAMILY INFORMATION
+  ======================================================= */
+
+  const loadFamilyInformation = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      setErrorMessage("");
+
+      /* =================================================
+           ACCESS TOKEN
+        ================================================= */
+
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      console.log("========================================");
+
+      console.log("EDIT FAMILY INFORMATION");
+
+      console.log("SELECTED FIELD:", selectedField);
+
+      console.log("TOKEN EXISTS:", !!accessToken);
+
+      console.log("========================================");
+
+      /* =================================================
+           TOKEN CHECK
+        ================================================= */
+
+      if (!accessToken) {
+        setErrorMessage("Please login again.");
+
+        return;
+      }
+
+      /* =================================================
+           CALL GET API
+        ================================================= */
+
+      const response = await getMemberFamilyInfo(accessToken);
+
+      console.log("========================================");
+
+      console.log("EDIT FAMILY API RESPONSE");
+
+      console.log(JSON.stringify(response, null, 2));
+
+      console.log("========================================");
+
+      /* =================================================
+           RESPONSE DATA
+        ================================================= */
+
+      let data = response?.data;
+
+      /*
+       * Possible response:
+       *
+       * response.data
+       *
+       * OR
+       *
+       * response.data.data
+       *
+       * OR
+       *
+       * response.data.result
+       */
+
+      if (
+        data &&
+        typeof data === "object" &&
+        data.data &&
+        typeof data.data === "object"
+      ) {
+        data = data.data;
+      }
+
+      if (
+        data &&
+        typeof data === "object" &&
+        data.result &&
+        typeof data.result === "object"
+      ) {
+        data = data.result;
+      }
+
+      console.log("FAMILY DATA:", JSON.stringify(data, null, 2));
+
+      /* =================================================
+           FATHER
+        ================================================= */
+
+      const fatherValue =
+        data?.father ?? data?.father_name ?? data?.fatherName ?? "";
+
+      /* =================================================
+           MOTHER
+        ================================================= */
+
+      const motherValue =
+        data?.mother ?? data?.mother_name ?? data?.motherName ?? "";
+
+      /* =================================================
+           SIBLING
+        ================================================= */
+
+      const siblingValue =
+        data?.sibling ??
+        data?.siblings ??
+        data?.sibling_count ??
+        data?.siblings_count ??
+        data?.siblingCount ??
+        "";
+
+      /* =================================================
+           SET VALUES
+        ================================================= */
+
+      setFather(String(fatherValue ?? ""));
+
+      setMother(String(motherValue ?? ""));
+
+      setSibling(String(siblingValue ?? ""));
+
+      setErrorMessage("");
+    } catch (error) {
+      console.error("========================================");
+
+      console.error("EDIT FAMILY INFORMATION GET ERROR");
+
+      console.error(error);
+
+      console.error("MESSAGE:", error?.message);
+
+      console.error(
+        "RESPONSE:",
+        JSON.stringify(error?.response?.data, null, 2),
+      );
+
+      console.error("========================================");
+
+      setErrorMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to load family information.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedField]);
+
+  /* =======================================================
+     LOAD API
+  ======================================================= */
+
+  useEffect(() => {
+    loadFamilyInformation();
+  }, [loadFamilyInformation]);
+
+  /* =======================================================
+     AUTO FOCUS SELECTED FIELD
+  ======================================================= */
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (selectedField === "father") {
+        fatherRef.current?.focus();
+      }
+
+      if (selectedField === "mother") {
+        motherRef.current?.focus();
+      }
+
+      if (selectedField === "sibling") {
+        siblingRef.current?.focus();
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [loading, selectedField]);
+
+  // =======================================================
+  // SAVE FAMILY INFORMATION
+  // =======================================================
+
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+
+    try {
+      // ---------------------------------------------------
+      // CLEAN VALUES
+      // ---------------------------------------------------
+
+      const fatherValue = String(father || "").trim();
+
+      const motherValue = String(mother || "").trim();
+
+      const siblingValue = String(sibling || "").trim();
+
+      // ---------------------------------------------------
+      // VALIDATION
+      // ---------------------------------------------------
+
+      if (!fatherValue) {
+        Alert.alert("Required", "Please enter father's name.");
+        fatherRef.current?.focus();
+        return;
+      }
+
+      if (!motherValue) {
+        Alert.alert("Required", "Please enter mother's name.");
+        motherRef.current?.focus();
+        return;
+      }
+
+      if (!siblingValue) {
+        Alert.alert("Required", "Please enter sibling information.");
+        siblingRef.current?.focus();
+        return;
+      }
+
+      // ---------------------------------------------------
+      // SIBLING VALIDATION
+      // ---------------------------------------------------
+
+      if (!/^\d+$/.test(siblingValue)) {
+        Alert.alert("Invalid Value", "Sibling must contain numbers only.");
+        siblingRef.current?.focus();
+        return;
+      }
+
+      // ---------------------------------------------------
+      // GET TOKEN
+      // ---------------------------------------------------
+
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      if (!accessToken) {
+        Alert.alert(
+          "Login Required",
+          "Your session has expired. Please login again.",
+        );
+
+        return;
+      }
+
+      // ---------------------------------------------------
+      // SET SAVING
+      // ---------------------------------------------------
+
+      setSaving(true);
+      setErrorMessage("");
+
+      // ---------------------------------------------------
+      // REQUEST BODY
+      // ---------------------------------------------------
+
+      const body = {
+        father: fatherValue,
+        mother: motherValue,
+        sibling: siblingValue,
+      };
+
+      // ---------------------------------------------------
+      // DEBUG
+      // ---------------------------------------------------
+
+      console.log("========================================");
+
+      console.log("SAVE FAMILY INFORMATION");
+
+      console.log("METHOD:", "POST");
+
+      console.log("ENDPOINT:", "/api/member/family-info/update");
+
+      console.log("FATHER:", fatherValue);
+
+      console.log("MOTHER:", motherValue);
+
+      console.log("SIBLING:", siblingValue);
+
+      console.log("BODY:", JSON.stringify(body, null, 2));
+
+      console.log("TOKEN EXISTS:", !!accessToken);
+
+      console.log("========================================");
+
+      // ---------------------------------------------------
+      // CALL UPDATE API
+      // ---------------------------------------------------
+
+      const response = await updateMemberFamilyInfo(accessToken, body);
+
+      // ---------------------------------------------------
+      // RESPONSE
+      // ---------------------------------------------------
+
+      console.log("========================================");
+
+      console.log("FAMILY UPDATE RESPONSE:");
+
+      console.log(JSON.stringify(response, null, 2));
+
+      console.log("========================================");
+
+      // ---------------------------------------------------
+      // CHECK SUCCESS
+      // ---------------------------------------------------
+
+      const responseData = response?.data;
+
+      const success =
+        response?.success === 1 ||
+        response?.success === true ||
+        responseData?.success === 1 ||
+        responseData?.success === true ||
+        response?.result === true ||
+        responseData?.result === true;
+
+      const message =
+        response?.message ||
+        responseData?.message ||
+        "Family information updated successfully.";
+
+      // ---------------------------------------------------
+      // SUCCESS
+      // ---------------------------------------------------
+
+      if (success) {
+        Alert.alert("Success", message, [
+          {
+            text: "OK",
+            onPress: handleBack,
+          },
+        ]);
+      } else {
+        // -------------------------------------------------
+        // API RETURNED FAILURE
+        // -------------------------------------------------
+
+        const errorMessage = message || "Unable to update family information.";
+
+        setErrorMessage(errorMessage);
+
+        Alert.alert("Update Failed", errorMessage);
+      }
+    } catch (error) {
+      console.error("========================================");
+
+      console.error("SAVE FAMILY INFORMATION ERROR");
+
+      console.error(error);
+
+      console.error("ERROR MESSAGE:", error?.message);
+
+      console.error(
+        "ERROR RESPONSE:",
+        JSON.stringify(error?.response?.data, null, 2),
+      );
+
+      console.error("========================================");
+
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to update family information.";
+
+      setErrorMessage(errorMessage);
+
+      Alert.alert("Update Failed", errorMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F5F6F8" />
+
+        <View style={styles.loadingContainer}>
+          <Feather name="users" size={30} color="#D7192A" />
+
+          <Text style={styles.loadingText}>Loading family information...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     MAIN UI
+  ======================================================= */
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F6F8" />
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* =============================================
+              CARD
+          ============================================= */}
+
+          <View style={styles.card}>
+            {/* ===========================================
+                HEADER
+            =========================================== */}
+
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.7}
+                onPress={handleBack}
+              >
+                <Feather name="chevron-left" size={25} color="#D7192A" />
+              </TouchableOpacity>
+
+              <View style={styles.headerIconContainer}>
+                <Feather name="users" size={17} color="#D7192A" />
+              </View>
+
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                Edit Family Information
+              </Text>
+
+              <View style={styles.headerRight} />
+            </View>
+
+            {/* ===========================================
+                DIVIDER
+            =========================================== */}
+
+            <View style={styles.divider} />
+
+            {/* ===========================================
+                ERROR
+            =========================================== */}
+
+            {errorMessage ? (
+              <View style={styles.errorBox}>
+                <Feather name="alert-circle" size={18} color="#D7192A" />
+
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
+            {/* ===========================================
+                DESCRIPTION
+            =========================================== */}
+
+            <Text style={styles.description}>
+              Update your family information below.
+            </Text>
+
+            {/* ===========================================
+                FATHER
+            =========================================== */}
+
+            <InputField
+              label="Father"
+              value={father}
+              onChangeText={setFather}
+              inputRef={fatherRef}
+              icon="user"
+              iconColor="#4A9BE8"
+              placeholder="Enter father's name"
+              fieldName="father"
+            />
+
+            {/* ===========================================
+                MOTHER
+            =========================================== */}
+
+            <InputField
+              label="Mother"
+              value={mother}
+              onChangeText={setMother}
+              inputRef={motherRef}
+              icon="user"
+              iconColor="#E65A91"
+              placeholder="Enter mother's name"
+              fieldName="mother"
+            />
+
+            {/* ===========================================
+                SIBLING
+            =========================================== */}
+
+            <InputField
+              label="Sibling"
+              value={sibling}
+              onChangeText={setSibling}
+              inputRef={siblingRef}
+              icon="users"
+              iconColor="#4CAF78"
+              placeholder="Enter number of siblings"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              fieldName="sibling"
+            />
+
+            {/* ===========================================
+                SAVE
+            =========================================== */}
+
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.disabledButton]}
+              activeOpacity={0.85}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Feather name="check-circle" size={18} color="#FFFFFF" />
+
+              <Text style={styles.saveText}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* ===========================================
+                CANCEL
+            =========================================== */}
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              activeOpacity={0.75}
+              onPress={handleBack}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
+
+const styles = StyleSheet.create({
+  /* =====================================================
+       BASIC
+    ===================================================== */
+
+  flex: {
+    flex: 1,
+  },
+
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F6F8",
+  },
+
+  /* =====================================================
+       SCROLL
+    ===================================================== */
+
+  scrollContent: {
+    flexGrow: 1,
+
+    paddingHorizontal: 12,
+
+    paddingTop: 12,
+
+    paddingBottom: 30,
+  },
+
+  /* =====================================================
+       LOADING
+    ===================================================== */
+
+  loadingContainer: {
+    flex: 1,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    backgroundColor: "#F5F6F8",
+  },
+
+  loadingText: {
+    marginTop: 12,
+
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
+
+    color: "#777777",
+  },
+
+  /* =====================================================
+       CARD
+    ===================================================== */
+
+  card: {
+    width: "100%",
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 14,
+
+    paddingHorizontal: 20,
+
+    paddingTop: 18,
+
+    paddingBottom: 26,
+
+    borderWidth: 1,
+
+    borderColor: "#ECECF0",
+
+    shadowColor: "#000000",
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    shadowOpacity: 0.08,
+
+    shadowRadius: 6,
+
+    elevation: 3,
+  },
+
+  /* =====================================================
+       HEADER
+    ===================================================== */
+
+  header: {
+    minHeight: 42,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+  },
+
+  backButton: {
+    width: 36,
+
+    height: 36,
+
+    borderRadius: 18,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginRight: 10,
+
+    backgroundColor: "#FFF5F6",
+  },
+
+  headerIconContainer: {
+    width: 32,
+
+    height: 32,
+
+    borderRadius: 16,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    backgroundColor: "#FFF0F2",
+
+    marginRight: 10,
+  },
+
+  headerTitle: {
+    flex: 1,
+
+    fontSize: Fonts.size.lg,
+
+    fontFamily: Fonts.bold,
+
+    color: "#222222",
+  },
+
+  headerRight: {
+    width: 10,
+  },
+
+  /* =====================================================
+       DIVIDER
+    ===================================================== */
+
+  divider: {
+    height: 1,
+
+    backgroundColor: "#F0F0F0",
+
+    marginTop: 16,
+
+    marginBottom: 22,
+  },
+
+  /* =====================================================
+       ERROR
+    ===================================================== */
+
+  errorBox: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    backgroundColor: "#FFF1F2",
+
+    borderRadius: 10,
+
+    paddingHorizontal: 12,
+
+    paddingVertical: 12,
+
+    marginBottom: 20,
+  },
+
+  errorText: {
+    flex: 1,
+
+    marginLeft: 8,
+
+    fontSize: Fonts.size.sm,
+
+    fontFamily: Fonts.regular,
+
+    lineHeight: 17,
+
+    color: "#D7192A",
+  },
+
+  /* =====================================================
+       DESCRIPTION
+    ===================================================== */
+
+  description: {
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
+
+    lineHeight: 20,
+
+    color: "#777777",
+
+    marginBottom: 26,
+  },
+
+  /* =====================================================
+       FIELD
+    ===================================================== */
+
+  fieldContainer: {
+    marginBottom: 24,
+  },
+
+  fieldHeader: {
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    marginBottom: 12,
+  },
+
+  iconCircle: {
+    width: 36,
+
+    height: 36,
+
+    borderRadius: 18,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginRight: 12,
+  },
+
+  fieldLabel: {
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.bold,
+
+    color: "#333333",
+  },
+
+  /* =====================================================
+       INPUT
+       Fixed height on the wrapper (not minHeight) + centered
+       content + zero vertical padding on the TextInput itself
+       is what keeps this pixel-consistent across iOS and
+       Android. Android's TextInput adds its own invisible
+       font padding, which is why includeFontPadding/
+       textAlignVertical are reset below.
+    ===================================================== */
+
+  inputWrapper: {
+    height: 52,
+
+    borderWidth: 1,
+
+    borderColor: "#E3E3E6",
+
+    borderRadius: 10,
+
+    backgroundColor: "#FAFAFB",
+
+    justifyContent: "center",
+
+    paddingHorizontal: 16,
+  },
+
+  selectedInputWrapper: {
+    borderColor: "#D7192A",
+
+    backgroundColor: "#FFF9FA",
+  },
+
+  input: {
+    flex: 1,
+
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
+
+    lineHeight: 18,
+
+    color: "#222222",
+
+    padding: 0,
+
+    margin: 0,
+
+    ...Platform.select({
+      android: {
+        textAlignVertical: "center",
+        includeFontPadding: false,
+      },
+    }),
+  },
+
+  /* =====================================================
+       SAVE
+    ===================================================== */
+
+  saveButton: {
+    height: 50,
+
+    borderRadius: 10,
+
+    backgroundColor: "#D7192A",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginTop: 8,
+
+    shadowColor: "#D7192A",
+
+    shadowOffset: {
+      width: 0,
+
+      height: 3,
+    },
+
+    shadowOpacity: 0.18,
+
+    shadowRadius: 5,
+
+    elevation: 2,
+  },
+
+  disabledButton: {
+    opacity: 0.6,
+  },
+
+  saveText: {
+    marginLeft: 8,
+
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.bold,
+
+    color: "#FFFFFF",
+  },
+
+  /* =====================================================
+       CANCEL
+    ===================================================== */
+
+  cancelButton: {
+    height: 46,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    marginTop: 8,
+  },
+
+  cancelText: {
+    fontSize: Fonts.size.sm,
+
+    fontFamily: Fonts.semiBold,
+
+    color: "#777777",
+  },
+});
