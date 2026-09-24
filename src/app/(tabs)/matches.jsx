@@ -22,6 +22,9 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
+// NOTE: adjust this path to wherever your Fonts file lives.
+import Fonts from "../../constants/Fonts";
+
 import { postMemberListing } from "../../utils/Functions";
 
 const COLORS = {
@@ -980,6 +983,7 @@ const styles = StyleSheet.create({
   centerStateText: {
     marginTop: 12,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: "#666",
   },
 
@@ -1002,7 +1006,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 29,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#242424",
   },
 
@@ -1013,6 +1017,7 @@ const styles = StyleSheet.create({
   matchesFound: {
     marginTop: 5,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: "#666",
   },
 
@@ -1042,6 +1047,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: "#333",
     minWidth: 0,
   },
@@ -1075,14 +1081,14 @@ const styles = StyleSheet.create({
 
   tabText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: Fonts.bold,
     color: "#444",
     marginLeft: 7,
   },
 
   activeTabText: {
     color: "#FFFFFF",
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   onlineDot: {
@@ -1151,7 +1157,7 @@ const styles = StyleSheet.create({
   onlineText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   premiumTag: {
@@ -1167,7 +1173,7 @@ const styles = StyleSheet.create({
   premiumTagText: {
     color: "#FFD333",
     fontSize: 11,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   communityBadge: {
@@ -1196,7 +1202,7 @@ const styles = StyleSheet.create({
   name: {
     maxWidth: 135,
     fontSize: 21,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#A81C16",
   },
 
@@ -1206,6 +1212,7 @@ const styles = StyleSheet.create({
 
   profession: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: "#333",
     marginTop: 7,
     marginBottom: 12,
@@ -1222,6 +1229,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     marginLeft: 7,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: "#626262",
   },
 
@@ -1308,7 +1316,7 @@ const styles = StyleSheet.create({
   crownText: {
     fontSize: 27,
     color: "#FFD333",
-    fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
 
   premiumTextContainer: {
@@ -1318,7 +1326,7 @@ const styles = StyleSheet.create({
 
   premiumTitle: {
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#A51B16",
     marginBottom: 3,
   },
@@ -1327,7 +1335,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 13,
     color: "#716864",
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   upgradeButton: {
@@ -1353,13 +1361,14 @@ const styles = StyleSheet.create({
 
   buttonCrown: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: "#FFD333",
     marginRight: 4,
   },
 
   upgradeText: {
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#FFFFFF",
   },
 
@@ -1376,13 +1385,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     marginTop: 12,
     fontSize: 20,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#333",
   },
 
   emptyText: {
     marginTop: 7,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: "#777",
     textAlign: "center",
   },
@@ -1397,6 +1407,6 @@ const styles = StyleSheet.create({
 
   emptyButtonText: {
     color: "#FFFFFF",
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 });

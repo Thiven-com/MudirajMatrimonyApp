@@ -18,6 +18,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 
+import Fonts from "../../constants/Fonts";
 import { getChatList, getToken } from "../../utils/Functions";
 
 const { width } = Dimensions.get("window");
@@ -547,13 +548,19 @@ function EmptyState({ errorMessage, onRetry }) {
 }
 
 const styles = StyleSheet.create({
+  /* =========================================================
+     MAIN SCREEN
+  ========================================================= */
+
   safeArea: {
     flex: 1,
     justifyContent: "flex-start",
     backgroundColor: COLORS.background,
   },
 
-  /* ================= HEADER ================= */
+  /* =========================================================
+     HEADER
+  ========================================================= */
 
   header: {
     height: 48,
@@ -573,7 +580,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
 
@@ -581,6 +588,10 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
   },
+
+  /* =========================================================
+     PAGE TITLE
+  ========================================================= */
 
   titleBlock: {
     paddingHorizontal: SPACING.md,
@@ -590,17 +601,21 @@ const styles = StyleSheet.create({
 
   screenTitle: {
     fontSize: width <= 430 ? 30 : 34,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
+    letterSpacing: 0.2,
   },
 
   screenSubtitle: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginTop: SPACING.xs,
   },
 
-  /* ================= SEARCH BAR ================= */
+  /* =========================================================
+     SEARCH BAR
+  ========================================================= */
 
   searchBar: {
     flexDirection: "row",
@@ -619,7 +634,9 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
+    paddingVertical: 0,
   },
 
   filterIconButton: {
@@ -631,7 +648,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* ================= FILTER TABS ================= */
+  /* =========================================================
+     FILTER TABS
+  ========================================================= */
+
+  filtersList: {
+    height: 56,
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: SPACING.xs,
+  },
 
   filterRow: {
     paddingHorizontal: SPACING.md,
@@ -664,22 +690,18 @@ const styles = StyleSheet.create({
 
   filterChipText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
 
   filterChipTextActive: {
     color: "#FFFFFF",
+    fontFamily: Fonts.bold,
   },
 
-  filtersList: {
-    height: 56,
-    flexGrow: 0,
-    flexShrink: 0,
-    marginBottom: SPACING.xs,
-  },
-
-  /* ================= CHAT LIST ================= */
+  /* =========================================================
+     CHAT LIST
+  ========================================================= */
 
   chatFlatList: {
     flex: 1,
@@ -696,6 +718,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
+  /* =========================================================
+     CHAT ROW
+  ========================================================= */
+
   chatRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -705,10 +731,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
+
     shadowColor: COLORS.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 6,
+
     elevation: 2,
   },
 
@@ -732,7 +763,7 @@ const styles = StyleSheet.create({
   avatarFallbackText: {
     color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
   },
 
   statusDot: {
@@ -745,6 +776,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.white,
   },
+
+  /* =========================================================
+     CHAT CONTENT
+  ========================================================= */
 
   chatContent: {
     flex: 1,
@@ -766,21 +801,22 @@ const styles = StyleSheet.create({
 
   chatName: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     flexShrink: 1,
   },
 
   chatTime: {
     fontSize: 11.5,
+    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     marginLeft: SPACING.sm,
   },
 
   chatProfession: {
     fontSize: 12.5,
+    fontFamily: Fonts.medium,
     color: COLORS.gray,
-    fontWeight: "600",
     marginTop: 2,
     marginBottom: 4,
   },
@@ -793,6 +829,7 @@ const styles = StyleSheet.create({
 
   chatLastMessage: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     flex: 1,
     marginRight: SPACING.sm,
@@ -800,8 +837,12 @@ const styles = StyleSheet.create({
 
   chatLastMessageUnread: {
     color: COLORS.text,
-    fontWeight: "600",
+    fontFamily: Fonts.medium,
   },
+
+  /* =========================================================
+     UNREAD BADGE
+  ========================================================= */
 
   unreadBadge: {
     minWidth: 22,
@@ -816,10 +857,12 @@ const styles = StyleSheet.create({
   unreadBadgeText: {
     color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
-  /* ================= LOADING / EMPTY ================= */
+  /* =========================================================
+     LOADING
+  ========================================================= */
 
   loadingState: {
     flex: 1,
@@ -830,8 +873,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
   },
+
+  /* =========================================================
+     EMPTY STATE
+  ========================================================= */
 
   emptyState: {
     flex: 1,
@@ -852,7 +900,7 @@ const styles = StyleSheet.create({
 
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     textAlign: "center",
     marginBottom: 6,
@@ -861,10 +909,15 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 12,
     lineHeight: 18,
+    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     textAlign: "center",
     maxWidth: 290,
   },
+
+  /* =========================================================
+     RETRY BUTTON
+  ========================================================= */
 
   retryButton: {
     flexDirection: "row",
@@ -881,10 +934,12 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
-  /* ================= PREMIUM BANNER ================= */
+  /* =========================================================
+     PREMIUM BANNER
+  ========================================================= */
 
   premiumCard: {
     minHeight: 90,
@@ -894,10 +949,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: SPACING.sm,
+
     shadowColor: COLORS.darkRed,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.2,
     shadowRadius: 10,
+
     elevation: 4,
   },
 
@@ -919,13 +979,14 @@ const styles = StyleSheet.create({
   premiumTitle: {
     color: COLORS.goldLight,
     fontSize: width <= 430 ? 13.5 : 15,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     marginBottom: 3,
   },
 
   premiumSubtitle: {
     color: "rgba(255,255,255,0.9)",
     fontSize: width <= 430 ? 10.5 : 12,
+    fontFamily: Fonts.regular,
     lineHeight: 15,
   },
 
@@ -943,7 +1004,7 @@ const styles = StyleSheet.create({
 
   premiumUpgradeText: {
     color: COLORS.darkRed,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     fontSize: width <= 430 ? 11.5 : 13,
   },
 });

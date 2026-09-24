@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
+import Fonts from "../constants/Fonts";
 import { deleteMemberEducation, getMemberEducation } from "../utils/Functions";
 
 export default function EducationInformation() {
@@ -629,9 +630,9 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 18,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.lg,
     lineHeight: 20,
-    fontWeight: "700",
     color: "#171717",
     includeFontPadding: false,
     textAlign: "center",
@@ -666,7 +667,8 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: "center",
     marginTop: 8,
-    fontSize: 12,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
     color: "#737B87",
   },
 
@@ -674,7 +676,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 15,
     marginBottom: 10,
-    fontSize: 11,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.xs,
     color: "#EF233C",
   },
 
@@ -711,36 +714,36 @@ const styles = StyleSheet.create({
   },
 
   degreeText: {
-    fontSize: 15,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
     lineHeight: 17,
-    fontWeight: "700",
     color: "#292929",
     marginBottom: 1,
     includeFontPadding: false,
   },
 
   fieldText: {
-    fontSize: 13,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
     lineHeight: 15,
-    fontWeight: "400",
     color: "#737B87",
     marginBottom: 1,
     includeFontPadding: false,
   },
 
   universityText: {
-    fontSize: 12,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.sm,
     lineHeight: 14,
-    fontWeight: "700",
     color: "#737B87",
     marginBottom: 1,
     includeFontPadding: false,
   },
 
   yearText: {
-    fontSize: 12,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
     lineHeight: 14,
-    fontWeight: "400",
     color: "#737B87",
     includeFontPadding: false,
   },
@@ -788,9 +791,9 @@ const styles = StyleSheet.create({
   },
 
   addEducationTitle: {
-    fontSize: 15,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
     lineHeight: 18,
-    fontWeight: "700",
     color: "#405064",
     textAlign: "center",
     includeFontPadding: false,
@@ -798,9 +801,9 @@ const styles = StyleSheet.create({
   },
 
   addEducationDescription: {
-    fontSize: 12,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
     lineHeight: 16,
-    fontWeight: "400",
     color: "#7D8795",
     textAlign: "center",
     includeFontPadding: false,
@@ -822,9 +825,9 @@ const styles = StyleSheet.create({
 
   addEducationButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
     lineHeight: 18,
-    fontWeight: "700",
     includeFontPadding: false,
     marginLeft: 5,
   },

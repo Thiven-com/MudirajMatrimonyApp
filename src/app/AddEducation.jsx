@@ -25,6 +25,11 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// NOTE: adjust this path to wherever your Fonts file lives.
+// This screen imports Functions from "../utils/Functions", so the
+// constants folder is most likely "../constants/Fonts".
+import Fonts from "../constants/Fonts";
+
 import {
   addMemberEducation,
   getMemberEducationById,
@@ -592,13 +597,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: "#FFFFFF",
     fontSize: 19,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     textAlign: "center",
   },
 
   headerSubtitle: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 12,
+    fontFamily: Fonts.regular,
     marginTop: 2,
     textAlign: "center",
   },
@@ -623,6 +629,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 40,
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: "#737B87",
   },
 
@@ -655,13 +662,14 @@ const styles = StyleSheet.create({
   infoTitle: {
     color: "#D92332",
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginBottom: 4,
   },
 
   infoBody: {
     color: "#777777",
     fontSize: 12.5,
+    fontFamily: Fonts.regular,
     lineHeight: 18,
   },
 
@@ -703,7 +711,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: "#222222",
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     flexShrink: 1,
   },
 
@@ -727,6 +735,7 @@ const styles = StyleSheet.create({
   selectValue: {
     color: "#333333",
     fontSize: 14.5,
+    fontFamily: Fonts.regular,
     flex: 1,
   },
 
@@ -739,6 +748,7 @@ const styles = StyleSheet.create({
     height: "100%",
     color: "#333333",
     fontSize: 14.5,
+    fontFamily: Fonts.regular,
   },
 
   // =======================================================
@@ -767,7 +777,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginHorizontal: 8,
   },
 
@@ -781,6 +791,7 @@ const styles = StyleSheet.create({
   footerText: {
     color: "#8A8A8A",
     fontSize: 12,
+    fontFamily: Fonts.regular,
     marginLeft: 6,
   },
 
@@ -814,7 +825,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: "#222222",
     flexShrink: 1,
     marginRight: 10,
@@ -835,11 +846,12 @@ const styles = StyleSheet.create({
 
   modalOptionText: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: "#333333",
   },
 
   modalOptionTextSelected: {
     color: "#D92332",
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 });

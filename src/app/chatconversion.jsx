@@ -28,6 +28,10 @@ import {
   sendChatReply,
 } from "../utils/Functions"; // adjust path to your actual file
 
+// NOTE: adjust this path to wherever your Fonts file actually lives,
+// same constant used on HomeScreen (../../constants/Fonts there).
+import Fonts from "../constants/Fonts";
+
 const { width } = Dimensions.get("window");
 
 const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
@@ -693,6 +697,7 @@ const styles = StyleSheet.create({
 
   emptyText: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     textAlign: "center",
     marginBottom: SPACING.md,
@@ -705,7 +710,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  retryButtonText: { color: COLORS.white, fontWeight: "700" },
+  retryButtonText: {
+    color: COLORS.white,
+    fontFamily: Fonts.bold,
+  },
 
   /* ================= HEADER ================= */
 
@@ -754,12 +762,17 @@ const styles = StyleSheet.create({
 
   headerName: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     color: COLORS.darkRed,
     maxWidth: width * 0.4,
   },
 
-  headerStatus: { fontSize: 11.5, color: COLORS.mutedGray, marginTop: 1 },
+  headerStatus: {
+    fontSize: 11.5,
+    fontFamily: Fonts.regular,
+    color: COLORS.mutedGray,
+    marginTop: 1,
+  },
 
   headerActions: { flexDirection: "row", alignItems: "center" },
 
@@ -779,7 +792,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
 
-  debugText: { fontSize: 10, color: COLORS.text },
+  debugText: { fontSize: 10, fontFamily: Fonts.regular, color: COLORS.text },
 
   /* ================= SAFETY BANNER ================= */
 
@@ -792,7 +805,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
 
-  safetyText: { fontSize: 11, color: COLORS.gray, flexShrink: 1 },
+  safetyText: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: COLORS.gray,
+    flexShrink: 1,
+  },
 
   /* ================= MESSAGES ================= */
 
@@ -820,7 +838,7 @@ const styles = StyleSheet.create({
 
   dateSeparatorText: {
     fontSize: 11.5,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.mutedGray,
   },
 
@@ -856,9 +874,19 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
 
-  bubbleTextSent: { fontSize: 14, color: COLORS.white, lineHeight: 19 },
+  bubbleTextSent: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: COLORS.white,
+    lineHeight: 19,
+  },
 
-  bubbleTextReceived: { fontSize: 14, color: COLORS.text, lineHeight: 19 },
+  bubbleTextReceived: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: COLORS.text,
+    lineHeight: 19,
+  },
 
   bubbleMeta: {
     flexDirection: "row",
@@ -867,9 +895,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  bubbleTimeSent: { fontSize: 10, color: "rgba(255,255,255,0.75)" },
+  bubbleTimeSent: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.75)",
+  },
 
-  bubbleTimeReceived: { fontSize: 10, color: COLORS.mutedGray },
+  bubbleTimeReceived: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+    color: COLORS.mutedGray,
+  },
 
   /* ================= INPUT BAR ================= */
 
@@ -904,7 +940,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  textInput: { fontSize: 14, color: COLORS.text, maxHeight: 90 },
+  textInput: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: COLORS.text,
+    maxHeight: 90,
+  },
 
   sendButton: {
     width: 42,

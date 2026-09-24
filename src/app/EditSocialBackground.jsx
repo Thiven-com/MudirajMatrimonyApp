@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useNavigation } from "@react-navigation/native";
 
+import Fonts from "../constants/Fonts";
 import { updateMemberSpiritualBackground } from "../utils/Functions";
 
 // =========================================================
@@ -511,8 +512,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     color: "#1F2933",
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.bold,
   },
 
   // CARD
@@ -531,8 +532,9 @@ const styles = StyleSheet.create({
 
   helperText: {
     color: "#6B7280",
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     lineHeight: 18,
+    fontFamily: Fonts.regular,
     marginBottom: 22,
   },
 
@@ -547,8 +549,8 @@ const styles = StyleSheet.create({
 
   sectionHeadingText: {
     color: "#A91F2B",
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.bold,
     marginRight: 12,
   },
 
@@ -568,8 +570,8 @@ const styles = StyleSheet.create({
 
   fieldLabel: {
     color: "#1F2933",
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.semiBold,
     marginBottom: 7,
   },
 
@@ -623,8 +625,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 0,
     color: "#1F2933",
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.medium,
     includeFontPadding: false,
   },
 
@@ -660,8 +662,8 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
   },
 
   // CANCEL BUTTON
@@ -678,8 +680,8 @@ const styles = StyleSheet.create({
 
   cancelButtonText: {
     color: "#A87908",
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
   },
 });
 

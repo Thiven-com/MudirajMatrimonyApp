@@ -16,6 +16,7 @@ import Feather from "react-native-vector-icons/Feather";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useNavigation } from "@react-navigation/native";
+import Fonts from "../constants/Fonts";
 
 import { getMemberFamilyInfo } from "../utils/Functions";
 
@@ -468,7 +469,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
 
-    fontSize: 13,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
 
     color: "#777777",
   },
@@ -549,9 +551,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
 
-    fontSize: 17,
-
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.lg,
 
     color: "#222222",
   },
@@ -611,7 +612,8 @@ const styles = StyleSheet.create({
 
     marginLeft: 7,
 
-    fontSize: 12,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
 
     color: "#D7192A",
   },
@@ -677,9 +679,8 @@ const styles = StyleSheet.create({
   label: {
     width: 65,
 
-    fontSize: 13,
-
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.sm,
 
     color: "#444444",
   },
@@ -687,7 +688,8 @@ const styles = StyleSheet.create({
   value: {
     flex: 1,
 
-    fontSize: 13,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
 
     color: "#777777",
 
@@ -752,9 +754,8 @@ const styles = StyleSheet.create({
   editDetailsText: {
     marginLeft: 7,
 
-    fontSize: 14,
-
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
 
     color: "#FFFFFF",
   },

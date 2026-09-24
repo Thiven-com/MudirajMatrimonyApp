@@ -21,6 +21,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
+// NOTE: adjust this path to wherever your Fonts file lives.
+import Fonts from "../../constants/Fonts";
+
 import {
   getMemberBasicInfo,
   getMemberCities,
@@ -2214,7 +2217,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontSize: 19,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#171717",
   },
 
@@ -2321,7 +2324,7 @@ const styles = StyleSheet.create({
   onlineText: {
     color: "#FFFFFF",
     fontSize: 9,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   photoCountBadge: {
@@ -2339,7 +2342,7 @@ const styles = StyleSheet.create({
   photoCountText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginLeft: 3,
   },
 
@@ -2396,12 +2399,13 @@ const styles = StyleSheet.create({
 
   quickActionTitle: {
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#292929",
   },
 
   quickActionSubtitle: {
     fontSize: 10,
+    fontFamily: Fonts.regular,
     color: "#777777",
     marginTop: 3,
   },
@@ -2425,7 +2429,7 @@ const styles = StyleSheet.create({
   cardCountBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   imageOnlineIndicator: {
@@ -2472,7 +2476,7 @@ const styles = StyleSheet.create({
   premiumText: {
     color: "#FFD54F",
     fontSize: 8,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginLeft: 4,
     letterSpacing: 0.3,
   },
@@ -2487,7 +2491,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   verifiedCircle: {
@@ -2511,7 +2515,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     color: "#FFFFFF",
     fontSize: 10.5,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   heroTags: {
@@ -2535,7 +2539,7 @@ const styles = StyleSheet.create({
   heroTagText: {
     color: "#FFFFFF",
     fontSize: 8,
-    fontWeight: "600",
+    fontFamily: Fonts.bold,
     marginLeft: 3,
   },
 
@@ -2574,13 +2578,14 @@ const styles = StyleSheet.create({
   aboutTitle: {
     color: "#C51F30",
     fontSize: 15,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginBottom: 3,
   },
 
   aboutDescription: {
     color: "#4F4F4F",
     fontSize: 12.5,
+    fontFamily: Fonts.regular,
     lineHeight: 18,
   },
 
@@ -2631,7 +2636,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#333333",
     fontSize: 13.5,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   countBadge: {
@@ -2647,7 +2652,7 @@ const styles = StyleSheet.create({
   countBadgeText: {
     color: "#555555",
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   /* =====================================================
@@ -2684,12 +2689,13 @@ const styles = StyleSheet.create({
   verificationTitle: {
     color: "#3D3323",
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   verificationDescription: {
     color: "#756B59",
     fontSize: 11,
+    fontFamily: Fonts.regular,
     marginTop: 2,
   },
 
@@ -2713,7 +2719,7 @@ const styles = StyleSheet.create({
   logoutText: {
     color: "#D7192A",
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginLeft: 8,
   },
 
@@ -2755,7 +2761,7 @@ const styles = StyleSheet.create({
   editProfileText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginLeft: 6,
   },
 
@@ -2787,7 +2793,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     color: "#222222",
   },
 
@@ -2799,6 +2805,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: "#333333",
     textAlignVertical: "top",
   },
@@ -2815,6 +2822,6 @@ const styles = StyleSheet.create({
   aboutSaveText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 });

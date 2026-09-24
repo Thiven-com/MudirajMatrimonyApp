@@ -16,6 +16,7 @@ import Feather from "react-native-vector-icons/Feather";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
+import Fonts from "../constants/Fonts";
 import { getMemberLanguages } from "../utils/Functions";
 
 /* =========================================================
@@ -735,8 +736,8 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: Fonts.size.xl,
+    fontFamily: Fonts.bold,
     color: "#222222",
   },
 
@@ -772,7 +773,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     color: "#D32F2F",
-    fontSize: 14,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
   },
 
   /* =====================================================
@@ -824,22 +826,22 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
     color: "#555555",
     marginBottom: 7,
   },
 
   value: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.semiBold,
     color: "#222222",
   },
 
   emptyValue: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#999999",
-    fontWeight: "400",
+    fontFamily: Fonts.regular,
   },
 
   /* =====================================================
@@ -875,9 +877,9 @@ const styles = StyleSheet.create({
   },
 
   languageText: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     color: "#F44336",
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
 
   /* =====================================================
@@ -896,8 +898,8 @@ const styles = StyleSheet.create({
 
   bottomEditText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     marginLeft: 8,
   },
 });

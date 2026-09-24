@@ -1202,6 +1202,7 @@ const styles = StyleSheet.create({
   centerStateText: {
     marginTop: 12,
     fontSize: 14,
+    fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
     textAlign: "center",
   },
@@ -1212,7 +1213,10 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 10,
   },
-  retryButtonText: { color: Colors.white, fontWeight: "800" },
+  retryButtonText: {
+    color: Colors.white,
+    fontFamily: Fonts.body.bold,
+  },
 
   topBar: {
     flexDirection: "row",

@@ -1,5 +1,3 @@
-import { useCallback, useMemo, useState } from "react";
-
 import {
   BackHandler,
   Dimensions,
@@ -24,7 +22,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { Colors } from "../constants/colors";
 
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 /* =========================================================
    SCREEN WIDTH
@@ -1000,17 +998,17 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: FontSizes.welcome + 2,
+    fontSize: Fonts.size.xxl,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.white,
   },
 
   headerSubtitle: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.goldLight,
 
@@ -1026,9 +1024,9 @@ const styles = StyleSheet.create({
   },
 
   filterHeaderText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.semiBold,
+    fontFamily: Fonts.semiBold,
 
     color: Colors.white,
   },
@@ -1052,9 +1050,9 @@ const styles = StyleSheet.create({
   },
 
   filterHeaderBadgeText: {
-    fontSize: 9.5,
+    fontSize: Fonts.size.xs,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.primaryRed,
   },
@@ -1104,17 +1102,17 @@ const styles = StyleSheet.create({
   },
 
   summaryLabel: {
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.medium,
+    fontFamily: Fonts.medium,
 
     color: Colors.textSecondary,
   },
 
   summaryAmount: {
-    fontSize: 19,
+    fontSize: Fonts.size.lg,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.primaryRed,
 
@@ -1122,9 +1120,9 @@ const styles = StyleSheet.create({
   },
 
   summarySub: {
-    fontSize: 10.5,
+    fontSize: Fonts.size.xs,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -1148,25 +1146,25 @@ const styles = StyleSheet.create({
   },
 
   summaryStatLabel: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.medium,
+    fontFamily: Fonts.medium,
 
     color: Colors.textSecondary,
   },
 
   summaryStatAmount: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     marginTop: 3,
   },
 
   summaryStatSub: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -1210,9 +1208,9 @@ const styles = StyleSheet.create({
   },
 
   statusTabText: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.semiBold,
+    fontFamily: Fonts.semiBold,
 
     color: Colors.textSecondary,
   },
@@ -1246,9 +1244,9 @@ const styles = StyleSheet.create({
   },
 
   dateRangeText: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.semiBold,
+    fontFamily: Fonts.semiBold,
 
     color: Colors.primaryRed,
   },
@@ -1312,9 +1310,9 @@ const styles = StyleSheet.create({
   },
 
   transactionTitle: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.textPrimary,
   },
@@ -1322,7 +1320,7 @@ const styles = StyleSheet.create({
   transactionMeta: {
     fontSize: 11,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -1336,9 +1334,9 @@ const styles = StyleSheet.create({
   },
 
   transactionAmount: {
-    fontSize: 14.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.textPrimary,
   },
@@ -1354,9 +1352,9 @@ const styles = StyleSheet.create({
   },
 
   statusPillText: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 
   /* =====================================================
@@ -1372,9 +1370,9 @@ const styles = StyleSheet.create({
   },
 
   emptyStateText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -1422,17 +1420,17 @@ const styles = StyleSheet.create({
   },
 
   helpTitle: {
-    fontSize: 14.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.primaryRed,
   },
 
   helpSubtitle: {
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textSecondary,
 
@@ -1462,9 +1460,9 @@ const styles = StyleSheet.create({
   },
 
   contactSupportText: {
-    fontSize: 13.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.primaryRed,
   },
@@ -1484,9 +1482,9 @@ const styles = StyleSheet.create({
   },
 
   secureText: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
   },
@@ -1544,9 +1542,9 @@ const styles = StyleSheet.create({
   },
 
   dateMenuOptionText: {
-    fontSize: 13.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textPrimary,
   },
@@ -1554,7 +1552,7 @@ const styles = StyleSheet.create({
   dateMenuOptionTextActive: {
     color: Colors.primaryRed,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 
   /* =====================================================
@@ -1608,17 +1606,17 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: FontSizes.welcome - 2,
+    fontSize: Fonts.size.xl,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.textPrimary,
   },
 
   modalSectionLabel: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.semiBold,
+    fontFamily: Fonts.semiBold,
 
     color: Colors.textPrimary,
 
@@ -1654,9 +1652,9 @@ const styles = StyleSheet.create({
   },
 
   toggleChipText: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.medium,
+    fontFamily: Fonts.medium,
 
     color: Colors.textSecondary,
   },
@@ -1664,7 +1662,7 @@ const styles = StyleSheet.create({
   toggleChipTextActive: {
     color: Colors.white,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 
   modalActionsRow: {
@@ -1694,7 +1692,7 @@ const styles = StyleSheet.create({
   modalResetText: {
     fontSize: 14,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.primaryRed,
   },
@@ -1716,7 +1714,7 @@ const styles = StyleSheet.create({
   modalApplyText: {
     fontSize: 14,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.white,
   },

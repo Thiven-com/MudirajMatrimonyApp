@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import {
   getMemberCities,
@@ -1359,8 +1360,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: Fonts.size.xl,
+    fontFamily: Fonts.semiBold,
     color: "#222222",
     textAlign: "center",
   },
@@ -1414,16 +1415,16 @@ const styles = StyleSheet.create({
     paddingRight: 7,
   },
   currentAddressText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     lineHeight: 20,
     color: "#555555",
   },
 
   addressTypeSmall: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
     color: "#999999",
     marginBottom: 4,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   noAddressHint: {
@@ -1441,7 +1442,7 @@ const styles = StyleSheet.create({
 
   noAddressHintText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     color: "#777777",
     marginLeft: 7,
     lineHeight: 17,
@@ -1472,13 +1473,13 @@ const styles = StyleSheet.create({
   },
 
   formTitle: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     color: "#333333",
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   formSubtitle: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
     color: "#999999",
     marginTop: 3,
   },
@@ -1501,7 +1502,7 @@ const styles = StyleSheet.create({
 
   resolvingText: {
     marginLeft: 8,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     color: "#777777",
   },
 
@@ -1519,13 +1520,13 @@ const styles = StyleSheet.create({
   },
 
   addressTypeText: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#555555",
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
   addressLoadedText: {
     marginTop: 6,
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
     color: "#777777",
   },
 
@@ -1540,9 +1541,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   editAddressText: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginLeft: 3,
   },
   addNewAddress: {
@@ -1558,9 +1559,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   addNewAddressText: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginLeft: 5,
   },
   field: {
@@ -1572,14 +1573,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#555555",
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
     marginBottom: 8,
   },
   required: {
     color: COLORS.red,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
   },
   dropdown: {
     width: "100%",
@@ -1607,7 +1608,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#555555",
   },
   placeholderText: {
@@ -1622,7 +1623,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 10,
     paddingVertical: 0,
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#555555",
   },
   addressInput: {
@@ -1635,7 +1636,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 10,
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     color: "#555555",
   },
   defaultRow: {
@@ -1659,7 +1660,7 @@ const styles = StyleSheet.create({
     borderColor: "#CCCCCC",
   },
   defaultText: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     color: "#2E2B2B",
   },
   buttonRow: {
@@ -1678,9 +1679,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   saveButton: {
     width: "49%",
@@ -1694,9 +1695,9 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     color: COLORS.white,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   modalOverlay: {
     flex: 1,
@@ -1720,8 +1721,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#EEEEEE",
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.bold,
     color: "#222",
   },
   closeButton: {
@@ -1738,7 +1739,7 @@ const styles = StyleSheet.create({
     borderColor: "#E4E4E4",
     borderRadius: 7,
     color: "#333",
-    fontSize: 14,
+    fontSize: Fonts.size.md,
   },
   optionList: {
     paddingHorizontal: 8,
@@ -1758,12 +1759,12 @@ const styles = StyleSheet.create({
   },
   optionText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     color: "#444",
   },
   selectedOptionText: {
     color: COLORS.red,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   retryButton: {
     marginTop: 12,
@@ -1778,9 +1779,9 @@ const styles = StyleSheet.create({
 
   retryText: {
     marginLeft: 6,
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   loaderBox: {
@@ -1791,7 +1792,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loaderText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     color: "#666",
   },
   emptyBox: {
@@ -1801,7 +1802,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     color: "#888",
   },
 });

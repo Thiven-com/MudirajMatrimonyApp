@@ -10,10 +10,11 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import Feather from "react-native-vector-icons/Feather";
 
+import Fonts from "../constants/Fonts";
 import { getMemberAstronomic } from "../utils/Functions";
 
 const AstronomicInformation = () => {
@@ -191,7 +192,7 @@ const AstronomicInformation = () => {
               activeOpacity={0.7}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={29} color="#D7192E" />
+              <Feather name="chevron-left" size={25} color="#D7192E" />
             </TouchableOpacity>
 
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -205,7 +206,7 @@ const AstronomicInformation = () => {
                 console.log("MENU CLICKED");
               }}
             >
-              <Ionicons name="ellipsis-vertical" size={22} color="#D7192E" />
+              <Feather name="more-vertical" size={21} color="#D7192E" />
             </TouchableOpacity>
           </View>
 
@@ -227,7 +228,7 @@ const AstronomicInformation = () => {
             {/* SUN SIGN */}
 
             <InformationRow
-              icon="sunny"
+              icon="sun"
               iconColor="#F5A800"
               iconBackground="#FFF5D8"
               title="Sun Sign"
@@ -237,7 +238,7 @@ const AstronomicInformation = () => {
             {/* MOON SIGN */}
 
             <InformationRow
-              icon="moon-outline"
+              icon="moon"
               iconColor="#8145D7"
               iconBackground="#F2E9FF"
               title="Moon Sign"
@@ -247,7 +248,7 @@ const AstronomicInformation = () => {
             {/* TIME OF BIRTH */}
 
             <InformationRow
-              icon="time-outline"
+              icon="clock"
               iconColor="#D7192E"
               iconBackground="#FFECEF"
               title="Time Of Birth"
@@ -257,7 +258,7 @@ const AstronomicInformation = () => {
             {/* CITY OF BIRTH */}
 
             <InformationRow
-              icon="location-outline"
+              icon="map-pin"
               iconColor="#2E7D32"
               iconBackground="#EAF7EA"
               title="City Of Birth"
@@ -274,7 +275,7 @@ const AstronomicInformation = () => {
             activeOpacity={0.8}
             onPress={handleEditDetails}
           >
-            <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+            <Feather name="edit-3" size={20} color="#FFFFFF" />
 
             <Text style={styles.editDetailsText}>Edit Details</Text>
           </TouchableOpacity>
@@ -301,7 +302,7 @@ const InformationRow = ({ icon, iconColor, iconBackground, title, value }) => {
           },
         ]}
       >
-        <Ionicons name={icon} size={27} color={iconColor} />
+        <Feather name={icon} size={25} color={iconColor} />
       </View>
 
       {/* TEXT */}
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     color: "#C9142B",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     textAlign: "left",
   },
 
@@ -408,14 +409,14 @@ const styles = StyleSheet.create({
   titleText: {
     color: "#555555",
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
     marginBottom: 5,
   },
 
   valueText: {
     color: "#555555",
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   editDetailsButton: {
@@ -435,7 +436,7 @@ const styles = StyleSheet.create({
   editDetailsText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     marginLeft: 8,
   },
 
@@ -445,6 +446,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: Fonts.regular,
     color: "#D7192E",
     fontSize: 13,
     textAlign: "center",

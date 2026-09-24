@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   BackHandler,
   Dimensions,
+  Image,
   Modal,
   Platform,
   SafeAreaView,
@@ -15,81 +15,163 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import Feather from "react-native-vector-icons/Feather";
-
 import { Colors } from "../constants/colors";
-import {
-  getMemberAstronomic,
-  updateMemberAstronomic,
-} from "../utils/Functions";
+import { Fonts, FontSizes } from "../constants/Fonts";
+
+// Swap each of these for the user's actual uploaded photos, e.g. { uri: photo.url }
+const PHOTO_PLACEHOLDER = require("../../assets/images/Match7.png");
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const ZODIAC_SIGNS = [
-  "Aries",
-  "Taurus",
-  "Gemini",
-  "Cancer",
-  "Leo",
-  "Virgo",
-  "Libra",
-  "Scorpio",
-  "Sagittarius",
-  "Capricorn",
-  "Aquarius",
-  "Pisces",
+const INITIAL_PHOTOS = [
+  { id: "1", isPrimary: true },
+  { id: "2", isPrimary: false },
+  { id: "3", isPrimary: false },
 ];
 
-export default function EditAstronomicInformation() {
+const INITIAL_BASIC_INFO = [
+  {
+    icon: "user",
+    iconBg: "#FDEAE0",
+    label: "Full Name",
+    value: "Priya Sharma",
+  },
+  {
+    icon: "user",
+    iconBg: "#EDE7F6",
+    label: "Profile Created By",
+    value: "Self",
+  },
+  {
+    icon: "calendar",
+    iconBg: "#FDEAE0",
+    label: "Date of Birth",
+    value: "15 Mar 1999",
+  },
+  {
+    icon: "clock",
+    iconBg: "#FFF6DC",
+    label: "Time of Birth",
+    value: "10:30 AM",
+  },
+  {
+    icon: "user",
+    iconBg: "#FCE4EC",
+    label: "Gender",
+    value: "Female",
+  },
+  {
+    icon: "maximize-2",
+    iconBg: "#E3F2FD",
+    label: "Height",
+    value: "5'4\" (162 cm)",
+  },
+  {
+    icon: "heart",
+    iconBg: "#FCE4EC",
+    label: "Marital Status",
+    value: "Never Married",
+  },
+  {
+    icon: "globe",
+    iconBg: "#E3F2FD",
+    label: "Mother Tongue",
+    value: "Telugu",
+  },
+];
+
+const INITIAL_LOCATION_INFO = [
+  {
+    icon: "map-pin",
+    iconBg: "#E8F5E9",
+    label: "Living in",
+    value: "Hyderabad, Telangana, India",
+  },
+  {
+    icon: "users",
+    iconBg: "#FFF6DC",
+    label: "Community",
+    value: "Mudhiraj",
+  },
+];
+
+const INITIAL_EDUCATION_INFO = [
+  {
+    icon: "book-open",
+    iconBg: "#E3F2FD",
+    label: "Education",
+    value: "B.E / B.Tech",
+  },
+  {
+    icon: "briefcase",
+    iconBg: "#E3F2FD",
+    label: "Profession",
+    value: "Software Engineer",
+  },
+];
+
+const INITIAL_LIFESTYLE_INFO = [
+  {
+    icon: "feather",
+    iconBg: "#E8F5E9",
+    label: "Diet",
+    value: "Vegetarian",
+  },
+  { icon: "slash", iconBg: "#FDEAE0", label: "Smoke", value: "No" },
+  { icon: "slash", iconBg: "#FDEAE0", label: "Drink", value: "No" },
+  {
+    icon: "user",
+    iconBg: "#E3F2FD",
+    label: "Body Type",
+    value: "Slim",
+  },
+];
+
+const INITIAL_FAMILY_INFO = {
+  father: { name: "Rajesh Sharma", note: "Business" },
+  mother: { name: "Suman Sharma", note: "Homemaker" },
+  siblings: { name: "1 Brother", note: "Younger" },
+};
+
+const INITIAL_ABOUT_ME =
+  "I am a simple, positive and family-oriented person. I believe in our traditions and values. Looking for a life partner who understands and respects family values.";
+
+export default function EditProfileScreen() {
   const navigation = useNavigation();
+  const [photos, setPhotos] = useState(INITIAL_PHOTOS);
 
-  // State
-  const [sunSign, setSunSign] = useState("");
-  const [moonSign, setMoonSign] = useState("");
-  const [timeOfBirth, setTimeOfBirth] = useState("");
-  const [cityOfBirth, setCityOfBirth] = useState("");
+  const [basicInfo, setBasicInfo] = useState(INITIAL_BASIC_INFO);
+  const [locationInfo, setLocationInfo] = useState(INITIAL_LOCATION_INFO);
+  const [educationInfo, setEducationInfo] = useState(INITIAL_EDUCATION_INFO);
+  const [lifestyleInfo, setLifestyleInfo] = useState(INITIAL_LIFESTYLE_INFO);
+  const [familyInfo, setFamilyInfo] = useState(INITIAL_FAMILY_INFO);
+  const [aboutMe, setAboutMe] = useState(INITIAL_ABOUT_ME);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Which section's edit sheet is open, plus its draft (edited-but-not-saved) values
+  const [editingSection, setEditingSection] = useState(null);
+  const [draftFields, setDraftFields] = useState([]);
+  const [draftText, setDraftText] = useState("");
 
-  // Modals & Selectors
-  const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
-  const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
-  const [selectedTimeDate, setSelectedTimeDate] = useState(new Date());
-  const [zodiacSelectorType, setZodiacSelectorType] = useState(null); // 'sun' | 'moon' | null
-
-  // Draft States for Modal Editing
-  const [draftSunSign, setDraftSunSign] = useState("");
-  const [draftMoonSign, setDraftMoonSign] = useState("");
-  const [draftTimeOfBirth, setDraftTimeOfBirth] = useState("");
-  const [draftCityOfBirth, setDraftCityOfBirth] = useState("");
-
-  /* =========================================================
-     BACKHANDLER & FOCUS EFFECT
-  ========================================================= */
+  /* ============================================================
+     HARDWARE BACK BUTTON
+     Same useFocusEffect + BackHandler pattern used on the other
+     screens: active only while this screen is focused, cleaned
+     up on blur/unmount.
+  ============================================================ */
 
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (zodiacSelectorType !== null) {
-          setZodiacSelectorType(null);
-          return true;
-        }
-        if (isTimePickerVisible) {
-          setIsTimePickerVisible(false);
-          return true;
-        }
-        if (isEditingModalOpen) {
+        // If the edit sheet is open, close that first instead of
+        // navigating away.
+        if (editingSection !== null) {
           closeEditor();
           return true;
         }
+
         navigation.goBack();
         return true;
       };
@@ -98,243 +180,171 @@ export default function EditAstronomicInformation() {
         "hardwareBackPress",
         onBackPress,
       );
+
       return () => subscription.remove();
-    }, [
-      navigation,
-      isEditingModalOpen,
-      zodiacSelectorType,
-      isTimePickerVisible,
-    ]),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [navigation, editingSection]),
   );
 
-  /* =========================================================
-     GET ASTRONOMIC INFORMATION
-  ========================================================= */
-
-  const loadAstronomicInformation = async () => {
-    try {
-      setLoading(true);
-      const accessToken = await AsyncStorage.getItem("authToken");
-
-      if (!accessToken) {
-        setErrorMessage("Please login again.");
-        return;
-      }
-
-      const response = await getMemberAstronomic(accessToken);
-
-      if (!response) {
-        setErrorMessage("Astronomic information not found.");
-        return;
-      }
-
-      let data = response?.data;
-      if (data?.data) data = data.data;
-      if (data?.result) data = data.result;
-
-      const loadedSun = String(data?.sun_sign ?? data?.sunSign ?? "");
-      const loadedMoon = String(data?.moon_sign ?? data?.moonSign ?? "");
-      const loadedTime = String(data?.time_of_birth ?? data?.timeOfBirth ?? "");
-      const loadedCity = String(data?.city_of_birth ?? data?.cityOfBirth ?? "");
-
-      setSunSign(loadedSun);
-      setMoonSign(loadedMoon);
-      setTimeOfBirth(loadedTime);
-      setCityOfBirth(loadedCity);
-
-      setErrorMessage("");
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message ||
-          "Unable to load astronomic information.",
-      );
-    } finally {
-      setLoading(false);
-    }
+  const removePhoto = (id) => {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
-  useEffect(() => {
-    loadAstronomicInformation();
-  }, []);
+  const handleSave = () => {
+    console.log("Saving profile changes...", {
+      basicInfo,
+      locationInfo,
+      educationInfo,
+      lifestyleInfo,
+      familyInfo,
+      aboutMe,
+    });
+    // TODO: submit the updated profile to your backend, then:
+    // navigation.goBack();
+  };
 
-  /* =========================================================
-     EDITOR MODAL & TIME PICKER HANDLERS
-  ========================================================= */
+  // ---- Opening an edit sheet for a section ----
+  const openFieldEditor = (section, items) => {
+    setEditingSection(section);
+    setDraftFields(
+      items.map((item) => ({ label: item.label, value: item.value })),
+    );
+  };
 
-  const openEditor = () => {
-    setDraftSunSign(sunSign);
-    setDraftMoonSign(moonSign);
-    setDraftTimeOfBirth(timeOfBirth);
-    setDraftCityOfBirth(cityOfBirth);
-    setIsEditingModalOpen(true);
+  const openFamilyEditor = () => {
+    setEditingSection("family");
+    setDraftFields([
+      {
+        key: "father.name",
+        label: "Father - Name",
+        value: familyInfo.father.name,
+      },
+      {
+        key: "father.note",
+        label: "Father - Occupation",
+        value: familyInfo.father.note,
+      },
+      {
+        key: "mother.name",
+        label: "Mother - Name",
+        value: familyInfo.mother.name,
+      },
+      {
+        key: "mother.note",
+        label: "Mother - Occupation",
+        value: familyInfo.mother.note,
+      },
+      {
+        key: "siblings.name",
+        label: "Siblings",
+        value: familyInfo.siblings.name,
+      },
+      {
+        key: "siblings.note",
+        label: "Siblings - Note",
+        value: familyInfo.siblings.note,
+      },
+    ]);
+  };
+
+  const openAboutEditor = () => {
+    setEditingSection("about");
+    setDraftText(aboutMe);
   };
 
   const closeEditor = () => {
-    setIsEditingModalOpen(false);
-    setZodiacSelectorType(null);
-    setIsTimePickerVisible(false);
+    setEditingSection(null);
+    setDraftFields([]);
+    setDraftText("");
   };
 
-  const handleTimeChange = (event, selectedDate) => {
-    if (Platform.OS === "android") {
-      setIsTimePickerVisible(false);
-    }
-
-    if (selectedDate) {
-      setSelectedTimeDate(selectedDate);
-      const hours = selectedDate.getHours();
-      const minutes = selectedDate.getMinutes();
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const formattedHours = hours % 12 || 12;
-      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-      setDraftTimeOfBirth(`${formattedHours}:${formattedMinutes} ${ampm}`);
-    }
+  const updateDraftField = (index, value) => {
+    setDraftFields((prev) =>
+      prev.map((f, i) => (i === index ? { ...f, value } : f)),
+    );
   };
 
-  /* =========================================================
-     SAVE HANDLER
-  ========================================================= */
-
-  const handleSave = async () => {
-    if (saving) return;
-
-    try {
-      setErrorMessage("");
-      setSaving(true);
-
-      const accessToken = await AsyncStorage.getItem("authToken");
-
-      if (!accessToken) {
-        setErrorMessage("Please login again.");
-        return;
+  const saveEditor = () => {
+    switch (editingSection) {
+      case "basic":
+        setBasicInfo((prev) =>
+          prev.map((item, i) => ({
+            ...item,
+            value: draftFields[i]?.value ?? item.value,
+          })),
+        );
+        break;
+      case "location":
+        setLocationInfo((prev) =>
+          prev.map((item, i) => ({
+            ...item,
+            value: draftFields[i]?.value ?? item.value,
+          })),
+        );
+        break;
+      case "education":
+        setEducationInfo((prev) =>
+          prev.map((item, i) => ({
+            ...item,
+            value: draftFields[i]?.value ?? item.value,
+          })),
+        );
+        break;
+      case "lifestyle":
+        setLifestyleInfo((prev) =>
+          prev.map((item, i) => ({
+            ...item,
+            value: draftFields[i]?.value ?? item.value,
+          })),
+        );
+        break;
+      case "family": {
+        const get = (key) =>
+          draftFields.find((f) => f.key === key)?.value ?? "";
+        setFamilyInfo({
+          father: { name: get("father.name"), note: get("father.note") },
+          mother: { name: get("mother.name"), note: get("mother.note") },
+          siblings: { name: get("siblings.name"), note: get("siblings.note") },
+        });
+        break;
       }
-
-      const cleanSunSign = String(draftSunSign || "").trim();
-      const cleanMoonSign = String(draftMoonSign || "").trim();
-      const cleanTimeOfBirth = String(draftTimeOfBirth || "").trim();
-      const cleanCityOfBirth = String(draftCityOfBirth || "").trim();
-
-      if (!cleanSunSign) {
-        Alert.alert("Validation Error", "Please select a Sun Sign.");
-        return;
-      }
-
-      if (!cleanMoonSign) {
-        Alert.alert("Validation Error", "Please select a Moon Sign.");
-        return;
-      }
-
-      if (!cleanTimeOfBirth) {
-        Alert.alert("Validation Error", "Please select Time Of Birth.");
-        return;
-      }
-
-      if (!cleanCityOfBirth) {
-        Alert.alert("Validation Error", "Please enter City Of Birth.");
-        return;
-      }
-
-      const body = {
-        sun_sign: cleanSunSign,
-        moon_sign: cleanMoonSign,
-        time_of_birth: cleanTimeOfBirth,
-        city_of_birth: cleanCityOfBirth,
-      };
-
-      const response = await updateMemberAstronomic(accessToken, body);
-
-      const success =
-        response?.success === 1 ||
-        response?.success === true ||
-        response?.result === true;
-
-      if (success) {
-        setSunSign(cleanSunSign);
-        setMoonSign(cleanMoonSign);
-        setTimeOfBirth(cleanTimeOfBirth);
-        setCityOfBirth(cleanCityOfBirth);
-
-        closeEditor();
-        Alert.alert("Success", "Astronomic details updated successfully!");
-        return;
-      }
-
-      const message =
-        response?.message ||
-        response?.error ||
-        "Unable to update astronomic details.";
-
-      setErrorMessage(message);
-      Alert.alert("Update Failed", message);
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Unable to update astronomic details.";
-
-      setErrorMessage(message);
-      Alert.alert("Error", message);
-    } finally {
-      setSaving(false);
+      case "about":
+        setAboutMe(draftText);
+        break;
+      default:
+        break;
     }
+    closeEditor();
   };
 
-  const astronomicItems = [
-    {
-      icon: "sun",
-      iconBg: "#FFF5D8",
-      iconColor: "#F5A800",
-      label: "Sun Sign",
-      value: sunSign || "Not specified",
-    },
-    {
-      icon: "moon",
-      iconBg: "#F2E9FF",
-      iconColor: "#8145D7",
-      label: "Moon Sign",
-      value: moonSign || "Not specified",
-    },
-    {
-      icon: "clock",
-      iconBg: "#FFECEF",
-      iconColor: Colors.primaryRed || "#D7192E",
-      label: "Time of Birth",
-      value: timeOfBirth || "Not specified",
-    },
-    {
-      icon: "map-pin",
-      iconBg: "#EAF7EA",
-      iconColor: "#2E7D32",
-      label: "City of Birth",
-      value: cityOfBirth || "Not specified",
-    },
-  ];
+  const editorTitles = {
+    basic: "Edit Basic Information",
+    location: "Edit Location & Community",
+    education: "Edit Education & Career",
+    lifestyle: "Edit Lifestyle",
+    family: "Edit Family Details",
+    about: "Edit About Me",
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* HEADER */}
+      {/* ================= HEADER — back button only, luxury look ================= */}
       <View style={styles.headerWrapper}>
-        <LinearGradient
-          colors={Colors.gradientLogo || ["#D7192E", "#900C1C"]}
-          style={styles.header}
-        >
+        <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.75}
           >
             <View style={styles.backButtonCircle}>
-              <Feather
-                name="arrow-left"
-                size={20}
-                color={Colors.primaryRed || "#D7192E"}
-              />
+              <Feather name="arrow-left" size={20} color={Colors.primaryRed} />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Astronomic Information</Text>
+
+          <Text style={styles.headerTitle}>Edit Profile</Text>
         </LinearGradient>
 
         <Svg
@@ -344,10 +354,8 @@ export default function EditAstronomicInformation() {
           style={styles.headerWave}
         >
           <Path
-            d={`M0,4 Q${SCREEN_WIDTH * 0.25},22 ${SCREEN_WIDTH * 0.5},10 Q${
-              SCREEN_WIDTH * 0.75
-            },-2 ${SCREEN_WIDTH},14`}
-            stroke={Colors.goldLight || "#FFD700"}
+            d={`M0,4 Q${SCREEN_WIDTH * 0.25},22 ${SCREEN_WIDTH * 0.5},10 Q${SCREEN_WIDTH * 0.75},-2 ${SCREEN_WIDTH},14`}
+            stroke={Colors.goldLight}
             strokeWidth={5}
             fill="none"
             strokeLinecap="round"
@@ -359,401 +367,730 @@ export default function EditAstronomicInformation() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* TITLE */}
+        {/* ================= PAGE TITLE ================= */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconWrapper}>
-            <Feather
-              name="compass"
-              size={26}
-              color={Colors.primaryRed || "#D7192E"}
-            />
+            <Ionicons name="user" size={26} color={Colors.primaryRed} />
             <Feather
               name="edit-2"
-              size={12}
-              color={Colors.primaryRed || "#D7192E"}
+              size={13}
+              color={Colors.primaryRed}
               style={styles.titleIconPencil}
             />
           </View>
           <View style={styles.titleTextBlock}>
-            <Text style={styles.titleText}>Astronomic Details</Text>
+            <Text style={styles.titleText}>Edit Profile</Text>
             <Text style={styles.subtitleText}>
-              Manage horoscope and astrological properties
+              Update your details and tell others about yourself
             </Text>
           </View>
         </View>
 
-        {errorMessage ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
+        {/* ================= PROFILE PHOTOS ================= */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Profile Photos</Text>
+            <TouchableOpacity>
+              <Text style={styles.sectionLink}>Add / Remove</Text>
+            </TouchableOpacity>
           </View>
-        ) : null}
 
-        {loading ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator
-              size="large"
-              color={Colors.primaryRed || "#D7192E"}
-            />
-          </View>
-        ) : (
-          /* ASTRONOMIC DETAILS CARD */
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Astrology & Birth Chart</Text>
-              <TouchableOpacity style={styles.editRow} onPress={openEditor}>
-                <Feather
-                  name="edit-3"
-                  size={14}
-                  color={Colors.primaryRed || "#D7192E"}
+          <View style={styles.photosRow}>
+            {photos.map((photo) => (
+              <View key={photo.id} style={styles.photoTile}>
+                <Image
+                  source={PHOTO_PLACEHOLDER}
+                  style={styles.photoImage}
+                  resizeMode="cover"
                 />
-                <Text style={styles.sectionLink}> Edit</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.gridContainer}>
-              {astronomicItems.map((item) => (
-                <View key={item.label} style={styles.gridItem}>
-                  <View
-                    style={[
-                      styles.infoIconCircle,
-                      { backgroundColor: item.iconBg },
-                    ]}
-                  >
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.35)"]}
+                  style={styles.photoShade}
+                  pointerEvents="none"
+                />
+                {photo.isPrimary ? (
+                  <View style={styles.primaryBadge}>
                     <Feather
-                      name={item.icon}
-                      size={16}
-                      color={item.iconColor}
+                      name="star"
+                      size={10}
+                      color={Colors.white}
+                      style={{ marginRight: 3 }}
                     />
+                    <Text style={styles.primaryBadgeText}>Primary</Text>
                   </View>
-                  <View style={styles.gridTextContent}>
-                    <Text style={styles.infoLabel}>{item.label}</Text>
-                    <Text style={styles.infoValue}>{item.value}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* EDITING SHEET MODAL */}
-      <Modal
-        visible={isEditingModalOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={closeEditor}
-      >
-        <View style={styles.sheetOverlay}>
-          <View style={styles.sheetContainer}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Edit Astronomic Info</Text>
-              <TouchableOpacity onPress={closeEditor}>
-                <Feather name="x" size={24} color="#333333" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.sheetBody}>
-              {/* SUN SIGN INPUT */}
-              <View style={styles.sheetInputGroup}>
-                <Text style={styles.sheetLabel}>Sun Sign</Text>
-                <TouchableOpacity
-                  style={styles.pickerTrigger}
-                  activeOpacity={0.8}
-                  onPress={() => setZodiacSelectorType("sun")}
-                >
-                  <Text
-                    style={
-                      draftSunSign
-                        ? styles.pickerValue
-                        : styles.pickerPlaceholder
-                    }
-                  >
-                    {draftSunSign || "Select Sun Sign"}
-                  </Text>
-                  <Feather name="chevron-down" size={18} color="#888888" />
-                </TouchableOpacity>
-              </View>
-
-              {/* MOON SIGN INPUT */}
-              <View style={styles.sheetInputGroup}>
-                <Text style={styles.sheetLabel}>Moon Sign</Text>
-                <TouchableOpacity
-                  style={styles.pickerTrigger}
-                  activeOpacity={0.8}
-                  onPress={() => setZodiacSelectorType("moon")}
-                >
-                  <Text
-                    style={
-                      draftMoonSign
-                        ? styles.pickerValue
-                        : styles.pickerPlaceholder
-                    }
-                  >
-                    {draftMoonSign || "Select Moon Sign"}
-                  </Text>
-                  <Feather name="chevron-down" size={18} color="#888888" />
-                </TouchableOpacity>
-              </View>
-
-              {/* TIME OF BIRTH INPUT */}
-              <View style={styles.sheetInputGroup}>
-                <Text style={styles.sheetLabel}>Time Of Birth</Text>
-                <TouchableOpacity
-                  style={styles.pickerTrigger}
-                  activeOpacity={0.8}
-                  onPress={() => setIsTimePickerVisible(true)}
-                >
-                  <Text
-                    style={
-                      draftTimeOfBirth
-                        ? styles.pickerValue
-                        : styles.pickerPlaceholder
-                    }
-                  >
-                    {draftTimeOfBirth || "Select Time Of Birth"}
-                  </Text>
-                  <Feather name="clock" size={18} color="#888888" />
-                </TouchableOpacity>
-              </View>
-
-              {/* CITY OF BIRTH INPUT */}
-              <View style={styles.sheetInputGroup}>
-                <Text style={styles.sheetLabel}>City Of Birth</Text>
-                <TextInput
-                  style={styles.sheetInput}
-                  value={draftCityOfBirth}
-                  onChangeText={setDraftCityOfBirth}
-                  placeholder="Enter city of birth"
-                  placeholderTextColor="#999999"
-                />
-              </View>
-            </ScrollView>
-
-            <View style={styles.sheetFooter}>
-              <TouchableOpacity
-                style={[
-                  styles.sheetSaveButton,
-                  saving && styles.sheetSaveButtonDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.sheetSaveText}>Save Changes</Text>
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => removePhoto(photo.id)}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Feather name="x" size={13} color={Colors.white} />
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            </View>
+              </View>
+            ))}
+
+            <TouchableOpacity style={styles.addPhotoTile} activeOpacity={0.7}>
+              <View style={styles.addPhotoIconCircle}>
+                <Feather name="plus" size={22} color={Colors.primaryRed} />
+              </View>
+              <Text style={styles.addPhotoText}>Add Photo</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tipBanner}>
+            <Feather name="sun" size={15} color={Colors.primaryRedDark} />
+            <Text style={styles.tipText}>
+              Add at least 4 photos for better visibility
+            </Text>
           </View>
         </View>
-      </Modal>
 
-      {/* REACT NATIVE COMMUNITY DATETIME PICKER */}
-      {isTimePickerVisible && (
-        <DateTimePicker
-          value={selectedTimeDate}
-          mode="time"
-          is24Hour={false}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleTimeChange}
-        />
-      )}
+        {/* ================= BASIC INFORMATION ================= */}
+        <InfoSection
+          title="Basic Information"
+          onEdit={() => openFieldEditor("basic", basicInfo)}
+        >
+          <InfoGrid items={basicInfo} />
+        </InfoSection>
 
-      {/* ZODIAC SELECTOR MODAL */}
+        {/* ================= LOCATION & COMMUNITY ================= */}
+        <InfoSection
+          title="Location & Community"
+          onEdit={() => openFieldEditor("location", locationInfo)}
+        >
+          <InfoGrid items={locationInfo} />
+        </InfoSection>
+
+        {/* ================= EDUCATION & CAREER ================= */}
+        <InfoSection
+          title="Education & Career"
+          onEdit={() => openFieldEditor("education", educationInfo)}
+        >
+          <InfoGrid items={educationInfo} />
+        </InfoSection>
+
+        {/* ================= ABOUT ME ================= */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionTitleRow}>
+              <Feather
+                name="edit-3"
+                size={17}
+                color={Colors.primaryRed}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.sectionTitle}>About Me</Text>
+            </View>
+            <TouchableOpacity style={styles.editRow} onPress={openAboutEditor}>
+              <Feather name="edit-2" size={13} color={Colors.primaryRed} />
+              <Text style={styles.sectionLink}> Edit</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.aboutMeText}>{aboutMe}</Text>
+        </View>
+
+        {/* ================= LIFESTYLE ================= */}
+        <InfoSection
+          title="Lifestyle"
+          onEdit={() => openFieldEditor("lifestyle", lifestyleInfo)}
+        >
+          <View style={styles.lifestyleRow}>
+            {lifestyleInfo.map((item) => (
+              <View key={item.label} style={styles.lifestyleItem}>
+                <View
+                  style={[
+                    styles.infoIconCircle,
+                    { backgroundColor: item.iconBg },
+                  ]}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={15}
+                    color={Colors.textSecondary}
+                  />
+                </View>
+                <Text style={styles.infoLabel}>{item.label}</Text>
+                <Text style={styles.infoValue}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+        </InfoSection>
+
+        {/* ================= FAMILY DETAILS ================= */}
+        <InfoSection title="Family Details" onEdit={openFamilyEditor}>
+          <View style={styles.familyRow}>
+            <FamilyColumn
+              label="Father"
+              name={familyInfo.father.name}
+              note={familyInfo.father.note}
+            />
+            <FamilyColumn
+              label="Mother"
+              name={familyInfo.mother.name}
+              note={familyInfo.mother.note}
+            />
+            <FamilyColumn
+              label="Siblings"
+              name={familyInfo.siblings.name}
+              note={familyInfo.siblings.note}
+            />
+          </View>
+        </InfoSection>
+
+        {/* ================= SAVE BUTTON ================= */}
+        <TouchableOpacity
+          style={styles.saveButton}
+          activeOpacity={0.85}
+          onPress={handleSave}
+        >
+          <Feather
+            name="save"
+            size={19}
+            color={Colors.white}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* ================= EDIT SHEET ================= */}
       <Modal
-        visible={zodiacSelectorType !== null}
+        visible={editingSection !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setZodiacSelectorType(null)}
+        onRequestClose={closeEditor}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setZodiacSelectorType(null)}
+          onPress={closeEditor}
         >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              Select {zodiacSelectorType === "sun" ? "Sun" : "Moon"} Sign
-            </Text>
-            <ScrollView style={{ maxHeight: 280 }}>
-              {ZODIAC_SIGNS.map((sign) => (
-                <TouchableOpacity
-                  key={sign}
-                  style={styles.modalOption}
-                  onPress={() => {
-                    if (zodiacSelectorType === "sun") setDraftSunSign(sign);
-                    else setDraftMoonSign(sign);
-                    setZodiacSelectorType(null);
-                  }}
-                >
-                  <Text style={styles.modalOptionText}>{sign}</Text>
-                </TouchableOpacity>
-              ))}
+          <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>
+                {editorTitles[editingSection]}
+              </Text>
+              <TouchableOpacity
+                onPress={closeEditor}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Feather name="x" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 420 }}
+            >
+              {editingSection === "about" ? (
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>About Me</Text>
+                  <TextInput
+                    style={[styles.fieldInput, styles.fieldInputMultiline]}
+                    value={draftText}
+                    onChangeText={setDraftText}
+                    multiline
+                    placeholder="Tell others about yourself"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+                </View>
+              ) : (
+                draftFields.map((field, index) => (
+                  <View
+                    key={field.key ?? field.label}
+                    style={styles.fieldBlock}
+                  >
+                    <Text style={styles.fieldLabel}>{field.label}</Text>
+                    <TextInput
+                      style={styles.fieldInput}
+                      value={field.value}
+                      onChangeText={(text) => updateDraftField(index, text)}
+                      placeholderTextColor={Colors.placeholder}
+                    />
+                  </View>
+                ))
+              )}
             </ScrollView>
-          </View>
+
+            <View style={styles.modalActionsRow}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={closeEditor}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={saveEditor}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
 }
 
+// ================= SUBCOMPONENTS =================
+function InfoSection({ title, onEdit, children }) {
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <TouchableOpacity
+          style={styles.editRow}
+          onPress={onEdit}
+          activeOpacity={0.7}
+        >
+          <Feather name="edit-2" size={13} color={Colors.primaryRed} />
+          <Text style={styles.sectionLink}> Edit</Text>
+        </TouchableOpacity>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function InfoGrid({ items }) {
+  return (
+    <View style={styles.infoGrid}>
+      {items.map((item) => (
+        <View key={item.label} style={styles.infoGridItem}>
+          <View
+            style={[styles.infoIconCircle, { backgroundColor: item.iconBg }]}
+          >
+            <Feather name={item.icon} size={16} color={Colors.textSecondary} />
+          </View>
+          <View style={styles.infoTextBlock}>
+            <Text style={styles.infoLabel}>{item.label}</Text>
+            <Text style={styles.infoValue}>{item.value}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function FamilyColumn({ label, name, note }) {
+  return (
+    <View style={styles.familyColumn}>
+      <Text style={styles.familyLabel}>{label}</Text>
+      <Text style={styles.familyName}>{name}</Text>
+      <Text style={styles.familyNote}>({note})</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F9F9F9" },
-  headerWrapper: { position: "relative" },
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 30,
+  },
+
+  /* ===== HEADER — back button only, luxury look ===== */
+  headerWrapper: {
+    width: "100%",
+  },
   header: {
-    height: 60,
+    height: 90,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
-  backButton: { marginRight: 15 },
+  backButton: {
+    marginRight: 14,
+  },
   backButtonCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.white,
     alignItems: "center",
-  },
-  headerTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
-  headerWave: { marginTop: -2 },
-  scrollContent: { paddingHorizontal: 15, paddingTop: 10, paddingBottom: 40 },
-  titleRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
-  titleIconWrapper: { position: "relative", marginRight: 12 },
-  titleIconPencil: { position: "absolute", bottom: -2, right: -2 },
-  titleTextBlock: { flex: 1 },
-  titleText: { fontSize: 18, fontWeight: "700", color: "#333333" },
-  subtitleText: { fontSize: 12, color: "#666666" },
-  loaderContainer: {
-    paddingVertical: 40,
     justifyContent: "center",
-    alignItems: "center",
-  },
-  errorContainer: {
-    backgroundColor: "#FFF0F2",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
-  },
-  errorText: { color: "#D7192E", fontSize: 13, textAlign: "center" },
-  sectionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.2,
     shadowRadius: 5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  headerTitle: {
+    fontSize: FontSizes.welcome,
+    fontFamily: Fonts.display.bold,
+    color: Colors.white,
+    letterSpacing: 0.3,
+  },
+  headerWave: {
+    marginTop: -6,
+  },
+
+  /* ===== PAGE TITLE ===== */
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  titleIconWrapper: {
+    marginRight: 14,
+  },
+  titleIconPencil: {
+    position: "absolute",
+    bottom: -3,
+    right: -6,
+  },
+  titleTextBlock: {
+    flex: 1,
+  },
+  titleText: {
+    fontSize: FontSizes.welcome + 2,
+    fontFamily: Fonts.display.bold,
+    color: Colors.primaryRed,
+  },
+  subtitleText: {
+    fontSize: FontSizes.subtitle,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    marginTop: 3,
+  },
+
+  /* ===== SECTION CARD (shared) ===== */
+  sectionCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#333333" },
-  editRow: { flexDirection: "row", alignItems: "center" },
-  sectionLink: {
-    color: Colors.primaryRed || "#D7192E",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  gridContainer: { flexDirection: "row", flexWrap: "wrap" },
-  gridItem: {
-    width: "50%",
+  sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
   },
-  infoIconCircle: {
+  sectionTitle: {
+    fontSize: FontSizes.welcome - 4,
+    fontFamily: Fonts.display.bold,
+    color: Colors.primaryRed,
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontFamily: Fonts.body.bold,
+    color: Colors.primaryRed,
+  },
+
+  /* ===== PROFILE PHOTOS ===== */
+  photosRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  photoTile: {
+    flex: 1,
+    aspectRatio: 0.82,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: Colors.border,
+    position: "relative",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  photoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  photoShade: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "45%",
+  },
+  primaryBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.primaryRed,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  primaryBadgeText: {
+    fontSize: 9.5,
+    fontFamily: Fonts.body.bold,
+    color: Colors.white,
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(179,21,28,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  addPhotoTile: {
+    flex: 1,
+    aspectRatio: 0.82,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryRed,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FDF1EF",
+  },
+  addPhotoIconCircle: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    justifyContent: "center",
+    backgroundColor: Colors.white,
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  addPhotoText: {
+    fontSize: 10,
+    fontFamily: Fonts.body.bold,
+    color: Colors.primaryRed,
+    textAlign: "center",
+  },
+  tipBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FDF3D8",
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  tipText: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.medium,
+    color: Colors.primaryRedDark,
+    flexShrink: 1,
+  },
+
+  /* ===== INFO GRID ===== */
+  infoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  infoGridItem: {
+    width: "50%",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingRight: 8,
+    marginBottom: 16,
+  },
+  infoIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 10,
   },
-  gridTextContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: "#888888" },
+  infoTextBlock: {
+    flexShrink: 1,
+  },
+  infoLabel: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+  },
   infoValue: {
-    fontSize: 13,
-    color: "#333333",
-    fontWeight: "600",
+    fontSize: 13.5,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
     marginTop: 2,
   },
-  sheetOverlay: {
+
+  /* ===== ABOUT ME ===== */
+  aboutMeText: {
+    fontSize: 13.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+  },
+
+  /* ===== LIFESTYLE ===== */
+  lifestyleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  lifestyleItem: {
+    width: "22%",
+    alignItems: "center",
+  },
+
+  /* ===== FAMILY ===== */
+  familyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  familyColumn: {
+    flex: 1,
+  },
+  familyLabel: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    marginBottom: 3,
+  },
+  familyName: {
+    fontSize: 13,
+    fontFamily: Fonts.body.bold,
+    color: Colors.textPrimary,
+  },
+  familyNote: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+
+  /* ===== SAVE BUTTON ===== */
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primaryRedDark,
+    borderRadius: 16,
+    paddingVertical: 17,
+    marginTop: 6,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.body.bold,
+    color: Colors.white,
+  },
+
+  /* ===== EDIT MODAL ===== */
+  modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
-  sheetContainer: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: "80%",
-    padding: 20,
+  modalCard: {
+    backgroundColor: Colors.cardBackground,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 22,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 30 : 20,
+    maxHeight: "85%",
   },
-  sheetHeader: {
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 16,
   },
-  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#333333" },
-  sheetBody: { marginBottom: 15 },
-  sheetInputGroup: { marginBottom: 14 },
-  sheetLabel: { fontSize: 12, color: "#666666", marginBottom: 6 },
-  sheetInput: {
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#333333",
-  },
-  pickerTrigger: {
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-  },
-  pickerValue: { fontSize: 14, color: "#333333" },
-  pickerPlaceholder: { fontSize: 14, color: "#999999" },
-  sheetFooter: { paddingTop: 5 },
-  sheetSaveButton: {
-    backgroundColor: Colors.primaryRed || "#D7192E",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  sheetSaveButtonDisabled: { opacity: 0.6 },
-  sheetSaveText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 20 },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#333333",
-    marginBottom: 15,
+    fontSize: FontSizes.welcome - 2,
+    fontFamily: Fonts.display.bold,
+    color: Colors.textPrimary,
+    flexShrink: 1,
   },
-  modalOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
+  fieldBlock: {
+    marginBottom: 16,
   },
-  modalOptionText: { fontSize: 15, color: "#444444" },
+  fieldLabel: {
+    fontSize: 12.5,
+    fontFamily: Fonts.body.semiBold,
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13.5,
+    fontFamily: Fonts.body.regular,
+    color: Colors.textPrimary,
+    ...Platform.select({ web: { outlineStyle: "none" } }),
+  },
+  fieldInputMultiline: {
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
+  modalActionsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 6,
+  },
+  modalCancelButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.primaryRed,
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontFamily: Fonts.body.bold,
+    color: Colors.primaryRed,
+  },
+  modalSaveButton: {
+    flex: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primaryRed,
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  modalSaveText: {
+    fontSize: 14,
+    fontFamily: Fonts.body.bold,
+    color: Colors.white,
+  },
 });

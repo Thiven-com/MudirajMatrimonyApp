@@ -22,6 +22,7 @@ import LinearGradient from "react-native-linear-gradient";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
+import { Fonts } from "../constants/Fonts";
 import { getPackagesData } from "../utils/Functions";
 
 /* =========================================================
@@ -884,7 +885,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: scale(23),
 
-    fontWeight: "800",
+    fontFamily: Fonts.display.bold,
 
     color: "#8E2026",
 
@@ -949,6 +950,9 @@ const styles = StyleSheet.create({
     width: "65%",
   },
 
+  // NOTE: hero titles intentionally keep their own decorative serif
+  // font (Georgia / serif) rather than the app's Poppins Fonts set —
+  // left untouched here since that looks like a deliberate design choice.
   heroSmallTitle: {
     color: "#FFFFFF",
 
@@ -980,7 +984,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(12.5),
 
-    fontWeight: "500",
+    fontFamily: Fonts.body.medium,
 
     lineHeight: scale(18),
 
@@ -1085,7 +1089,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(9.5),
 
-    fontWeight: "700",
+    fontFamily: Fonts.body.bold,
 
     lineHeight: scale(12),
 
@@ -1107,7 +1111,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(19),
 
-    fontWeight: "800",
+    fontFamily: Fonts.display.bold,
 
     textAlign: "center",
 
@@ -1119,7 +1123,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(11.5),
 
-    fontWeight: "500",
+    fontFamily: Fonts.body.medium,
 
     textAlign: "center",
 
@@ -1145,7 +1149,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(13),
 
-    fontWeight: "600",
+    fontFamily: Fonts.body.semiBold,
 
     textAlign: "center",
 
@@ -1173,7 +1177,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(12.5),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
   },
 
   /* =====================================================
@@ -1253,7 +1257,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(10),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     letterSpacing: 0.2,
 
@@ -1339,7 +1343,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(18),
 
-    fontWeight: "900",
+    fontFamily: Fonts.display.bold,
 
     lineHeight: scale(22),
 
@@ -1351,7 +1355,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(11.5),
 
-    fontWeight: "500",
+    fontFamily: Fonts.body.medium,
 
     lineHeight: scale(16),
 
@@ -1383,7 +1387,7 @@ const styles = StyleSheet.create({
   daysText: {
     fontSize: scale(11.5),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     lineHeight: scale(14),
   },
@@ -1447,7 +1451,7 @@ const styles = StyleSheet.create({
   featureValue: {
     fontSize: scale(14),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     lineHeight: scale(16),
 
@@ -1459,7 +1463,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(10.5),
 
-    fontWeight: "600",
+    fontFamily: Fonts.body.semiBold,
 
     lineHeight: scale(13),
 
@@ -1521,7 +1525,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(10),
 
-    fontWeight: "600",
+    fontFamily: Fonts.body.semiBold,
 
     lineHeight: scale(13),
 
@@ -1585,7 +1589,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(10.5),
 
-    fontWeight: "600",
+    fontFamily: Fonts.body.semiBold,
 
     textDecorationLine: "line-through",
 
@@ -1599,7 +1603,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(21),
 
-    fontWeight: "900",
+    fontFamily: Fonts.display.bold,
 
     lineHeight: scale(25),
 
@@ -1629,7 +1633,7 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: scale(10),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     lineHeight: scale(13),
 
@@ -1665,7 +1669,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(11),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     marginRight: scale(4),
 
@@ -1715,7 +1719,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(9.5),
 
-    fontWeight: "700",
+    fontFamily: Fonts.body.bold,
 
     lineHeight: scale(13),
 
@@ -1753,7 +1757,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(20),
 
-    fontWeight: "900",
+    fontFamily: Fonts.body.bold,
 
     textAlign: "center",
 
@@ -1781,7 +1785,7 @@ const styles = StyleSheet.create({
 
     fontSize: scale(10.5),
 
-    fontWeight: "500",
+    fontFamily: Fonts.body.medium,
 
     marginLeft: scale(6),
   },

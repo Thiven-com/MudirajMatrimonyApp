@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -835,8 +836,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: Fonts.size.xl,
+    fontFamily: Fonts.bold,
     color: "#222222",
   },
 
@@ -857,7 +858,8 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: "center",
     marginTop: 40,
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: "#888888",
   },
 
@@ -882,14 +884,15 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: "#222222",
   },
 
   labelSubText: {
     marginTop: 3,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: "#888888",
   },
 
@@ -909,7 +912,8 @@ const styles = StyleSheet.create({
   },
 
   selectValue: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.regular,
     color: "#222222",
     flex: 1,
   },
@@ -920,7 +924,8 @@ const styles = StyleSheet.create({
 
   helperText: {
     marginTop: 9,
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     lineHeight: 19,
     color: "#888888",
   },
@@ -958,8 +963,8 @@ const styles = StyleSheet.create({
   },
 
   languageChipText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
     color: "#333333",
   },
 
@@ -986,7 +991,8 @@ const styles = StyleSheet.create({
 
   emptyText: {
     marginTop: 5,
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: "#999999",
   },
 
@@ -1003,8 +1009,8 @@ const styles = StyleSheet.create({
 
   addLanguageButtonText: {
     marginLeft: 6,
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: "#D7192A",
   },
 
@@ -1036,14 +1042,15 @@ const styles = StyleSheet.create({
   },
 
   errorTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: "#D7192A",
   },
 
   errorText: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     lineHeight: 18,
     color: "#777777",
   },
@@ -1058,8 +1065,8 @@ const styles = StyleSheet.create({
   },
 
   retryText: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: "#FFFFFF",
   },
 
@@ -1090,8 +1097,8 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     marginLeft: 8,
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: "#FFFFFF",
   },
 
@@ -1122,8 +1129,8 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: "#222222",
   },
 
@@ -1141,20 +1148,22 @@ const styles = StyleSheet.create({
   },
 
   modalOptionText: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: "#333333",
   },
 
   modalOptionTextSelected: {
     color: "#D7192A",
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   modalEmptyText: {
     textAlign: "center",
     paddingVertical: 30,
     color: "#999999",
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
   },
 
   modalDoneButton: {
@@ -1169,7 +1178,7 @@ const styles = StyleSheet.create({
 
   modalDoneButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
   },
 });

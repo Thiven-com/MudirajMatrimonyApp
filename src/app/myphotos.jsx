@@ -20,7 +20,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { Colors } from "../constants/colors";
-import { Fonts } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 // If you already have an API for photos, import it here.
 // Example:
@@ -754,8 +754,8 @@ const styles = StyleSheet.create({
 
   progressText: {
     marginTop: 5,
-    fontSize: 10.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     textAlign: "right",
   },
@@ -769,16 +769,16 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
-    fontSize: 27,
-    fontFamily: Fonts?.display?.bold,
+    fontSize: Fonts.size.title,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary || "#222222",
     letterSpacing: -0.4,
   },
 
   pageSubtitle: {
     marginTop: 7,
-    fontSize: 13.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     lineHeight: 20,
   },
@@ -814,14 +814,14 @@ const styles = StyleSheet.create({
   },
 
   cardTitle: {
-    fontSize: 17,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
   },
 
   cardSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     marginTop: 3,
   },
@@ -834,8 +834,8 @@ const styles = StyleSheet.create({
   },
 
   requiredText: {
-    fontSize: 10,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed || "#D7192E",
   },
 
@@ -858,8 +858,8 @@ const styles = StyleSheet.create({
   },
 
   guidelinesTitle: {
-    fontSize: 13,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
     marginBottom: 10,
   },
@@ -873,8 +873,8 @@ const styles = StyleSheet.create({
   guidelineText: {
     flex: 1,
     marginLeft: 6,
-    fontSize: 10.8,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     lineHeight: 15,
   },
@@ -895,21 +895,21 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontSize: 17,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
   },
 
   sectionSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     marginTop: 3,
   },
 
   optionalText: {
     fontSize: 11,
-    fontFamily: Fonts?.body?.bold,
+    fontFamily: Fonts.bold,
     color: Colors.textMuted || "#777777",
     backgroundColor: "#F3F3F3",
     paddingHorizontal: 9,
@@ -1007,28 +1007,28 @@ const styles = StyleSheet.create({
   },
 
   photoLabelLarge: {
-    fontSize: 12.5,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
   },
 
   photoLabelSmall: {
-    fontSize: 9.5,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
   },
 
   photoHelperLarge: {
-    fontSize: 9.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     textAlign: "center",
     marginTop: 3,
   },
 
   photoHelperSmall: {
-    fontSize: 8,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     textAlign: "center",
     marginTop: 1,
@@ -1062,15 +1062,15 @@ const styles = StyleSheet.create({
   },
 
   privacyTitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary || "#222222",
     marginBottom: 2,
   },
 
   privacyText: {
-    fontSize: 10.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
     lineHeight: 15,
   },
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     color: "#D32F2F",
-    fontSize: 14,
+    fontSize: Fonts.size.md,
   },
 
   /* =====================================================
@@ -1128,8 +1128,8 @@ const styles = StyleSheet.create({
   },
 
   saveButtonText: {
-    fontSize: 15,
-    fontFamily: Fonts?.body?.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white || "#FFFFFF",
     marginRight: 9,
   },
@@ -1141,8 +1141,8 @@ const styles = StyleSheet.create({
   bottomHint: {
     textAlign: "center",
     marginTop: 10,
-    fontSize: 10.5,
-    fontFamily: Fonts?.body?.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted || "#777777",
   },
 });

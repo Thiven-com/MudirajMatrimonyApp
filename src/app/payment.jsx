@@ -18,7 +18,7 @@ import LinearGradient from "react-native-linear-gradient";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 /* =========================================================
    PLAN DATA
@@ -499,17 +499,17 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: FontSizes.welcome,
+    fontSize: Fonts.size.xxl,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.white,
   },
 
   headerSubtitle: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: "#FCE4D6",
 
@@ -523,9 +523,9 @@ const styles = StyleSheet.create({
   },
 
   headerSecureText: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.white,
 
@@ -577,9 +577,9 @@ const styles = StyleSheet.create({
   },
 
   planName: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.primaryRed,
   },
@@ -595,9 +595,9 @@ const styles = StyleSheet.create({
   },
 
   planDuration: {
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textSecondary,
 
@@ -615,9 +615,9 @@ const styles = StyleSheet.create({
   },
 
   planBadgeText: {
-    fontSize: 10.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: "#7A5B00",
   },
@@ -629,17 +629,17 @@ const styles = StyleSheet.create({
   },
 
   planPrice: {
-    fontSize: 16,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.primaryRed,
   },
 
   planOriginalPrice: {
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -665,17 +665,17 @@ const styles = StyleSheet.create({
   },
 
   planDiscountPercent: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.primaryRed,
   },
 
   planDiscountLabel: {
-    fontSize: 10.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.primaryRed,
   },
@@ -685,9 +685,9 @@ const styles = StyleSheet.create({
   ===================================================== */
 
   sectionHeading: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.textPrimary,
 
@@ -751,17 +751,17 @@ const styles = StyleSheet.create({
   },
 
   methodLabel: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.textPrimary,
   },
 
   methodSubtitle: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -781,9 +781,9 @@ const styles = StyleSheet.create({
   },
 
   recommendedPillText: {
-    fontSize: 10.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: "#1F7A3D",
   },
@@ -843,9 +843,9 @@ const styles = StyleSheet.create({
   },
 
   summaryLabel: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textSecondary,
 
@@ -853,9 +853,9 @@ const styles = StyleSheet.create({
   },
 
   summaryValue: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.textPrimary,
 
@@ -867,9 +867,9 @@ const styles = StyleSheet.create({
   },
 
   summaryStrikeValue: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -877,17 +877,17 @@ const styles = StyleSheet.create({
   },
 
   summaryDiscountLabel: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: "#1F7A3D",
   },
 
   summaryDiscountValue: {
-    fontSize: 12.5,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: "#1F7A3D",
   },
@@ -903,17 +903,17 @@ const styles = StyleSheet.create({
   },
 
   summaryTotalLabel: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.textPrimary,
   },
 
   summaryTotalValue: {
-    fontSize: 17,
+    fontSize: Fonts.size.lg,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.primaryRed,
   },
@@ -943,9 +943,9 @@ const styles = StyleSheet.create({
   },
 
   trustTitle: {
-    fontSize: 11.5,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
 
     color: Colors.textPrimary,
 
@@ -955,9 +955,9 @@ const styles = StyleSheet.create({
   },
 
   trustSubtitle: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -999,9 +999,9 @@ const styles = StyleSheet.create({
   },
 
   payButtonText: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
 
-    fontFamily: Fonts.display.bold,
+    fontFamily: Fonts.extraBold,
 
     color: Colors.white,
 
@@ -1021,9 +1021,9 @@ const styles = StyleSheet.create({
   },
 
   termsText: {
-    fontSize: 11,
+    fontSize: Fonts.size.sm,
 
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
 
     color: Colors.textMuted,
 
@@ -1035,6 +1035,6 @@ const styles = StyleSheet.create({
   termsLink: {
     color: Colors.primaryRed,
 
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
   },
 });

@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -763,7 +764,9 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
 
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
 
     color: "#777777",
   },
@@ -850,9 +853,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
 
-    fontSize: 17,
+    fontSize: Fonts.size.lg,
 
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#222222",
   },
@@ -900,7 +903,9 @@ const styles = StyleSheet.create({
 
     marginLeft: 8,
 
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
+
+    fontFamily: Fonts.regular,
 
     lineHeight: 17,
 
@@ -912,7 +917,9 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   description: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
 
     lineHeight: 20,
 
@@ -952,9 +959,9 @@ const styles = StyleSheet.create({
   },
 
   fieldLabel: {
-    fontSize: 14,
+    fontSize: Fonts.size.md,
 
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#333333",
   },
@@ -994,7 +1001,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
 
-    fontSize: 14,
+    fontSize: Fonts.size.md,
+
+    fontFamily: Fonts.regular,
 
     lineHeight: 18,
 
@@ -1053,9 +1062,9 @@ const styles = StyleSheet.create({
   saveText: {
     marginLeft: 8,
 
-    fontSize: 14,
+    fontSize: Fonts.size.md,
 
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#FFFFFF",
   },
@@ -1075,9 +1084,9 @@ const styles = StyleSheet.create({
   },
 
   cancelText: {
-    fontSize: 13,
+    fontSize: Fonts.size.sm,
 
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
 
     color: "#777777",
   },

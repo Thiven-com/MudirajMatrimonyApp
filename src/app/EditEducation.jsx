@@ -17,6 +17,7 @@ import {
 import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Fonts from "../constants/Fonts";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -863,10 +864,9 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   headerTitle: {
-    fontSize: 20,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.xl,
     lineHeight: 15,
-
-    fontWeight: "700",
 
     color: "#171717",
 
@@ -921,13 +921,12 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   label: {
-    fontSize: 18,
+    fontFamily: Fonts.medium,
+    fontSize: Fonts.size.lg,
 
     lineHeight: 11,
 
     color: "#4B5563",
-
-    fontWeight: "500",
 
     marginBottom: 18,
 
@@ -958,7 +957,8 @@ const styles = StyleSheet.create({
 
     paddingVertical: 0,
 
-    fontSize: 15,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
 
     color: "#374151",
 
@@ -1015,7 +1015,8 @@ const styles = StyleSheet.create({
 
     paddingVertical: 0,
 
-    fontSize: 13,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
 
     color: "#374151",
 
@@ -1081,7 +1082,8 @@ const styles = StyleSheet.create({
   },
 
   radioText: {
-    fontSize: 15,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
 
     color: "#4B5563",
 
@@ -1120,9 +1122,8 @@ const styles = StyleSheet.create({
   },
 
   cancelText: {
-    fontSize: 15,
-
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
 
     color: "#EF233C",
 
@@ -1151,9 +1152,8 @@ const styles = StyleSheet.create({
   },
 
   saveText: {
-    fontSize: 15,
-
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
 
     color: "#FFFFFF",
 
@@ -1176,7 +1176,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
 
-    fontSize: 9,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.xs,
 
     color: "#737B87",
 

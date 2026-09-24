@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
@@ -15,7 +14,7 @@ import {
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
 
 const FALLBACK_PHOTO = require("../../assets/images/Match5.png");
@@ -184,7 +183,7 @@ export default function ShortlistedProfilesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
 
       {/* ================= HEADER ================= */}
@@ -380,7 +379,7 @@ const styles = StyleSheet.create({
   },
   centerStateText: {
     marginTop: 12,
-    fontSize: 14,
+    fontSize: Fonts.size.md,
     color: Colors.textSecondary,
   },
 
@@ -404,13 +403,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: FontSizes.welcome + 4,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.white,
   },
   headerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: "#FBDCDC",
     marginTop: 2,
   },
@@ -443,13 +442,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerTitle: {
-    fontSize: 15.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRedDark,
   },
   bannerSubtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -460,8 +459,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   bannerCountText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRedDark,
   },
 
@@ -478,13 +477,13 @@ const styles = StyleSheet.create({
   },
   errorBannerText: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
     color: Colors.primaryRed,
-    fontFamily: Fonts.body.regular,
+    fontFamily: Fonts.regular,
   },
   retryLink: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
     textDecorationLine: "underline",
   },
@@ -539,8 +538,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   name: {
-    fontSize: 15.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
     flexShrink: 1,
   },
@@ -548,8 +547,8 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   metaText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 3,
   },
@@ -570,8 +569,8 @@ const styles = StyleSheet.create({
     maxWidth: 130,
   },
   tagText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.semiBold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.semiBold,
     color: Colors.primaryRedDark,
     flexShrink: 1,
   },
@@ -599,8 +598,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   removeText: {
-    fontSize: 11,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
 
@@ -620,14 +619,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   footerTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
     textAlign: "center",
   },
   footerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     textAlign: "center",
     marginTop: 6,
@@ -644,8 +643,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exploreButtonText: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 });

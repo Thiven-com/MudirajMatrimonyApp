@@ -12,10 +12,11 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import Feather from "react-native-vector-icons/Feather";
 
+import Fonts from "../constants/Fonts";
 import { addMemberCareer } from "../utils/Functions";
 
 const COLORS = {
@@ -169,13 +170,13 @@ export default function AddCareer() {
             activeOpacity={0.7}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={15} color={COLORS.red} />
+            <Feather name="chevron-left" size={16} color={COLORS.red} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Add Career</Text>
 
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Ionicons name="ellipsis-vertical" size={14} color={COLORS.red} />
+            <Feather name="more-vertical" size={16} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
@@ -248,7 +249,7 @@ export default function AddCareer() {
                 >
                   <Text style={styles.selectText}>{startYear}</Text>
 
-                  <Ionicons name="chevron-down" size={9} color="#888888" />
+                  <Feather name="chevron-down" size={11} color="#888888" />
                 </TouchableOpacity>
               </View>
 
@@ -263,7 +264,7 @@ export default function AddCareer() {
                 >
                   <Text style={styles.selectText}>{endYear}</Text>
 
-                  <Ionicons name="chevron-down" size={9} color="#888888" />
+                  <Feather name="chevron-down" size={11} color="#888888" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -282,7 +283,7 @@ export default function AddCareer() {
                 onPress={() => setCurrentlyWorking(!currentlyWorking)}
               >
                 {currentlyWorking && (
-                  <Ionicons name="checkmark" size={8} color="#FFFFFF" />
+                  <Feather name="check" size={10} color="#FFFFFF" />
                 )}
               </TouchableOpacity>
 
@@ -460,7 +461,7 @@ const styles = StyleSheet.create({
 
     lineHeight: 12,
 
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
 
     color: "#222222",
 
@@ -556,7 +557,7 @@ const styles = StyleSheet.create({
 
     lineHeight: 9,
 
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#555555",
 
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
 
     fontSize: 9.5,
 
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 
   /* =====================================================
@@ -583,6 +584,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   input: {
+    fontFamily: Fonts.regular,
     width: "100%",
 
     height: 24,
@@ -639,6 +641,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   selectText: {
+    fontFamily: Fonts.regular,
     flex: 1,
 
     fontSize: 13,
@@ -709,6 +712,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   currentlyWorkingText: {
+    fontFamily: Fonts.regular,
     fontSize: 12,
 
     lineHeight: 7,
@@ -733,6 +737,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   fullInput: {
+    fontFamily: Fonts.regular,
     width: "100%",
 
     height: 34,
@@ -773,6 +778,7 @@ const styles = StyleSheet.create({
     ===================================================== */
 
   descriptionInput: {
+    fontFamily: Fonts.regular,
     width: "100%",
 
     height: 59,
@@ -845,7 +851,7 @@ const styles = StyleSheet.create({
 
     lineHeight: 9,
 
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#B94A55",
 
@@ -879,7 +885,7 @@ const styles = StyleSheet.create({
 
     lineHeight: 9,
 
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
 
     color: "#FFFFFF",
 

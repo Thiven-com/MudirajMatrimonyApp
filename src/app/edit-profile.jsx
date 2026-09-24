@@ -1,6 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
 import {
   BackHandler,
@@ -8,6 +6,7 @@ import {
   Image,
   Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,8 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 
@@ -34,49 +34,49 @@ const INITIAL_PHOTOS = [
 
 const INITIAL_BASIC_INFO = [
   {
-    icon: "person-outline",
+    icon: "user",
     iconBg: "#FDEAE0",
     label: "Full Name",
     value: "Priya Sharma",
   },
   {
-    icon: "person-circle-outline",
+    icon: "user",
     iconBg: "#EDE7F6",
     label: "Profile Created By",
     value: "Self",
   },
   {
-    icon: "calendar-outline",
+    icon: "calendar",
     iconBg: "#FDEAE0",
     label: "Date of Birth",
     value: "15 Mar 1999",
   },
   {
-    icon: "time-outline",
+    icon: "clock",
     iconBg: "#FFF6DC",
     label: "Time of Birth",
     value: "10:30 AM",
   },
   {
-    icon: "female-outline",
+    icon: "user",
     iconBg: "#FCE4EC",
     label: "Gender",
     value: "Female",
   },
   {
-    icon: "resize-outline",
+    icon: "maximize-2",
     iconBg: "#E3F2FD",
     label: "Height",
     value: "5'4\" (162 cm)",
   },
   {
-    icon: "heart-outline",
+    icon: "heart",
     iconBg: "#FCE4EC",
     label: "Marital Status",
     value: "Never Married",
   },
   {
-    icon: "globe-outline",
+    icon: "globe",
     iconBg: "#E3F2FD",
     label: "Mother Tongue",
     value: "Telugu",
@@ -85,13 +85,13 @@ const INITIAL_BASIC_INFO = [
 
 const INITIAL_LOCATION_INFO = [
   {
-    icon: "location-outline",
+    icon: "map-pin",
     iconBg: "#E8F5E9",
     label: "Living in",
     value: "Hyderabad, Telangana, India",
   },
   {
-    icon: "people-outline",
+    icon: "users",
     iconBg: "#FFF6DC",
     label: "Community",
     value: "Mudhiraj",
@@ -100,13 +100,13 @@ const INITIAL_LOCATION_INFO = [
 
 const INITIAL_EDUCATION_INFO = [
   {
-    icon: "school-outline",
+    icon: "book-open",
     iconBg: "#E3F2FD",
     label: "Education",
     value: "B.E / B.Tech",
   },
   {
-    icon: "briefcase-outline",
+    icon: "briefcase",
     iconBg: "#E3F2FD",
     label: "Profession",
     value: "Software Engineer",
@@ -115,15 +115,15 @@ const INITIAL_EDUCATION_INFO = [
 
 const INITIAL_LIFESTYLE_INFO = [
   {
-    icon: "leaf-outline",
+    icon: "feather",
     iconBg: "#E8F5E9",
     label: "Diet",
     value: "Vegetarian",
   },
-  { icon: "ban-outline", iconBg: "#FDEAE0", label: "Smoke", value: "No" },
-  { icon: "ban-outline", iconBg: "#FDEAE0", label: "Drink", value: "No" },
+  { icon: "slash", iconBg: "#FDEAE0", label: "Smoke", value: "No" },
+  { icon: "slash", iconBg: "#FDEAE0", label: "Drink", value: "No" },
   {
-    icon: "body-outline",
+    icon: "user",
     iconBg: "#E3F2FD",
     label: "Body Type",
     value: "Slim",
@@ -327,10 +327,7 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
       {/* ================= HEADER — back button only, luxury look ================= */}
@@ -343,7 +340,7 @@ export default function EditProfileScreen() {
             activeOpacity={0.75}
           >
             <View style={styles.backButtonCircle}>
-              <Ionicons name="arrow-back" size={20} color={Colors.primaryRed} />
+              <Feather name="arrow-left" size={20} color={Colors.primaryRed} />
             </View>
           </TouchableOpacity>
 
@@ -373,13 +370,9 @@ export default function EditProfileScreen() {
         {/* ================= PAGE TITLE ================= */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconWrapper}>
-            <Ionicons
-              name="person-outline"
-              size={26}
-              color={Colors.primaryRed}
-            />
-            <Ionicons
-              name="pencil"
+            <Ionicons name="user" size={26} color={Colors.primaryRed} />
+            <Feather
+              name="edit-2"
               size={13}
               color={Colors.primaryRed}
               style={styles.titleIconPencil}
@@ -417,7 +410,7 @@ export default function EditProfileScreen() {
                 />
                 {photo.isPrimary ? (
                   <View style={styles.primaryBadge}>
-                    <Ionicons
+                    <Feather
                       name="star"
                       size={10}
                       color={Colors.white}
@@ -431,7 +424,7 @@ export default function EditProfileScreen() {
                     onPress={() => removePhoto(photo.id)}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
-                    <Ionicons name="close" size={13} color={Colors.white} />
+                    <Feather name="x" size={13} color={Colors.white} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -439,18 +432,14 @@ export default function EditProfileScreen() {
 
             <TouchableOpacity style={styles.addPhotoTile} activeOpacity={0.7}>
               <View style={styles.addPhotoIconCircle}>
-                <Ionicons name="add" size={22} color={Colors.primaryRed} />
+                <Feather name="plus" size={22} color={Colors.primaryRed} />
               </View>
               <Text style={styles.addPhotoText}>Add Photo</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.tipBanner}>
-            <Ionicons
-              name="bulb-outline"
-              size={15}
-              color={Colors.primaryRedDark}
-            />
+            <Feather name="sun" size={15} color={Colors.primaryRedDark} />
             <Text style={styles.tipText}>
               Add at least 4 photos for better visibility
             </Text>
@@ -485,8 +474,8 @@ export default function EditProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons
-                name="pencil-outline"
+              <Feather
+                name="edit-3"
                 size={17}
                 color={Colors.primaryRed}
                 style={{ marginRight: 8 }}
@@ -494,7 +483,7 @@ export default function EditProfileScreen() {
               <Text style={styles.sectionTitle}>About Me</Text>
             </View>
             <TouchableOpacity style={styles.editRow} onPress={openAboutEditor}>
-              <Ionicons name="pencil" size={13} color={Colors.primaryRed} />
+              <Feather name="edit-2" size={13} color={Colors.primaryRed} />
               <Text style={styles.sectionLink}> Edit</Text>
             </TouchableOpacity>
           </View>
@@ -555,8 +544,8 @@ export default function EditProfileScreen() {
           activeOpacity={0.85}
           onPress={handleSave}
         >
-          <Ionicons
-            name="save-outline"
+          <Feather
+            name="save"
             size={19}
             color={Colors.white}
             style={{ marginRight: 8 }}
@@ -587,7 +576,7 @@ export default function EditProfileScreen() {
                 onPress={closeEditor}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={22} color={Colors.textSecondary} />
+                <Feather name="x" size={22} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -659,7 +648,7 @@ function InfoSection({ title, onEdit, children }) {
           onPress={onEdit}
           activeOpacity={0.7}
         >
-          <Ionicons name="pencil" size={13} color={Colors.primaryRed} />
+          <Feather name="edit-2" size={13} color={Colors.primaryRed} />
           <Text style={styles.sectionLink}> Edit</Text>
         </TouchableOpacity>
       </View>
@@ -676,7 +665,7 @@ function InfoGrid({ items }) {
           <View
             style={[styles.infoIconCircle, { backgroundColor: item.iconBg }]}
           >
-            <Ionicons name={item.icon} size={16} color={Colors.textSecondary} />
+            <Feather name={item.icon} size={16} color={Colors.textSecondary} />
           </View>
           <View style={styles.infoTextBlock}>
             <Text style={styles.infoLabel}>{item.label}</Text>

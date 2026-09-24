@@ -17,6 +17,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 
+// NOTE: adjust this path to wherever your Fonts file lives.
+import Fonts from "../../constants/Fonts";
+
 import {
   getBannerData,
   getBlogsData,
@@ -581,9 +584,9 @@ export default function HomeScreen() {
       >
         {/* ================= HEADER ================= */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
+          {/*<TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
             <Feather name="menu" size={28} color={COLORS.red} />
-          </TouchableOpacity>
+          </TouchableOpacity>*/}
 
           <View style={styles.headerCenter}>
             <View style={styles.logoRow}>
@@ -1273,7 +1276,7 @@ const styles = StyleSheet.create({
   brandName: {
     color: COLORS.red,
     fontSize: width < 380 ? 22 : 25,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     letterSpacing: 0.5,
   },
   brandDividerRow: {
@@ -1290,14 +1293,14 @@ const styles = StyleSheet.create({
   brandMatrimony: {
     color: COLORS.text,
     fontSize: width < 380 ? 12 : 14,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     letterSpacing: 1.5,
     marginHorizontal: 3,
   },
   tagline: {
     color: COLORS.red,
     fontSize: 10,
-    fontWeight: "600",
+    fontFamily: Fonts.bold,
     marginTop: 3,
     textAlign: "center",
   },
@@ -1328,7 +1331,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     color: COLORS.white,
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   heroCard: {
@@ -1371,8 +1374,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitleRow: { flexDirection: "row", alignItems: "center" },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: "900" },
-  seeAll: { color: COLORS.red, fontSize: 13, fontWeight: "800" },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontFamily: Fonts.extraBold,
+  },
+  seeAll: { color: COLORS.red, fontSize: 13, fontFamily: Fonts.bold },
 
   matchesContainer: { paddingBottom: 18, paddingRight: 10 },
   matchCard: {
@@ -1407,22 +1414,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  newBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: "800" },
+  newBadgeText: { color: COLORS.white, fontSize: 10, fontFamily: Fonts.bold },
   matchInfo: { paddingHorizontal: 11, paddingTop: 17, paddingBottom: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   matchName: {
     color: COLORS.text,
     fontSize: 16,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginRight: 4,
     maxWidth: "88%",
   },
-  profession: { color: COLORS.gray, fontSize: 12, marginBottom: 7 },
+  profession: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    marginBottom: 7,
+  },
   detailRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   detailText: {
     flexShrink: 1,
     color: COLORS.gray,
     fontSize: 10.5,
+    fontFamily: Fonts.regular,
     marginLeft: 4,
   },
 
@@ -1468,17 +1481,17 @@ const styles = StyleSheet.create({
   premiumMemberName: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginBottom: 4,
   },
   premiumMemberId: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 11,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
   premiumMemberIdBold: {
     color: COLORS.white,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
 
   premiumBanner: {
@@ -1507,10 +1520,15 @@ const styles = StyleSheet.create({
   premiumTitle: {
     color: COLORS.darkRed,
     fontSize: width < 400 ? 13 : 14,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginBottom: 3,
   },
-  premiumSubtitle: { color: COLORS.text, fontSize: 10.5, lineHeight: 15 },
+  premiumSubtitle: {
+    color: COLORS.text,
+    fontSize: 10.5,
+    fontFamily: Fonts.regular,
+    lineHeight: 15,
+  },
   upgradeNowButton: {
     minWidth: 95,
     height: 43,
@@ -1524,7 +1542,7 @@ const styles = StyleSheet.create({
   upgradeNowText: {
     color: COLORS.white,
     fontSize: 11.5,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginRight: 2,
   },
 
@@ -1538,7 +1556,7 @@ const styles = StyleSheet.create({
   whyTitle: {
     color: COLORS.text,
     fontSize: width < 400 ? 15 : 17,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginHorizontal: 9,
     textAlign: "center",
   },
@@ -1565,7 +1583,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1,
   },
-  stepNumberText: { color: COLORS.white, fontSize: 9, fontWeight: "900" },
+  stepNumberText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontFamily: Fonts.extraBold,
+  },
   stepIconCircle: {
     width: 52,
     height: 52,
@@ -1580,13 +1602,14 @@ const styles = StyleSheet.create({
   stepTitle: {
     color: COLORS.text,
     fontSize: 11.5,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     textAlign: "center",
     marginBottom: 3,
   },
   stepDescription: {
     color: COLORS.gray,
     fontSize: 9.5,
+    fontFamily: Fonts.regular,
     textAlign: "center",
     lineHeight: 13,
   },
@@ -1625,12 +1648,13 @@ const styles = StyleSheet.create({
   whyCardTitle: {
     color: COLORS.text,
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     textAlign: "center",
   },
   whyCardSubtitle: {
     color: COLORS.gray,
     fontSize: 9.5,
+    fontFamily: Fonts.regular,
     textAlign: "center",
     marginTop: 2,
   },
@@ -1667,11 +1691,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  packageBadgeText: { color: COLORS.white, fontSize: 9, fontWeight: "800" },
+  packageBadgeText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+  },
   packageName: {
     color: COLORS.text,
     fontSize: 17,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginTop: 6,
     marginBottom: 4,
   },
@@ -1680,8 +1708,17 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 12,
   },
-  packagePrice: { color: COLORS.red, fontSize: 22, fontWeight: "900" },
-  packageDuration: { color: COLORS.gray, fontSize: 12, marginLeft: 4 },
+  packagePrice: {
+    color: COLORS.red,
+    fontSize: 22,
+    fontFamily: Fonts.extraBold,
+  },
+  packageDuration: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    marginLeft: 4,
+  },
   packageFeaturesList: { marginBottom: 14 },
   packageFeatureRow: {
     flexDirection: "row",
@@ -1693,6 +1730,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: COLORS.text,
     fontSize: 11.5,
+    fontFamily: Fonts.regular,
     lineHeight: 15,
   },
   packageCTAButton: {
@@ -1702,7 +1740,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  packageCTAText: { color: COLORS.white, fontSize: 13, fontWeight: "800" },
+  packageCTAText: { color: COLORS.white, fontSize: 13, fontFamily: Fonts.bold },
 
   /* ---------- Happy Story Card ---------- */
   storyCard: {
@@ -1724,6 +1762,7 @@ const styles = StyleSheet.create({
   storyText: {
     color: COLORS.text,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     lineHeight: 17,
     marginBottom: 10,
   },
@@ -1735,7 +1774,7 @@ const styles = StyleSheet.create({
   storyCoupleName: {
     color: COLORS.darkRed,
     fontSize: 12.5,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     flexShrink: 1,
     marginRight: 6,
   },
@@ -1745,7 +1784,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  storyDateText: { color: COLORS.red, fontSize: 10, fontWeight: "700" },
+  storyDateText: { color: COLORS.red, fontSize: 10, fontFamily: Fonts.bold },
 
   /* ---------- Blog Card ---------- */
   blogCard: {
@@ -1772,22 +1811,27 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     marginBottom: 6,
   },
-  blogCategoryText: { color: COLORS.darkRed, fontSize: 9.5, fontWeight: "800" },
+  blogCategoryText: {
+    color: COLORS.darkRed,
+    fontSize: 9.5,
+    fontFamily: Fonts.bold,
+  },
   blogTitle: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginBottom: 5,
     lineHeight: 17,
   },
   blogExcerpt: {
     color: COLORS.gray,
     fontSize: 10.5,
+    fontFamily: Fonts.regular,
     lineHeight: 14,
     marginBottom: 8,
   },
   blogMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  blogMetaText: { color: COLORS.gray, fontSize: 10, fontWeight: "600" },
+  blogMetaText: { color: COLORS.gray, fontSize: 10, fontFamily: Fonts.bold },
 
   /* ---------- Review Card ---------- */
   reviewCard: {
@@ -1814,9 +1858,14 @@ const styles = StyleSheet.create({
   reviewName: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
     marginBottom: 3,
   },
   starRow: { flexDirection: "row", gap: 2 },
-  reviewComment: { color: COLORS.gray, fontSize: 11.5, lineHeight: 16 },
+  reviewComment: {
+    color: COLORS.gray,
+    fontSize: 11.5,
+    fontFamily: Fonts.regular,
+    lineHeight: 16,
+  },
 });

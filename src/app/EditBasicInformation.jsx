@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { launchImageLibrary } from "react-native-image-picker";
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import BASE_URL from "../constants/AppUrls";
 import * as Api from "../utils/Functions";
@@ -920,7 +921,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   backButton: { padding: 8 },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: COLORS.black },
+  headerTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.base,
+    color: COLORS.black,
+  },
   menuButton: { padding: 8 },
   card: {
     flex: 1,
@@ -931,7 +936,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loaderText: { marginTop: 10, color: COLORS.gray, fontSize: 13 },
+  loaderText: {
+    marginTop: 10,
+    color: COLORS.gray,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+  },
   scrollContent: { paddingBottom: 20 },
   photoSection: { alignItems: "center", marginBottom: 20 },
   photoContainer: {
@@ -956,19 +966,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
   },
-  uploadBtnText: { color: COLORS.black, fontSize: 12, fontWeight: "600" },
+  uploadBtnText: {
+    color: COLORS.black,
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.sm,
+  },
   removeBtn: {
     backgroundColor: "#FFF0F0",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
-  removeBtnText: { color: COLORS.red, fontSize: 12, fontWeight: "600" },
+  removeBtnText: {
+    color: COLORS.red,
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.sm,
+  },
   fieldContainer: { marginBottom: 16 },
   label: {
-    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.md,
     color: COLORS.black,
-    fontWeight: "600",
     marginBottom: 6,
   },
   required: { color: COLORS.red },
@@ -978,7 +996,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
     color: COLORS.black,
   },
   genderRow: { flexDirection: "row", justifyContent: "space-between" },
@@ -1000,7 +1019,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: COLORS.red,
   },
-  radioText: { fontSize: 14, color: COLORS.text },
+  radioText: {
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+    color: COLORS.text,
+  },
   pickerTrigger: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1011,8 +1034,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  pickerValue: { fontSize: 14, color: COLORS.black },
-  pickerPlaceholder: { fontSize: 14, color: COLORS.placeholder },
+  pickerValue: {
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+    color: COLORS.black,
+  },
+  pickerPlaceholder: {
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+    color: COLORS.placeholder,
+  },
   saveButton: {
     backgroundColor: COLORS.red,
     borderRadius: 8,
@@ -1021,7 +1052,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
+  saveButtonText: {
+    color: COLORS.white,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -1030,8 +1065,8 @@ const styles = StyleSheet.create({
   },
   modalCard: { backgroundColor: COLORS.white, borderRadius: 12, padding: 20 },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.base,
     marginBottom: 15,
     color: COLORS.black,
   },
@@ -1043,6 +1078,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  modalOptionText: { fontSize: 14, color: COLORS.text },
-  modalOptionTextSelected: { fontWeight: "700", color: COLORS.red },
+  modalOptionText: {
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+    color: COLORS.text,
+  },
+  modalOptionTextSelected: { fontFamily: Fonts.bold, color: COLORS.red },
 });

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 const LOGO = require("../../assets/images/logo.png");
 
@@ -117,10 +117,7 @@ export default function SubscriptionPlansScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "left", "right", "bottom"]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -356,13 +353,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    fontSize: FontSizes.welcome + 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.xxl,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRedDark,
   },
   subtitleText: {
-    fontSize: FontSizes.subtitle + 1,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
   },
@@ -394,15 +391,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   featureTitle: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
     textAlign: "center",
     marginBottom: 2,
   },
   featureDesc: {
-    fontSize: 9,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     textAlign: "center",
     lineHeight: 12,
@@ -416,8 +413,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionHeading: {
-    fontSize: FontSizes.welcome - 2,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
   },
 
@@ -452,8 +449,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   popularBadgeText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   radioOuter: {
@@ -481,19 +478,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   planName: {
-    fontSize: 18,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
   },
   planTag: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.success,
     marginTop: 2,
   },
   planDesc: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 6,
   },
@@ -508,18 +505,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   saveBadgeText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   planPrice: {
-    fontSize: 18,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.primaryRed,
   },
   planPriceOriginal: {
-    fontSize: 11,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     textDecorationLine: "line-through",
     marginTop: 2,
@@ -532,8 +529,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   pricePerMonthText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.medium,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.medium,
     color: Colors.gold,
   },
 
@@ -552,8 +549,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   tableHeaderText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
   },
   tableColFeature: {
@@ -587,14 +584,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tableFeatureLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     flexShrink: 1,
   },
   tableFreeText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
   },
 
@@ -622,13 +619,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   secureTitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
   },
   secureSubtitle: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 2,
   },
@@ -645,8 +642,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   upgradeButtonText: {
-    fontSize: 16,
-    fontFamily: Fonts.body.bold,
+    fontSize: Fonts.size.base,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
 
@@ -666,8 +663,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   guaranteeText: {
-    fontSize: 12,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
   },
 });

@@ -13,10 +13,11 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { Ionicons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
+import Fonts from "../constants/Fonts";
 import { deleteMemberCareerById, getMemberCareer } from "../utils/Functions";
 
 // =========================================================
@@ -669,7 +670,7 @@ export default function CareerInformation() {
         {/* CAREER ICON */}
 
         <View style={styles.briefcaseCircle}>
-          <Ionicons name="briefcase-outline" size={20} color={COLORS.red} />
+          <Feather name="briefcase" size={20} color={COLORS.red} />
         </View>
 
         {/* DETAILS */}
@@ -712,7 +713,7 @@ export default function CareerInformation() {
               });
             }}
           >
-            <Ionicons name="pencil-outline" size={15} color="#444444" />
+            <Feather name="edit-2" size={15} color="#444444" />
           </TouchableOpacity>
 
           {/* DELETE */}
@@ -723,7 +724,7 @@ export default function CareerInformation() {
             disabled={deleting}
             onPress={() => handleDeleteCareer(career)}
           >
-            <Ionicons name="trash-outline" size={17} color={COLORS.red} />
+            <Feather name="trash-2" size={17} color={COLORS.red} />
           </TouchableOpacity>
         </View>
       </View>
@@ -749,7 +750,7 @@ export default function CareerInformation() {
             activeOpacity={0.7}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={19} color={COLORS.red} />
+            <Feather name="chevron-left" size={19} color={COLORS.red} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Career Information</Text>
@@ -759,7 +760,7 @@ export default function CareerInformation() {
             activeOpacity={0.7}
             onPress={handleRefresh}
           >
-            <Ionicons name="ellipsis-vertical" size={18} color={COLORS.red} />
+            <Feather name="more-vertical" size={18} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
@@ -776,11 +777,7 @@ export default function CareerInformation() {
 
               <View style={styles.addCareerSection}>
                 <View style={styles.addIconCircle}>
-                  <Ionicons
-                    name="briefcase-outline"
-                    size={24}
-                    color={COLORS.red}
-                  />
+                  <Feather name="briefcase" size={24} color={COLORS.red} />
                 </View>
 
                 <Text style={styles.addCareerTitle}>
@@ -798,7 +795,7 @@ export default function CareerInformation() {
                   activeOpacity={0.85}
                   onPress={handleAddCareer}
                 >
-                  <Ionicons name="add" size={18} color={COLORS.white} />
+                  <Feather name="plus" size={18} color={COLORS.white} />
 
                   <Text style={styles.addButtonText}>Add Career</Text>
                 </TouchableOpacity>
@@ -827,7 +824,7 @@ export default function CareerInformation() {
                 activeOpacity={0.85}
                 onPress={handleAddCareer}
               >
-                <Ionicons name="add" size={18} color={COLORS.white} />
+                <Feather name="plus" size={18} color={COLORS.white} />
 
                 <Text style={styles.addButtonText}>Add Career</Text>
               </TouchableOpacity>
@@ -849,7 +846,7 @@ export default function CareerInformation() {
         <View style={styles.modalOverlay}>
           <View style={styles.confirmModal}>
             <View style={styles.confirmIconCircle}>
-              <Ionicons name="trash-outline" size={28} color={COLORS.red} />
+              <Feather name="trash-2" size={28} color={COLORS.red} />
             </View>
 
             <Text style={styles.modalTitle}>Delete Career</Text>
@@ -874,7 +871,7 @@ export default function CareerInformation() {
                 onPress={confirmDelete}
                 disabled={deleting}
               >
-                <Ionicons name="trash-outline" size={16} color={COLORS.white} />
+                <Feather name="trash-2" size={16} color={COLORS.white} />
 
                 <Text style={styles.confirmDeleteText}>
                   {deleting ? "Deleting..." : "Delete"}
@@ -905,8 +902,8 @@ export default function CareerInformation() {
                   : styles.successIconCircle,
               ]}
             >
-              <Ionicons
-                name={alertType === "error" ? "close" : "checkmark"}
+              <Feather
+                name={alertType === "error" ? "x" : "check"}
                 size={30}
                 color={COLORS.white}
               />
@@ -987,7 +984,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     lineHeight: 22,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     includeFontPadding: false,
     textAlign: "center",
@@ -1059,13 +1056,14 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     lineHeight: 21,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
     color: COLORS.text,
     marginBottom: 2,
     includeFontPadding: false,
   },
 
   companyName: {
+    fontFamily: Fonts.regular,
     fontSize: 13,
     lineHeight: 16,
     color: COLORS.secondary,
@@ -1074,6 +1072,7 @@ const styles = StyleSheet.create({
   },
 
   duration: {
+    fontFamily: Fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     color: COLORS.lightText,
@@ -1143,7 +1142,7 @@ const styles = StyleSheet.create({
   addCareerTitle: {
     fontSize: 18,
     lineHeight: 21,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     textAlign: "center",
     marginBottom: 4,
@@ -1151,6 +1150,7 @@ const styles = StyleSheet.create({
   },
 
   addCareerDescription: {
+    fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 17,
     color: COLORS.lightText,
@@ -1171,9 +1171,10 @@ const styles = StyleSheet.create({
   },
 
   addButtonText: {
+    fontFamily: Fonts.semiBold,
     fontSize: 16,
     lineHeight: 19,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: COLORS.white,
     marginLeft: 4,
     includeFontPadding: false,
@@ -1216,15 +1217,17 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
+    fontFamily: Fonts.bold,
     fontSize: 20,
     lineHeight: 24,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: "center",
     marginBottom: 8,
   },
 
   modalMessage: {
+    fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     color: COLORS.secondary,
@@ -1251,8 +1254,9 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
+    fontFamily: Fonts.semiBold,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: COLORS.secondary,
   },
 
@@ -1268,8 +1272,9 @@ const styles = StyleSheet.create({
   },
 
   confirmDeleteText: {
+    fontFamily: Fonts.semiBold,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: COLORS.white,
     marginLeft: 5,
   },
@@ -1306,15 +1311,17 @@ const styles = StyleSheet.create({
   },
 
   alertTitle: {
+    fontFamily: Fonts.bold,
     fontSize: 20,
     lineHeight: 24,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: "center",
     marginBottom: 8,
   },
 
   alertMessage: {
+    fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     color: COLORS.secondary,
@@ -1341,8 +1348,9 @@ const styles = StyleSheet.create({
   },
 
   alertOkText: {
+    fontFamily: Fonts.bold,
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: COLORS.white,
   },
 });

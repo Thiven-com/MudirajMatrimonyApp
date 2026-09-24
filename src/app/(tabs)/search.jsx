@@ -21,6 +21,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 
+// NOTE: adjust this path to wherever your Fonts file lives.
+import Fonts from "../../constants/Fonts";
+
 import { postMemberListing } from "../../utils/Functions";
 
 /* ============================================================
@@ -993,7 +996,7 @@ const styles = StyleSheet.create({
 
   mainTitle: {
     fontSize: 34,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
 
     color: "#9E211B",
 
@@ -1004,7 +1007,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
 
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
 
     color: "#5E5753",
   },
@@ -1089,7 +1092,7 @@ const styles = StyleSheet.create({
 
   filtersHeading: {
     fontSize: 25,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
 
     color: "#991D18",
 
@@ -1207,7 +1210,7 @@ const styles = StyleSheet.create({
 
   filterTitle: {
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#3B3633",
 
@@ -1218,7 +1221,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
 
     fontSize: 10,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
 
     color: "#716965",
 
@@ -1255,7 +1258,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
 
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#B11B16",
   },
@@ -1288,7 +1291,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
 
     fontSize: 15,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
 
     color: "#FFFFFF",
   },
@@ -1311,6 +1314,7 @@ const styles = StyleSheet.create({
   searchErrorText: {
     flex: 1,
     fontSize: 12.5,
+    fontFamily: Fonts.regular,
     color: "#B42318",
   },
 
@@ -1356,14 +1360,14 @@ const styles = StyleSheet.create({
 
   recentHeading: {
     fontSize: 15,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
 
     color: "#91221C",
   },
 
   clearAllText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
 
     color: "#A51C17",
 
@@ -1406,7 +1410,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
 
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
 
     color: "#5B5551",
   },
@@ -1455,7 +1459,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     fontSize: 21,
-    fontWeight: "800",
+    fontFamily: Fonts.bold,
 
     color: "#302B29",
   },
@@ -1489,12 +1493,13 @@ const styles = StyleSheet.create({
 
   optionText: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
 
     color: "#514B47",
   },
 
   selectedOptionText: {
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 });

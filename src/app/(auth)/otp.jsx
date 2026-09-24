@@ -124,7 +124,7 @@ export default function OtpScreen() {
       if (result?.userNotFound === true) {
         setErrorText("User account not found. Redirecting to registration...");
         setTimeout(() => {
-          navigation.replace("Register");
+          navigation.replace("register");
         }, 1500);
         return;
       }
@@ -376,7 +376,7 @@ export default function OtpScreen() {
         <TouchableOpacity
           style={styles.whatsappButton}
           activeOpacity={0.8}
-          onPress={() => navigation.replace("Login")}
+          onPress={() => navigation.replace("login")}
         >
           <Feather name="arrow-left" size={18} color={Colors.primaryRed} />
           <Text style={styles.whatsappText}>Back to Login</Text>

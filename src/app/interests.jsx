@@ -17,6 +17,7 @@ import {
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -936,13 +937,14 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: COLORS.white,
-    fontSize: 21,
-    fontWeight: "800",
+    fontSize: Fonts.size.xl,
+    fontFamily: Fonts.extraBold,
   },
 
   headerSubtitle: {
     color: "#FFE5D0",
-    fontSize: 11,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     marginTop: 3,
   },
 
@@ -977,13 +979,13 @@ const styles = StyleSheet.create({
 
   tabText: {
     color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
   },
 
   activeTabText: {
     color: COLORS.primaryRed,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
   },
 
   sectionHeader: {
@@ -997,13 +999,14 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     color: COLORS.text,
-    fontSize: 17,
-    fontWeight: "800",
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
   },
 
   sectionSubtitle: {
     color: COLORS.muted,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     marginTop: 4,
   },
 
@@ -1066,8 +1069,8 @@ const styles = StyleSheet.create({
 
   name: {
     flexShrink: 1,
-    fontSize: 15,
-    fontWeight: "800",
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.extraBold,
     color: COLORS.text,
   },
 
@@ -1080,7 +1083,8 @@ const styles = StyleSheet.create({
 
   infoText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.regular,
     color: COLORS.muted,
   },
 
@@ -1108,8 +1112,8 @@ const styles = StyleSheet.create({
 
   statusText: {
     color: "#9B6A0D",
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
   },
 
   statusBadgeGreen: {
@@ -1149,8 +1153,8 @@ const styles = StyleSheet.create({
 
   rejectText: {
     color: COLORS.primaryRed,
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
   },
 
   acceptButton: {
@@ -1166,8 +1170,8 @@ const styles = StyleSheet.create({
 
   acceptText: {
     color: COLORS.white,
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
   },
 
   sentStatus: {
@@ -1179,8 +1183,8 @@ const styles = StyleSheet.create({
 
   sentStatusText: {
     color: COLORS.gold,
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
   },
 
   shortlistButton: {
@@ -1204,7 +1208,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: COLORS.muted,
-    fontSize: 14,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
   },
 
   errorBox: {
@@ -1221,13 +1226,15 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     color: COLORS.primaryRed,
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
   },
 
   retryText: {
     color: COLORS.primaryRed,
-    fontWeight: "800",
-    fontSize: 12,
+    fontFamily: Fonts.extraBold,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.extraBold,
   },
 
   emptyContainer: {
@@ -1248,14 +1255,15 @@ const styles = StyleSheet.create({
 
   emptyTitle: {
     color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "800",
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     marginTop: 18,
   },
 
   emptyMessage: {
     color: COLORS.muted,
-    fontSize: 13,
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.regular,
     textAlign: "center",
     marginTop: 8,
     lineHeight: 20,
@@ -1271,7 +1279,7 @@ const styles = StyleSheet.create({
 
   exploreButtonText: {
     color: COLORS.white,
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: Fonts.size.sm,
+    fontFamily: Fonts.extraBold,
   },
 });

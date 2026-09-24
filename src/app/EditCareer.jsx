@@ -24,6 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 import Feather from "react-native-vector-icons/Feather";
+import Fonts from "../constants/Fonts";
 
 import {
   getMemberCareerById,
@@ -984,7 +985,8 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: 10,
-    fontSize: 13,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
     color: COLORS.secondary,
   },
 
@@ -1011,8 +1013,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
     marginRight: 8,
-    fontSize: 20,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.xl,
     color: COLORS.text,
   },
 
@@ -1028,8 +1030,8 @@ const styles = StyleSheet.create({
 
   clearButtonText: {
     marginLeft: 6,
-    fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.base,
     color: COLORS.red,
   },
 
@@ -1068,14 +1070,15 @@ const styles = StyleSheet.create({
   },
 
   bannerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.lg,
     color: COLORS.text,
     marginBottom: 4,
   },
 
   bannerSubtitle: {
-    fontSize: 14,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
     color: COLORS.label,
   },
 
@@ -1103,14 +1106,15 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 15,
+    fontFamily: Fonts.medium,
+    fontSize: Fonts.size.md,
     color: COLORS.label,
     marginBottom: 8,
   },
 
   required: {
     color: COLORS.red,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
 
   // ---------- INPUT BOX ----------
@@ -1129,7 +1133,8 @@ const styles = StyleSheet.create({
 
   inputText: {
     flex: 1,
-    fontSize: 17,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.lg,
     color: COLORS.text,
     paddingVertical: 12,
     includeFontPadding: false,
@@ -1158,7 +1163,8 @@ const styles = StyleSheet.create({
   counter: {
     alignSelf: "flex-end",
     marginTop: 8,
-    fontSize: 14,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
     color: COLORS.label,
   },
 
@@ -1189,8 +1195,8 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     marginLeft: 10,
-    fontSize: 18,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.lg,
     color: COLORS.white,
   },
 
@@ -1222,8 +1228,8 @@ const styles = StyleSheet.create({
   },
 
   sheetTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.lg,
     color: COLORS.text,
     marginBottom: 12,
   },
@@ -1241,7 +1247,8 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.base,
     paddingVertical: 10,
     marginLeft: 8,
     color: COLORS.text,
@@ -1257,13 +1264,14 @@ const styles = StyleSheet.create({
   },
 
   optionText: {
-    fontSize: 16,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.base,
     color: COLORS.text,
   },
 
   optionTextSelected: {
     color: COLORS.red,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
 
   emptyText: {
