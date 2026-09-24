@@ -16,12 +16,12 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
 import {
   useFocusEffect,
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -322,7 +322,7 @@ export default function AddEducation() {
       <View style={styles.fieldBlock} key={key}>
         <View style={styles.labelRow}>
           <View style={styles.labelIconCircle}>
-            <Ionicons name={field.icon} size={16} color="#EF233C" />
+            <Feather name={field.icon} size={16} color="#EF233C" />
           </View>
 
           <Text style={styles.fieldLabel}>
@@ -346,7 +346,7 @@ export default function AddEducation() {
             {field.value || `Select ${field.label}`}
           </Text>
 
-          <Ionicons name="chevron-down" size={18} color="#999999" />
+          <Feather name="chevron-down" size={18} color="#999999" />
         </TouchableOpacity>
       </View>
     );
@@ -370,7 +370,7 @@ export default function AddEducation() {
           activeOpacity={0.7}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Feather name="chevron-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
@@ -383,8 +383,8 @@ export default function AddEducation() {
           </Text>
         </View>
 
-        <Ionicons
-          name="flower-outline"
+        <Feather
+          name="sun"
           size={30}
           color="rgba(255,255,255,0.35)"
           style={styles.headerLotus}
@@ -405,7 +405,7 @@ export default function AddEducation() {
 
           <View style={styles.infoBanner}>
             <View style={styles.infoIconCircle}>
-              <Ionicons name="school" size={24} color="#D92332" />
+              <Feather name="book-open" size={24} color="#D92332" />
             </View>
 
             <View style={styles.infoTextWrap}>
@@ -434,11 +434,7 @@ export default function AddEducation() {
                 <View style={styles.fieldBlock}>
                   <View style={styles.labelRow}>
                     <View style={styles.labelIconCircle}>
-                      <Ionicons
-                        name="business-outline"
-                        size={16}
-                        color="#EF233C"
-                      />
+                      <Feather name="briefcase" size={16} color="#EF233C" />
                     </View>
 
                     <Text style={styles.fieldLabel}>
@@ -472,21 +468,17 @@ export default function AddEducation() {
                 onPress={handleSave}
                 disabled={saving}
               >
-                <Ionicons name="save-outline" size={18} color="#FFFFFF" />
+                <Feather name="save" size={18} color="#FFFFFF" />
 
                 <Text style={styles.saveButtonText}>
                   {saving ? "Saving..." : "Save Changes"}
                 </Text>
 
-                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+                <Feather name="chevron-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
 
               <View style={styles.footerRow}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={13}
-                  color="#8A8A8A"
-                />
+                <Feather name="lock" size={13} color="#8A8A8A" />
 
                 <Text style={styles.footerText}>
                   Your information is safe with us
@@ -519,7 +511,7 @@ export default function AddEducation() {
               </Text>
 
               <TouchableOpacity onPress={() => setActiveDropdown(null)}>
-                <Ionicons name="close" size={22} color="#777777" />
+                <Feather name="x" size={22} color="#777777" />
               </TouchableOpacity>
             </View>
 
@@ -546,7 +538,7 @@ export default function AddEducation() {
                   </Text>
 
                   {activeField.value === option ? (
-                    <Ionicons name="checkmark" size={18} color="#D92332" />
+                    <Feather name="check" size={18} color="#D92332" />
                   ) : null}
                 </TouchableOpacity>
               ))}
@@ -596,14 +588,14 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: "#FFFFFF",
-    fontSize: 19,
+    fontSize: Fonts.size.xl,
     fontFamily: Fonts.bold,
     textAlign: "center",
   },
 
   headerSubtitle: {
     color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     marginTop: 2,
     textAlign: "center",
@@ -628,7 +620,7 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: "center",
     marginTop: 40,
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: "#737B87",
   },
@@ -661,14 +653,14 @@ const styles = StyleSheet.create({
 
   infoTitle: {
     color: "#D92332",
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
 
   infoBody: {
     color: "#777777",
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     lineHeight: 18,
   },
@@ -710,7 +702,7 @@ const styles = StyleSheet.create({
 
   fieldLabel: {
     color: "#222222",
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
     flexShrink: 1,
   },
@@ -734,7 +726,7 @@ const styles = StyleSheet.create({
 
   selectValue: {
     color: "#333333",
-    fontSize: 14.5,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     flex: 1,
   },
@@ -747,7 +739,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     color: "#333333",
-    fontSize: 14.5,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
   },
 
@@ -776,7 +768,7 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     fontFamily: Fonts.bold,
     marginHorizontal: 8,
   },
@@ -790,7 +782,7 @@ const styles = StyleSheet.create({
 
   footerText: {
     color: "#8A8A8A",
-    fontSize: 12,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     marginLeft: 6,
   },
@@ -824,7 +816,7 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     fontFamily: Fonts.bold,
     color: "#222222",
     flexShrink: 1,
@@ -845,7 +837,7 @@ const styles = StyleSheet.create({
   },
 
   modalOptionText: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.regular,
     color: "#333333",
   },

@@ -1,5 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -11,8 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
+import Fonts from "../constants/Fonts";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -49,7 +49,7 @@ export default function SelectField({
     if (!searchQuery.trim()) return formattedOptions;
     const query = searchQuery.toLowerCase().trim();
     return formattedOptions.filter((opt) =>
-      opt.label.toLowerCase().includes(query)
+      opt.label.toLowerCase().includes(query),
     );
   }, [formattedOptions, searchQuery]);
 
@@ -75,7 +75,7 @@ export default function SelectField({
         disabled={disabled}
       >
         {icon && (
-          <Ionicons
+          <Feather
             name={icon}
             size={17}
             color={Colors.primaryRed}
@@ -88,7 +88,7 @@ export default function SelectField({
         >
           {value || placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={15} color={Colors.textMuted} />
+        <Feather name="chevron-down" size={15} color={Colors.textMuted} />
       </TouchableOpacity>
 
       {/* Dropdown Options Modal */}
@@ -119,15 +119,15 @@ export default function SelectField({
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={20} color={Colors.textPrimary} />
+                <Feather name="x" size={20} color={Colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             {/* Search Input (for long lists) */}
             {isSearchable && (
               <View style={styles.searchRow}>
-                <Ionicons
-                  name="search-outline"
+                <Feather
+                  name="search"
                   size={18}
                   color={Colors.textMuted}
                   style={styles.searchIcon}
@@ -143,8 +143,8 @@ export default function SelectField({
                 />
                 {searchQuery.length > 0 && Platform.OS !== "ios" && (
                   <TouchableOpacity onPress={() => setSearchQuery("")}>
-                    <Ionicons
-                      name="close-circle"
+                    <Feather
+                      name="x-circle"
                       size={18}
                       color={Colors.textMuted}
                     />
@@ -180,8 +180,8 @@ export default function SelectField({
                       {item.label}
                     </Text>
                     {isSelected ? (
-                      <Ionicons
-                        name="checkmark-circle"
+                      <Feather
+                        name="check-circle"
                         size={20}
                         color={Colors.primaryRed}
                       />
@@ -193,12 +193,10 @@ export default function SelectField({
               }}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Ionicons
-                    name="search-outline"
-                    size={32}
-                    color={Colors.placeholder}
-                  />
-                  <Text style={styles.emptyText}>No matching options found</Text>
+                  <Feather name="search" size={32} color={Colors.placeholder} />
+                  <Text style={styles.emptyText}>
+                    No matching options found
+                  </Text>
                 </View>
               }
             />
@@ -232,13 +230,13 @@ const styles = StyleSheet.create({
   },
   selectText: {
     flex: 1,
-    fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
   },
   selectTextFilled: {
     color: Colors.textPrimary,
-    fontFamily: Fonts.body.medium,
+    fontFamily: Fonts.medium,
   },
 
   /* Modal Styles */
@@ -282,8 +280,8 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   modalTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.display.bold,
+    fontSize: Fonts.size.lg,
+    fontFamily: Fonts.extraBold,
     color: Colors.textPrimary,
     flex: 1,
   },
@@ -307,8 +305,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     ...Platform.select({ web: { outlineStyle: "none" } }),
   },
@@ -329,14 +327,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FDF2F2",
   },
   optionText: {
-    fontSize: 14.5,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textPrimary,
     flex: 1,
     marginRight: 10,
   },
   optionTextSelected: {
-    fontFamily: Fonts.body.bold,
+    fontFamily: Fonts.bold,
     color: Colors.primaryRed,
   },
   radioUnchecked: {
@@ -353,8 +351,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.regular,
+    fontSize: Fonts.size.md,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
 });

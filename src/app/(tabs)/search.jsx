@@ -15,11 +15,11 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
+import LinearGradient from "react-native-linear-gradient";
 
 // NOTE: adjust this path to wherever your Fonts file lives.
 import Fonts from "../../constants/Fonts";
@@ -514,7 +514,6 @@ export default function SearchScreen() {
     title,
     value,
     icon,
-    material = false,
     color = COLORS.orange,
     fullWidth = false,
   }) => {
@@ -535,11 +534,7 @@ export default function SearchScreen() {
               },
             ]}
           >
-            {material ? (
-              <MaterialCommunityIcons name={icon} size={15} color={color} />
-            ) : (
-              <Ionicons name={icon} size={15} color={color} />
-            )}
+            <Feather name={icon} size={15} color={color} />
           </View>
 
           {/* TEXT */}
@@ -555,7 +550,7 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <Ionicons name="chevron-down" size={14} color="#5D5652" />
+        <Feather name="chevron-down" size={14} color="#5D5652" />
       </TouchableOpacity>
     );
   };
@@ -584,7 +579,7 @@ export default function SearchScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={22} color="#B5120D" />
+            <Feather name="arrow-left" size={22} color="#B5120D" />
           </TouchableOpacity>
 
           {/* LOGO */}
@@ -674,8 +669,7 @@ export default function SearchScreen() {
               field="religion"
               title="Religion"
               value={filters.religion}
-              icon="om"
-              material
+              icon="globe"
               color={COLORS.red}
             />
 
@@ -715,8 +709,7 @@ export default function SearchScreen() {
               field="income"
               title="Annual Income"
               value={filters.income}
-              icon="currency-inr"
-              material
+              icon="credit-card"
               color={COLORS.red}
             />
 
@@ -748,7 +741,7 @@ export default function SearchScreen() {
               style={styles.resetButton}
               onPress={resetAll}
             >
-              <Ionicons name="refresh" size={15} color="#B5120D" />
+              <Feather name="refresh-cw" size={15} color="#B5120D" />
 
               <Text style={styles.resetText}>Reset All</Text>
             </TouchableOpacity>
@@ -771,7 +764,7 @@ export default function SearchScreen() {
                 {searching ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="search-outline" size={16} color="#FFFFFF" />
+                  <Feather name="search" size={16} color="#FFFFFF" />
                 )}
 
                 <Text style={styles.viewMatchesText}>
@@ -783,7 +776,7 @@ export default function SearchScreen() {
 
           {!!searchApiError && (
             <View style={styles.searchErrorBanner}>
-              <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+              <Feather name="alert-circle" size={16} color="#B42318" />
               <Text style={styles.searchErrorText}>{searchApiError}</Text>
             </View>
           )}
@@ -822,8 +815,8 @@ export default function SearchScreen() {
                     })
                   }
                 >
-                  <Ionicons
-                    name="time-outline"
+                  <Feather
+                    name="clock"
                     size={15}
                     color="#625B56"
                     style={styles.chipClock}
@@ -846,7 +839,7 @@ export default function SearchScreen() {
                       removeRecentSearch(item);
                     }}
                   >
-                    <Ionicons name="close" size={15} color="#756D68" />
+                    <Feather name="x" size={15} color="#756D68" />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -879,7 +872,7 @@ export default function SearchScreen() {
               <Text style={styles.modalTitle}>Select Option</Text>
 
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={27} color="#333" />
+                <Feather name="x" size={27} color="#333" />
               </TouchableOpacity>
             </View>
 
@@ -904,8 +897,8 @@ export default function SearchScreen() {
                     </Text>
 
                     {filters[activeField] === option && (
-                      <Ionicons
-                        name="checkmark-circle"
+                      <Feather
+                        name="check-circle"
                         size={23}
                         color={COLORS.red}
                       />
@@ -995,7 +988,7 @@ const styles = StyleSheet.create({
   },
 
   mainTitle: {
-    fontSize: 34,
+    fontSize: Fonts.size.title,
     fontFamily: Fonts.bold,
 
     color: "#9E211B",
@@ -1006,7 +999,7 @@ const styles = StyleSheet.create({
   mainSubtitle: {
     marginTop: 2,
 
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.medium,
 
     color: "#5E5753",
@@ -1091,7 +1084,7 @@ const styles = StyleSheet.create({
   /* FILTER HEADING */
 
   filtersHeading: {
-    fontSize: 25,
+    fontSize: Fonts.size.xxl,
     fontFamily: Fonts.bold,
 
     color: "#991D18",
@@ -1209,7 +1202,7 @@ const styles = StyleSheet.create({
   },
 
   filterTitle: {
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
     fontFamily: Fonts.bold,
 
     color: "#3B3633",
@@ -1220,7 +1213,7 @@ const styles = StyleSheet.create({
   filterValue: {
     marginTop: 1,
 
-    fontSize: 10,
+    fontSize: Fonts.size.xs,
     fontFamily: Fonts.medium,
 
     color: "#716965",
@@ -1257,7 +1250,7 @@ const styles = StyleSheet.create({
   resetText: {
     marginLeft: 5,
 
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
 
     color: "#B11B16",
@@ -1290,7 +1283,7 @@ const styles = StyleSheet.create({
   viewMatchesText: {
     marginLeft: 5,
 
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
 
     color: "#FFFFFF",
@@ -1313,7 +1306,7 @@ const styles = StyleSheet.create({
 
   searchErrorText: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: Fonts.size.sm,
     fontFamily: Fonts.regular,
     color: "#B42318",
   },
@@ -1359,14 +1352,14 @@ const styles = StyleSheet.create({
   },
 
   recentHeading: {
-    fontSize: 15,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
 
     color: "#91221C",
   },
 
   clearAllText: {
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
 
     color: "#A51C17",
@@ -1409,7 +1402,7 @@ const styles = StyleSheet.create({
 
     marginRight: 5,
 
-    fontSize: 13,
+    fontSize: Fonts.size.md,
     fontFamily: Fonts.medium,
 
     color: "#5B5551",
@@ -1458,7 +1451,7 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: 21,
+    fontSize: Fonts.size.xl,
     fontFamily: Fonts.bold,
 
     color: "#302B29",
@@ -1492,7 +1485,7 @@ const styles = StyleSheet.create({
   },
 
   optionText: {
-    fontSize: 16,
+    fontSize: Fonts.size.base,
     fontFamily: Fonts.regular,
 
     color: "#514B47",
