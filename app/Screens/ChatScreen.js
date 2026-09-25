@@ -16,6 +16,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import {
     useFocusEffect
 } from "@react-navigation/native";
+import Fonts from '../constants/Fonts';
 
 export default function ChatScreen({ navigation, route }) {
     const [message, setMessage] = useState('');
@@ -220,13 +221,14 @@ const styles = StyleSheet.create({
     name: {
         color: '#FFF',
         fontSize: 17,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
 
     online: {
         color: '#FFF',
         fontSize: 12,
         opacity: 0.8,
+        fontFamily: Fonts.regular,
     },
 
     messageContainer: {
@@ -260,10 +262,12 @@ const styles = StyleSheet.create({
     messageText: {
         fontSize: 15,
         color: '#222',
+        fontFamily: Fonts.regular,
     },
 
     timeText: {
         fontSize: 11,
+        fontFamily: Fonts.regular,
         color: '#666',
         alignSelf: 'flex-end',
         marginTop: 5,

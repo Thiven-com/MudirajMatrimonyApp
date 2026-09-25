@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Fonts from '../constants/Fonts';
 
 const ResetPasswordScreen = ({ route, navigation }) => {
   const { mobile } = route.params;
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 30,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#E30613',
     textAlign: 'center',
   },
@@ -175,6 +176,7 @@ const styles = StyleSheet.create({
   subtitle: {
     textAlign: 'center',
     color: '#666',
+    fontFamily: Fonts.regular,
     marginTop: 10,
     marginBottom: 40,
     fontSize: 15,
@@ -188,6 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 20,
     backgroundColor: '#FAFAFA',
+    fontFamily: Fonts.regular,
   },
 
   button: {
@@ -202,6 +205,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
 });

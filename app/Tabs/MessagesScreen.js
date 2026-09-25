@@ -128,11 +128,6 @@ export default function ChatsScreen({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -141,6 +136,11 @@ export default function ChatsScreen({ navigation, route }) {
       return () => subscription.remove();
     }, [navigation]),
   );
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   const loadChats = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -189,7 +189,8 @@ export default function ChatsScreen({ navigation, route }) {
   }, [loadChats]);
 
   const handleBack = () => {
-    navigation.goBack();
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
   };
 
   const handleOpenChatting = (chat) => {

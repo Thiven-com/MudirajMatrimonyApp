@@ -9,6 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import Fonts from '../constants/Fonts';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [mobile, setMobile] = useState('');
@@ -105,12 +106,13 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 30,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#E30613',
   },
 
   subtitle: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: '#666',
     marginTop: 10,
     lineHeight: 22,
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
     marginBottom: 10,
     color: '#333',
   },
@@ -135,6 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 15,
     backgroundColor: '#FAFAFA',
+    fontFamily: Fonts.regular,
   },
 
   button: {
@@ -149,13 +152,13 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
 
   backText: {
     textAlign: 'center',
     marginTop: 25,
     color: '#E30613',
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
 });

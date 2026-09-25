@@ -16,6 +16,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   useFocusEffect
 } from "@react-navigation/native";
+import Fonts from '../constants/Fonts';
 
 const ProfileDetailsScreen = ({ navigation, route }) => {
 
@@ -246,6 +247,7 @@ const styles = StyleSheet.create({
   counterText: {
     color: '#FFF',
     fontSize: 12,
+    fontFamily: Fonts.regular,
   },
 
   actionIcons: {
@@ -279,13 +281,14 @@ const styles = StyleSheet.create({
 
   name: {
     fontSize: 34,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#222',
     marginRight: 5,
   },
 
   info: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: '#555',
     marginTop: 8,
   },
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
 
   heading: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     marginBottom: 15,
     color: '#222',
   },
@@ -307,6 +310,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 28,
     color: '#444',
+    fontFamily: Fonts.regular,
     marginBottom: 10,
   },
 
@@ -355,18 +359,18 @@ const styles = StyleSheet.create({
   shortlistText: {
     marginLeft: 5,
     color: '#444',
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
   },
 
   messageText: {
     marginLeft: 5,
     color: '#222',
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
 
   interestText: {
     marginLeft: 5,
     color: '#FFF',
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
 });

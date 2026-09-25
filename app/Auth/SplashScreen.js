@@ -11,6 +11,7 @@ import {
 import {
     useFocusEffect
 } from "@react-navigation/native";
+import Fonts from "../constants/Fonts";
 
 const SplashScreen = ({ navigation, setIsLoggedIn }) => {
 
@@ -95,12 +96,13 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 34,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#E30613',
     },
     subtitle: {
         fontSize: 24,
         color: '#000',
+        fontFamily: Fonts.regular,
         marginTop: -5,
     },
     tagline: {
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 25,
         paddingHorizontal: 20,
+        fontFamily: Fonts.regular,
     },
     footer: {
         position: 'absolute',
@@ -117,6 +120,6 @@ const styles = StyleSheet.create({
     footerText: {
         color: '#E30613',
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.bold,
     },
 });

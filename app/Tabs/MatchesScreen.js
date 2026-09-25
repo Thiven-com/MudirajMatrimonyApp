@@ -371,20 +371,8 @@ export default function MatchesScreen({ navigation, route }) {
         typeof params.search === "string" ? params.search : "",
     );
 
-    /* ===
-       HARDWARE BACK BUTTON
-       Same useFocusEffect + BackHandler pattern used on HomeScreen:
-       only active while this screen is focused, and cleaned up on
-       blur/unmount so it doesn't leak into other screens.
-    === */
-
     useFocusEffect(
         useCallback(() => {
-            const onBackPress = () => {
-                navigation.goBack();
-                return true;
-            };
-
             const subscription = BackHandler.addEventListener(
                 "hardwareBackPress",
                 onBackPress,
@@ -394,9 +382,10 @@ export default function MatchesScreen({ navigation, route }) {
         }, [navigation]),
     );
 
-    /* ===
-       LOAD MATCHES API
-    === */
+    const onBackPress = () => {
+        navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+        return true;
+    };
 
     const loadMatches = async () => {
         setLoading(true);
@@ -552,7 +541,7 @@ export default function MatchesScreen({ navigation, route }) {
                 <View style={styles.headerArea}>
                     <TouchableOpacity
                         style={styles.backButton}
-                        onPress={() => navigation.goBack()}
+                        onPress={() => onBackPress()}
                         activeOpacity={0.7}
                     >
                         <Ionicons name="arrow-back" size={28} color="#252525" />

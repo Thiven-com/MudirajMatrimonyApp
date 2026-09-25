@@ -47,9 +47,6 @@ export default function MyPhotos({ navigation, route }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const onBackPress = () => {
-    console.log('====================================');
-    console.log(route?.page);
-    console.log('====================================');
     navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
     return true;
   };
@@ -235,7 +232,7 @@ export default function MyPhotos({ navigation, route }) {
           text: "Continue",
           onPress: () => {
             if (navigation.canGoBack()) {
-              navigation.goBack();
+             onBackPress();
             }
           },
         },
