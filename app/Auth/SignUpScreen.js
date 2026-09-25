@@ -122,8 +122,6 @@ export default function RegisterScreen() {
                 agreed,
             });
 
-            console.log("signup() raw result:", JSON.stringify(result));
-
             if (result?.result === false || result?.success === 0) {
                 setErrorText(result?.message || "Unable to create account right now.");
                 return;
@@ -151,7 +149,7 @@ export default function RegisterScreen() {
                 showsVerticalScrollIndicator={false}
                 bounces={false}
             >
-                {/* ================= HEADER SECTION ================= */}
+                {/* ====== HEADER SECTION ====== */}
                 <View style={styles.headerContainer}>
                     <HeaderWave width={SCREEN_WIDTH} />
 
@@ -172,7 +170,7 @@ export default function RegisterScreen() {
                     </View>
                 </View>
 
-                {/* ================= TITLE & TAGLINE ================= */}
+                {/* ====== TITLE & TAGLINE ====== */}
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>MUDIRAJ WORLD</Text>
                     <View style={styles.taglineRow}>
@@ -189,13 +187,13 @@ export default function RegisterScreen() {
                     </View>
                 </View>
 
-                {/* ================= FORM HEADING ================= */}
+                {/* ====== FORM HEADING ====== */}
                 <Text style={styles.formHeading}>Create Your Account</Text>
                 <Text style={styles.formSubtext}>
                     Join Mudiraj World and find your perfect match
                 </Text>
 
-                {/* ================= FORM FIELDS ================= */}
+                {/* ====== FORM FIELDS ====== */}
                 <View style={styles.fieldsContainer}>
                     <FieldCard
                         icon={
@@ -372,7 +370,7 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* ================= TERMS CHECKBOX ================= */}
+                {/* ====== TERMS CHECKBOX ====== */}
                 <TouchableOpacity
                     style={styles.termsRow}
                     activeOpacity={0.8}
@@ -388,7 +386,7 @@ export default function RegisterScreen() {
                     </Text>
                 </TouchableOpacity>
 
-                {/* ================= ERROR MESSAGE ================= */}
+                {/* ====== ERROR MESSAGE ====== */}
                 {errorText.length > 0 && (
                     <View style={styles.errorContainer}>
                         <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
@@ -396,7 +394,7 @@ export default function RegisterScreen() {
                     </View>
                 )}
 
-                {/* ================= REGISTER BUTTON ================= */}
+                {/* ====== REGISTER BUTTON ====== */}
                 <TouchableOpacity
                     style={[
                         styles.registerButtonTouchable,
@@ -424,14 +422,14 @@ export default function RegisterScreen() {
                     </LinearGradient>
                 </TouchableOpacity>
 
-                {/* ================= OR DIVIDER ================= */}
+                {/* ====== OR DIVIDER ====== */}
                 {/* <View style={styles.orRow}>
                     <View style={styles.orLine} />
                     <Text style={styles.orText}>OR</Text>
                     <View style={styles.orLine} />
                 </View> */}
 
-                {/* ================= SOCIAL BUTTONS ================= */}
+                {/* ====== SOCIAL BUTTONS ====== */}
                 {/* <View style={styles.socialRow}>
                     <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
                         <Feather name="globe" size={18} color={Colors.google} />
@@ -444,7 +442,7 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                 </View> */}
 
-                {/* ================= LOGIN LINK ================= */}
+                {/* ====== LOGIN LINK ====== */}
                 <View style={styles.loginRow}>
                     <Text style={styles.loginText}>Already have an account? </Text>
                     <TouchableOpacity
@@ -455,13 +453,13 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* ================= HERITAGE WATERMARK FOOTER ================= */}
+                {/* ====== HERITAGE WATERMARK FOOTER ====== */}
                 <View style={styles.skylineWrapper}>
                     <HeritageSkyline />
                 </View>
             </ScrollView>
 
-            {/* ================= GENDER PICKER MODAL ================= */}
+            {/* ====== GENDER PICKER MODAL ====== */}
             <Modal
                 visible={genderModalVisible}
                 transparent
@@ -498,7 +496,7 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
             </Modal>
 
-            {/* ================= ON BEHALF PICKER MODAL ================= */}
+            {/* ====== ON BEHALF PICKER MODAL ====== */}
             <Modal
                 visible={onBehalfModalVisible}
                 transparent
@@ -538,7 +536,7 @@ export default function RegisterScreen() {
     );
 }
 
-// ================= REUSABLE FORM FIELD CARD =================
+// ====== REUSABLE FORM FIELD CARD ======
 function FieldCard({
     icon,
     label,
@@ -574,7 +572,7 @@ function FieldCard({
     );
 }
 
-// ================= HEADER WAVE (reversed: edges dip, center arches up) =================
+// ====== HEADER WAVE (reversed: edges dip, center arches up) ======
 // Same geometry as the login / OTP screens' HeaderWave.
 function HeaderWave({ width }) {
     const w = width;
@@ -611,7 +609,7 @@ function HeaderWave({ width }) {
     );
 }
 
-// ================= HERITAGE SKYLINE (shared motif) =================
+// ====== HERITAGE SKYLINE (shared motif) ======
 function HeritageSkyline() {
     return (
         <View style={styles.skylineSvgContainer}>

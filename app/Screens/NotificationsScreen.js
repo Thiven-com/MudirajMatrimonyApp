@@ -13,7 +13,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 
-// ================= MOCK DATA =================
+// ====== MOCK DATA ======
 // Replace with the notifications feed from your backend.
 const FILTERS = [
   { key: "all", label: "All", icon: "notifications" },
@@ -150,7 +150,7 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
       <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -183,7 +183,7 @@ export default function NotificationsScreen() {
         </View>
       </LinearGradient>
 
-      {/* ================= FILTER CHIPS ================= */}
+      {/* ====== FILTER CHIPS ====== */}
       <View style={styles.filterBar}>
         <ScrollView
           horizontal
@@ -261,7 +261,7 @@ export default function NotificationsScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function NotificationRow({ item, isLast, onPress }) {
   return (
     <TouchableOpacity

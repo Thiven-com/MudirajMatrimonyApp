@@ -24,23 +24,23 @@ import { Colors } from "../constants/colors";
 
 import Fonts from "../constants/Fonts";
 
-/* =========================================================
+/* ===
    SCREEN WIDTH
-========================================================= */
+=== */
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const HEADER_HEIGHT = 108;
 
-/* =========================================================
+/* ===
    STATUS TABS
-========================================================= */
+=== */
 
 const STATUS_TABS = ["All", "Successful", "Pending", "Failed"];
 
-/* =========================================================
+/* ===
    DATE RANGES
-========================================================= */
+=== */
 
 const DATE_RANGES = [
   {
@@ -64,9 +64,9 @@ const DATE_RANGES = [
   },
 ];
 
-/* =========================================================
+/* ===
    TRANSACTIONS
-========================================================= */
+=== */
 
 const TRANSACTIONS = [
   {
@@ -210,32 +210,32 @@ const TRANSACTIONS = [
   },
 ];
 
-/* =========================================================
+/* ===
    TRANSACTION TYPES
-========================================================= */
+=== */
 
 const TRANSACTION_TYPES = [
   ...new Set(TRANSACTIONS.map((transaction) => transaction.title)),
 ];
 
-/* =========================================================
+/* ===
    EMPTY FILTERS
-========================================================= */
+=== */
 
 const EMPTY_FILTERS = {
   types: [],
 };
 
-/* =========================================================
+/* ===
    MAIN SCREEN
-========================================================= */
+=== */
 
 export default function PaymentHistoryScreen() {
   const navigation = useNavigation();
 
-  /* =======================================================
+  /* ====
      STATE
-  ======================================================= */
+  ==== */
 
   const [activeStatus, setActiveStatus] = useState("All");
 
@@ -249,15 +249,15 @@ export default function PaymentHistoryScreen() {
 
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
-  /* =======================================================
+  /* ====
      FILTER COUNT
-  ======================================================= */
+  ==== */
 
   const activeFilterCount = filters.types.length;
 
-  /* =======================================================
+  /* ====
      BACK HANDLER
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -265,9 +265,9 @@ export default function PaymentHistoryScreen() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
-  ======================================================= */
+  ==== */
 
   useFocusEffect(
     useCallback(() => {
@@ -300,9 +300,9 @@ export default function PaymentHistoryScreen() {
     }, [handleBack, filterSheetVisible, dateMenuVisible]),
   );
 
-  /* =======================================================
+  /* ====
      OPEN FILTER
-  ======================================================= */
+  ==== */
 
   const openFilterSheet = () => {
     setDraftFilters(filters);
@@ -310,9 +310,9 @@ export default function PaymentHistoryScreen() {
     setFilterSheetVisible(true);
   };
 
-  /* =======================================================
+  /* ====
      APPLY FILTER
-  ======================================================= */
+  ==== */
 
   const applyFilters = () => {
     setFilters(draftFilters);
@@ -320,17 +320,17 @@ export default function PaymentHistoryScreen() {
     setFilterSheetVisible(false);
   };
 
-  /* =======================================================
+  /* ====
      RESET FILTER
-  ======================================================= */
+  ==== */
 
   const resetDraftFilters = () => {
     setDraftFilters(EMPTY_FILTERS);
   };
 
-  /* =======================================================
+  /* ====
      TOGGLE TRANSACTION TYPE
-  ======================================================= */
+  ==== */
 
   const toggleDraftType = (type) => {
     setDraftFilters((previous) => {
@@ -346,9 +346,9 @@ export default function PaymentHistoryScreen() {
     });
   };
 
-  /* =======================================================
+  /* ====
      SUMMARY
-  ======================================================= */
+  ==== */
 
   const summary = useMemo(() => {
     const successful = TRANSACTIONS.filter(
@@ -382,9 +382,9 @@ export default function PaymentHistoryScreen() {
     };
   }, []);
 
-  /* =======================================================
+  /* ====
      FILTERED TRANSACTIONS
-  ======================================================= */
+  ==== */
 
   const filteredTransactions = useMemo(() => {
     let list = TRANSACTIONS;
@@ -422,25 +422,25 @@ export default function PaymentHistoryScreen() {
     return list;
   }, [activeStatus, dateRange, filters]);
 
-  /* =======================================================
+  /* ====
      CURRENT DATE LABEL
-  ======================================================= */
+  ==== */
 
   const currentDateRangeLabel = DATE_RANGES.find(
     (range) => range.key === dateRange,
   )?.label;
 
-  /* =======================================================
+  /* ====
      UI
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
 
-      {/* ===================================================
+      {/* =====
           HEADER
-      =================================================== */}
+      ===== */}
 
       <View style={styles.headerWrapper}>
         <LinearGradient
@@ -513,17 +513,17 @@ export default function PaymentHistoryScreen() {
         </Svg>
       </View>
 
-      {/* ===================================================
+      {/* =====
           CONTENT
-      =================================================== */}
+      ===== */}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* =================================================
+        {/* ===
             SUMMARY CARD
-        ================================================= */}
+        === */}
 
         <View style={styles.summaryCard}>
           {/* TOTAL */}
@@ -591,9 +591,9 @@ export default function PaymentHistoryScreen() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             STATUS TABS
-        ================================================= */}
+        === */}
 
         <View style={styles.tabsRow}>
           <View style={styles.statusTabsGroup}>
@@ -621,9 +621,9 @@ export default function PaymentHistoryScreen() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             DATE RANGE
-        ================================================= */}
+        === */}
 
         <TouchableOpacity
           style={styles.dateRangeButton}
@@ -637,9 +637,9 @@ export default function PaymentHistoryScreen() {
           <Feather name="chevron-down" size={15} color={Colors.primaryRed} />
         </TouchableOpacity>
 
-        {/* =================================================
+        {/* ===
             TRANSACTION LIST
-        ================================================= */}
+        === */}
 
         <View style={styles.transactionList}>
           {filteredTransactions.length > 0 ? (
@@ -657,9 +657,9 @@ export default function PaymentHistoryScreen() {
           )}
         </View>
 
-        {/* =================================================
+        {/* ===
             NEED HELP
-        ================================================= */}
+        === */}
 
         <View style={styles.helpBanner}>
           <View style={styles.helpIconCircle}>
@@ -687,9 +687,9 @@ export default function PaymentHistoryScreen() {
           <Text style={styles.contactSupportText}>Contact Support</Text>
         </TouchableOpacity>
 
-        {/* =================================================
+        {/* ===
             FOOTER
-        ================================================= */}
+        === */}
 
         <View style={styles.secureRow}>
           <Feather name="lock" size={13} color={Colors.textMuted} />
@@ -700,9 +700,9 @@ export default function PaymentHistoryScreen() {
         </View>
       </ScrollView>
 
-      {/* ===================================================
+      {/* =====
           DATE RANGE MODAL
-      =================================================== */}
+      ===== */}
 
       <Modal
         visible={dateMenuVisible}
@@ -744,9 +744,9 @@ export default function PaymentHistoryScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* ===================================================
+      {/* =====
           FILTER MODAL
-      =================================================== */}
+      ===== */}
 
       <Modal
         visible={filterSheetVisible}
@@ -839,9 +839,9 @@ export default function PaymentHistoryScreen() {
   );
 }
 
-/* =========================================================
+/* ===
    TRANSACTION ROW
-========================================================= */
+=== */
 
 function TransactionRow({ tx }) {
   const statusStyles = {
@@ -936,14 +936,14 @@ function TransactionRow({ tx }) {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
      SAFE AREA
-  ===================================================== */
+  ======= */
 
   safeArea: {
     flex: 1,
@@ -959,9 +959,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  /* =====================================================
+  /* =======
      HEADER
-  ===================================================== */
+  ======= */
 
   headerWrapper: {
     width: "100%",
@@ -1057,9 +1057,9 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* =======
      SUMMARY
-  ===================================================== */
+  ======= */
 
   summaryCard: {
     flexDirection: "row",
@@ -1171,9 +1171,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  /* =====================================================
+  /* =======
      STATUS TABS
-  ===================================================== */
+  ======= */
 
   tabsRow: {
     marginBottom: 12,
@@ -1219,9 +1219,9 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
-  /* =====================================================
+  /* =======
      DATE RANGE
-  ===================================================== */
+  ======= */
 
   dateRangeButton: {
     flexDirection: "row",
@@ -1251,9 +1251,9 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* =======
      TRANSACTION LIST
-  ===================================================== */
+  ======= */
 
   transactionList: {
     marginBottom: 20,
@@ -1357,9 +1357,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =====================================================
+  /* =======
      EMPTY
-  ===================================================== */
+  ======= */
 
   emptyState: {
     alignItems: "center",
@@ -1381,9 +1381,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
 
-  /* =====================================================
+  /* =======
      HELP
-  ===================================================== */
+  ======= */
 
   helpBanner: {
     flexDirection: "row",
@@ -1467,9 +1467,9 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* =======
      FOOTER
-  ===================================================== */
+  ======= */
 
   secureRow: {
     flexDirection: "row",
@@ -1489,9 +1489,9 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
 
-  /* =====================================================
+  /* =======
      DATE MODAL
-  ===================================================== */
+  ======= */
 
   dateModalOverlay: {
     flex: 1,
@@ -1555,9 +1555,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =====================================================
+  /* =======
      FILTER MODAL
-  ===================================================== */
+  ======= */
 
   filterModalOverlay: {
     flex: 1,

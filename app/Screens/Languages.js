@@ -19,9 +19,9 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
 import { getMemberLanguages } from "../utils/Functions";
 
-/* =========================================================
+/* ===
    FIND VALUE DEEPLY INSIDE API RESPONSE
-========================================================= */
+=== */
 
 const findValueDeep = (data, keys) => {
   if (data === null || data === undefined) {
@@ -61,11 +61,11 @@ const findValueDeep = (data, keys) => {
   return undefined;
 };
 
-/* =========================================================
+/* ===
    FIND VALUE WITH PRIORITY
    First search exact/specific keys.
    Generic "language" is searched only as fallback.
-========================================================= */
+=== */
 
 const findKnownLanguageValue = (data) => {
   const specificValue = findValueDeep(data, [
@@ -82,9 +82,9 @@ const findKnownLanguageValue = (data) => {
   return findValueDeep(data, ["languages", "language"]);
 };
 
-/* =========================================================
+/* ===
    MOTHER TONGUE
-========================================================= */
+=== */
 
 const getMotherTongue = (data) => {
   const value = findValueDeep(data, [
@@ -99,13 +99,13 @@ const getMotherTongue = (data) => {
     "motherLanguageName",
   ]);
 
-  console.log("========================================");
+  console.log("=====");
 
   console.log("FOUND MOTHER TONGUE:", value);
 
   console.log("MOTHER TONGUE TYPE:", typeof value);
 
-  console.log("========================================");
+  console.log("=====");
 
   if (value === null || value === undefined) {
     return "";
@@ -146,9 +146,9 @@ const getMotherTongue = (data) => {
   return String(value).trim();
 };
 
-/* =========================================================
+/* ===
    LANGUAGE NAME
-========================================================= */
+=== */
 
 const getLanguageName = (item) => {
   if (item === null || item === undefined) {
@@ -183,9 +183,9 @@ const getLanguageName = (item) => {
   return "";
 };
 
-/* =========================================================
+/* ===
    REMOVE DUPLICATE LANGUAGES
-========================================================= */
+=== */
 
 const removeDuplicateLanguages = (languages) => {
   const result = [];
@@ -209,28 +209,28 @@ const removeDuplicateLanguages = (languages) => {
   return result;
 };
 
-/* =========================================================
+/* ===
    KNOWN LANGUAGES
-========================================================= */
+=== */
 
 const getKnownLanguages = (data) => {
   const value = findKnownLanguageValue(data);
 
-  console.log("========================================");
+  console.log("=====");
 
   console.log("FOUND KNOWN LANGUAGES:", value);
 
   console.log("KNOWN LANGUAGES TYPE:", typeof value);
 
-  console.log("========================================");
+  console.log("=====");
 
   if (value === null || value === undefined) {
     return [];
   }
 
-  /* =======================================================
+  /* ====
      STRING
-  ======================================================= */
+  ==== */
 
   if (typeof value === "string") {
     const text = value.trim();
@@ -307,9 +307,9 @@ const getKnownLanguages = (data) => {
     return [text];
   }
 
-  /* =======================================================
+  /* ====
      ARRAY
-  ======================================================= */
+  ==== */
 
   if (Array.isArray(value)) {
     const languages = value
@@ -320,9 +320,9 @@ const getKnownLanguages = (data) => {
     return removeDuplicateLanguages(languages);
   }
 
-  /* =======================================================
+  /* ====
      OBJECT
-  ======================================================= */
+  ==== */
 
   if (typeof value === "object") {
     /* -----------------------------------------------------
@@ -367,9 +367,9 @@ const getKnownLanguages = (data) => {
   return [];
 };
 
-/* =========================================================
+/* ===
    LANGUAGES SCREEN
-========================================================= */
+=== */
 
 export default function Languages() {
   const navigation = useNavigation();
@@ -380,9 +380,9 @@ export default function Languages() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* =======================================================
+  /* ====
      BACK
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -390,12 +390,12 @@ export default function Languages() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
      Same pattern as EditSocialBackground / EducationInformation:
      intercept the hardware back button and route it through
      handleBack().
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -414,9 +414,9 @@ export default function Languages() {
     };
   }, [handleBack]);
 
-  /* =======================================================
+  /* ====
      LOAD LANGUAGES
-  ======================================================= */
+  ==== */
 
   const loadLanguages = useCallback(async () => {
     try {
@@ -424,7 +424,7 @@ export default function Languages() {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("LANGUAGES SCREEN");
 
@@ -432,7 +432,7 @@ export default function Languages() {
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
       /* ------------------------------------------------
              TOKEN CHECK
@@ -450,15 +450,15 @@ export default function Languages() {
 
       const response = await getMemberLanguages(accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("MEMBER LANGUAGES API RESPONSE");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("========================================");
+      console.log("=====");
 
-      /* =================================================
+      /* ===
              USE COMPLETE RESPONSE
 
              We intentionally pass the complete response
@@ -483,7 +483,7 @@ export default function Languages() {
                  }
                }
              }
-          ================================================= */
+          === */
 
       const data = response;
 
@@ -499,11 +499,11 @@ export default function Languages() {
 
       const knownLanguagesValue = getKnownLanguages(data);
 
-      /* =================================================
+      /* ===
              DISPLAY DEBUG
-          ================================================= */
+          === */
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("DISPLAY VALUES");
 
@@ -514,7 +514,7 @@ export default function Languages() {
       console.log("MOTHER TONGUE:", motherTongueValue);
       console.log("KNOWN LANGUAGES:", knownLanguagesValue);
 
-      console.log("========================================");
+      console.log("=====");
 
       /* ------------------------------------------------
              UPDATE SCREEN
@@ -524,7 +524,7 @@ export default function Languages() {
 
       setKnownLanguages(knownLanguagesValue);
     } catch (error) {
-      console.error("========================================");
+      console.error("=====");
 
       console.error("LANGUAGES GET ERROR");
 
@@ -535,7 +535,7 @@ export default function Languages() {
         JSON.stringify(error?.response?.data, null, 2),
       );
 
-      console.error("========================================");
+      console.error("=====");
 
       setErrorMessage(
         error?.response?.data?.message ||
@@ -545,9 +545,9 @@ export default function Languages() {
     }
   }, []);
 
-  /* =======================================================
+  /* ====
      REFRESH WHEN SCREEN OPENS / RETURNS
-  ======================================================= */
+  ==== */
 
   useFocusEffect(
     useCallback(() => {
@@ -555,9 +555,9 @@ export default function Languages() {
     }, [loadLanguages]),
   );
 
-  /* =======================================================
+  /* ====
      EDIT MOTHER TONGUE
-  ======================================================= */
+  ==== */
 
   const editMotherTongue = () => {
     navigation.navigate("EditLanguages", {
@@ -565,9 +565,9 @@ export default function Languages() {
     });
   };
 
-  /* =======================================================
+  /* ====
      EDIT KNOWN LANGUAGES
-  ======================================================= */
+  ==== */
 
   const editKnownLanguages = () => {
     navigation.navigate("EditLanguages", {
@@ -575,17 +575,17 @@ export default function Languages() {
     });
   };
 
-  /* =======================================================
+  /* ====
      UI
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* ===================================================
+      {/* =====
           HEADER
-      =================================================== */}
+      ===== */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -601,18 +601,18 @@ export default function Languages() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* ===================================================
+      {/* =====
           CONTENT
-      =================================================== */}
+      ===== */}
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* =================================================
+        {/* ===
             ERROR
-        ================================================= */}
+        === */}
 
         {errorMessage ? (
           <View style={styles.errorBox}>
@@ -622,9 +622,9 @@ export default function Languages() {
           </View>
         ) : null}
 
-        {/* =================================================
+        {/* ===
             MOTHER TONGUE
-        ================================================= */}
+        === */}
 
         <View style={styles.card}>
           <View style={styles.cardLeft}>
@@ -650,9 +650,9 @@ export default function Languages() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ===
             KNOWN LANGUAGES
-        ================================================= */}
+        === */}
 
         <View style={styles.card}>
           <View style={styles.cardLeft}>
@@ -689,9 +689,9 @@ export default function Languages() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ===
             BOTTOM EDIT BUTTON
-        ================================================= */}
+        === */}
 
         <TouchableOpacity
           style={styles.bottomEditButton}
@@ -707,9 +707,9 @@ export default function Languages() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -754,9 +754,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  /* =====================================================
+  /* =======
        ERROR
-    ===================================================== */
+    ======= */
 
   errorBox: {
     flexDirection: "row",
@@ -777,9 +777,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
 
-  /* =====================================================
+  /* =======
        CARD
-    ===================================================== */
+    ======= */
 
   card: {
     width: "100%",
@@ -844,9 +844,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
 
-  /* =====================================================
+  /* =======
        EDIT BUTTON
-    ===================================================== */
+    ======= */
 
   editButton: {
     width: 38,
@@ -858,9 +858,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  /* =====================================================
+  /* =======
        LANGUAGES
-    ===================================================== */
+    ======= */
 
   languageList: {
     flexDirection: "row",
@@ -882,9 +882,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
   },
 
-  /* =====================================================
+  /* =======
        BOTTOM EDIT
-    ===================================================== */
+    ======= */
 
   bottomEditButton: {
     height: 52,

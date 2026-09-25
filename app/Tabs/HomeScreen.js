@@ -31,9 +31,9 @@ import {
 
 const { width } = Dimensions.get("window");
 
-/* =====================================================
+/* =======
    COLORS
-===================================================== */
+======= */
 
 const COLORS = {
   background: "#FFFDFC",
@@ -58,9 +58,9 @@ const COLORS = {
   shadow: "#B7A59B",
 };
 
-/* =====================================================
+/* =======
    ASSETS
-===================================================== */
+======= */
 
 const LOGO = require("../assets/images/logo.png");
 
@@ -72,11 +72,11 @@ const MATCH_IMAGES = {
   Match3: require("../assets/images/Match3.png"),
 };
 
-/* =================================================
+/* ===
    DATA
    NOTE: icon fields below are now Feather names (a single,
    minimal icon set), swapped from the original Ionicons names.
-===================================================== */
+======= */
 
 const WHY_CHOOSE = [
   {
@@ -240,9 +240,9 @@ const REVIEWS = [
   },
 ];
 
-/* =====================================================
+/* =======
    HOME SCREEN
-===================================================== */
+======= */
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -318,7 +318,6 @@ export default function HomeScreen() {
       else setLoading(true);
 
       const token = await getToken();
-      console.log("Loading Home Data. Token:", token ? "FOUND" : "NOT FOUND");
 
       const [
         trustedRes,
@@ -341,16 +340,6 @@ export default function HomeScreen() {
         getBlogsData(token),
         getReviewsData(token),
       ]);
-
-      console.log("Trusted By Millions:", JSON.stringify(trustedRes));
-      console.log("Happy Stories:", JSON.stringify(storiesRes));
-      console.log("Packages:", JSON.stringify(packagesRes));
-      console.log("Premium Members:", JSON.stringify(premiumRes));
-      console.log("Banner:", JSON.stringify(bannerRes));
-      console.log("New Members:", JSON.stringify(newMembersRes));
-      console.log("How It Works:", JSON.stringify(howItWorksRes));
-      console.log("Blogs:", JSON.stringify(blogsRes));
-      console.log("Reviews:", JSON.stringify(reviewsRes));
 
       if (
         trustedRes?.success === 1 &&
@@ -541,7 +530,7 @@ export default function HomeScreen() {
     /*const openNotifications = () => navigation.navigate("PrivacyPolicy");*/
   }
   const openSearch = () => navigation.navigate("Search");
-  const openPremium = () => navigation.navigate("Premium");
+  const openPremium = () => navigation.navigate("PremiumBenefits");
   const openPremiumBenefits = () => navigation.navigate("PremiumBenefits");
   const openProfile = (id) =>
     navigation.navigate("MatchesDetail", { id: String(id) });
@@ -553,8 +542,9 @@ export default function HomeScreen() {
   const openReviews = () => navigation.navigate("Reviews");
 
   const handleBannerPress = (banner) => {
-    if (banner?.route) navigation.navigate(banner.route);
-    else openPremium();
+    // if (banner?.route) navigation.navigate(banner.route);
+    // else 
+      openPremium();
   };
 
   const handleBannerScroll = (event) => {
@@ -579,7 +569,7 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ================= HEADER ================= */}
+        {/* ====== HEADER ====== */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
             <Feather name="menu" size={28} color={COLORS.red} />
@@ -626,7 +616,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ================= HERO BANNER CAROUSEL ================= */}
+        {/* ====== HERO BANNER CAROUSEL ====== */}
         {banners.length > 0 ? (
           <View style={styles.heroCard}>
             <ScrollView
@@ -680,7 +670,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ================= PREMIUM MEMBERS ================= */}
+        {/* ====== PREMIUM MEMBERS ====== */}
         {premiumMembers.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -717,7 +707,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= NEW MEMBERS ================= */}
+        {/* ====== NEW MEMBERS ====== */}
         {newMembers.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -754,7 +744,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= MEMBERSHIP PACKAGES ================= */}
+        {/* ====== MEMBERSHIP PACKAGES ====== */}
         {packages.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -788,7 +778,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= PREMIUM BANNER ================= */}
+        {/* ====== PREMIUM BANNER ====== */}
         <LinearGradient
           colors={["#FFF1C5", "#FFD84D", "#FFC400"]}
           start={{ x: 0, y: 0.5 }}
@@ -817,7 +807,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ================= HAPPY STORIES ================= */}
+        {/* ====== HAPPY STORIES ====== */}
         {happyStories.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -847,7 +837,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= HOW IT WORKS ================= */}
+        {/* ====== HOW IT WORKS ====== */}
         {howItWorks.length > 0 && (
           <>
             <View style={styles.whyHeader}>
@@ -893,7 +883,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= BLOGS ================= */}
+        {/* ====== BLOGS ====== */}
         {blogs.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -927,7 +917,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ================= WHY CHOOSE ================= */}
+        {/* ====== WHY CHOOSE ====== */}
         <View style={styles.whyHeader}>
           <View style={styles.whyLine} />
           <Text style={styles.whyTitle}>Why Choose Mudhiraj Matrimony?</Text>
@@ -964,7 +954,7 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ================= REVIEWS ================= */}
+        {/* ====== REVIEWS ====== */}
         {reviews.length > 0 && (
           <>
             <View style={[styles.sectionHeader, { marginTop: 22 }]}>
@@ -1000,9 +990,9 @@ export default function HomeScreen() {
   );
 }
 
-/* =====================================================
+/* =======
    PREMIUM MEMBER CARD (full-bleed photo + bottom overlay)
-===================================================== */
+======= */
 
 function PremiumMemberCard({ member, onPress }) {
   return (
@@ -1037,9 +1027,9 @@ function PremiumMemberCard({ member, onPress }) {
   );
 }
 
-/* =====================================================
+/* =======
    NEW MEMBER CARD (green "New" badge instead of Online/crown)
-===================================================== */
+======= */
 
 function NewMemberCard({ member, onPress }) {
   return (
@@ -1081,9 +1071,9 @@ function NewMemberCard({ member, onPress }) {
   );
 }
 
-/* =====================================================
+/* =======
    PACKAGE CARD
-===================================================== */
+======= */
 
 function PackageCard({ pkg, onPress }) {
   return (
@@ -1129,9 +1119,9 @@ function PackageCard({ pkg, onPress }) {
   );
 }
 
-/* =====================================================
+/* =======
    HAPPY STORY CARD
-===================================================== */
+======= */
 
 function StoryCard({ story }) {
   return (
@@ -1166,9 +1156,9 @@ function StoryCard({ story }) {
   );
 }
 
-/* =====================================================
+/* =======
    BLOG CARD
-===================================================== */
+======= */
 
 function BlogCard({ blog, onPress }) {
   return (
@@ -1201,12 +1191,12 @@ function BlogCard({ blog, onPress }) {
   );
 }
 
-/* =====================================================
+/* =======
    REVIEW CARD
    NOTE: Feather has no separate filled/outline star, so the
    "unfilled" stars are shown by dimming the color instead of
    swapping the icon name (the original used star / star-outline).
-===================================================== */
+======= */
 
 function ReviewCard({ review }) {
   return (
@@ -1240,9 +1230,9 @@ function ReviewCard({ review }) {
   );
 }
 
-/* =====================================================
+/* =======
    STYLES
-===================================================== */
+======= */
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },

@@ -26,15 +26,15 @@ import Fonts from "../constants/Fonts";
 
 import { postMemberListing } from "../utils/Functions";
 
-/* ============================================================
+/* ======
    LOGO
-============================================================ */
+====== */
 
 const LOGO = require("../assets/images/logo.png");
 
-/* ============================================================
+/* ======
    COLORS
-============================================================ */
+====== */
 
 const COLORS = {
   red: "#B5120D",
@@ -53,9 +53,9 @@ const COLORS = {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-/* ============================================================
+/* ======
    GET TOKEN (same pattern as matches/home/profile screens)
-============================================================ */
+====== */
 
 const getToken = async () => {
   try {
@@ -87,7 +87,7 @@ const getToken = async () => {
   }
 };
 
-/* ============================================================
+/* ======
    FILTERS -> API BODY FOR POST /api/member/member-listing
 
    Confirmed real request body:
@@ -112,7 +112,7 @@ const getToken = async () => {
    re-derives filters from route params so it can refetch on its
    own). Consider moving both copies into a shared
    utils/buildMemberFilters.js so they can't drift apart.
-============================================================ */
+====== */
 
 const ID_MAPS = {
   maritalStatus: {
@@ -254,9 +254,9 @@ function buildFiltersFromState(filters) {
   return body;
 }
 
-/* ============================================================
+/* ======
    MAIN SCREEN
-============================================================ */
+====== */
 
 export default function SearchScreen() {
   const navigation = useNavigation();
@@ -281,9 +281,9 @@ export default function SearchScreen() {
     location: "Select City",
   });
 
-  /* ============================================================
+  /* ======
      RECENT SEARCHES
-  ============================================================ */
+  ====== */
 
   const [recentSearches, setRecentSearches] = useState([
     "Hyderabad, Telangana",
@@ -295,12 +295,12 @@ export default function SearchScreen() {
   const [searching, setSearching] = useState(false);
   const [searchApiError, setSearchApiError] = useState("");
 
-  /* ============================================================
+  /* ======
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on
      HomeScreen / MatchesScreen / ProfileDetails: active only
      while this screen is focused, cleaned up on blur/unmount.
-  ============================================================ */
+  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -318,9 +318,9 @@ export default function SearchScreen() {
     }, [navigation]),
   );
 
-  /* ============================================================
+  /* ======
      OPTIONS
-  ============================================================ */
+  ====== */
 
   const OPTIONS = useMemo(
     () => ({
@@ -400,9 +400,9 @@ export default function SearchScreen() {
     [],
   );
 
-  /* ============================================================
+  /* ======
      FUNCTIONS
-  ============================================================ */
+  ====== */
 
   const openFilter = (field) => {
     setActiveField(field);
@@ -505,9 +505,9 @@ export default function SearchScreen() {
     }
   };
 
-  /* ============================================================
+  /* ======
      FILTER BOX
-  ============================================================ */
+  ====== */
 
   const FilterBox = ({
     field,
@@ -555,9 +555,9 @@ export default function SearchScreen() {
     );
   };
 
-  /* ============================================================
+  /* ======
      SCREEN
-  ============================================================ */
+  ====== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -567,9 +567,9 @@ export default function SearchScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* =====================================================
+        {/* =======
     TOP HERO SECTION
-===================================================== */}
+======= */}
 
         <View style={styles.heroBackground}>
           {/* BACK BUTTON */}
@@ -603,9 +603,9 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        {/* =====================================================
+        {/* =======
     SEARCH FILTER CARD
-===================================================== */}
+======= */}
 
         <View style={[styles.filterCard, { marginTop: 11 }]}>
           {/* HEADING */}
@@ -782,9 +782,9 @@ export default function SearchScreen() {
           )}
         </View>
 
-        {/* =====================================================
+        {/* =======
             RECENT SEARCHES
-        ===================================================== */}
+        ======= */}
 
         {recentSearches.length > 0 && (
           <View style={styles.recentCard}>
@@ -851,9 +851,9 @@ export default function SearchScreen() {
         <View style={{ height: 35 }} />
       </ScrollView>
 
-      {/* =====================================================
+      {/* =======
           FILTER MODAL
-      ===================================================== */}
+      ======= */}
 
       <Modal
         visible={showFilterModal}
@@ -913,14 +913,14 @@ export default function SearchScreen() {
   );
 }
 
-/* ============================================================
+/* ======
    STYLES
-============================================================ */
+====== */
 
 const styles = StyleSheet.create({
-  /* ============================================================
+  /* ======
      MAIN SCREEN
-  ============================================================ */
+  ====== */
 
   safeArea: {
     flex: 1,
@@ -931,9 +931,9 @@ const styles = StyleSheet.create({
     paddingBottom: 92,
   },
 
-  /* ============================================================
+  /* ======
      TOP HERO SECTION
-  ============================================================ */
+  ====== */
 
   heroBackground: {
     height: 145,
@@ -1005,9 +1005,9 @@ const styles = StyleSheet.create({
     color: "#5E5753",
   },
 
-  /* ============================================================
+  /* ======
      ORANGE / RED CURVE
-  ============================================================ */
+  ====== */
 
   curveArea: {
     position: "absolute",
@@ -1049,9 +1049,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#C90A06",
   },
 
-  /* ============================================================
+  /* ======
      SEARCH FILTER CARD
-  ============================================================ */
+  ====== */
 
   filterCard: {
     marginHorizontal: 10,
@@ -1092,9 +1092,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  /* ============================================================
+  /* ======
      DIVIDER
-  ============================================================ */
+  ====== */
 
   headingDivider: {
     flexDirection: "row",
@@ -1122,9 +1122,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
 
-  /* ============================================================
+  /* ======
      FILTER GRID
-  ============================================================ */
+  ====== */
 
   filtersGrid: {
     flexDirection: "row",
@@ -1133,9 +1133,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  /* ============================================================
+  /* ======
      FILTER BOX
-  ============================================================ */
+  ====== */
 
   filterBox: {
     width: "49.8%",
@@ -1176,9 +1176,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-  /* ============================================================
+  /* ======
      FILTER ICON
-  ============================================================ */
+  ====== */
 
   filterIconCircle: {
     width: 34,
@@ -1192,9 +1192,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
 
-  /* ============================================================
+  /* ======
      FILTER TEXT
-  ============================================================ */
+  ====== */
 
   filterTextContainer: {
     flex: 1,
@@ -1221,9 +1221,9 @@ const styles = StyleSheet.create({
     lineHeight: 10,
   },
 
-  /* ============================================================
+  /* ======
      ACTION BUTTONS
-  ============================================================ */
+  ====== */
 
   actionRow: {
     height: 34,
@@ -1289,9 +1289,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  /* ============================================================
+  /* ======
      SEARCH API ERROR BANNER
-  ============================================================ */
+  ====== */
 
   searchErrorBanner: {
     marginTop: 10,
@@ -1311,9 +1311,9 @@ const styles = StyleSheet.create({
     color: "#B42318",
   },
 
-  /* ============================================================
+  /* ======
      RECENT SEARCHES
-  ============================================================ */
+  ====== */
 
   recentCard: {
     marginHorizontal: 7,
@@ -1408,9 +1408,9 @@ const styles = StyleSheet.create({
     color: "#5B5551",
   },
 
-  /* ============================================================
+  /* ======
      MODAL OVERLAY
-  ============================================================ */
+  ====== */
 
   modalOverlay: {
     flex: 1,
@@ -1420,9 +1420,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  /* ============================================================
+  /* ======
      FILTER MODAL
-  ============================================================ */
+  ====== */
 
   filterModal: {
     maxHeight: "72%",
@@ -1466,9 +1466,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  /* ============================================================
+  /* ======
      FILTER OPTIONS
-  ============================================================ */
+  ====== */
 
   optionItem: {
     minHeight: 55,

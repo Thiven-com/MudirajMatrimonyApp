@@ -156,12 +156,12 @@ export default function EditProfileScreen() {
   const [draftFields, setDraftFields] = useState([]);
   const [draftText, setDraftText] = useState("");
 
-  /* ============================================================
+  /* ======
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -331,7 +331,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* ================= HEADER — back button only, luxury look ================= */}
+      {/* ====== HEADER — back button only, luxury look ====== */}
       <View style={styles.headerWrapper}>
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
@@ -368,7 +368,7 @@ export default function EditProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= PAGE TITLE ================= */}
+        {/* ====== PAGE TITLE ====== */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconWrapper}>
             <Ionicons name="user" size={26} color={Colors.primaryRed} />
@@ -387,7 +387,7 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* ================= PROFILE PHOTOS ================= */}
+        {/* ====== PROFILE PHOTOS ====== */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Profile Photos</Text>
@@ -447,7 +447,7 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* ================= BASIC INFORMATION ================= */}
+        {/* ====== BASIC INFORMATION ====== */}
         <InfoSection
           title="Basic Information"
           onEdit={() => openFieldEditor("basic", basicInfo)}
@@ -455,7 +455,7 @@ export default function EditProfileScreen() {
           <InfoGrid items={basicInfo} />
         </InfoSection>
 
-        {/* ================= LOCATION & COMMUNITY ================= */}
+        {/* ====== LOCATION & COMMUNITY ====== */}
         <InfoSection
           title="Location & Community"
           onEdit={() => openFieldEditor("location", locationInfo)}
@@ -463,7 +463,7 @@ export default function EditProfileScreen() {
           <InfoGrid items={locationInfo} />
         </InfoSection>
 
-        {/* ================= EDUCATION & CAREER ================= */}
+        {/* ====== EDUCATION & CAREER ====== */}
         <InfoSection
           title="Education & Career"
           onEdit={() => openFieldEditor("education", educationInfo)}
@@ -471,7 +471,7 @@ export default function EditProfileScreen() {
           <InfoGrid items={educationInfo} />
         </InfoSection>
 
-        {/* ================= ABOUT ME ================= */}
+        {/* ====== ABOUT ME ====== */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleRow}>
@@ -491,7 +491,7 @@ export default function EditProfileScreen() {
           <Text style={styles.aboutMeText}>{aboutMe}</Text>
         </View>
 
-        {/* ================= LIFESTYLE ================= */}
+        {/* ====== LIFESTYLE ====== */}
         <InfoSection
           title="Lifestyle"
           onEdit={() => openFieldEditor("lifestyle", lifestyleInfo)}
@@ -518,7 +518,7 @@ export default function EditProfileScreen() {
           </View>
         </InfoSection>
 
-        {/* ================= FAMILY DETAILS ================= */}
+        {/* ====== FAMILY DETAILS ====== */}
         <InfoSection title="Family Details" onEdit={openFamilyEditor}>
           <View style={styles.familyRow}>
             <FamilyColumn
@@ -539,7 +539,7 @@ export default function EditProfileScreen() {
           </View>
         </InfoSection>
 
-        {/* ================= SAVE BUTTON ================= */}
+        {/* ====== SAVE BUTTON ====== */}
         <TouchableOpacity
           style={styles.saveButton}
           activeOpacity={0.85}
@@ -555,7 +555,7 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ================= EDIT SHEET ================= */}
+      {/* ====== EDIT SHEET ====== */}
       <Modal
         visible={editingSection !== null}
         transparent
@@ -638,7 +638,7 @@ export default function EditProfileScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function InfoSection({ title, onEdit, children }) {
   return (
     <View style={styles.sectionCard}>

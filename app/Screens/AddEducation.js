@@ -56,13 +56,13 @@ const YEAR_OPTIONS = Array.from(
   (_, i) => String(CURRENT_YEAR + 5 - i),
 );
 
-/* =========================================================
+/* ===
    MAIN COMPONENT
 
    Handles both:
    - Add mode:  navigation.navigate("AddEducation")
    - Edit mode: navigation.navigate("AddEducation", { id })
-========================================================= */
+=== */
 
 export default function AddEducation() {
   const navigation = useNavigation();
@@ -74,9 +74,9 @@ export default function AddEducation() {
 
   const isEditMode = Number.isInteger(educationId) && educationId > 0;
 
-  /* =========================================================
+  /* ===
        STATE
-    ========================================================= */
+    === */
 
   const [degree, setDegree] = useState("");
   const [institution, setInstitution] = useState("");
@@ -89,12 +89,12 @@ export default function AddEducation() {
   // Which dropdown modal is open: "degree" | "startYear" | "endYear" | null
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  /* ============================================================
+  /* ======
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -119,9 +119,9 @@ export default function AddEducation() {
     }, [navigation, activeDropdown]),
   );
 
-  /* =========================================================
+  /* ===
        LOAD EXISTING RECORD (EDIT MODE ONLY)
-    ========================================================= */
+    === */
 
   const loadExistingEducation = useCallback(async () => {
     if (!isEditMode) {
@@ -130,10 +130,6 @@ export default function AddEducation() {
 
     try {
       setLoading(true);
-
-      console.log("======================================");
-
-      console.log("LOADING EDUCATION FOR EDIT, ID:", educationId);
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
@@ -175,13 +171,13 @@ export default function AddEducation() {
     loadExistingEducation();
   }, [loadExistingEducation]);
 
-  /* =========================================================
+  /* ===
        SAVE (ADD OR UPDATE)
-    ========================================================= */
+    === */
 
   const handleSave = async () => {
     try {
-      console.log("======================================");
+      console.log("===");
 
       console.log(isEditMode ? "UPDATING EDUCATION" : "ADDING EDUCATION");
 
@@ -242,16 +238,9 @@ export default function AddEducation() {
         education_end: Number(endYear),
       };
 
-      console.log("PAYLOAD:", JSON.stringify(payload, null, 2));
-
       const response = isEditMode
         ? await updateMemberEducation(accessToken, educationId, payload)
         : await addMemberEducation(accessToken, payload);
-
-      console.log("SAVE RESPONSE:", JSON.stringify(response, null, 2));
-
-      console.log("======================================");
-
       navigation.goBack();
     } catch (error) {
       console.error("SAVE EDUCATION ERROR:", error);
@@ -265,9 +254,9 @@ export default function AddEducation() {
     }
   };
 
-  /* =========================================================
+  /* ===
        DROPDOWN CONFIG
-    ========================================================= */
+    === */
 
   const dropdownFields = {
     degree: {
@@ -298,9 +287,9 @@ export default function AddEducation() {
 
   const activeField = activeDropdown ? dropdownFields[activeDropdown] : null;
 
-  /* =========================================================
+  /* ===
        RENDER HELPERS
-    ========================================================= */
+    === */
 
   const renderDropdownField = (key) => {
     const field = dropdownFields[key];
@@ -339,17 +328,17 @@ export default function AddEducation() {
     );
   };
 
-  /* =========================================================
+  /* ===
        RENDER
-    ========================================================= */
+    === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#D92332" />
 
-      {/* =================================================
+      {/* ===
           HEADER
-      ================================================= */}
+      === */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -386,9 +375,9 @@ export default function AddEducation() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* =============================================
+          {/* ====
               INFO BANNER
-          ============================================= */}
+          ==== */}
 
           <View style={styles.infoBanner}>
             <View style={styles.infoIconCircle}>
@@ -411,9 +400,9 @@ export default function AddEducation() {
             <Text style={styles.loadingText}>Loading education details...</Text>
           ) : (
             <>
-              {/* =========================================
+              {/* ======
                   FORM CARD
-              ========================================= */}
+              ====== */}
 
               <View style={styles.formCard}>
                 {renderDropdownField("degree")}
@@ -445,9 +434,9 @@ export default function AddEducation() {
                 {renderDropdownField("endYear")}
               </View>
 
-              {/* =========================================
+              {/* ======
                   SAVE BUTTON
-              ========================================= */}
+              ====== */}
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -476,9 +465,9 @@ export default function AddEducation() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* =================================================
+      {/* ===
           DROPDOWN MODAL
-      ================================================= */}
+      === */}
 
       <Modal
         visible={!!activeDropdown}
@@ -537,9 +526,9 @@ export default function AddEducation() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -547,9 +536,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F7F7",
   },
 
-  // =======================================================
+  // ====
   // HEADER
-  // =======================================================
+  // ====
 
   header: {
     backgroundColor: "#D92332",
@@ -594,9 +583,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // =======================================================
+  // ====
   // SCROLL / LAYOUT
-  // =======================================================
+  // ====
 
   scrollContent: {
     paddingHorizontal: 14,
@@ -612,9 +601,9 @@ const styles = StyleSheet.create({
     color: "#737B87",
   },
 
-  // =======================================================
+  // ====
   // INFO BANNER
-  // =======================================================
+  // ====
 
   infoBanner: {
     flexDirection: "row",
@@ -652,9 +641,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // =======================================================
+  // ====
   // FORM CARD
-  // =======================================================
+  // ====
 
   formCard: {
     backgroundColor: "#FFFFFF",
@@ -730,9 +719,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
 
-  // =======================================================
+  // ====
   // SAVE BUTTON
-  // =======================================================
+  // ====
 
   saveButton: {
     height: 50,
@@ -774,9 +763,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // =======================================================
+  // ====
   // DROPDOWN MODAL
-  // =======================================================
+  // ====
 
   modalOverlay: {
     flex: 1,

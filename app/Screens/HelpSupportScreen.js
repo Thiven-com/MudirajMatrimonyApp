@@ -17,7 +17,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 
-// ================= MOCK DATA =================
+// ====== MOCK DATA ======
 // Replace with the real topics / channels config from your backend.
 const QUICK_HELP_TOPICS = [
   {
@@ -184,7 +184,7 @@ export default function HelpSupportScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
       <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -211,7 +211,7 @@ export default function HelpSupportScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= HERO SEARCH BANNER ================= */}
+        {/* ====== HERO SEARCH BANNER ====== */}
         <View style={styles.heroBanner}>
           <View style={styles.heroIconCircle}>
             <Feather name="headphones" size={30} color={Colors.primaryRed} />
@@ -237,7 +237,7 @@ export default function HelpSupportScreen() {
           </View>
         </View>
 
-        {/* ================= QUICK HELP TOPICS ================= */}
+        {/* ====== QUICK HELP TOPICS ====== */}
         <Text style={styles.sectionHeading}>Quick Help Topics</Text>
         <View style={styles.topicsGrid}>
           {QUICK_HELP_TOPICS.map((topic) => (
@@ -267,7 +267,7 @@ export default function HelpSupportScreen() {
           ))}
         </View>
 
-        {/* ================= NEED MORE HELP ================= */}
+        {/* ====== NEED MORE HELP ====== */}
         <Text style={styles.sectionHeading}>Need More Help?</Text>
         <View style={styles.channelsCard}>
           {SUPPORT_CHANNELS.map((channel, index) => (
@@ -318,7 +318,7 @@ export default function HelpSupportScreen() {
           ))}
         </View>
 
-        {/* ================= FAQS ================= */}
+        {/* ====== FAQS ====== */}
         <TouchableOpacity
           style={styles.faqRow}
           activeOpacity={0.8}
@@ -336,7 +336,7 @@ export default function HelpSupportScreen() {
           <Feather name="chevron-right" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
 
-        {/* ================= STAY SAFE ONLINE ================= */}
+        {/* ====== STAY SAFE ONLINE ====== */}
         <View style={styles.safeBanner}>
           <View style={styles.safeIconCircle}>
             <Feather name="shield" size={19} color={Colors.primaryRed} />
@@ -358,7 +358,7 @@ export default function HelpSupportScreen() {
         </View>
       </ScrollView>
 
-      {/* ================= BOTTOM TAB BAR ================= */}
+      {/* ====== BOTTOM TAB BAR ====== */}
       <View style={styles.tabBar}>
         {TAB_ITEMS.map((tab) => {
           const isActive = tab.key === "profile";

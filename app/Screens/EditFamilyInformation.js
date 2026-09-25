@@ -76,23 +76,23 @@ const InputField = ({
   );
 };
 
-/* =========================================================
+/* ===
    EDIT FAMILY INFORMATION
-========================================================= */
+=== */
 
 export default function EditFamilyInformation() {
-  /* =======================================================
+  /* ====
      NAVIGATION / ROUTE PARAMS
-  ======================================================= */
+  ==== */
 
   const navigation = useNavigation();
   const route = useRoute();
 
   const selectedField = route?.params?.field || "";
 
-  /* =======================================================
+  /* ====
      STATES
-  ======================================================= */
+  ==== */
 
   const [father, setFather] = useState("");
 
@@ -100,9 +100,9 @@ export default function EditFamilyInformation() {
 
   const [sibling, setSibling] = useState("");
 
-  /* =======================================================
+  /* ====
      SCREEN STATES
-  ======================================================= */
+  ==== */
 
   const [loading, setLoading] = useState(true);
 
@@ -110,9 +110,9 @@ export default function EditFamilyInformation() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* =======================================================
+  /* ====
      INPUT REFS
-  ======================================================= */
+  ==== */
 
   const fatherRef = useRef(null);
 
@@ -120,9 +120,9 @@ export default function EditFamilyInformation() {
 
   const siblingRef = useRef(null);
 
-  /* =======================================================
+  /* ====
      BACK
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -130,12 +130,12 @@ export default function EditFamilyInformation() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
      Same pattern as ChatsScreen / OtpScreen / EditCareer /
      EditEducation: intercept the hardware back button and
      route it through handleBack(), ignored while saving.
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -158,9 +158,9 @@ export default function EditFamilyInformation() {
     };
   }, [handleBack, saving]);
 
-  /* =======================================================
+  /* ====
      GET FAMILY INFORMATION
-  ======================================================= */
+  ==== */
 
   const loadFamilyInformation = useCallback(async () => {
     try {
@@ -168,13 +168,13 @@ export default function EditFamilyInformation() {
 
       setErrorMessage("");
 
-      /* =================================================
+      /* ===
            ACCESS TOKEN
-        ================================================= */
+        === */
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("EDIT FAMILY INFORMATION");
 
@@ -182,11 +182,11 @@ export default function EditFamilyInformation() {
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
-      /* =================================================
+      /* ===
            TOKEN CHECK
-        ================================================= */
+        === */
 
       if (!accessToken) {
         setErrorMessage("Please login again.");
@@ -194,23 +194,23 @@ export default function EditFamilyInformation() {
         return;
       }
 
-      /* =================================================
+      /* ===
            CALL GET API
-        ================================================= */
+        === */
 
       const response = await getMemberFamilyInfo(accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("EDIT FAMILY API RESPONSE");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("========================================");
+      console.log("=====");
 
-      /* =================================================
+      /* ===
            RESPONSE DATA
-        ================================================= */
+        === */
 
       let data = response?.data;
 
@@ -248,23 +248,23 @@ export default function EditFamilyInformation() {
 
       console.log("FAMILY DATA:", JSON.stringify(data, null, 2));
 
-      /* =================================================
+      /* ===
            FATHER
-        ================================================= */
+        === */
 
       const fatherValue =
         data?.father ?? data?.father_name ?? data?.fatherName ?? "";
 
-      /* =================================================
+      /* ===
            MOTHER
-        ================================================= */
+        === */
 
       const motherValue =
         data?.mother ?? data?.mother_name ?? data?.motherName ?? "";
 
-      /* =================================================
+      /* ===
            SIBLING
-        ================================================= */
+        === */
 
       const siblingValue =
         data?.sibling ??
@@ -274,9 +274,9 @@ export default function EditFamilyInformation() {
         data?.siblingCount ??
         "";
 
-      /* =================================================
+      /* ===
            SET VALUES
-        ================================================= */
+        === */
 
       setFather(String(fatherValue ?? ""));
 
@@ -286,7 +286,7 @@ export default function EditFamilyInformation() {
 
       setErrorMessage("");
     } catch (error) {
-      console.error("========================================");
+      console.error("=====");
 
       console.error("EDIT FAMILY INFORMATION GET ERROR");
 
@@ -299,7 +299,7 @@ export default function EditFamilyInformation() {
         JSON.stringify(error?.response?.data, null, 2),
       );
 
-      console.error("========================================");
+      console.error("=====");
 
       setErrorMessage(
         error?.response?.data?.message ||
@@ -311,17 +311,17 @@ export default function EditFamilyInformation() {
     }
   }, [selectedField]);
 
-  /* =======================================================
+  /* ====
      LOAD API
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     loadFamilyInformation();
   }, [loadFamilyInformation]);
 
-  /* =======================================================
+  /* ====
      AUTO FOCUS SELECTED FIELD
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     if (loading) {
@@ -347,9 +347,9 @@ export default function EditFamilyInformation() {
     };
   }, [loading, selectedField]);
 
-  // =======================================================
+  // ====
   // SAVE FAMILY INFORMATION
-  // =======================================================
+  // ====
 
   const handleSave = async () => {
     if (saving) {
@@ -435,7 +435,7 @@ export default function EditFamilyInformation() {
       // DEBUG
       // ---------------------------------------------------
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("SAVE FAMILY INFORMATION");
 
@@ -453,7 +453,7 @@ export default function EditFamilyInformation() {
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
       // ---------------------------------------------------
       // CALL UPDATE API
@@ -465,13 +465,13 @@ export default function EditFamilyInformation() {
       // RESPONSE
       // ---------------------------------------------------
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("FAMILY UPDATE RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("========================================");
+      console.log("=====");
 
       // ---------------------------------------------------
       // CHECK SUCCESS
@@ -515,7 +515,7 @@ export default function EditFamilyInformation() {
         Alert.alert("Update Failed", errorMessage);
       }
     } catch (error) {
-      console.error("========================================");
+      console.error("=====");
 
       console.error("SAVE FAMILY INFORMATION ERROR");
 
@@ -528,7 +528,7 @@ export default function EditFamilyInformation() {
         JSON.stringify(error?.response?.data, null, 2),
       );
 
-      console.error("========================================");
+      console.error("=====");
 
       const errorMessage =
         error?.response?.data?.message ||
@@ -543,9 +543,9 @@ export default function EditFamilyInformation() {
     }
   };
 
-  /* =======================================================
+  /* ====
      LOADING
-  ======================================================= */
+  ==== */
 
   if (loading) {
     return (
@@ -561,9 +561,9 @@ export default function EditFamilyInformation() {
     );
   }
 
-  /* =======================================================
+  /* ====
      MAIN UI
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -578,14 +578,14 @@ export default function EditFamilyInformation() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* =============================================
+          {/* ====
               CARD
-          ============================================= */}
+          ==== */}
 
           <View style={styles.card}>
-            {/* ===========================================
+            {/* ========
                 HEADER
-            =========================================== */}
+            ======== */}
 
             <View style={styles.header}>
               <TouchableOpacity
@@ -607,15 +607,15 @@ export default function EditFamilyInformation() {
               <View style={styles.headerRight} />
             </View>
 
-            {/* ===========================================
+            {/* ========
                 DIVIDER
-            =========================================== */}
+            ======== */}
 
             <View style={styles.divider} />
 
-            {/* ===========================================
+            {/* ========
                 ERROR
-            =========================================== */}
+            ======== */}
 
             {errorMessage ? (
               <View style={styles.errorBox}>
@@ -625,17 +625,17 @@ export default function EditFamilyInformation() {
               </View>
             ) : null}
 
-            {/* ===========================================
+            {/* ========
                 DESCRIPTION
-            =========================================== */}
+            ======== */}
 
             <Text style={styles.description}>
               Update your family information below.
             </Text>
 
-            {/* ===========================================
+            {/* ========
                 FATHER
-            =========================================== */}
+            ======== */}
 
             <InputField
               label="Father"
@@ -648,9 +648,9 @@ export default function EditFamilyInformation() {
               fieldName="father"
             />
 
-            {/* ===========================================
+            {/* ========
                 MOTHER
-            =========================================== */}
+            ======== */}
 
             <InputField
               label="Mother"
@@ -663,9 +663,9 @@ export default function EditFamilyInformation() {
               fieldName="mother"
             />
 
-            {/* ===========================================
+            {/* ========
                 SIBLING
-            =========================================== */}
+            ======== */}
 
             <InputField
               label="Sibling"
@@ -680,9 +680,9 @@ export default function EditFamilyInformation() {
               fieldName="sibling"
             />
 
-            {/* ===========================================
+            {/* ========
                 SAVE
-            =========================================== */}
+            ======== */}
 
             <TouchableOpacity
               style={[styles.saveButton, saving && styles.disabledButton]}
@@ -697,9 +697,9 @@ export default function EditFamilyInformation() {
               </Text>
             </TouchableOpacity>
 
-            {/* ===========================================
+            {/* ========
                 CANCEL
-            =========================================== */}
+            ======== */}
 
             <TouchableOpacity
               style={styles.cancelButton}
@@ -715,14 +715,14 @@ export default function EditFamilyInformation() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
        BASIC
-    ===================================================== */
+    ======= */
 
   flex: {
     flex: 1,
@@ -733,9 +733,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F6F8",
   },
 
-  /* =====================================================
+  /* =======
        SCROLL
-    ===================================================== */
+    ======= */
 
   scrollContent: {
     flexGrow: 1,
@@ -747,9 +747,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  /* =====================================================
+  /* =======
        LOADING
-    ===================================================== */
+    ======= */
 
   loadingContainer: {
     flex: 1,
@@ -771,9 +771,9 @@ const styles = StyleSheet.create({
     color: "#777777",
   },
 
-  /* =====================================================
+  /* =======
        CARD
-    ===================================================== */
+    ======= */
 
   card: {
     width: "100%",
@@ -806,9 +806,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* =====================================================
+  /* =======
        HEADER
-    ===================================================== */
+    ======= */
 
   header: {
     minHeight: 42,
@@ -864,9 +864,9 @@ const styles = StyleSheet.create({
     width: 10,
   },
 
-  /* =====================================================
+  /* =======
        DIVIDER
-    ===================================================== */
+    ======= */
 
   divider: {
     height: 1,
@@ -878,9 +878,9 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  /* =====================================================
+  /* =======
        ERROR
-    ===================================================== */
+    ======= */
 
   errorBox: {
     flexDirection: "row",
@@ -912,9 +912,9 @@ const styles = StyleSheet.create({
     color: "#D7192A",
   },
 
-  /* =====================================================
+  /* =======
        DESCRIPTION
-    ===================================================== */
+    ======= */
 
   description: {
     fontSize: Fonts.size.md,
@@ -928,9 +928,9 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
 
-  /* =====================================================
+  /* =======
        FIELD
-    ===================================================== */
+    ======= */
 
   fieldContainer: {
     marginBottom: 24,
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     color: "#333333",
   },
 
-  /* =====================================================
+  /* =======
        INPUT
        Fixed height on the wrapper (not minHeight) + centered
        content + zero vertical padding on the TextInput itself
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
        Android. Android's TextInput adds its own invisible
        font padding, which is why includeFontPadding/
        textAlignVertical are reset below.
-    ===================================================== */
+    ======= */
 
   inputWrapper: {
     height: 52,
@@ -1021,9 +1021,9 @@ const styles = StyleSheet.create({
     }),
   },
 
-  /* =====================================================
+  /* =======
        SAVE
-    ===================================================== */
+    ======= */
 
   saveButton: {
     height: 50,
@@ -1069,9 +1069,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  /* =====================================================
+  /* =======
        CANCEL
-    ===================================================== */
+    ======= */
 
   cancelButton: {
     height: 46,

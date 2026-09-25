@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import BASE_URL from "../constants/AppUrls";
 import { getMethod, postMethod } from "./APIServices";
 
-// ==================== SHARED AUTH TOKEN HELPER ====================
+// === SHARED AUTH TOKEN HELPER ===
 // Centralized token lookup — checks the primary "authToken" key, then
 // falls back to a parsed "userdata" blob, then a handful of legacy/
 // alternate key names various screens have used historically.
@@ -55,7 +55,7 @@ export const getToken = async () => {
   }
 };
 
-// ==================== SHARED DEBUG / VALIDATION HELPERS ====================
+// === SHARED DEBUG / VALIDATION HELPERS ===
 
 // Throws a consistent error when a required access token is missing.
 // Used at the top of every authenticated API call below.
@@ -70,10 +70,10 @@ function requireToken(accessToken) {
 // crashes the caller just because logging failed.
 function logResponse(label, response) {
   try {
-    console.log("=================================");
-    console.log(label);
-    console.log(JSON.stringify(response, null, 2));
-    console.log("=================================");
+    // console.log("===");
+    // console.log(label);
+    // console.log(JSON.stringify(response, null, 2));
+    // console.log("===");
   } catch (e) {
     console.log(label, response);
   }
@@ -105,7 +105,7 @@ function normalizeDob(dob) {
   return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
 }
 
-// ==================== REGISTRATION API ====================
+// === REGISTRATION API ===
 export async function signup(userData) {
   const URL = apiUrl("/api/signup");
 
@@ -120,11 +120,7 @@ export async function signup(userData) {
   };
 
   try {
-    console.log("signup request URL:", URL);
-    console.log("signup request payload:", payload);
     const result = await postMethod(URL, null, payload);
-
-    console.log("signup response:", JSON.stringify(result));
 
     if (result?.result === true || result?.success === 1) {
       return {
@@ -162,7 +158,7 @@ export async function signup(userData) {
   }
 }
 
-// ==================== LOGIN OTP API ====================
+// === LOGIN OTP API ===
 export async function sendLoginOtp(mobile) {
   const URL = apiUrl("/api/login");
 
@@ -171,12 +167,7 @@ export async function sendLoginOtp(mobile) {
   };
 
   try {
-    console.log("sendLoginOtp request URL:", URL);
-    console.log("sendLoginOtp request payload:", payload);
     const result = await postMethod(URL, null, payload);
-
-    console.log("sendLoginOtp response:", JSON.stringify(result));
-
     if (result?.result === true || result?.success === 1) {
       return {
         success: 1,
@@ -216,7 +207,7 @@ export async function sendLoginOtp(mobile) {
   }
 }
 
-// ==================== VERIFY OTP API ====================
+// === VERIFY OTP API ===
 export async function verifyLoginOtp(mobile, code, sessionToken) {
   const URL = apiUrl("/api/verifyMobile");
 
@@ -226,15 +217,9 @@ export async function verifyLoginOtp(mobile, code, sessionToken) {
   };
 
   try {
-    console.log("verifyLoginOtp request URL:", URL);
-    console.log("verifyLoginOtp request payload:", payload);
-
     const result = await postMethod(URL, null, payload);
 
-    console.log("verifyLoginOtp response:", JSON.stringify(result));
-
     if (result?.result === true || result?.success === 1) {
-      console.log("token:", result?.access_token);
 
       return {
         success: 1,
@@ -291,7 +276,7 @@ export async function verifyLoginOtp(mobile, code, sessionToken) {
   }
 }
 
-// ==================== HOME SCREEN API ====================
+// === HOME SCREEN API ===
 // GET /api/home
 // Expected to return everything the Home screen needs in one call:
 // quick stats (matches/visitors/likes/messages/shortlist counts),
@@ -300,11 +285,7 @@ export async function getHomeData(token) {
   const URL = apiUrl("/api/home");
 
   try {
-    console.log("getHomeData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getHomeData response:", JSON.stringify(result));
-
     if (
       result?.result === true ||
       result?.success === 1 ||
@@ -350,16 +331,13 @@ export async function getHomeData(token) {
   }
 }
 
-// ==================== TRUSTED BY MILLIONS API ====================
+// === TRUSTED BY MILLIONS API ===
 // GET /api/home/trusted-by-millions
 export async function getTrustedByMillionsData(token) {
   const URL = apiUrl("/api/home/trusted-by-millions");
 
   try {
-    console.log("getTrustedByMillionsData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getTrustedByMillionsData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -399,16 +377,13 @@ export async function getTrustedByMillionsData(token) {
   }
 }
 
-// ==================== HAPPY STORIES API ====================
+// === HAPPY STORIES API ===
 // GET /api/home/happy-stories
 export async function getHappyStoriesData(token) {
   const URL = apiUrl("/api/home/happy-stories");
 
   try {
-    console.log("getHappyStoriesData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getHappyStoriesData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -450,16 +425,13 @@ export async function getHappyStoriesData(token) {
   }
 }
 
-// ==================== PACKAGES API ====================
+// === PACKAGES API ===
 // GET /api/home/packages
 export async function getPackagesData(token) {
   const URL = apiUrl("/api/home/packages");
 
   try {
-    console.log("getPackagesData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getPackagesData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -501,16 +473,13 @@ export async function getPackagesData(token) {
   }
 }
 
-// ==================== NEW MEMBERS API ====================
+// === NEW MEMBERS API ===
 // GET /api/home/new-members
 export async function getNewMembersData(token) {
   const URL = apiUrl("/api/home/new-members");
 
   try {
-    console.log("getNewMembersData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getNewMembersData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -551,16 +520,13 @@ export async function getNewMembersData(token) {
     };
   }
 }
-// ==================== PREMIUM MEMBERS API ====================
+// === PREMIUM MEMBERS API ===
 // GET /api/home/premium-members
 export async function getPremiumMembersData(token) {
   const URL = apiUrl("/api/home/premium-members");
 
   try {
-    console.log("getPremiumMembersData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getPremiumMembersData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -603,16 +569,13 @@ export async function getPremiumMembersData(token) {
     };
   }
 }
-// ==================== BANNER API ====================
+// === BANNER API ===
 // GET /api/home/banner
 export async function getBannerData(token) {
   const URL = apiUrl("/api/home/banner");
 
   try {
-    console.log("getBannerData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getBannerData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -653,16 +616,13 @@ export async function getBannerData(token) {
     };
   }
 }
-// ==================== HOW IT WORKS API ====================
+// === HOW IT WORKS API ===
 // GET /api/home/how-it-works
 export async function getHowItWorksData(token) {
   const URL = apiUrl("/api/home/how-it-works");
 
   try {
-    console.log("getHowItWorksData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getHowItWorksData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -704,16 +664,13 @@ export async function getHowItWorksData(token) {
   }
 }
 
-// ==================== REVIEWS API ====================
+// === REVIEWS API ===
 // GET /api/home/reviews
 export async function getReviewsData(token) {
   const URL = apiUrl("/api/home/reviews");
 
   try {
-    console.log("getReviewsData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getReviewsData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -755,16 +712,13 @@ export async function getReviewsData(token) {
   }
 }
 
-// ==================== BLOGS API ====================
+// === BLOGS API ===
 // GET /api/home/blogs
 export async function getBlogsData(token) {
   const URL = apiUrl("/api/home/blogs");
 
   try {
-    console.log("getBlogsData request URL:", URL);
     const result = await getMethod(URL, token);
-
-    console.log("getBlogsData response:", JSON.stringify(result));
 
     if (
       result?.result === true ||
@@ -819,7 +773,7 @@ export async function getPremiumMembers() {
     throw error;
   }
 }
-// ==================== MEMBER LISTING API ====================
+// === MEMBER LISTING API ===
 // POST /api/member/member-listing
 export async function postMemberListing(filters = {}, token) {
   const URL = apiUrl("/api/member/member-listing");
@@ -843,8 +797,6 @@ export async function postMemberListing(filters = {}, token) {
   };
 
   try {
-    console.log("getMemberListing request URL:", URL);
-    console.log("getMemberListing request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
 
@@ -863,11 +815,8 @@ export async function getMyInterests(token) {
   const URL = apiUrl("/api/member/my-interests");
 
   try {
-    console.log("getMyInterests request URL:", URL);
 
     const result = await getMethod(URL, token);
-
-    console.log("getMyInterests response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -900,17 +849,14 @@ export const getMemberInfo = async (memberId, token) => {
     throw error;
   }
 };
-// ==================== PUBLIC PROFILE API ====================
+// === PUBLIC PROFILE API ===
 // GET /api/member/public-profile/:id
 export async function getPublicProfile(memberId, token) {
   const URL = apiUrl(`/api/member/public-profile/${memberId}`);
 
   try {
-    console.log("getPublicProfile request URL:", URL);
 
     const result = await getMethod(URL, token);
-
-    console.log("getPublicProfile response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -924,7 +870,7 @@ export async function getPublicProfile(memberId, token) {
   }
 }
 
-// ==================== EXPRESS INTEREST API ====================
+// === EXPRESS INTEREST API ===
 // POST /api/member/express-interest
 // payload: { user_id: <target member id> }
 export async function expressInterest(userId, token) {
@@ -935,12 +881,8 @@ export async function expressInterest(userId, token) {
   };
 
   try {
-    console.log("expressInterest request URL:", URL);
-    console.log("expressInterest request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("expressInterest response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -969,18 +911,15 @@ export async function expressInterest(userId, token) {
   }
 }
 
-// ==================== INTEREST REQUESTS API ====================
+// === INTEREST REQUESTS API ===
 // GET /api/member/interest-requests
 // Interests other members have sent TO the logged-in user.
 export async function getInterestRequests(token) {
   const URL = apiUrl("/api/member/interest-requests");
 
   try {
-    console.log("getInterestRequests request URL:", URL);
 
     const result = await getMethod(URL, token);
-
-    console.log("getInterestRequests response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -994,7 +933,7 @@ export async function getInterestRequests(token) {
   }
 }
 
-// ==================== ACCEPT INTEREST API ====================
+// === ACCEPT INTEREST API ===
 // POST /api/member/interest-accept
 // payload: { interest_id }
 export async function acceptInterest(token, interestId) {
@@ -1005,12 +944,8 @@ export async function acceptInterest(token, interestId) {
   };
 
   try {
-    console.log("acceptInterest request URL:", URL);
-    console.log("acceptInterest request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("acceptInterest response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -1039,7 +974,7 @@ export async function acceptInterest(token, interestId) {
   }
 }
 
-// ==================== REJECT INTEREST API ====================
+// === REJECT INTEREST API ===
 // POST /api/member/interest-reject
 // payload: { interest_id }
 export async function rejectInterest(token, interestId) {
@@ -1050,12 +985,8 @@ export async function rejectInterest(token, interestId) {
   };
 
   try {
-    console.log("rejectInterest request URL:", URL);
-    console.log("rejectInterest request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("rejectInterest response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -1084,17 +1015,14 @@ export async function rejectInterest(token, interestId) {
   }
 }
 
-// ==================== MY SHORTLISTS API ====================
+// === MY SHORTLISTS API ===
 // GET /api/member/my-shortlists
 export async function getMyShortlists(token) {
   const URL = apiUrl("/api/member/my-shortlists");
 
   try {
-    console.log("getMyShortlists request URL:", URL);
 
     const result = await getMethod(URL, token);
-
-    console.log("getMyShortlists response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -1108,7 +1036,7 @@ export async function getMyShortlists(token) {
   }
 }
 
-// ==================== ADD TO SHORTLIST API ====================
+// === ADD TO SHORTLIST API ===
 // POST /api/member/add-to-shortlist
 // payload: { user_id }
 export async function addToShortlist(userId, token) {
@@ -1119,12 +1047,8 @@ export async function addToShortlist(userId, token) {
   };
 
   try {
-    console.log("addToShortlist request URL:", URL);
-    console.log("addToShortlist request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("addToShortlist response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -1153,7 +1077,7 @@ export async function addToShortlist(userId, token) {
   }
 }
 
-// ==================== REMOVE FROM SHORTLIST API ====================
+// === REMOVE FROM SHORTLIST API ===
 // POST /api/member/remove-from-shortlist
 // payload: { user_id }  <-- confirm this matches add-to-shortlist's shape;
 // some backends expect { shortlist_id } instead. If this errors, switch it.
@@ -1165,12 +1089,8 @@ export async function removeFromShortlist(userId, token) {
   };
 
   try {
-    console.log("removeFromShortlist request URL:", URL);
-    console.log("removeFromShortlist request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("removeFromShortlist response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -1198,17 +1118,14 @@ export async function removeFromShortlist(userId, token) {
     };
   }
 }
-// ==================== CHAT LIST API ====================
+// === CHAT LIST API ===
 // GET /api/member/chat-list
 export async function getChatList(token) {
   const URL = apiUrl("/api/member/chat-list");
 
   try {
-    console.log("getChatList request URL:", URL);
 
     const result = await getMethod(URL, token);
-
-    console.log("getChatList response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -1221,18 +1138,14 @@ export async function getChatList(token) {
     };
   }
 }
-// ==================== CHAT VIEW API ====================
+// === CHAT VIEW API ===
 // GET /api/member/chat-view/:id
 // Returns the chat partner's info and message history for a conversation.
 export async function getChatView(memberId, token) {
   const URL = apiUrl(`/api/member/chat-view/${memberId}`);
 
   try {
-    console.log("getChatView request URL:", URL);
-
     const result = await getMethod(URL, token);
-
-    console.log("getChatView response:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -1245,7 +1158,7 @@ export async function getChatView(memberId, token) {
     };
   }
 }
-// ==================== CHAT REPLY API ====================
+// === CHAT REPLY API ===
 // POST /api/member/chat-reply
 // payload: { chat_thread_id, message }
 export async function sendChatReply(chatThreadId, message, token) {
@@ -1257,12 +1170,8 @@ export async function sendChatReply(chatThreadId, message, token) {
   };
 
   try {
-    console.log("sendChatReply request URL:", URL);
-    console.log("sendChatReply request payload:", payload);
 
     const result = await postMethod(URL, token, payload);
-
-    console.log("sendChatReply response:", JSON.stringify(result));
 
     if (result?.success === 1 || result?.result === true) {
       return {
@@ -1327,17 +1236,8 @@ export async function getProfileDetails(accessToken) {
     token: accessToken,
   };
 
-  console.log("=================================");
-  console.log("GET PROFILE DETAILS");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const result = await getMethod(URL, user);
-
-    logResponse("PROFILE DETAILS RESPONSE", result);
 
     return result;
   } catch (error) {
@@ -1347,10 +1247,10 @@ export async function getProfileDetails(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER INTRODUCTION
 // GET /api/member/introduction
-// =========================================================
+// ===
 
 export async function getMemberIntroduction(accessToken) {
   if (!accessToken) {
@@ -1367,17 +1267,9 @@ export async function getMemberIntroduction(accessToken) {
     token: accessToken,
   };
 
-  console.log("=================================");
-  console.log("GET MEMBER INTRODUCTION");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
 
   try {
     const response = await getMethod(URL, user);
-
-    logResponse("MEMBER INTRODUCTION RESPONSE", response);
 
     return response;
   } catch (error) {
@@ -1387,10 +1279,10 @@ export async function getMemberIntroduction(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER INTRODUCTION
 // POST /api/member/introduction-update
-// =========================================================
+// ===
 
 export async function updateMemberIntroduction(accessToken, introduction) {
   requireToken(accessToken);
@@ -1405,19 +1297,8 @@ export async function updateMemberIntroduction(accessToken, introduction) {
     introduction: String(introduction || "").trim(),
   };
 
-  console.log("=================================");
-  console.log("UPDATE MEMBER INTRODUCTION");
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-  console.log("BODY:", JSON.stringify(body, null, 2));
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await postMethod(URL, user, body);
-
-    logResponse("UPDATE INTRODUCTION RESPONSE", response);
-
     return response;
   } catch (error) {
     console.error("UPDATE INTRODUCTION ERROR:", error);
@@ -1426,10 +1307,10 @@ export async function updateMemberIntroduction(accessToken, introduction) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER BASIC INFO
 // GET /api/member/basic-info
-// =========================================================
+// ===
 
 export async function getMemberBasicInfo(accessToken) {
   requireToken(accessToken);
@@ -1440,17 +1321,8 @@ export async function getMemberBasicInfo(accessToken) {
     token: accessToken,
   };
 
-  console.log("=================================");
-  console.log("GET MEMBER BASIC INFO");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, user);
-
-    logResponse("GET BASIC INFO RESPONSE", response);
 
     return response;
   } catch (error) {
@@ -1460,10 +1332,10 @@ export async function getMemberBasicInfo(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER BASIC INFORMATION
 // POST /api/member/basic-info/update
-// =========================================================
+// ===
 
 export async function updateMemberBasicInfo(accessToken, basicInfo = {}) {
   if (!accessToken) {
@@ -1490,18 +1362,6 @@ export async function updateMemberBasicInfo(accessToken, basicInfo = {}) {
     children: Number(basicInfo.children || 0),
   };
 
-  console.log("=================================");
-
-  console.log("UPDATE BASIC INFORMATION API");
-
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("=================================");
 
   try {
     const response = await postMethod(
@@ -1512,14 +1372,6 @@ export async function updateMemberBasicInfo(accessToken, basicInfo = {}) {
       body,
     );
 
-    console.log("=================================");
-
-    console.log("UPDATE BASIC INFORMATION RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("=================================");
-
     return response;
   } catch (error) {
     console.error("UPDATE BASIC INFORMATION ERROR:", error);
@@ -1528,29 +1380,20 @@ export async function updateMemberBasicInfo(accessToken, basicInfo = {}) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER PRESENT ADDRESS
 // GET /api/member/present/address
-// =========================================================
+// ===
 
 export async function getMemberPresentAddress(accessToken) {
   requireToken(accessToken);
 
   const URL = BASE_URL + "/api/member/present/address";
 
-  console.log("=================================");
-  console.log("GET MEMBER PRESENT ADDRESS");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
-
-    logResponse("PRESENT ADDRESS API RESPONSE", response);
 
     return response;
   } catch (error) {
@@ -1560,29 +1403,21 @@ export async function getMemberPresentAddress(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER PERMANENT ADDRESS
 // GET /api/member/permanent/address
-// =========================================================
+// ===
 
 export async function getMemberPermanentAddress(accessToken) {
   requireToken(accessToken);
 
   const URL = BASE_URL + "/api/member/permanent/address";
 
-  console.log("=================================");
-  console.log("GET MEMBER PERMANENT ADDRESS");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
 
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
-
-    logResponse("PERMANENT ADDRESS API RESPONSE", response);
 
     return response;
   } catch (error) {
@@ -1592,7 +1427,7 @@ export async function getMemberPermanentAddress(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER ADDRESS
 // POST /api/member/address/update
 //
@@ -1607,7 +1442,7 @@ export async function getMemberPermanentAddress(accessToken) {
 //
 // address_type:
 // "present" | "permanent"
-// =========================================================
+// ===
 
 export async function updateMemberAddress(
   accessToken,
@@ -1657,14 +1492,6 @@ export async function updateMemberAddress(
     address_type: cleanAddressType,
   };
 
-  console.log("=================================");
-  console.log("UPDATE MEMBER ADDRESS");
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("BODY:", JSON.stringify(body, null, 2));
-  console.log("=================================");
-
   try {
     const response = await postMethod(
       URL,
@@ -1673,9 +1500,6 @@ export async function updateMemberAddress(
       },
       body,
     );
-
-    logResponse("UPDATE MEMBER ADDRESS RESPONSE", response);
-
     return response;
   } catch (error) {
     console.error("UPDATE MEMBER ADDRESS ERROR:", error);
@@ -1684,29 +1508,20 @@ export async function updateMemberAddress(
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER COUNTRIES
 // GET /api/member/countries
-// =========================================================
+// ===
 
 export async function getMemberCountries(accessToken) {
   requireToken(accessToken);
 
   const URL = BASE_URL + "/api/member/countries";
 
-  console.log("=================================");
-  console.log("GET MEMBER COUNTRIES");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
-
-    logResponse("COUNTRIES API RESPONSE", response);
 
     return response;
   } catch (error) {
@@ -1716,13 +1531,13 @@ export async function getMemberCountries(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER STATES
 // GET /api/member/states/{country_id}
 //
 // Example:
 // /api/member/states/101
-// =========================================================
+// ===
 
 export async function getMemberStates(accessToken, countryId) {
   requireToken(accessToken);
@@ -1735,21 +1550,10 @@ export async function getMemberStates(accessToken, countryId) {
 
   const URL = BASE_URL + `/api/member/states/${numericCountryId}`;
 
-  console.log("=================================");
-  console.log("GET MEMBER STATES");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("COUNTRY ID:", numericCountryId);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
-
-    logResponse("STATES API RESPONSE", response);
-
     return response;
   } catch (error) {
     console.error("STATES API ERROR:", error);
@@ -1758,13 +1562,13 @@ export async function getMemberStates(accessToken, countryId) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER CITIES
 // GET /api/member/cities/{state_id}
 //
 // Example:
 // /api/member/cities/2
-// =========================================================
+// ===
 
 export async function getMemberCities(accessToken, stateId) {
   requireToken(accessToken);
@@ -1777,21 +1581,10 @@ export async function getMemberCities(accessToken, stateId) {
 
   const URL = BASE_URL + `/api/member/cities/${numericStateId}`;
 
-  console.log("=================================");
-  console.log("GET MEMBER CITIES");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("STATE ID:", numericStateId);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
-
-    logResponse("CITIES API RESPONSE", response);
-
     return response;
   } catch (error) {
     console.error("CITIES API ERROR:", error);
@@ -1800,7 +1593,7 @@ export async function getMemberCities(accessToken, stateId) {
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER EDUCATION STATUS
 // POST /api/member/education-status/update
 //
@@ -1809,7 +1602,7 @@ export async function getMemberCities(accessToken, stateId) {
 //   "id": 3,
 //   "status": 1
 // }
-// =========================================================
+// ===
 
 export async function updateMemberEducationStatus(
   accessToken,
@@ -1842,25 +1635,8 @@ export async function updateMemberEducationStatus(
     status: currentStatus,
   };
 
-  console.log("=================================");
-  console.log("EDUCATION STATUS UPDATE REQUEST");
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("TOKEN LENGTH:", accessToken.length);
-  console.log("EDUCATION ID:", id);
-  console.log("STATUS:", currentStatus);
-  console.log("REQUEST USER:", JSON.stringify(user, null, 2));
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-  console.log("=================================");
-
   try {
     const response = await postMethod(URL, user, body);
-
-    console.log("=================================");
-    console.log("EDUCATION STATUS UPDATE RESPONSE");
-    console.log(JSON.stringify(response, null, 2));
-    console.log("=================================");
 
     return response;
   } catch (error) {
@@ -1870,9 +1646,9 @@ export async function updateMemberEducationStatus(
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER EDUCATION
-// =========================================================
+// ===
 
 export async function getMemberEducation(accessToken) {
   if (!accessToken) {
@@ -1885,47 +1661,23 @@ export async function getMemberEducation(accessToken) {
     token: accessToken,
   };
 
-  console.log("======================================");
-
-  console.log("GET MEMBER EDUCATION API");
-
-  console.log("METHOD: GET");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("======================================");
 
   try {
     const response = await getMethod(URL, user);
 
-    console.log("======================================");
-
-    console.log("EDUCATION API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
 
-    console.error("EDUCATION API ERROR");
-
-    console.error(error);
-
-    console.error("======================================");
+    console.error("EDUCATION API ERROR", error);
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // GET SINGLE MEMBER EDUCATION
 // GET /api/member/education/{id}
-// =========================================================
+// ===
 
 export async function getMemberEducationById(accessToken, educationId) {
   if (!accessToken) {
@@ -1953,7 +1705,7 @@ export async function getMemberEducationById(accessToken, educationId) {
   }
 }
 
-// =========================================================
+// ===
 // ADD MEMBER EDUCATION
 // POST /api/member/education
 //
@@ -1964,7 +1716,7 @@ export async function getMemberEducationById(accessToken, educationId) {
 //   "education_start": 2020,
 //   "education_end": 2024
 // }
-// =========================================================
+// ===
 
 export async function addMemberEducation(accessToken, education = {}) {
   if (!accessToken) {
@@ -1982,9 +1734,9 @@ export async function addMemberEducation(accessToken, education = {}) {
 
   const institutionValue = String(education.institution || "").trim();
 
-  // =======================================================
+  // ====
   // VALIDATION
-  // =======================================================
+  // ====
 
   if (!degreeValue) {
     throw new Error("Degree / Course is required.");
@@ -2006,9 +1758,9 @@ export async function addMemberEducation(accessToken, education = {}) {
     throw new Error("Education end year cannot be before start year.");
   }
 
-  // =======================================================
+  // ====
   // REQUEST BODY
-  // =======================================================
+  // ====
 
   const body = {
     degree: degreeValue,
@@ -2021,58 +1773,25 @@ export async function addMemberEducation(accessToken, education = {}) {
     token: accessToken,
   };
 
-  // =======================================================
-  // DEBUG LOG
-  // =======================================================
-
-  console.log("======================================");
-
-  console.log("ADD MEMBER EDUCATION API");
-
-  console.log("METHOD: POST");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken.length);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("======================================");
-
   try {
     const response = await postMethod(URL, user, body);
-
-    // =====================================================
-    // RESPONSE LOG
-    // =====================================================
-
-    console.log("======================================");
-
-    console.log("ADD EDUCATION API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
+    console.error("===");
 
     console.error("ADD EDUCATION API ERROR");
 
     console.error(error);
 
-    console.error("======================================");
+    console.error("===");
 
     throw error;
   }
 }
-// =========================================================
+// ===
 // UPDATE MEMBER EDUCATION
 // PUT /api/member/education/{id}
-// =========================================================
+// ===
 //
 // Request:
 //
@@ -2083,7 +1802,7 @@ export async function addMemberEducation(accessToken, education = {}) {
 //   "education_end": 2024
 // }
 //
-// =========================================================
+// ===
 
 export async function updateMemberEducation(
   accessToken,
@@ -2167,31 +1886,6 @@ export async function updateMemberEducation(
   const user = {
     token: accessToken,
   };
-
-  // -------------------------------------------------------
-  // LOG REQUEST
-  // -------------------------------------------------------
-
-  console.log("=================================");
-
-  console.log("UPDATE MEMBER EDUCATION API");
-
-  console.log("METHOD: PUT");
-
-  console.log("URL:", URL);
-
-  console.log("EDUCATION ID:", numericId);
-
-  console.log("BODY:", JSON.stringify(body, null, 2));
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("=================================");
-
-  // -------------------------------------------------------
-  // CALL PUT API
-  // -------------------------------------------------------
-
   try {
     const response = await fetch(URL, {
       method: "PUT",
@@ -2204,9 +1898,6 @@ export async function updateMemberEducation(
     });
 
     const responseData = await response.json();
-    console.log("STATUS:", response.status);
-    console.log("RESPONSE DATA:", responseData);
-
     if (!response.ok) {
       throw new Error(responseData?.message || "Education update failed");
     }
@@ -2217,16 +1908,15 @@ export async function updateMemberEducation(
   }
 }
 
-/* =========================================================
+/* ===
    DELETE MEMBER EDUCATION
    DELETE /api/member/education/{id}
-========================================================= */
+=== */
 
 export async function deleteMemberEducation(accessToken, educationId) {
   const URL = apiUrl(`/api/member/education/${educationId}`);
 
   try {
-    console.log("DELETE URL:", URL);
 
     const response = await fetch(URL, {
       method: "DELETE",
@@ -2239,8 +1929,6 @@ export async function deleteMemberEducation(accessToken, educationId) {
 
     const responseData = await response.json();
 
-    console.log("DELETE RESPONSE:", JSON.stringify(responseData, null, 2));
-
     if (!response.ok) {
       throw new Error(responseData?.message || "Education delete failed");
     }
@@ -2252,10 +1940,10 @@ export async function deleteMemberEducation(accessToken, educationId) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER CAREER
 // GET /api/member/career
-// =========================================================
+// ===
 
 export async function getMemberCareer(accessToken) {
   if (!accessToken) {
@@ -2268,20 +1956,8 @@ export async function getMemberCareer(accessToken) {
     token: accessToken,
   };
 
-  console.log("=================================");
-  console.log("GET MEMBER CAREER API");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await getMethod(URL, user);
-
-    console.log("=================================");
-    console.log("CAREER API RESPONSE");
-    console.log(JSON.stringify(response, null, 2));
-    console.log("=================================");
 
     return response;
   } catch (error) {
@@ -2291,7 +1967,7 @@ export async function getMemberCareer(accessToken) {
   }
 }
 
-// =========================================================
+// ===
 // ADD MEMBER CAREER
 // POST /api/member/career
 //
@@ -2302,7 +1978,7 @@ export async function getMemberCareer(accessToken) {
 //   "start": 2024,
 //   "end": 2025
 // }
-// =========================================================
+// ===
 
 export async function addMemberCareer(accessToken, career = {}) {
   // -------------------------------------------------------
@@ -2377,64 +2053,29 @@ export async function addMemberCareer(accessToken, career = {}) {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG LOG
-  // -------------------------------------------------------
-
-  console.log("======================================");
-
-  console.log("ADD MEMBER CAREER API");
-
-  console.log("METHOD: POST");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken.length);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("======================================");
-
-  // -------------------------------------------------------
-  // CALL POST API
-  // -------------------------------------------------------
 
   try {
     const response = await postMethod(URL, user, body);
 
-    // -----------------------------------------------------
-    // RESPONSE LOG
-    // -----------------------------------------------------
-
-    console.log("======================================");
-
-    console.log("ADD CAREER API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
+    console.error("===");
 
     console.error("ADD MEMBER CAREER API ERROR");
 
     console.error(error);
 
-    console.error("======================================");
+    console.error("===");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // GET SINGLE MEMBER CAREER
 // GET /api/member/career/{id}
 // Example: /api/member/career/1
-// =========================================================
+// ===
 
 export async function getMemberCareerById(accessToken, careerId) {
   // -------------------------------------------------------
@@ -2465,92 +2106,20 @@ export async function getMemberCareerById(accessToken, careerId) {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG LOG
-  // -------------------------------------------------------
-
-  console.log("======================================");
-
-  console.log("GET SINGLE MEMBER CAREER API");
-
-  console.log("METHOD: GET");
-
-  console.log("URL:", URL);
-
-  console.log("CAREER ID:", id);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("======================================");
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response = await getMethod(URL, user);
 
-    // -----------------------------------------------------
-    // RESPONSE LOG
-    // -----------------------------------------------------
-
-    console.log("======================================");
-
-    console.log("SINGLE CAREER API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
+    console.error("===");
 
     console.error("SINGLE CAREER API ERROR:", error);
 
-    console.error("======================================");
+    console.error("===");
 
     throw error;
   }
 }
-// =========================================================
-// UPDATE SINGLE MEMBER CAREER
-// PUT /api/member/career/{id}
-//
-// NOTE ON METHOD:
-// The Laravel route only accepts GET, HEAD, PUT, PATCH, DELETE
-// (per the "The POST method is not supported..." error). This
-// function now sends the request with postMethod(), but includes
-// Laravel's method-spoofing field "_method": "PUT" in the body.
-// Laravel's framework-level middleware reads that field and
-// routes the request as if it were a real PUT — this is the
-// standard workaround when a client can't (or shouldn't) send a
-// raw PUT request directly.
-//
-// IMPORTANT CAVEAT: Laravel's method spoofing is only applied
-// automatically for form submissions
-// (application/x-www-form-urlencoded or multipart/form-data).
-// If postMethod() sends this body as raw JSON
-// (Content-Type: application/json), Laravel will NOT read
-// "_method" from a JSON body by default, and this will hit the
-// same 405 error again. If that happens, the real fix is either:
-//   (a) send this request as application/x-www-form-urlencoded
-//       instead of JSON, or
-//   (b) revert to putMethod() and instead fix why putMethod()
-//       was producing a POST request on the wire in the first
-//       place (that's almost certainly a bug inside
-//       APIServices.js's putMethod implementation).
-//
-// Request body sent to the server:
-// {
-//   "company": "ABC Technologies",
-//   "designation": "Software Developer",
-//   "start": 2024,
-//   "end": 2025,
-//   "_method": "PUT"
-// }
-// =========================================================
-
 export async function updateMemberCareerById(
   accessToken,
   careerId,
@@ -2636,52 +2205,16 @@ export async function updateMemberCareerById(
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG
-  // -------------------------------------------------------
-
-  console.log("======================================");
-
-  console.log("UPDATE MEMBER CAREER API");
-
-  console.log("METHOD: POST (spoofed as PUT via _method)");
-
-  console.log("URL:", URL);
-
-  console.log("CAREER ID:", id);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("======================================");
-
-  // -------------------------------------------------------
-  // POST API CALL (was putMethod)
-  // -------------------------------------------------------
 
   try {
     const response = await postMethod(URL, user, body);
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
-
-    console.log("======================================");
-
-    console.log("UPDATE CAREER API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
+    console.error("===");
 
     console.error("UPDATE CAREER API ERROR:", error);
 
-    console.error("======================================");
+    console.error("===");
 
     throw error;
   }
@@ -2700,9 +2233,6 @@ export async function deleteMemberCareerById(accessToken, careerId) {
   const URL = BASE_URL + `/api/member/career/${id}`;
 
   try {
-    console.log("DELETE CAREER URL:", URL);
-    console.log("DELETE CAREER ID:", id);
-
     const response = await fetch(URL, {
       method: "DELETE",
       headers: {
@@ -2723,11 +2253,6 @@ export async function deleteMemberCareerById(accessToken, careerId) {
       };
     }
 
-    console.log(
-      "DELETE CAREER RESPONSE:",
-      JSON.stringify(responseData, null, 2),
-    );
-
     if (!response.ok) {
       throw new Error(responseData?.message || "Career delete failed");
     }
@@ -2742,10 +2267,10 @@ export async function deleteMemberCareerById(accessToken, careerId) {
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER SPIRITUAL & SOCIAL BACKGROUND
 // GET /api/member/spiritual-background
-// =========================================================
+// ===
 
 export async function getMemberSpiritualBackground(accessToken) {
   // -------------------------------------------------------
@@ -2770,56 +2295,23 @@ export async function getMemberSpiritualBackground(accessToken) {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG
-  // -------------------------------------------------------
-
-  console.log("======================================");
-
-  console.log("GET MEMBER SPIRITUAL BACKGROUND API");
-
-  console.log("METHOD:", "GET");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("======================================");
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response = await getMethod(URL, user);
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
-
-    console.log("======================================");
-
-    console.log("SPIRITUAL BACKGROUND API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("======================================");
-
     return response;
   } catch (error) {
-    console.error("======================================");
+    console.error("===");
 
     console.error("SPIRITUAL BACKGROUND API ERROR");
 
     console.error(error);
 
-    console.error("======================================");
+    console.error("===");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER SPIRITUAL & SOCIAL BACKGROUND
 // POST /api/member/spiritual-background/update
 //
@@ -2833,7 +2325,7 @@ export async function getMemberSpiritualBackground(accessToken) {
 //   "family_value_id": 1,
 //   "community_value": "Yes"
 // }
-// =========================================================
+// ===
 export async function updateMemberSpiritualBackground(
   accessToken,
   spiritualBackground,
@@ -2859,17 +2351,6 @@ export async function updateMemberSpiritualBackground(
 
     community_value: String(spiritualBackground.community_value || "").trim(),
   };
-
-  console.log("========== SPIRITUAL UPDATE API ==========");
-
-  console.log("URL:", URL);
-
-  console.log("METHOD: POST");
-
-  console.log("BODY:", JSON.stringify(body, null, 2));
-
-  console.log("===========================================");
-
   const user = {
     token: accessToken,
   };
@@ -2877,10 +2358,10 @@ export async function updateMemberSpiritualBackground(
   return await postMethod(URL, user, body);
 }
 
-// =========================================================
+// ===
 // GET MEMBER ASTRONOMIC INFORMATION
 // GET /api/member/astronomic
-// =========================================================
+// ===
 
 export async function getMemberAstronomic(accessToken) {
   // -------------------------------------------------------
@@ -2904,47 +2385,11 @@ export async function getMemberAstronomic(accessToken) {
   const user = {
     token: accessToken,
   };
-
-  // -------------------------------------------------------
-  // DEBUG REQUEST
-  // -------------------------------------------------------
-
-  console.log("========================================");
-
-  console.log("GET MEMBER ASTRONOMIC API");
-
-  console.log("METHOD:", "GET");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken?.length);
-
-  console.log("========================================");
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response = await getMethod(URL, user);
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
-
-    console.log("========================================");
-
-    console.log("ASTRONOMIC API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
 
     console.error("GET MEMBER ASTRONOMIC API ERROR");
 
@@ -2952,13 +2397,13 @@ export async function getMemberAstronomic(accessToken) {
 
     console.error("ERROR:", error);
 
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER ASTRONOMIC INFORMATION
 // POST /api/member/astronomic/update
 //
@@ -2970,7 +2415,7 @@ export async function getMemberAstronomic(accessToken) {
 //   "time_of_birth": "7am",
 //   "city_of_birth": "Anantapur"
 // }
-// =========================================================
+// ===
 
 export async function updateMemberAstronomic(
   accessToken,
@@ -3021,48 +2466,11 @@ export async function updateMemberAstronomic(
     city_of_birth: cityOfBirthValue,
   };
 
-  // -------------------------------------------------------
-  // DEBUG LOG
-  // -------------------------------------------------------
-
-  console.log("========================================");
-
-  console.log("UPDATE MEMBER ASTRONOMIC API");
-
-  console.log("METHOD:", "POST");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken?.length);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("========================================");
-
-  // -------------------------------------------------------
-  // POST API
-  // -------------------------------------------------------
-
   try {
     const response = await postMethod(URL, user, body);
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
-
-    console.log("========================================");
-
-    console.log("UPDATE ASTRONOMIC API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
 
     console.error("UPDATE MEMBER ASTRONOMIC API ERROR");
 
@@ -3070,16 +2478,16 @@ export async function updateMemberAstronomic(
 
     console.error("RESPONSE:", JSON.stringify(error?.response?.data, null, 2));
 
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER FAMILY INFORMATION
 // GET /api/member/family-info
-// =========================================================
+// ===
 
 export async function getMemberFamilyInfo(accessToken) {
   // -------------------------------------------------------
@@ -3104,46 +2512,11 @@ export async function getMemberFamilyInfo(accessToken) {
     token: accessToken,
   };
 
-  // -------------------------------------------------------
-  // DEBUG REQUEST
-  // -------------------------------------------------------
-
-  console.log("========================================");
-
-  console.log("GET MEMBER FAMILY INFORMATION API");
-
-  console.log("METHOD:", "GET");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken?.length || 0);
-
-  console.log("========================================");
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response = await getMethod(URL, user);
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
-
-    console.log("========================================");
-
-    console.log("FAMILY INFORMATION API RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
 
     console.error("GET MEMBER FAMILY INFORMATION API ERROR");
 
@@ -3151,13 +2524,13 @@ export async function getMemberFamilyInfo(accessToken) {
 
     console.error("RESPONSE:", JSON.stringify(error?.response?.data, null, 2));
 
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // UPDATE MEMBER FAMILY INFORMATION
 // POST /api/member/family-info/update
 //
@@ -3167,7 +2540,7 @@ export async function getMemberFamilyInfo(accessToken) {
 //   "mother": "Swaroopa",
 //   "sibling": "2"
 // }
-// =========================================================
+// ===
 
 export async function updateMemberFamilyInfo(accessToken, familyInfo = {}) {
   // -------------------------------------------------------
@@ -3228,48 +2601,11 @@ export async function updateMemberFamilyInfo(accessToken, familyInfo = {}) {
     sibling: siblingValue,
   };
 
-  // -------------------------------------------------------
-  // DEBUG LOG
-  // -------------------------------------------------------
-
-  console.log("========================================");
-
-  console.log("UPDATE MEMBER FAMILY INFORMATION API");
-
-  console.log("METHOD:", "POST");
-
-  console.log("URL:", URL);
-
-  console.log("TOKEN EXISTS:", !!accessToken);
-
-  console.log("TOKEN LENGTH:", accessToken.length);
-
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-  console.log("========================================");
-
-  // -------------------------------------------------------
-  // API CALL
-  // -------------------------------------------------------
-
   try {
     const response = await postMethod(URL, user, body);
-
-    // -----------------------------------------------------
-    // RESPONSE LOG
-    // -----------------------------------------------------
-
-    console.log("========================================");
-
-    console.log("UPDATE FAMILY INFORMATION RESPONSE");
-
-    console.log(JSON.stringify(response, null, 2));
-
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
 
     console.error("UPDATE FAMILY INFORMATION API ERROR");
 
@@ -3279,16 +2615,16 @@ export async function updateMemberFamilyInfo(accessToken, familyInfo = {}) {
 
     console.error("RESPONSE:", JSON.stringify(error?.response?.data, null, 2));
 
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
 
-// =========================================================
+// ===
 // GET MEMBER LANGUAGES
 // GET /api/member/language
-// =========================================================
+// ===
 
 export async function getMemberLanguages(accessToken) {
   if (!accessToken) {
@@ -3301,40 +2637,27 @@ export async function getMemberLanguages(accessToken) {
     token: accessToken,
   };
 
-  console.log("========================================");
-  console.log("GET MEMBER LANGUAGES");
-  console.log("METHOD: GET");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("========================================");
-
   try {
     const response = await getMethod(URL, user);
-
-    console.log("========================================");
-    console.log("MEMBER LANGUAGES API RESPONSE");
-    console.log(JSON.stringify(response, null, 2));
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
     console.error("GET MEMBER LANGUAGES ERROR");
     console.error(error);
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
-// =========================================================
+// ===
 // UPDATE MEMBER LANGUAGES
 // POST /api/member/language/update
-// =========================================================
+// ===
 
-// =========================================================
+// ===
 // UPDATE MEMBER LANGUAGES
 // POST /api/member/language/update
-// =========================================================
+// ===
 
 export async function updateMemberLanguages(
   accessToken,
@@ -3356,14 +2679,14 @@ export async function updateMemberLanguages(
   // Backend expects known language IDs
   const knownLanguageIds = Array.isArray(known_languages)
     ? known_languages
-        .map((item) => {
-          if (typeof item === "object" && item !== null) {
-            return Number(item.id);
-          }
+      .map((item) => {
+        if (typeof item === "object" && item !== null) {
+          return Number(item.id);
+        }
 
-          return Number(item);
-        })
-        .filter((id) => Number.isInteger(id) && id > 0)
+        return Number(item);
+      })
+      .filter((id) => Number.isInteger(id) && id > 0)
     : [];
 
   const uniqueKnownLanguageIds = [...new Set(knownLanguageIds)];
@@ -3373,40 +2696,26 @@ export async function updateMemberLanguages(
     known_languages: uniqueKnownLanguageIds,
   };
 
-  console.log("========================================");
-  console.log("UPDATE MEMBER LANGUAGES");
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-  console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-  console.log("========================================");
-
   try {
     const response = await postMethod(URL, user, body);
-
-    console.log("========================================");
-    console.log("UPDATE MEMBER LANGUAGES RESPONSE");
-    console.log(JSON.stringify(response, null, 2));
-    console.log("========================================");
-
     return response;
   } catch (error) {
-    console.error("========================================");
+    console.error("=====");
     console.error("UPDATE MEMBER LANGUAGES ERROR");
     console.error(error);
     console.error(
       "ERROR RESPONSE:",
       JSON.stringify(error?.response?.data, null, 2),
     );
-    console.error("========================================");
+    console.error("=====");
 
     throw error;
   }
 }
-// =========================================================
+// ===
 // GET ALL LANGUAGES
 // GET /api/get_languages
-// =========================================================
+// ===
 
 export async function getLanguages(accessToken) {
   if (!accessToken) {
@@ -3419,15 +2728,8 @@ export async function getLanguages(accessToken) {
     token: accessToken,
   };
 
-  console.log("GET ALL LANGUAGES URL:", URL);
-
   try {
     const response = await getMethod(URL, user);
-
-    console.log(
-      "GET ALL LANGUAGES RESPONSE:",
-      JSON.stringify(response, null, 2),
-    );
 
     return response;
   } catch (error) {

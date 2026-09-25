@@ -21,7 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
-// NOTE: adjust this path to wherever your Fonts file lives.
 import Fonts from "../constants/Fonts";
 
 import {
@@ -32,7 +31,6 @@ import {
   getMemberPermanentAddress,
   getMemberPresentAddress,
   getMemberStates,
-  // Hits /api/member/my-interests and /api/member/my-shortlists
   getMyInterests,
   getMyShortlists,
   getProfileDetails,
@@ -42,9 +40,9 @@ import {
   updateMemberIntroduction,
 } from "../utils/Functions";
 
-/* =========================================================
+/* =====
    RESPONSIVE WIDTH
-========================================================= */
+===== */
 
 const { width } = Dimensions.get("window");
 
@@ -73,9 +71,9 @@ const COLORS = {
   blue: "#2C84D6",
 };
 
-/* =========================================================
+/* =====
    PROFILE FALLBACK DATA
-========================================================= */
+===== */
 
 const PROFILE = {
   name: "Priyanka",
@@ -211,9 +209,9 @@ const PROFILE = {
   ],
 };
 
-/* =========================================================
+/* =====
    SECTION HEADER
-========================================================= */
+===== */
 
 const SectionHeader = ({ icon, title, showViewAll = false }) => {
   return (
@@ -245,9 +243,9 @@ const SectionHeader = ({ icon, title, showViewAll = false }) => {
   );
 };
 
-/* =========================================================
+/* =====
    PERSONAL ITEM
-========================================================= */
+===== */
 
 const PersonalItem = ({ item }) => {
   return (
@@ -276,9 +274,9 @@ const PersonalItem = ({ item }) => {
   );
 };
 
-/* =========================================================
+/* =====
    FAMILY ITEM
-========================================================= */
+===== */
 
 const FamilyItem = ({ item }) => {
   return (
@@ -307,12 +305,11 @@ const FamilyItem = ({ item }) => {
   );
 };
 
-/* =========================================================
+/* =====
    MAIN SCREEN
-========================================================= */
+===== */
 
-export default function ProfileDetails() {
-  const navigation = useNavigation();
+export default function ProfileDetails({ setIsLoggedIn, navigation }) {
 
   const [profileData, setProfileData] = useState(null);
 
@@ -327,9 +324,9 @@ export default function ProfileDetails() {
 
   const [aboutTextValue, setAboutTextValue] = useState("");
 
-  /* =====================================================
+  /* =======
      PHOTOS
-  ===================================================== */
+  ======= */
 
   const [photos, setPhotos] = useState(PROFILE.photos);
 
@@ -337,16 +334,16 @@ export default function ProfileDetails() {
   // Falls back to the static PROFILE.image asset until it loads.
   const [profilePhotoUri, setProfilePhotoUri] = useState("");
 
-  /* =====================================================
+  /* =======
      INTERESTS / SHORTLISTS COUNTS
-  ===================================================== */
+  ======= */
 
   const [interestsCount, setInterestsCount] = useState(0);
   const [shortlistsCount, setShortlistsCount] = useState(0);
 
-  /* =====================================================
+  /* =======
      PRESENT / PERMANENT ADDRESS
-  ===================================================== */
+  ======= */
 
   const [presentAddress, setPresentAddress] = useState(null);
 
@@ -377,9 +374,9 @@ export default function ProfileDetails() {
 
   const [citiesLoading, setCitiesLoading] = useState(false);
 
-  /* =====================================================
+  /* =======
      BASIC INFORMATION
-  ===================================================== */
+  ======= */
 
   const [basicInfo, setBasicInfo] = useState({
     first_name: "",
@@ -392,13 +389,6 @@ export default function ProfileDetails() {
     marital_status: 0,
     children: 0,
   });
-
-  /* =====================================================
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on
-     HomeScreen / MatchesScreen: active only while this
-     screen is focused, cleaned up on blur/unmount.
-  ===================================================== */
 
   useFocusEffect(
     useCallback(() => {
@@ -416,9 +406,9 @@ export default function ProfileDetails() {
     }, [navigation]),
   );
 
-  /* =====================================================
+  /* =======
      INITIAL LOAD
-  ===================================================== */
+  ======= */
 
   useEffect(() => {
     loadProfileDetails();
@@ -431,13 +421,6 @@ export default function ProfileDetails() {
     loadShortlistsCount();
   }, []);
 
-  // Re-fetch basic info (name + photo) whenever this screen regains
-  // focus, e.g. coming back from Edit Basic Information after an
-  // upload — the stack keeps this screen mounted, so the initial
-  // effect above alone would never pick up the change. Also refresh
-  // interests/shortlists counts here, since those can change from
-  // other screens (sending an interest, shortlisting a profile, etc.)
-  // while this screen stays mounted in the background.
   useFocusEffect(
     useCallback(() => {
       loadMemberBasicInfo();
@@ -483,32 +466,32 @@ export default function ProfileDetails() {
   }, [presentAddressForm.state_id]);
 
   const currentOption = (type) => {
-    /* =========================
+    /* ===
        COUNTRY
-    ========================= */
+    === */
 
     if (type === "country") {
       return countries;
     }
 
-    /* =========================
+    /* ===
        STATE
-    ========================= */
+    === */
 
     if (type === "state") {
       return states;
     }
 
-    /* =========================
+    /* ===
        CITY
-    ========================= */
+    === */
 
     return cities;
   };
 
-  /* =====================================================
+  /* =======
      GET PROFILE DETAILS
-  ===================================================== */
+  ======= */
 
   const loadProfileDetails = async () => {
     try {
@@ -518,17 +501,11 @@ export default function ProfileDetails() {
       const accessToken = await getToken();
 
       if (!accessToken) {
-        console.log("loadProfileDetails: Access token is missing.");
         setErrorText("Access token is missing.");
         return;
       }
 
       const result = await getProfileDetails(accessToken);
-
-      console.log(
-        "PROFILE DETAILS API RESPONSE:",
-        JSON.stringify(result, null, 2),
-      );
 
       if (
         result?.result === false ||
@@ -579,33 +556,33 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      PHOTOS
-  ===================================================== */
+  ======= */
 
   const handlePhotos = () => {
     navigation.navigate("MyPhotos");
   };
 
-  /* =====================================================
+  /* =======
      MESSAGE
-  ===================================================== */
+  ======= */
 
   const handleMessage = () => {
     navigation.navigate("Chatting");
   };
 
-  /* =====================================================
+  /* =======
      SHARE
-  ===================================================== */
+  ======= */
 
   const handleShare = () => {
     Alert.alert("Share Profile", "Profile sharing option will open here.");
   };
 
-  /* =====================================================
+  /* =======
      INTEREST (send interest to this profile)
-  ===================================================== */
+  ======= */
 
   const handleInterest = () => {
     navigation.navigate("Interests");
@@ -613,53 +590,39 @@ export default function ProfileDetails() {
     Alert.alert("Interest Sent", "Your interest has been sent successfully.");
   };
 
-  /* =====================================================
+  /* =======
      INTERESTS (view interests list)
-  ===================================================== */
+  ======= */
 
   const handleInterests = () => {
     navigation.navigate("Interests");
   };
 
-  /* =====================================================
+  /* =======
      SHORTLISTS (view saved profiles)
-  ===================================================== */
+  ======= */
 
   const handleShortlists = () => {
     navigation.navigate("Shortlist");
   };
 
-  /* =====================================================
+  /* =======
      LOGOUT
-  ===================================================== */
+  ======= */
 
   const performLogout = async () => {
     try {
-      console.log("LOGOUT: clearing session");
-
       // Clears everything stored by AsyncStorage (token, cached user, etc.)
       await AsyncStorage.clear();
 
-      // If you store the token with expo-secure-store, also do:
-      // await SecureStore.deleteItemAsync("token");
     } catch (error) {
       console.error("LOGOUT ERROR:", error);
     }
 
-    console.log("LOGOUT: navigating to login");
-
-    // Equivalent of expo-router's router.replace("/login") — resets the
-    // stack so the user can't navigate back into the app after logging out.
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Login" }],
-    });
+    setIsLoggedIn(false);
   };
 
   const handleLogout = () => {
-    console.log("LOGOUT PRESSED");
-
-    // Alert.alert with buttons does nothing on Expo web,
     // so use window.confirm there instead
     if (Platform.OS === "web") {
       if (window.confirm("Are you sure you want to log out?")) {
@@ -674,9 +637,9 @@ export default function ProfileDetails() {
     ]);
   };
 
-  /* =====================================================
+  /* =======
      GET MEMBER INTRODUCTION
-  ===================================================== */
+  ======= */
 
   const loadMemberIntroduction = async () => {
     try {
@@ -687,9 +650,6 @@ export default function ProfileDetails() {
       }
 
       const response = await getMemberIntroduction(accessToken);
-
-      console.log("INTRO API RESPONSE:", JSON.stringify(response, null, 2));
-
       const success =
         response?.result === true ||
         response?.result === 1 ||
@@ -716,9 +676,9 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      SAVE / UPDATE ABOUT ME
-  ===================================================== */
+  ======= */
 
   const handleSaveAbout = async () => {
     try {
@@ -741,9 +701,6 @@ export default function ProfileDetails() {
       setSavingAbout(true);
 
       const response = await updateMemberIntroduction(accessToken, text);
-
-      console.log("ABOUT ME API RESPONSE:", JSON.stringify(response, null, 2));
-
       const success =
         response?.result === true ||
         response?.result === 1 ||
@@ -780,9 +737,9 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      GET MEMBER BASIC INFO
-  ===================================================== */
+  ======= */
 
   const loadMemberBasicInfo = async () => {
     try {
@@ -793,11 +750,6 @@ export default function ProfileDetails() {
       }
 
       const response = await getMemberBasicInfo(accessToken);
-
-      console.log(
-        "BASIC INFO API RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const basicInfoData =
         response?.data?.data ||
@@ -834,11 +786,11 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      UPDATE MEMBER BASIC INFO
 
      POST /api/member/basic-info/update
-  ===================================================== */
+  ======= */
 
   const handleSaveBasicInfo = async () => {
     try {
@@ -851,11 +803,6 @@ export default function ProfileDetails() {
       }
 
       const response = await updateMemberBasicInfo(accessToken, basicInfo);
-
-      console.log(
-        "UPDATE BASIC INFO RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const success =
         response?.result === true ||
@@ -887,29 +834,21 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =========================================================
+  /* =====
      GET MEMBER PRESENT ADDRESS
 
      GET /api/member/present/address
-  ========================================================= */
+  ===== */
 
   const loadMemberPresentAddress = async () => {
     try {
       const accessToken = await getToken();
-
-      console.log("PRESENT ADDRESS TOKEN EXISTS:", !!accessToken);
-
       if (!accessToken) {
         setPresentAddress(null);
         return;
       }
 
       const response = await getMemberPresentAddress(accessToken);
-
-      console.log(
-        "PRESENT ADDRESS FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const address =
         response?.data?.data ||
@@ -958,20 +897,10 @@ export default function ProfileDetails() {
           postal_code: address.postal_code || address.postalCode || "",
         };
 
-        console.log(
-          "FORMATTED PRESENT ADDRESS:",
-          JSON.stringify(formattedAddress, null, 2),
-        );
-
         setPresentAddress(formattedAddress);
 
         return;
       }
-
-      console.log(
-        "PRESENT ADDRESS API MESSAGE:",
-        response?.message || "No present address found",
-      );
 
       setPresentAddress(null);
     } catch (error) {
@@ -981,27 +910,19 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =========================================================
+  /* =====
      GET MEMBER PERMANENT ADDRESS
-  ========================================================= */
+  ===== */
 
   const loadMemberPermanentAddress = async () => {
     try {
       const accessToken = await getToken();
-
-      console.log("PERMANENT ADDRESS TOKEN EXISTS:", !!accessToken);
-
       if (!accessToken) {
         setPermanentAddress(null);
         return;
       }
 
       const response = await getMemberPermanentAddress(accessToken);
-
-      console.log(
-        "PERMANENT ADDRESS FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const address =
         response?.data?.data ||
@@ -1054,11 +975,6 @@ export default function ProfileDetails() {
       }
 
       setPermanentAddress(null);
-
-      console.log(
-        "PERMANENT ADDRESS MESSAGE:",
-        response?.message || "No permanent address found",
-      );
     } catch (error) {
       console.error("LOAD PERMANENT ADDRESS ERROR:", error);
 
@@ -1066,11 +982,11 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =========================================================
+  /* =====
      SAVE / UPDATE PRESENT ADDRESS
 
      POST /api/member/address/update
-  ========================================================= */
+  ===== */
 
   const handleSavePresentAddress = async () => {
     if (savingPresentAddress) return;
@@ -1113,17 +1029,9 @@ export default function ProfileDetails() {
         address_type: "present",
       };
 
-      console.log(
-        "UPDATE PRESENT ADDRESS REQUEST:",
-        JSON.stringify(body, null, 2),
-      );
       setSavingPresentAddress(true);
 
       const response = await updateMemberAddress(accessToken, body);
-      console.log(
-        "UPDATE PRESENT ADDRESS RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const responseData = response?.data?.data || response?.data || response;
       const success =
@@ -1209,11 +1117,11 @@ export default function ProfileDetails() {
     setAddressDropdown(null);
   };
 
-  /* =====================================================
+  /* =======
    GET MEMBER COUNTRIES
 
    GET /api/member/countries
-===================================================== */
+======= */
 
   const loadMemberCountries = async () => {
     try {
@@ -1227,11 +1135,6 @@ export default function ProfileDetails() {
       setCountriesLoading(true);
 
       const response = await getMemberCountries(accessToken);
-
-      console.log(
-        "MEMBER COUNTRIES FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const rawList = Array.isArray(response)
         ? response
@@ -1293,14 +1196,14 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
    GET MEMBER STATES
 
    GET /api/member/states/{country_id}
 
    Example:
    GET /api/member/states/101
-===================================================== */
+======= */
 
   const loadMemberStates = async (countryId) => {
     try {
@@ -1317,19 +1220,11 @@ export default function ProfileDetails() {
       }
 
       setStatesLoading(true);
-
-      console.log("LOADING STATES FOR COUNTRY ID:", countryId);
-
       const response = await getMemberStates(accessToken, countryId);
 
-      console.log(
-        "MEMBER STATES FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
-
-      /* ============================================
+      /* ===
          HANDLE DIFFERENT API RESPONSE STRUCTURES
-      ============================================ */
+      === */
 
       const rawList = Array.isArray(response)
         ? response
@@ -1343,9 +1238,9 @@ export default function ProfileDetails() {
                 ? response.data.states
                 : [];
 
-      /* ============================================
+      /* ===
          NORMALIZE STATE OBJECTS
-      ============================================ */
+      === */
 
       const normalizedStates = rawList
         .map((item) => {
@@ -1381,11 +1276,6 @@ export default function ProfileDetails() {
         })
         .filter(Boolean);
 
-      console.log(
-        "NORMALIZED STATES:",
-        JSON.stringify(normalizedStates, null, 2),
-      );
-
       setStates(normalizedStates);
 
       return normalizedStates;
@@ -1400,14 +1290,14 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      GET MEMBER CITIES
 
      GET /api/member/cities/{state_id}
 
      Example:
      GET /api/member/cities/2
-  ===================================================== */
+  ======= */
 
   const loadMemberCities = async (stateId) => {
     try {
@@ -1424,19 +1314,7 @@ export default function ProfileDetails() {
       }
 
       setCitiesLoading(true);
-
-      console.log("LOADING CITIES FOR STATE ID:", stateId);
-
       const response = await getMemberCities(accessToken, stateId);
-
-      console.log(
-        "MEMBER CITIES FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
-
-      /* ============================================
-         HANDLE DIFFERENT API RESPONSE STRUCTURES
-      ============================================ */
 
       const rawList = Array.isArray(response)
         ? response
@@ -1450,9 +1328,9 @@ export default function ProfileDetails() {
                 ? response.data.cities
                 : [];
 
-      /* ============================================
+      /* ===
          NORMALIZE CITY OBJECTS
-      ============================================ */
+      === */
 
       const normalizedCities = rawList
         .map((item) => {
@@ -1488,11 +1366,6 @@ export default function ProfileDetails() {
         })
         .filter(Boolean);
 
-      console.log(
-        "NORMALIZED CITIES:",
-        JSON.stringify(normalizedCities, null, 2),
-      );
-
       setCities(normalizedCities);
 
       return normalizedCities;
@@ -1507,11 +1380,11 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      GET INTERESTS COUNT
 
      GET /api/member/my-interests
-  ===================================================== */
+  ======= */
 
   const loadInterestsCount = async () => {
     try {
@@ -1523,9 +1396,6 @@ export default function ProfileDetails() {
       }
 
       const response = await getMyInterests(accessToken);
-
-      console.log("INTERESTS API RESPONSE:", JSON.stringify(response, null, 2));
-
       const list = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
@@ -1556,11 +1426,11 @@ export default function ProfileDetails() {
     }
   };
 
-  /* =====================================================
+  /* =======
      GET SHORTLISTS COUNT
 
      GET /api/member/my-shortlists
-  ===================================================== */
+  ======= */
 
   const loadShortlistsCount = async () => {
     try {
@@ -1572,11 +1442,6 @@ export default function ProfileDetails() {
       }
 
       const response = await getMyShortlists(accessToken);
-
-      console.log(
-        "SHORTLISTS API RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const list = Array.isArray(response)
         ? response
@@ -1609,9 +1474,9 @@ export default function ProfileDetails() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* =====================================================
+      {/* =======
         HEADER
-    ===================================================== */}
+    ======= */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -1633,18 +1498,18 @@ export default function ProfileDetails() {
         </TouchableOpacity>
       </View>
 
-      {/* =====================================================
+      {/* =======
         SINGLE PAGE SCROLL
-    ===================================================== */}
+    ======= */}
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* =================================================
+        {/* ===
           PROFILE HERO
-      ================================================= */}
+      === */}
 
         <View style={styles.hero}>
           {/* Decorative background */}
@@ -1768,9 +1633,9 @@ export default function ProfileDetails() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
           INTERESTS & SHORTLISTS
-      ================================================= */}
+      === */}
 
         <View style={styles.quickActionsContainer}>
           {/* INTERESTS */}
@@ -1828,9 +1693,9 @@ export default function ProfileDetails() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ===
           ABOUT ME
-      ================================================= */}
+      === */}
 
         <TouchableOpacity
           style={styles.aboutCard}
@@ -1852,16 +1717,15 @@ export default function ProfileDetails() {
           <Ionicons name="chevron-forward" size={18} color="#555555" />
         </TouchableOpacity>
 
-        {/* =================================================
+        {/* ===
     BASIC INFORMATION
-================================================= */}
+=== */}
 
         <View style={styles.sectionList}>
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Basic Information clicked");
               navigation.navigate("EditBasicInformation");
             }}
           >
@@ -1881,15 +1745,14 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             PHOTOS
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Photos Clicked");
               handlePhotos();
             }}
           >
@@ -1906,9 +1769,9 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             PRESENT ADDRESS
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
@@ -1933,17 +1796,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             EDUCATION
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Education Information Clicked");
               navigation.navigate("EducationInformation");
-              // Alert.alert("Education Information", "Education information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF7E5" }]}>
@@ -1959,17 +1820,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             CAREER
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Career Information Clicked");
               navigation.navigate("CareerInformation");
-              // Alert.alert("Career Information", "Career information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF7E5" }]}>
@@ -1985,17 +1844,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             LANGUAGE
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Languages Clicked");
               navigation.navigate("Languages");
-              // Alert.alert("Language", "Language information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#F3EAFE" }]}>
@@ -2007,18 +1864,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             SPIRITUAL
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Social & Spiritual Background clicked");
               navigation.navigate("SocialSpiritualBackground");
-
-              // Alert.alert("Spiritual & Social Background", "Information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFEAF2" }]}>
@@ -2034,17 +1888,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             ASTRONOMIC
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Astronomic Information clicked");
               navigation.navigate("AstronomicInformation");
-              // Alert.alert("Astronomic Information", "Astronomic information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF4E5" }]}>
@@ -2056,17 +1908,15 @@ export default function ProfileDetails() {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
 
-          {/* =================================================
+          {/* ===
             FAMILY
-        ================================================= */}
+        === */}
 
           <TouchableOpacity
             style={[styles.profileRow, styles.lastProfileRow]}
             activeOpacity={0.8}
             onPress={() => {
-              console.log("Family Information Clicked");
               navigation.navigate("FamilyInformation");
-              // Alert.alert("Family Information", "Family information");
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF0F2" }]}>
@@ -2079,9 +1929,9 @@ export default function ProfileDetails() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ===
           PROFILE VERIFICATION
-      ================================================= */}
+      === */}
 
         <View style={styles.verificationCard}>
           <View style={styles.verificationIcon}>
@@ -2099,9 +1949,9 @@ export default function ProfileDetails() {
           <Ionicons name="chevron-forward" size={18} color="#745B29" />
         </View>
 
-        {/* =================================================
+        {/* ===
           LOGOUT
-      ================================================= */}
+      === */}
 
         <TouchableOpacity
           style={styles.logoutButton}
@@ -2118,10 +1968,10 @@ export default function ProfileDetails() {
         <View style={{ height: 85 }} />
       </ScrollView>
 
-      {/* =====================================================
+      {/* =======
         ABOUT EDIT MODAL
         YOUR EXISTING ABOUT LOGIC CAN REMAIN
-    ===================================================== */}
+    ======= */}
 
       <Modal
         visible={editingAbout}
@@ -2171,9 +2021,9 @@ export default function ProfileDetails() {
 }
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
      MAIN
-  ===================================================== */
+  ======= */
 
   safeArea: {
     flex: 1,
@@ -2189,9 +2039,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  /* =====================================================
+  /* =======
      HEADER
-  ===================================================== */
+  ======= */
 
   header: {
     height: 57,
@@ -2219,9 +2069,9 @@ const styles = StyleSheet.create({
     color: "#171717",
   },
 
-  /* =====================================================
+  /* =======
      HERO
-  ===================================================== */
+  ======= */
 
   hero: {
     height: 205,
@@ -2270,9 +2120,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.08)",
   },
 
-  /* =====================================================
+  /* =======
      PROFILE IMAGE
-  ===================================================== */
+  ======= */
 
   profileImageContainer: {
     width: 142,
@@ -2449,9 +2299,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#1DB36C",
   },
 
-  /* =====================================================
+  /* =======
      HERO DETAILS
-  ===================================================== */
+  ======= */
 
   heroDetails: {
     flex: 1,
@@ -2541,9 +2391,9 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
 
-  /* =====================================================
+  /* =======
      ABOUT
-  ===================================================== */
+  ======= */
 
   aboutCard: {
     marginHorizontal: 13,
@@ -2587,9 +2437,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  /* =====================================================
+  /* =======
      SECTION LIST
-  ===================================================== */
+  ======= */
 
   sectionList: {
     marginHorizontal: 13,
@@ -2653,9 +2503,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =====================================================
+  /* =======
      VERIFICATION
-  ===================================================== */
+  ======= */
 
   verificationCard: {
     marginHorizontal: 13,
@@ -2697,9 +2547,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  /* =====================================================
+  /* =======
      LOGOUT
-  ===================================================== */
+  ======= */
 
   logoutButton: {
     marginHorizontal: 13,
@@ -2721,9 +2571,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /* =====================================================
+  /* =======
      FIXED EDIT PROFILE
-  ===================================================== */
+  ======= */
 
   bottomContainer: {
     position: "absolute",
@@ -2763,9 +2613,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  /* =====================================================
+  /* =======
      ABOUT MODAL
-  ===================================================== */
+  ======= */
 
   aboutModalOverlay: {
     flex: 1,

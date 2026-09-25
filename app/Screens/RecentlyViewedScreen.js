@@ -15,7 +15,7 @@ import Fonts from "../constants/Fonts";
 // Swap for real profile photos, e.g. { uri: profile.photoUrl }
 const PHOTO_PLACEHOLDER = require("../assets/images/Match7.png");
 
-// ================= MOCK DATA =================
+// ====== MOCK DATA ======
 // Replace with the recently-viewed feed from your backend.
 const RECENTLY_VIEWED_PROFILES = [
   {
@@ -100,7 +100,7 @@ export default function RecentlyViewedScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -128,7 +128,7 @@ export default function RecentlyViewedScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= INTRO BANNER ================= */}
+        {/* ====== INTRO BANNER ====== */}
         <View style={styles.introBanner}>
           <View style={styles.introIconCircle}>
             <Feather name="eye" size={20} color={Colors.primaryRed} />
@@ -143,7 +143,7 @@ export default function RecentlyViewedScreen() {
           </View>
         </View>
 
-        {/* ================= PROFILE LIST ================= */}
+        {/* ====== PROFILE LIST ====== */}
         {RECENTLY_VIEWED_PROFILES.map((profile) => (
           <ProfileRow
             key={profile.id}
@@ -157,7 +157,7 @@ export default function RecentlyViewedScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function ProfileRow({ profile, onInterested, onViewProfile }) {
   return (
     <View style={styles.profileRow}>

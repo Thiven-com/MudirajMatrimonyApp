@@ -118,7 +118,6 @@ export default function OtpScreen({ setIsLoggedIn }) {
 
     try {
       const result = await verifyLoginOtp(mobile, code);
-      console.log("OTP verification result:", result);
 
       // User not found - redirect to registration
       if (result?.userNotFound === true) {
@@ -151,7 +150,6 @@ export default function OtpScreen({ setIsLoggedIn }) {
 
       // Successful login
       if (result?.user || result?.token) {
-        console.log("Login successful, user:", result?.user);
 
         // Persist token and user so authenticated requests work after this screen
         try {
@@ -183,7 +181,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
   };
 
   const handleVerifyWithWhatsapp = () => {
-    console.log("Verify with WhatsApp for", mobile);
+
     // TODO: trigger WhatsApp-based verification flow
   };
 
@@ -207,7 +205,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         backgroundColor="transparent"
       />
 
-      {/* ================= HEADER SECTION ================= */}
+      {/* ====== HEADER SECTION ====== */}
       <View style={styles.headerContainer}>
         <HeaderWave width={SCREEN_WIDTH} />
 
@@ -224,7 +222,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         </View>
       </View>
 
-      {/* ================= TITLE & TAGLINE ================= */}
+      {/* ====== TITLE & TAGLINE ====== */}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>MUDIRAJ WORLD</Text>
         <View style={styles.taglineRow}>
@@ -241,7 +239,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         </View>
       </View>
 
-      {/* ================= FORM HEADING ================= */}
+      {/* ====== FORM HEADING ====== */}
       <Text style={styles.formHeading}>Verify Your Mobile Number</Text>
       <Text style={styles.formSubtext}>
         Enter the {OTP_LENGTH}-digit OTP sent to
@@ -261,7 +259,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         />
       </TouchableOpacity>
 
-      {/* ================= OTP INPUT BOXES ================= */}
+      {/* ====== OTP INPUT BOXES ====== */}
       <View style={styles.otpRow}>
         {otp.map((digit, index) => (
           <TextInput
@@ -280,7 +278,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         ))}
       </View>
 
-      {/* ================= PENDING APPROVAL MESSAGE ================= */}
+      {/* ====== PENDING APPROVAL MESSAGE ====== */}
       {isPendingApproval && (
         <View style={styles.pendingContainer}>
           <View style={styles.pendingIconCircle}>
@@ -295,7 +293,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         </View>
       )}
 
-      {/* ================= ERROR MESSAGE ================= */}
+      {/* ====== ERROR MESSAGE ====== */}
       {!isPendingApproval && errorText.length > 0 && (
         <View style={styles.errorContainer}>
           <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
@@ -305,7 +303,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
 
       {!isPendingApproval && (
         <>
-          {/* ================= RESEND ROW ================= */}
+          {/* ====== RESEND ROW ====== */}
           <View style={styles.resendRow}>
             <Text style={styles.resendText}>Didn't receive the code? </Text>
             {secondsLeft > 0 ? (
@@ -320,7 +318,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
             )}
           </View>
 
-          {/* ================= VERIFY BUTTON ================= */}
+          {/* ====== VERIFY BUTTON ====== */}
           <TouchableOpacity
             style={[
               styles.verifyButtonTouchable,
@@ -370,7 +368,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         </TouchableOpacity>
       )}
 
-      {/* ================= PRIVACY NOTE ================= */}
+      {/* ====== PRIVACY NOTE ====== */}
       <View style={styles.privacyRow}>
         <View style={styles.privacyIconCircle}>
           <Feather name="lock" size={16} color={Colors.primaryRed} />
@@ -381,7 +379,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
         </Text>
       </View>
 
-      {/* ================= HERITAGE WATERMARK FOOTER ================= */}
+      {/* ====== HERITAGE WATERMARK FOOTER ====== */}
       <View style={styles.skylineWrapper}>
         <HeritageSkyline />
       </View>
@@ -389,7 +387,7 @@ export default function OtpScreen({ setIsLoggedIn }) {
   );
 }
 
-// ================= HEADER WAVE (reversed: edges dip, center arches up) =================
+// ====== HEADER WAVE (reversed: edges dip, center arches up) ======
 function HeaderWave({ width }) {
   const w = width;
   const redPath = `M0,0 H${w} V${EDGE_Y} Q${w * 0.75},${CTRL_Y} ${w / 2},${PEAK_Y} Q${w * 0.25},${CTRL_Y} 0,${EDGE_Y} Z`;
@@ -425,7 +423,7 @@ function HeaderWave({ width }) {
   );
 }
 
-// ================= HERITAGE SKYLINE (shared motif) =================
+// ====== HERITAGE SKYLINE (shared motif) ======
 function HeritageSkyline() {
   return (
     <View style={styles.skylineSvgContainer}>

@@ -40,10 +40,10 @@ const COLORS = {
 
 const FALLBACK_IMAGE = require("../assets/images/Match1.png");
 
-/* =========================================================
+/* ===
    GET TOKEN
    Same token logic used by HomeScreen
-========================================================= */
+=== */
 
 const getToken = async () => {
     try {
@@ -51,7 +51,6 @@ const getToken = async () => {
         const authToken = await AsyncStorage.getItem("authToken");
 
         if (authToken) {
-            console.log("getToken: authToken FOUND");
             return authToken;
         }
 
@@ -70,7 +69,6 @@ const getToken = async () => {
                     null;
 
                 if (token) {
-                    console.log("getToken: userdata token FOUND");
                     return token;
                 }
             } catch (error) {
@@ -85,7 +83,6 @@ const getToken = async () => {
             const value = await AsyncStorage.getItem(key);
 
             if (value) {
-                console.log(`getToken: ${key} FOUND`);
                 return value;
             }
         }
@@ -103,15 +100,12 @@ const getToken = async () => {
                     parsed?.data?.token || parsed?.token || parsed?.access_token || null;
 
                 if (token) {
-                    console.log("getToken: user/user_data token FOUND");
                     return token;
                 }
             } catch (error) {
                 console.log("getToken user parse error:", error);
             }
         }
-
-        console.log("getToken: NO TOKEN FOUND");
 
         return null;
     } catch (error) {
@@ -121,9 +115,9 @@ const getToken = async () => {
     }
 };
 
-/* =========================================================
+/* ===
    API -> UI MAPPING
-========================================================= */
+=== */
 
 function formatHeight(value) {
     if (value == null || value === "") return "";
@@ -333,10 +327,10 @@ function mapMember(api) {
         recentlyActive: !!(api.recently_active ?? api.last_active_recent),
     };
 }
-/* =========================================================
+/* ===
    TABS
    member_type: 0 = All, 1 = Premium, 2 = Free
-========================================================= */
+=== */
 
 const tabs = [
     {
@@ -356,9 +350,9 @@ const tabs = [
     },
 ];
 
-/* =========================================================
+/* ===
    COMPONENT
-========================================================= */
+=== */
 
 export default function MatchesScreen() {
     const navigation = useNavigation();
@@ -378,12 +372,12 @@ export default function MatchesScreen() {
         typeof params.search === "string" ? params.search : "",
     );
 
-    /* =========================================================
+    /* ===
        HARDWARE BACK BUTTON
        Same useFocusEffect + BackHandler pattern used on HomeScreen:
        only active while this screen is focused, and cleaned up on
        blur/unmount so it doesn't leak into other screens.
-    ========================================================= */
+    === */
 
     useFocusEffect(
         useCallback(() => {
@@ -401,9 +395,9 @@ export default function MatchesScreen() {
         }, [navigation]),
     );
 
-    /* =========================================================
+    /* ===
        LOAD MATCHES API
-    ========================================================= */
+    === */
 
     const loadMatches = async () => {
         setLoading(true);
@@ -411,9 +405,6 @@ export default function MatchesScreen() {
 
         try {
             const token = await getToken();
-
-            console.log("loadMatches Token:", token ? "FOUND" : "NOT FOUND");
-
             if (!token) {
                 setLoadError("Authentication token not found. Please login again.");
                 return;
@@ -432,12 +423,7 @@ export default function MatchesScreen() {
              */
 
             const filters = buildFiltersFromParams(params);
-            console.log("postMemberListing filters:", JSON.stringify(filters));
-
             const result = await postMemberListing(filters, token);
-
-            console.log("postMemberListing result:", JSON.stringify(result));
-
             if (result?.success === 1 || result?.result === true) {
                 // API returns { data: { members: [...], age_from, age_to, ... } }
                 // so members live at result.data.members, not result.data directly.
@@ -462,9 +448,9 @@ export default function MatchesScreen() {
         }
     };
 
-    /* =========================================================
+    /* ===
        INITIAL LOAD
-    ========================================================= */
+    === */
 
     useEffect(() => {
         loadMatches();
@@ -484,10 +470,10 @@ export default function MatchesScreen() {
         params.lookingFor,
     ]);
 
-    /* =========================================================
+    /* ===
        FILTER MATCHES
        member_type: 0 = All, 1 = Premium, 2 = Free
-    ========================================================= */
+    === */
 
     const filteredMatches = useMemo(() => {
         const query = searchText.trim().toLowerCase();
@@ -514,9 +500,9 @@ export default function MatchesScreen() {
         });
     }, [matches, activeTab, searchText]);
 
-    /* =========================================================
+    /* ===
        LIKE
-    ========================================================= */
+    === */
 
     const toggleLike = (id) => {
         setLiked((previous) =>
@@ -526,18 +512,18 @@ export default function MatchesScreen() {
         );
     };
 
-    /* =========================================================
+    /* ===
        CLEAR FILTERS
-    ========================================================= */
+    === */
 
     const clearFilters = () => {
         setSearchText("");
         setActiveTab("All Members");
     };
 
-    /* =========================================================
+    /* ===
        LOADING STATE
-    ========================================================= */
+    === */
 
     if (loading) {
         return (
@@ -551,18 +537,18 @@ export default function MatchesScreen() {
         );
     }
 
-    /* =========================================================
+    /* ===
        MAIN UI
-    ========================================================= */
+    === */
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
             <View style={styles.container}>
-                {/* =================================================
+                {/* ===
             HEADER
-        ================================================= */}
+        === */}
 
                 <View style={styles.headerArea}>
                     <TouchableOpacity
@@ -584,9 +570,9 @@ export default function MatchesScreen() {
                         </Text>
                     </View>
 
-                    {/* =================================================
+                    {/* ===
               SEARCH
-          ================================================= */}
+          === */}
 
                     <View style={styles.searchRow}>
                         <View style={styles.searchContainer}>
@@ -614,9 +600,9 @@ export default function MatchesScreen() {
                         </View>
                     </View>
 
-                    {/* =================================================
+                    {/* ===
               TABS
-          ================================================= */}
+          === */}
 
                     <ScrollView
                         horizontal
@@ -660,18 +646,18 @@ export default function MatchesScreen() {
                     </ScrollView>
                 </View>
 
-                {/* =================================================
+                {/* ===
             MATCH LIST
-        ================================================= */}
+        === */}
 
                 <ScrollView
                     style={styles.list}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {/* =================================================
+                    {/* ===
               ERROR
-          ================================================= */}
+          === */}
 
                     {!!loadError && (
                         <View style={styles.emptyState}>
@@ -691,9 +677,9 @@ export default function MatchesScreen() {
                         </View>
                     )}
 
-                    {/* =================================================
+                    {/* ===
               EMPTY
-          ================================================= */}
+          === */}
 
                     {!loadError && filteredMatches.length === 0 ? (
                         <View style={styles.emptyState}>
@@ -724,9 +710,9 @@ export default function MatchesScreen() {
                                     navigation.navigate("MatchesDetail", { id: item.id })
                                 }
                             >
-                                {/* =================================================
+                                {/* ===
                     IMAGE
-                ================================================= */}
+                === */}
 
                                 <View style={styles.imageContainer}>
                                     <Image
@@ -756,9 +742,9 @@ export default function MatchesScreen() {
                                     </View>
                                 </View>
 
-                                {/* =================================================
+                                {/* ===
                     DETAILS
-                ================================================= */}
+                === */}
 
                                 <View style={styles.detailsContainer}>
                                     <View style={styles.detailsLeft}>
@@ -849,9 +835,9 @@ export default function MatchesScreen() {
                                         )}
                                     </View>
 
-                                    {/* =================================================
+                                    {/* ===
                       ACTIONS
-                  ================================================= */}
+                  === */}
 
                                     <View style={styles.actionsContainer}>
                                         <TouchableOpacity
@@ -902,9 +888,9 @@ export default function MatchesScreen() {
                         ))
                     )}
 
-                    {/* =================================================
+                    {/* ===
               PREMIUM
-          ================================================= */}
+          === */}
 
                     <View style={styles.premiumBanner}>
                         <View style={styles.premiumIconCircle}>
@@ -938,9 +924,9 @@ export default function MatchesScreen() {
     );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
     safeArea: {

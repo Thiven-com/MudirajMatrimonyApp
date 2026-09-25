@@ -29,9 +29,9 @@ import Fonts from "../constants/Fonts";
 //   updateMemberPhotos,
 // } from "../utils/Functions";
 
-/* =========================================================
+/* =====
    PHOTO GUIDELINES
-========================================================= */
+===== */
 
 const PHOTO_GUIDELINES = [
   "Use a clear, recent photo",
@@ -42,22 +42,22 @@ const PHOTO_GUIDELINES = [
   "No filters or heavily edited photos",
 ];
 
-/* =========================================================
+/* =====
    ADDITIONAL PHOTO COUNT
-========================================================= */
+===== */
 
 const ADDITIONAL_PHOTO_SLOTS = 4;
 
-/* =========================================================
+/* =====
    MY PHOTOS
-========================================================= */
+===== */
 
 export default function MyPhotos() {
   const navigation = useNavigation();
 
-  /* =======================================================
+  /* ===
      STATE
-  ======================================================= */
+  === */
 
   const [profilePhoto, setProfilePhoto] = useState(null);
 
@@ -69,9 +69,9 @@ export default function MyPhotos() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* =======================================================
+  /* ===
      BACK
-  ======================================================= */
+  === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -79,11 +79,11 @@ export default function MyPhotos() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ===
      ANDROID HARDWARE BACK
      
      Same pattern as Languages.jsx
-  ======================================================= */
+  === */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -102,12 +102,12 @@ export default function MyPhotos() {
     };
   }, [handleBack]);
 
-  /* =======================================================
+  /* ===
      IMAGE PICKER
      
      React Native CLI
      No Expo
-  ======================================================= */
+  === */
 
   const pickImage = useCallback(async (onPicked) => {
     try {
@@ -122,9 +122,6 @@ export default function MyPhotos() {
 
         presentationStyle: "pageSheet",
       });
-
-      console.log("IMAGE PICKER RESULT:");
-      console.log(JSON.stringify(result, null, 2));
 
       if (result.didCancel) {
         return;
@@ -185,9 +182,9 @@ export default function MyPhotos() {
     }
   }, []);
 
-  /* =======================================================
+  /* ===
      PROFILE PHOTO
-  ======================================================= */
+  === */
 
   const handlePickProfilePhoto = () => {
     pickImage((image) => {
@@ -215,9 +212,9 @@ export default function MyPhotos() {
     );
   };
 
-  /* =======================================================
+  /* ===
      ADDITIONAL PHOTO
-  ======================================================= */
+  === */
 
   const handlePickAdditionalPhoto = (index) => {
     pickImage((image) => {
@@ -253,9 +250,9 @@ export default function MyPhotos() {
     ]);
   };
 
-  /* =======================================================
+  /* ===
      SAVE
-  ======================================================= */
+  === */
 
   const handleSaveAndContinue = async () => {
     if (saving) {
@@ -286,21 +283,6 @@ export default function MyPhotos() {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("========================================");
-
-      console.log("MY PHOTOS");
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("PROFILE PHOTO:", JSON.stringify(profilePhoto, null, 2));
-
-      console.log(
-        "ADDITIONAL PHOTOS:",
-        JSON.stringify(additionalPhotos, null, 2),
-      );
-
-      console.log("========================================");
-
       if (!accessToken) {
         Alert.alert("Login Required", "Please login again.");
 
@@ -322,21 +304,7 @@ export default function MyPhotos() {
         additionalPhotos: selectedAdditionalPhotos,
       };
 
-      console.log("PHOTO DATA:", JSON.stringify(photoData, null, 2));
 
-      /* =====================================================
-         API UPLOAD
-
-         Replace this section with your existing
-         photo upload API.
-
-         Example:
-
-         const response = await updateMemberPhotos(
-           accessToken,
-           photoData,
-         );
-      ===================================================== */
 
       /*
       const response = await updateMemberPhotos(
@@ -398,9 +366,9 @@ export default function MyPhotos() {
     }
   };
 
-  /* =======================================================
+  /* ===
      REFRESH / SCREEN FOCUS
-  ======================================================= */
+  === */
 
   useFocusEffect(
     useCallback(() => {
@@ -415,9 +383,9 @@ export default function MyPhotos() {
     }, []),
   );
 
-  /* =======================================================
+  /* ===
      UI
-  ======================================================= */
+  === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -429,9 +397,9 @@ export default function MyPhotos() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* =================================================
+        {/* ===
             HEADER
-        ================================================= */}
+        === */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -451,9 +419,9 @@ export default function MyPhotos() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             TITLE
-        ================================================= */}
+        === */}
 
         <View style={styles.titleSection}>
           <Text style={styles.pageTitle}>Add your photos</Text>
@@ -463,9 +431,9 @@ export default function MyPhotos() {
           </Text>
         </View>
 
-        {/* =================================================
+        {/* ===
             PROFILE PHOTO CARD
-        ================================================= */}
+        === */}
 
         <View style={styles.profileCard}>
           <View style={styles.cardHeader}>
@@ -506,9 +474,9 @@ export default function MyPhotos() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             MORE PHOTOS
-        ================================================= */}
+        === */}
 
         <View style={styles.additionalSection}>
           <View style={styles.sectionHeader}>
@@ -538,9 +506,9 @@ export default function MyPhotos() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             PRIVACY
-        ================================================= */}
+        === */}
 
         <View style={styles.privacyCard}>
           <View style={styles.privacyIcon}>
@@ -557,9 +525,9 @@ export default function MyPhotos() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             ERROR
-        ================================================= */}
+        === */}
 
         {errorMessage ? (
           <View style={styles.errorBox}>
@@ -569,9 +537,9 @@ export default function MyPhotos() {
           </View>
         ) : null}
 
-        {/* =================================================
+        {/* ===
             SAVE BUTTON
-        ================================================= */}
+        === */}
 
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -590,9 +558,9 @@ export default function MyPhotos() {
           )}
         </TouchableOpacity>
 
-        {/* =================================================
+        {/* ===
             BOTTOM HINT
-        ================================================= */}
+        === */}
 
         <Text style={styles.bottomHint}>
           You can update your photos anytime from your profile.
@@ -602,9 +570,9 @@ export default function MyPhotos() {
   );
 }
 
-/* =========================================================
+/* =====
    PHOTO UPLOAD BOX
-========================================================= */
+===== */
 
 function PhotoUploadBox({ image, size, label, helperText, onPress, onRemove }) {
   const isLarge = size === "large";
@@ -684,23 +652,23 @@ function PhotoUploadBox({ image, size, label, helperText, onPress, onRemove }) {
   );
 }
 
-/* =========================================================
+/* =====
    STYLES
-========================================================= */
+===== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
      SAFE AREA
-  ===================================================== */
+  ======= */
 
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
 
-  /* =====================================================
+  /* =======
      SCROLL
-  ===================================================== */
+  ======= */
 
   scrollView: {
     flex: 1,
@@ -712,9 +680,9 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
   },
 
-  /* =====================================================
+  /* =======
      HEADER
-  ===================================================== */
+  ======= */
 
   header: {
     flexDirection: "row",
@@ -760,9 +728,9 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  /* =====================================================
+  /* =======
      TITLE
-  ===================================================== */
+  ======= */
 
   titleSection: {
     marginBottom: 22,
@@ -783,9 +751,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  /* =====================================================
+  /* =======
      PROFILE CARD
-  ===================================================== */
+  ======= */
 
   profileCard: {
     backgroundColor: "#FFFFFF",
@@ -839,17 +807,17 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed || "#D7192E",
   },
 
-  /* =====================================================
+  /* =======
      PROFILE CONTENT
-  ===================================================== */
+  ======= */
 
   profileContent: {
     flexDirection: "row",
   },
 
-  /* =====================================================
+  /* =======
      GUIDELINES
-  ===================================================== */
+  ======= */
 
   guidelinesBlock: {
     flex: 1,
@@ -879,9 +847,9 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
 
-  /* =====================================================
+  /* =======
      ADDITIONAL SECTION
-  ===================================================== */
+  ======= */
 
   additionalSection: {
     marginBottom: 20,
@@ -917,18 +885,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 
-  /* =====================================================
+  /* =======
      GRID
-  ===================================================== */
+  ======= */
 
   additionalGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
 
-  /* =====================================================
+  /* =======
      PHOTO BOX
-  ===================================================== */
+  ======= */
 
   photoBox: {
     borderWidth: 1.4,
@@ -969,9 +937,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* =======
      PHOTO ICON
-  ===================================================== */
+  ======= */
 
   photoIconCircle: {
     borderRadius: 999,
@@ -1034,9 +1002,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  /* =====================================================
+  /* =======
      PRIVACY
-  ===================================================== */
+  ======= */
 
   privacyCard: {
     flexDirection: "row",
@@ -1075,9 +1043,9 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
 
-  /* =====================================================
+  /* =======
      ERROR
-  ===================================================== */
+  ======= */
 
   errorBox: {
     flexDirection: "row",
@@ -1097,9 +1065,9 @@ const styles = StyleSheet.create({
     fontSize: Fonts.size.md,
   },
 
-  /* =====================================================
+  /* =======
      SAVE BUTTON
-  ===================================================== */
+  ======= */
 
   saveButton: {
     height: 54,
@@ -1134,9 +1102,9 @@ const styles = StyleSheet.create({
     marginRight: 9,
   },
 
-  /* =====================================================
+  /* =======
      BOTTOM HINT
-  ===================================================== */
+  ======= */
 
   bottomHint: {
     textAlign: "center",

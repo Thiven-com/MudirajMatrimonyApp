@@ -21,9 +21,9 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
 import { deleteMemberCareerById, getMemberCareer } from "../utils/Functions";
 
-// =========================================================
+// =====
 // COLORS
-// =========================================================
+// =====
 
 const COLORS = {
   background: "#F5F6F8",
@@ -41,9 +41,9 @@ const COLORS = {
   darkRed: "#C91428",
 };
 
-// =========================================================
+// =====
 // CAREER INFORMATION
-// =========================================================
+// =====
 
 export default function CareerInformation() {
   const navigation = useNavigation();
@@ -67,12 +67,12 @@ export default function CareerInformation() {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
 
-  /* ============================================================
+  /* ========
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ======== */
 
   useFocusEffect(
     useCallback(() => {
@@ -103,9 +103,9 @@ export default function CareerInformation() {
     }, [navigation, confirmVisible, alertVisible]),
   );
 
-  // =======================================================
+  // ===
   // SHOW CUSTOM ALERT
-  // =======================================================
+  // ===
 
   const showAlert = (title, message, type = "success") => {
     setAlertTitle(String(title || ""));
@@ -114,22 +114,19 @@ export default function CareerInformation() {
     setAlertVisible(true);
   };
 
-  // =======================================================
+  // ===
   // CLOSE ALERT
-  // =======================================================
+  // ===
 
   const closeAlert = () => {
     setAlertVisible(false);
   };
 
-  // =======================================================
+  // ===
   // NORMALIZE CAREER RESPONSE
-  // =======================================================
+  // ===
 
   const normalizeCareerResponse = useCallback((response) => {
-    console.log("========== NORMALIZE CAREER RESPONSE ==========");
-
-    console.log(JSON.stringify(response, null, 2));
 
     let data = response;
 
@@ -213,25 +210,13 @@ export default function CareerInformation() {
     return [];
   }, []);
 
-  // =======================================================
+  // ===
   // GET CAREER
-  // =======================================================
+  // ===
 
   const loadCareer = useCallback(async () => {
     try {
       const accessToken = await AsyncStorage.getItem("authToken");
-
-      console.log("========================================");
-
-      console.log("CAREER SCREEN - GET CAREER");
-
-      console.log("METHOD: GET");
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("TOKEN LENGTH:", accessToken?.length || 0);
-
-      console.log("========================================");
 
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
@@ -240,37 +225,14 @@ export default function CareerInformation() {
       }
 
       const response = await getMemberCareer(accessToken);
-
-      console.log("========================================");
-
-      console.log("GET CAREER API RESPONSE");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      console.log("========================================");
-
       const careerData = normalizeCareerResponse(response);
-
-      console.log("NORMALIZED CAREER DATA:");
-
-      console.log(JSON.stringify(careerData, null, 2));
 
       setCareers(Array.isArray(careerData) ? careerData : []);
     } catch (error) {
-      console.error("========================================");
-
-      console.error("GET CAREER ERROR");
-
-      console.error("MESSAGE:", error?.message);
-
-      console.error("STATUS:", error?.response?.status);
-
       console.error(
         "RESPONSE:",
         JSON.stringify(error?.response?.data, null, 2),
       );
-
-      console.error("========================================");
 
       showAlert(
         "Error",
@@ -282,62 +244,46 @@ export default function CareerInformation() {
     }
   }, [normalizeCareerResponse]);
 
-  // =======================================================
+  // ===
   // LOAD SCREEN
-  // =======================================================
+  // ===
 
   useEffect(() => {
     loadCareer();
   }, [loadCareer]);
 
-  // =======================================================
+  // ===
   // REFRESH
-  // =======================================================
+  // ===
 
   const handleRefresh = async () => {
-    console.log("REFRESH CAREER CLICKED");
 
     await loadCareer();
   };
 
-  // =======================================================
+  // ===
   // ADD CAREER
-  // =======================================================
+  // ===
 
   const handleAddCareer = () => {
-    console.log("ADD CAREER CLICKED");
 
     navigation.navigate("AddCareer");
   };
 
-  // =======================================================
+  // ===
   // GET CAREER ID
-  // =======================================================
+  // ===
 
   const getCareerId = (career) => {
     return career?.id ?? career?.career_id ?? career?.careerId ?? null;
   };
 
-  // =======================================================
+  // ===
   // OPEN DELETE CONFIRMATION
-  // =======================================================
+  // ===
 
   const handleDeleteCareer = (career) => {
-    console.log("========================================");
-
-    console.log("TRASH ICON CLICKED");
-
-    console.log("CAREER OBJECT:", JSON.stringify(career, null, 2));
-
     const careerId = getCareerId(career);
-
-    console.log("CAREER ID:", careerId);
-
-    console.log("========================================");
-
-    // -----------------------------------------------
-    // ID NOT FOUND
-    // -----------------------------------------------
 
     if (
       careerId === null ||
@@ -349,15 +295,7 @@ export default function CareerInformation() {
       return;
     }
 
-    // -----------------------------------------------
-    // CONVERT ID TO NUMBER
-    // -----------------------------------------------
-
     const deleteId = Number(careerId);
-
-    // -----------------------------------------------
-    // INVALID ID
-    // -----------------------------------------------
 
     if (!Number.isInteger(deleteId) || deleteId <= 0) {
       showAlert("Delete Error", `Invalid career ID: ${careerId}`, "error");
@@ -365,44 +303,26 @@ export default function CareerInformation() {
       return;
     }
 
-    // -----------------------------------------------
-    // SAVE ID
-    // -----------------------------------------------
-
     setSelectedCareerId(deleteId);
-
-    // -----------------------------------------------
-    // OPEN CUSTOM MODAL
-    // -----------------------------------------------
-
     setConfirmVisible(true);
   };
 
-  // =======================================================
+  // ===
   // CANCEL DELETE
-  // =======================================================
+  // ===
 
   const cancelDelete = () => {
-    console.log("DELETE CANCELLED");
 
     setConfirmVisible(false);
     setSelectedCareerId(null);
   };
 
-  // =======================================================
+  // ===
   // CONFIRM DELETE
-  // =======================================================
+  // ===
 
   const confirmDelete = async () => {
     const deleteId = selectedCareerId;
-
-    console.log("========================================");
-
-    console.log("DELETE BUTTON CLICKED");
-
-    console.log("DELETE ID:", deleteId);
-
-    console.log("========================================");
 
     if (deleteId === null || deleteId === undefined) {
       setConfirmVisible(false);
@@ -417,60 +337,20 @@ export default function CareerInformation() {
     await executeDeleteCareer(deleteId);
   };
 
-  // =======================================================
+  // ===
   // DELETE CAREER API
-  // =======================================================
+  // ===
 
   const executeDeleteCareer = async (deleteId) => {
     try {
       setDeleting(true);
-
-      console.log("========================================");
-
-      console.log("DELETE CAREER STARTED");
-
-      console.log("CAREER ID:", deleteId);
-
-      console.log("METHOD: DELETE");
-
-      console.log("ENDPOINT:", `/api/member/career/${deleteId}`);
-
-      console.log("========================================");
-
-      // -------------------------------------------
-      // TOKEN
-      // -------------------------------------------
-
       const accessToken = await AsyncStorage.getItem("authToken");
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("TOKEN LENGTH:", accessToken?.length || 0);
-
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
 
         return;
       }
-
-      // -------------------------------------------
-      // DELETE API
-      // -------------------------------------------
-
       const response = await deleteMemberCareerById(accessToken, deleteId);
-
-      console.log("========================================");
-
-      console.log("DELETE API RESPONSE");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      console.log("========================================");
-
-      // -------------------------------------------
-      // RESPONSE DATA
-      // -------------------------------------------
-
       const responseData =
         response?.data && typeof response.data === "object"
           ? response.data
@@ -481,45 +361,20 @@ export default function CareerInformation() {
         JSON.stringify(responseData, null, 2),
       );
 
-      // -------------------------------------------
-      // STATUS
-      // -------------------------------------------
-
       const statusCode =
         response?.statusCode ??
         response?.status ??
         responseData?.statusCode ??
         responseData?.status;
-
-      // -------------------------------------------
-      // SUCCESS
-      // -------------------------------------------
-
       const success = response?.success ?? responseData?.success;
 
       const result = response?.result ?? responseData?.result;
-
-      console.log("DELETE STATUS CODE:", statusCode);
-
-      console.log("DELETE SUCCESS VALUE:", success);
-
-      console.log("DELETE RESULT VALUE:", result);
-
-      // -------------------------------------------
-      // SERVER MESSAGE
-      // -------------------------------------------
-
       const serverMessage =
         response?.message ??
         responseData?.message ??
         responseData?.msg ??
         response?.msg ??
         "";
-
-      // -------------------------------------------
-      // FAILURE CHECK
-      // -------------------------------------------
-
       const httpFailure = statusCode !== undefined && Number(statusCode) >= 400;
 
       const apiFailure = success === false || success === 0 || result === false;
@@ -536,11 +391,6 @@ export default function CareerInformation() {
         return;
       }
 
-      // -------------------------------------------
-      // IMPORTANT:
-      // REMOVE FROM LOCAL SCREEN IMMEDIATELY
-      // AFTER SUCCESSFUL API RESPONSE
-      // -------------------------------------------
 
       setCareers((previousCareers) =>
         previousCareers.filter(
@@ -548,57 +398,25 @@ export default function CareerInformation() {
         ),
       );
 
-      console.log(`CAREER ID ${deleteId} REMOVED FROM SCREEN`);
-
-      // -------------------------------------------
-      // SUCCESS MESSAGE
-      // -------------------------------------------
 
       const successMessage =
         serverMessage || `Career ID ${deleteId} deleted successfully.`;
 
-      console.log("========================================");
-
-      console.log("DELETE SUCCESSFUL");
-
-      console.log("MESSAGE:", successMessage);
-
-      console.log("========================================");
-
       showAlert("Delete Successful", successMessage, "success");
-
-      // -------------------------------------------
-      // CLEAR SELECTED ID
-      // -------------------------------------------
 
       setSelectedCareerId(null);
 
-      // -------------------------------------------
-      // GET LATEST SERVER DATA
-      // -------------------------------------------
-
-      console.log("GETTING LATEST CAREER DATA...");
 
       await loadCareer();
 
-      console.log("LATEST CAREER DATA LOADED");
     } catch (error) {
-      console.error("========================================");
-
-      console.error("DELETE CAREER API ERROR");
-
-      console.error("CAREER ID:", deleteId);
-
-      console.error("MESSAGE:", error?.message);
-
-      console.error("STATUS:", error?.response?.status);
 
       console.error(
         "RESPONSE:",
         JSON.stringify(error?.response?.data, null, 2),
       );
 
-      console.error("========================================");
+      console.error("===");
 
       const errorMessage =
         error?.response?.data?.message ||
@@ -612,9 +430,9 @@ export default function CareerInformation() {
     }
   };
 
-  // =======================================================
+  // ===
   // RENDER CAREER ITEM
-  // =======================================================
+  // ===
 
   const renderCareerItem = (career, index) => {
     const careerId = getCareerId(career);
@@ -732,18 +550,18 @@ export default function CareerInformation() {
     );
   };
 
-  // =======================================================
+  // ===
   // RENDER
-  // =======================================================
+  // ===
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.screen}>
-        {/* =================================================
+        {/* ======
                     HEADER
-                ================================================= */}
+                ====== */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -765,9 +583,9 @@ export default function CareerInformation() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ======
                     MAIN CARD
-                ================================================= */}
+                ====== */}
 
         <View style={styles.card}>
           {careers.length > 0 ? (
@@ -834,9 +652,9 @@ export default function CareerInformation() {
         </View>
       </View>
 
-      {/* =====================================================
+      {/* =====
                 DELETE CONFIRMATION MODAL
-            ===================================================== */}
+            ===== */}
 
       <Modal
         visible={confirmVisible}
@@ -883,9 +701,9 @@ export default function CareerInformation() {
         </View>
       </Modal>
 
-      {/* =====================================================
+      {/* =====
                 SUCCESS / ERROR MODAL
-            ===================================================== */}
+            ===== */}
 
       <Modal
         visible={alertVisible}
@@ -932,9 +750,9 @@ export default function CareerInformation() {
   );
 }
 
-// =========================================================
+// =====
 // STYLES
-// =========================================================
+// =====
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -950,9 +768,9 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
 
-  // =====================================================
+  // =====
   // HEADER
-  // =====================================================
+  // =====
 
   header: {
     width: "100%",
@@ -1001,9 +819,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // =====================================================
+  // =====
   // CARD
-  // =====================================================
+  // =====
 
   card: {
     flex: 1,
@@ -1021,9 +839,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // =====================================================
+  // =====
   // CAREER ITEM
-  // =====================================================
+  // =====
 
   careerItem: {
     width: "100%",
@@ -1080,9 +898,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // =====================================================
+  // =====
   // ACTION BUTTONS
-  // =====================================================
+  // =====
 
   actionButtons: {
     flexDirection: "row",
@@ -1111,9 +929,9 @@ const styles = StyleSheet.create({
     borderColor: "#FFD9DE",
   },
 
-  // =====================================================
+  // =====
   // ADD CAREER
-  // =====================================================
+  // =====
 
   addCareerSection: {
     alignItems: "center",
@@ -1181,9 +999,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // =====================================================
+  // =====
   // MODAL OVERLAY
-  // =====================================================
+  // =====
 
   modalOverlay: {
     flex: 1,
@@ -1193,9 +1011,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // =====================================================
+  // =====
   // CONFIRM MODAL
-  // =====================================================
+  // =====
 
   confirmModal: {
     width: "100%",
@@ -1280,9 +1098,9 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
-  // =====================================================
+  // =====
   // SUCCESS / ERROR MODAL
-  // =====================================================
+  // =====
 
   alertModal: {
     width: "100%",

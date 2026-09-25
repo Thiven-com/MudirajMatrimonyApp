@@ -26,17 +26,17 @@ import {
   updateMemberEducation,
 } from "../utils/Functions";
 
-/* =========================================================
+/* ===
    MAIN COMPONENT
-========================================================= */
+=== */
 
 export default function EditEducation() {
-  /* =======================================================
+  /* ====
      NAVIGATION / GET EDUCATION ID FROM ROUTE
 
      Example:
      navigation.navigate("EditEducation", { id: 1 })
-  ======================================================= */
+  ==== */
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -44,9 +44,9 @@ export default function EditEducation() {
   const rawId = route?.params?.id;
   const educationId = Array.isArray(rawId) ? rawId[0] : rawId;
 
-  /* =======================================================
+  /* ====
      STATES
-  ======================================================= */
+  ==== */
 
   const [degree, setDegree] = useState("");
 
@@ -60,9 +60,9 @@ export default function EditEducation() {
 
   const [saving, setSaving] = useState(false);
 
-  /* =======================================================
+  /* ====
      BACK
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -70,13 +70,13 @@ export default function EditEducation() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
      Same pattern as ChatsScreen / OtpScreen / EditCareer:
      intercept the hardware back button and route it through
      handleBack() so both the header arrow and the hardware
      key stay in sync. Ignored while a save is in flight.
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -99,9 +99,9 @@ export default function EditEducation() {
     };
   }, [handleBack, saving]);
 
-  /* =======================================================
+  /* ====
      LOAD SINGLE EDUCATION
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     if (educationId) {
@@ -119,26 +119,26 @@ export default function EditEducation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [educationId]);
 
-  /* =======================================================
+  /* ====
      GET SINGLE EDUCATION API
      GET /api/member/education/{id}
-  ======================================================= */
+  ==== */
 
   const loadEducation = async () => {
     try {
       setLoading(true);
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("EDIT EDUCATION SCREEN");
 
       console.log("EDUCATION ID:", educationId);
 
-      console.log("======================================");
+      console.log("===");
 
-      /* =====================================================
+      /* =======
          GET ACCESS TOKEN
-      ===================================================== */
+      ======= */
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
@@ -155,9 +155,9 @@ export default function EditEducation() {
         return;
       }
 
-      /* =====================================================
+      /* =======
          VALIDATE ID
-      ===================================================== */
+      ======= */
 
       const numericId = Number(educationId);
 
@@ -172,21 +172,21 @@ export default function EditEducation() {
         return;
       }
 
-      /* =====================================================
+      /* =======
          CALL GET SINGLE EDUCATION API
-      ===================================================== */
+      ======= */
 
       const response = await getMemberEducationById(accessToken, numericId);
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("SINGLE EDUCATION RESPONSE");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("======================================");
+      console.log("===");
 
-      /* =====================================================
+      /* =======
          EXTRACT DATA
 
          Supports:
@@ -204,7 +204,7 @@ export default function EditEducation() {
          OR
 
          {...}
-      ===================================================== */
+      ======= */
 
       let education = null;
 
@@ -236,9 +236,9 @@ export default function EditEducation() {
         return;
       }
 
-      /* =====================================================
+      /* =======
          DEGREE
-      ===================================================== */
+      ======= */
 
       setDegree(
         String(
@@ -249,9 +249,9 @@ export default function EditEducation() {
         ),
       );
 
-      /* =====================================================
+      /* =======
          INSTITUTION
-      ===================================================== */
+      ======= */
 
       setInstitution(
         String(
@@ -263,12 +263,12 @@ export default function EditEducation() {
         ),
       );
 
-      /* =====================================================
+      /* =======
          START YEAR
 
          API:
          education_start
-      ===================================================== */
+      ======= */
 
       setStartYear(
         String(
@@ -279,12 +279,12 @@ export default function EditEducation() {
         ),
       );
 
-      /* =====================================================
+      /* =======
          END YEAR
 
          API:
          education_end
-      ===================================================== */
+      ======= */
 
       setEndYear(
         String(
@@ -295,13 +295,13 @@ export default function EditEducation() {
         ),
       );
     } catch (error) {
-      console.error("======================================");
+      console.error("===");
 
       console.error("GET SINGLE EDUCATION ERROR");
 
       console.error(error);
 
-      console.error("======================================");
+      console.error("===");
 
       Alert.alert(
         "Error",
@@ -311,10 +311,10 @@ export default function EditEducation() {
       setLoading(false);
     }
   };
-  // =======================================================
+  // ====
   // SAVE / UPDATE EDUCATION
   // PUT /api/member/education/{id}
-  // =======================================================
+  // ====
 
   const handleSave = async () => {
     // -----------------------------------------------------
@@ -439,7 +439,7 @@ export default function EditEducation() {
       // DEBUG
       // ---------------------------------------------------
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("UPDATE EDUCATION SCREEN");
 
@@ -451,7 +451,7 @@ export default function EditEducation() {
 
       console.log(JSON.stringify(payload, null, 2));
 
-      console.log("======================================");
+      console.log("===");
 
       // ---------------------------------------------------
       // CALL UPDATE API
@@ -467,13 +467,13 @@ export default function EditEducation() {
       // DEBUG RESPONSE
       // ---------------------------------------------------
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("UPDATE EDUCATION RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("======================================");
+      console.log("===");
 
       // ---------------------------------------------------
       // CHECK RESPONSE
@@ -530,7 +530,7 @@ export default function EditEducation() {
       // ERROR LOG
       // ---------------------------------------------------
 
-      console.error("======================================");
+      console.error("===");
 
       console.error("UPDATE EDUCATION ERROR");
 
@@ -538,7 +538,7 @@ export default function EditEducation() {
 
       console.error("ERROR MESSAGE:", error?.message);
 
-      console.error("======================================");
+      console.error("===");
 
       // ---------------------------------------------------
       // ERROR MESSAGE
@@ -557,9 +557,9 @@ export default function EditEducation() {
     }
   };
 
-  /* =======================================================
+  /* ====
      LOADING SCREEN
-  ======================================================= */
+  ==== */
 
   if (loading) {
     return (
@@ -575,18 +575,18 @@ export default function EditEducation() {
     );
   }
 
-  /* =======================================================
+  /* ====
      SCREEN
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <View style={styles.container}>
-        {/* =================================================
+        {/* ===
             HEADER
-        ================================================= */}
+        === */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -604,9 +604,9 @@ export default function EditEducation() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ===
             CONTENT
-        ================================================= */}
+        === */}
 
         <ScrollView
           style={styles.scrollView}
@@ -614,9 +614,9 @@ export default function EditEducation() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* =================================================
+          {/* ===
               DEGREE / COURSE
-          ================================================= */}
+          === */}
 
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>
@@ -634,7 +634,7 @@ export default function EditEducation() {
             />
           </View>
 
-          {/* =================================================
+          {/* ===
               SPECIALIZATION
               
               This field is kept in UI because it appears
@@ -642,7 +642,7 @@ export default function EditEducation() {
 
               It is NOT sent to the API because your
               provided API does not contain this field.
-          ================================================= */}
+          === */}
 
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Specialization</Text>
@@ -655,9 +655,9 @@ export default function EditEducation() {
             />
           </View>
 
-          {/* =================================================
+          {/* ===
               INSTITUTION
-          ================================================= */}
+          === */}
 
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>
@@ -675,9 +675,9 @@ export default function EditEducation() {
             />
           </View>
 
-          {/* =================================================
+          {/* ===
               START YEAR + END YEAR
-          ================================================= */}
+          === */}
 
           <View style={styles.yearRow}>
             {/* START YEAR */}
@@ -727,9 +727,9 @@ export default function EditEducation() {
             </View>
           </View>
 
-          {/* =================================================
+          {/* ===
               STATUS
-          ================================================= */}
+          === */}
 
           <Text style={[styles.label, styles.statusLabel]}>Status</Text>
 
@@ -761,9 +761,9 @@ export default function EditEducation() {
             </TouchableOpacity>
           </View>
 
-          {/* =================================================
+          {/* ===
               BUTTONS
-          ================================================= */}
+          === */}
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -793,32 +793,32 @@ export default function EditEducation() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
        SAFE AREA
-    ===================================================== */
+    ======= */
 
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
 
-  /* =====================================================
+  /* =======
        CONTAINER
-    ===================================================== */
+    ======= */
 
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
 
-  /* =====================================================
+  /* =======
        HEADER
-    ===================================================== */
+    ======= */
 
   header: {
     height: 53,
@@ -836,9 +836,9 @@ const styles = StyleSheet.create({
     position: "relative",
   },
 
-  /* =====================================================
+  /* =======
        BACK BUTTON
-    ===================================================== */
+    ======= */
 
   backButton: {
     position: "absolute",
@@ -859,9 +859,9 @@ const styles = StyleSheet.create({
     borderColor: "#ECEFF1",
   },
 
-  /* =====================================================
+  /* =======
        HEADER TITLE
-    ===================================================== */
+    ======= */
 
   headerTitle: {
     fontFamily: Fonts.bold,
@@ -875,9 +875,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* =====================================================
+  /* =======
        MENU
-    ===================================================== */
+    ======= */
 
   menuButton: {
     position: "absolute",
@@ -891,9 +891,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* =======
        SCROLL VIEW
-    ===================================================== */
+    ======= */
 
   scrollView: {
     flex: 1,
@@ -906,9 +906,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  /* =====================================================
+  /* =======
        FIELD
-    ===================================================== */
+    ======= */
 
   fieldContainer: {
     width: "100%",
@@ -916,9 +916,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-  /* =====================================================
+  /* =======
        LABEL
-    ===================================================== */
+    ======= */
 
   label: {
     fontFamily: Fonts.medium,
@@ -937,9 +937,9 @@ const styles = StyleSheet.create({
     color: "#EF233C",
   },
 
-  /* =====================================================
+  /* =======
        INPUT
-    ===================================================== */
+    ======= */
 
   input: {
     width: "100%",
@@ -965,9 +965,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* =======
        YEAR ROW
-    ===================================================== */
+    ======= */
 
   yearRow: {
     width: "100%",
@@ -983,9 +983,9 @@ const styles = StyleSheet.create({
     width: "48.5%",
   },
 
-  /* =====================================================
+  /* =======
        YEAR DROPDOWN
-    ===================================================== */
+    ======= */
 
   dropdownInput: {
     width: "100%",
@@ -1023,18 +1023,18 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* =======
        STATUS
-    ===================================================== */
+    ======= */
 
   statusLabel: {
     marginTop: 1,
     marginBottom: 25,
   },
 
-  /* =====================================================
+  /* =======
        RADIO
-    ===================================================== */
+    ======= */
 
   radioRow: {
     flexDirection: "row",
@@ -1090,9 +1090,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* =======
        BUTTON ROW
-    ===================================================== */
+    ======= */
 
   buttonRow: {
     width: "100%",
@@ -1104,9 +1104,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-  /* =====================================================
+  /* =======
        CANCEL BUTTON
-    ===================================================== */
+    ======= */
 
   cancelButton: {
     width: "46.5%",
@@ -1130,9 +1130,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* =======
        SAVE BUTTON
-    ===================================================== */
+    ======= */
 
   saveButton: {
     width: "52%",
@@ -1160,9 +1160,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* =======
        LOADING
-    ===================================================== */
+    ======= */
 
   loadingContainer: {
     flex: 1,

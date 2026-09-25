@@ -19,9 +19,9 @@ import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
 
 const FALLBACK_PHOTO = require("../assets/images/Match5.png");
 
-/* =========================================================
+/* ===
    GET TOKEN (same pattern used across the app)
-========================================================= */
+=== */
 const getToken = async () => {
     try {
         const authToken = await AsyncStorage.getItem("authToken");
@@ -46,11 +46,11 @@ const getToken = async () => {
     }
 };
 
-/* =========================================================
+/* ===
    API -> UI MAPPING
    Adjust field names once you confirm the real response
    shape from /api/member/my-shortlists
-========================================================= */
+=== */
 function mapShortlistProfile(api) {
     const joinedName = [api.first_name, api.last_name].filter(Boolean).join(" ");
 
@@ -103,9 +103,9 @@ export default function ShortlistedProfilesScreen() {
     const [loadError, setLoadError] = useState("");
     const [togglingId, setTogglingId] = useState(null);
 
-    /* =========================================================
+    /* ===
        LOAD SHORTLISTS
-    ========================================================= */
+    === */
     const loadShortlists = async () => {
         setLoading(true);
         setLoadError("");
@@ -140,9 +140,9 @@ export default function ShortlistedProfilesScreen() {
         }
     };
 
-    /* =========================================================
+    /* ===
        REMOVE FROM SHORTLIST
-    ========================================================= */
+    === */
     const handleRemove = async (id) => {
         setTogglingId(id);
 
@@ -154,7 +154,6 @@ export default function ShortlistedProfilesScreen() {
             }
 
             const result = await removeFromShortlist(id, token);
-            console.log("removeFromShortlist result:", JSON.stringify(result));
 
             if (result?.success === 1 || result?.result === true) {
                 setProfiles((prev) => prev.filter((p) => p.id !== id));
@@ -186,7 +185,7 @@ export default function ShortlistedProfilesScreen() {
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
 
-            {/* ================= HEADER ================= */}
+            {/* ====== HEADER ====== */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerIconButton}
@@ -213,7 +212,7 @@ export default function ShortlistedProfilesScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* ================= SHORTLIST BANNER ================= */}
+                {/* ====== SHORTLIST BANNER ====== */}
                 <View style={styles.bannerCard}>
                     <View style={styles.bannerIconCircle}>
                         <Feather name="bookmark" size={20} color={Colors.white} />
@@ -231,7 +230,7 @@ export default function ShortlistedProfilesScreen() {
                     </View>
                 </View>
 
-                {/* ================= ERROR ================= */}
+                {/* ====== ERROR ====== */}
                 {!!loadError && (
                     <View style={styles.errorBanner}>
                         <Feather name="alert-circle" size={16} color={Colors.primaryRed} />
@@ -242,7 +241,7 @@ export default function ShortlistedProfilesScreen() {
                     </View>
                 )}
 
-                {/* ================= PROFILE LIST ================= */}
+                {/* ====== PROFILE LIST ====== */}
                 <View style={styles.profileList}>
                     {profiles.map((profile) => (
                         <ProfileCard
@@ -254,7 +253,7 @@ export default function ShortlistedProfilesScreen() {
                     ))}
                 </View>
 
-                {/* ================= EMPTY / END-OF-LIST FOOTER ================= */}
+                {/* ====== EMPTY / END-OF-LIST FOOTER ====== */}
                 <View style={styles.footerEmpty}>
                     <View style={styles.footerIconCircle}>
                         <Feather name="bookmark" size={30} color={Colors.primaryRed} />
@@ -281,7 +280,7 @@ export default function ShortlistedProfilesScreen() {
     );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 
 function ProfileCard({ profile, isToggling, onRemove }) {
     const metaLine1 = [profile.age, profile.location].filter(Boolean).join(", ");

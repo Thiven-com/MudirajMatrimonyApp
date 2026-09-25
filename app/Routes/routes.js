@@ -39,6 +39,7 @@ import ChoosePackageScreen from '../Screens/ChoosePackageScreen';
 import ProfileVisitorsScreen from '../Screens/ProfileVisitorsScreen';
 import RecentlyViewedScreen from '../Screens/RecentlyViewedScreen';
 import SubscriptionPlansScreen from '../Screens/SubscriptionPlansScreen';
+import PremiumBenefits from '../Screens/PremiumBenefits';
 
 import { DarkTheme, LightTheme } from '../styles/theme';
 
@@ -242,7 +243,7 @@ export const useRoutesList = () => {
       options: notTabBar,
     },
     {
-      name: 'PaymentScreen',
+      name: 'Payment',
       component: PaymentScreen,
       options: notTabBar,
     },
@@ -254,6 +255,11 @@ export const useRoutesList = () => {
     {
       name: 'SubscriptionPlans',
       component: SubscriptionPlansScreen,
+      options: notTabBar,
+    },
+    {
+      name: 'PremiumBenefits',
+      component: PremiumBenefits,
       options: notTabBar,
     },
     {

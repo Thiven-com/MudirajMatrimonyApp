@@ -20,9 +20,9 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 
-/* =========================================================
+/* ===
    PLAN DATA
-========================================================= */
+=== */
 
 const PLAN = {
   name: "Premium Membership",
@@ -33,9 +33,9 @@ const PLAN = {
   discountPercent: 40,
 };
 
-/* =========================================================
+/* ===
    PAYMENT METHODS
-========================================================= */
+=== */
 
 const PAYMENT_METHODS = [
   {
@@ -75,9 +75,9 @@ const PAYMENT_METHODS = [
   },
 ];
 
-/* =========================================================
+/* ===
    TRUST BADGES
-========================================================= */
+=== */
 
 const TRUST_BADGES = [
   {
@@ -101,18 +101,18 @@ const TRUST_BADGES = [
 
 const discountAmount = PLAN.originalPrice - PLAN.price;
 
-/* =========================================================
+/* ===
    PAYMENT SCREEN
-========================================================= */
+=== */
 
 export default function PaymentScreen() {
   const navigation = useNavigation();
 
   const [selectedMethod, setSelectedMethod] = useState("upi");
 
-  /* =======================================================
+  /* ===
      BACK HANDLER
-  ======================================================= */
+  === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -120,9 +120,9 @@ export default function PaymentScreen() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ===
      ANDROID HARDWARE BACK
-  ======================================================= */
+  === */
 
   useFocusEffect(
     useCallback(() => {
@@ -143,15 +143,11 @@ export default function PaymentScreen() {
     }, [handleBack]),
   );
 
-  /* =======================================================
+  /* ===
      PAYMENT
-  ======================================================= */
+  === */
 
   const handlePay = () => {
-    console.log("Paying with:", selectedMethod);
-
-    console.log("Selected plan:", PLAN);
-
     /*
       TODO:
       Connect your actual payment API
@@ -166,17 +162,17 @@ export default function PaymentScreen() {
     */
   };
 
-  /* =======================================================
+  /* ===
      UI
-  ======================================================= */
+  === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
 
-      {/* =====================================================
+      {/* ===
           HEADER
-      ===================================================== */}
+      === */}
 
       <LinearGradient
         colors={Colors.gradientLogo}
@@ -223,17 +219,17 @@ export default function PaymentScreen() {
         </View>
       </LinearGradient>
 
-      {/* =====================================================
+      {/* ===
           SCROLL CONTENT
-      ===================================================== */}
+      === */}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* =================================================
+        {/* ===
             PLAN CARD
-        ================================================= */}
+        === */}
 
         <View style={styles.planCard}>
           {/* ICON */}
@@ -279,9 +275,9 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             PAYMENT METHODS
-        ================================================= */}
+        === */}
 
         <Text style={styles.sectionHeading}>Select Payment Method</Text>
 
@@ -296,9 +292,9 @@ export default function PaymentScreen() {
           ))}
         </View>
 
-        {/* =================================================
+        {/* ===
             ORDER SUMMARY
-        ================================================= */}
+        === */}
 
         <Text style={styles.sectionHeading}>Order Summary</Text>
 
@@ -350,9 +346,9 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        {/* =================================================
+        {/* ===
             TRUST BADGES
-        ================================================= */}
+        === */}
 
         <View style={styles.trustBanner}>
           {TRUST_BADGES.map((badge) => (
@@ -367,9 +363,9 @@ export default function PaymentScreen() {
         </View>
       </ScrollView>
 
-      {/* =====================================================
+      {/* ===
           STICKY PAY FOOTER
-      ===================================================== */}
+      === */}
 
       <View style={styles.footer}>
         <TouchableOpacity
@@ -403,9 +399,9 @@ export default function PaymentScreen() {
   );
 }
 
-/* =========================================================
+/* ===
    PAYMENT METHOD ROW
-========================================================= */
+=== */
 
 function PaymentMethodRow({ method, selected, onSelect }) {
   return (
@@ -445,14 +441,14 @@ function PaymentMethodRow({ method, selected, onSelect }) {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* ===
      SAFE AREA
-  ===================================================== */
+  === */
 
   safeArea: {
     flex: 1,
@@ -468,9 +464,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  /* =====================================================
+  /* ===
      HEADER
-  ===================================================== */
+  === */
 
   header: {
     flexDirection: "row",
@@ -534,9 +530,9 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
 
-  /* =====================================================
+  /* ===
      PLAN CARD
-  ===================================================== */
+  === */
 
   planCard: {
     flexDirection: "row",
@@ -680,9 +676,9 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* ===
      SECTION HEADING
-  ===================================================== */
+  === */
 
   sectionHeading: {
     fontSize: Fonts.size.md,
@@ -694,9 +690,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  /* =====================================================
+  /* ===
      PAYMENT METHODS
-  ===================================================== */
+  === */
 
   methodsList: {
     marginBottom: 22,
@@ -818,9 +814,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* ===
      ORDER SUMMARY
-  ===================================================== */
+  === */
 
   summaryCard: {
     backgroundColor: Colors.cardBackground,
@@ -918,9 +914,9 @@ const styles = StyleSheet.create({
     color: Colors.primaryRed,
   },
 
-  /* =====================================================
+  /* ===
      TRUST BANNER
-  ===================================================== */
+  === */
 
   trustBanner: {
     flexDirection: "row",
@@ -966,9 +962,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* =====================================================
+  /* ===
      STICKY FOOTER
-  ===================================================== */
+  === */
 
   footer: {
     paddingHorizontal: 18,

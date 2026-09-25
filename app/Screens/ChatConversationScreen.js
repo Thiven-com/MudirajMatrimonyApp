@@ -117,17 +117,7 @@ export default function ChatConversationScreen() {
   const resolvedChatId = chatId || routeThreadId;
 
   const memberId = routeMemberId || chatId;
-
-  console.log("ChatConversationScreen params:", {
-    chatId,
-    routeMemberId,
-    routeThreadId,
-    resolvedChatId,
-    memberId,
-  });
-
-  // threadId comes from ChatsScreen's nav params when available;
-  // falls back to whatever chat-view returns if missing (e.g. deep link).
+  
   const [chatThreadId, setChatThreadId] = useState(
     resolvedChatId ? String(resolvedChatId) : null,
   );
@@ -166,7 +156,7 @@ export default function ChatConversationScreen() {
     }, [navigation]),
   );
 
-  /* ================= INITIAL LOAD ================= */
+  /* ====== INITIAL LOAD ====== */
 
   const loadChatView = useCallback(async () => {
     if (!resolvedChatId) {
@@ -239,7 +229,7 @@ export default function ChatConversationScreen() {
     loadChatView();
   }, [loadChatView]);
 
-  /* ================= LOAD OLDER MESSAGES ================= */
+  /* ====== LOAD OLDER MESSAGES ====== */
 
   const handleLoadOlderMessages = useCallback(async () => {
     if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
@@ -252,7 +242,6 @@ export default function ChatConversationScreen() {
     try {
       const token = await getToken();
       const result = await getOldMessages(Number(firstMessageId), token);
-      console.log("getOldMessages response:", JSON.stringify(result));
 
       const isSuccess = result?.success === 1 || result?.result === true;
 
@@ -279,7 +268,7 @@ export default function ChatConversationScreen() {
     }
   }, [loadingOlder, hasMoreOlder, messages, memberId]);
 
-  /* ================= SEND MESSAGE ================= */
+  /* ====== SEND MESSAGE ====== */
 
   const handleBack = () => navigation.goBack();
 
@@ -340,7 +329,7 @@ export default function ChatConversationScreen() {
     }
   };
 
-  /* ================= RENDER ================= */
+  /* ====== RENDER ====== */
 
   if (loading) {
     return (
@@ -382,7 +371,7 @@ export default function ChatConversationScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -436,7 +425,7 @@ export default function ChatConversationScreen() {
         </View>
       </View>
 
-      {/* ================= DEBUG: RAW NAME FIELDS ================= */}
+      {/* ====== DEBUG: RAW NAME FIELDS ====== */}
       {/* Remove this block (and DEBUG_SHOW_RAW_NAMES) once you've
           confirmed sender_name/auth_user_photo is the right pairing
           across several real conversations, not just this one. */}
@@ -449,7 +438,7 @@ export default function ChatConversationScreen() {
         </View>
       )}
 
-      {/* ================= SAFETY NOTICE ================= */}
+      {/* ====== SAFETY NOTICE ====== */}
       <View style={styles.safetyBanner}>
         <Feather name="shield" size={14} color={COLORS.green} />
         <Text style={styles.safetyText}>
@@ -457,7 +446,7 @@ export default function ChatConversationScreen() {
         </Text>
       </View>
 
-      {/* ================= MESSAGES ================= */}
+      {/* ====== MESSAGES ====== */}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -500,7 +489,7 @@ export default function ChatConversationScreen() {
           renderItem={({ item }) => <MessageBubble message={item} />}
         />
 
-        {/* ================= INPUT BAR ================= */}
+        {/* ====== INPUT BAR ====== */}
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Feather name="plus" size={24} color={COLORS.darkRed} />
@@ -539,9 +528,9 @@ export default function ChatConversationScreen() {
   );
 }
 
-/* ================================================= */
-/* ================= MESSAGE BUBBLE ================= */
-/* ================================================= */
+/* === */
+/* ====== MESSAGE BUBBLE ====== */
+/* === */
 
 function MessageBubble({ message }) {
   const { fromMe, text, time, status, attachment } = message;
@@ -617,9 +606,9 @@ function formatTime(date) {
   return `${hours}:${minutes} ${ampm}`;
 }
 
-/* ================================================= */
-/* ================= STYLES ========================= */
-/* ================================================= */
+/* === */
+/* ====== STYLES === */
+/* === */
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
@@ -653,7 +642,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* ================= HEADER ================= */
+  /* ====== HEADER ====== */
 
   header: {
     flexDirection: "row",
@@ -722,7 +711,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
   },
 
-  /* ================= DEBUG BANNER ================= */
+  /* ====== DEBUG BANNER ====== */
 
   debugBanner: {
     backgroundColor: COLORS.debugBanner,
@@ -736,7 +725,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
-  /* ================= SAFETY BANNER ================= */
+  /* ====== SAFETY BANNER ====== */
 
   safetyBanner: {
     flexDirection: "row",
@@ -754,7 +743,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
-  /* ================= MESSAGES ================= */
+  /* ====== MESSAGES ====== */
 
   messageList: {
     paddingHorizontal: SPACING.md,
@@ -849,7 +838,7 @@ const styles = StyleSheet.create({
     color: COLORS.mutedGray,
   },
 
-  /* ================= INPUT BAR ================= */
+  /* ====== INPUT BAR ====== */
 
   inputBar: {
     flexDirection: "row",

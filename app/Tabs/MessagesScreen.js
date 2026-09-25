@@ -99,7 +99,7 @@ const FILTERS = [
     dotOnly: true,
     dot: COLORS.green,
   },
-  { key: "favourites", label: "Favourites", icon: "star-outline" },
+  { key: "favourites", label: "Favourites", icon: "star" },
 ];
 
 // ---- API response -> chat row model ----
@@ -132,12 +132,12 @@ export default function ChatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  /* ============================================================
+  /* ======
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -237,7 +237,7 @@ export default function ChatsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -261,7 +261,7 @@ export default function ChatsScreen() {
         </Text>
       </View>
 
-      {/* ================= SEARCH BAR ================= */}
+      {/* ====== SEARCH BAR ====== */}
 
       <View style={styles.searchBar}>
         <Feather name="search" size={20} color={COLORS.mutedGray} />
@@ -281,7 +281,7 @@ export default function ChatsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ================= FILTER TABS ================= */}
+      {/* ====== FILTER TABS ====== */}
 
       <FlatList
         horizontal
@@ -326,7 +326,7 @@ export default function ChatsScreen() {
         }}
       />
 
-      {/* ================= CHAT LIST ================= */}
+      {/* ====== CHAT LIST ====== */}
 
       {loading ? (
         <View style={styles.loadingState}>
@@ -405,9 +405,9 @@ export default function ChatsScreen() {
   );
 }
 
-/* ================================================= */
-/* ================= AVATAR ========================= */
-/* ================================================= */
+/* === */
+/* ====== AVATAR === */
+/* === */
 
 function Avatar({ chat }) {
   const [failed, setFailed] = useState(false);
@@ -436,9 +436,9 @@ function Avatar({ chat }) {
   );
 }
 
-/* ================================================= */
-/* ================= CHAT ROW ======================= */
-/* ================================================= */
+/* === */
+/* ====== CHAT ROW ======= */
+/* === */
 
 function ChatRow({ chat, onPress }) {
   return (
@@ -505,9 +505,9 @@ function ChatRow({ chat, onPress }) {
   );
 }
 
-/* ================================================= */
-/* ================= EMPTY STATE ===================== */
-/* ================================================= */
+/* === */
+/* ====== EMPTY STATE ===== */
+/* === */
 
 function EmptyState({ errorMessage, onRetry }) {
   return (
@@ -540,9 +540,9 @@ function EmptyState({ errorMessage, onRetry }) {
 }
 
 const styles = StyleSheet.create({
-  /* =========================================================
+  /* ===
      MAIN SCREEN
-  ========================================================= */
+  === */
 
   safeArea: {
     flex: 1,
@@ -550,9 +550,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  /* =========================================================
+  /* ===
      HEADER
-  ========================================================= */
+  === */
 
   header: {
     height: 48,
@@ -581,9 +581,9 @@ const styles = StyleSheet.create({
     height: 34,
   },
 
-  /* =========================================================
+  /* ===
      PAGE TITLE
-  ========================================================= */
+  === */
 
   titleBlock: {
     paddingHorizontal: SPACING.md,
@@ -605,9 +605,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
 
-  /* =========================================================
+  /* ===
      SEARCH BAR
-  ========================================================= */
+  === */
 
   searchBar: {
     flexDirection: "row",
@@ -640,9 +640,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* =========================================================
+  /* ===
      FILTER TABS
-  ========================================================= */
+  === */
 
   filtersList: {
     height: 56,
@@ -691,9 +691,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =========================================================
+  /* ===
      CHAT LIST
-  ========================================================= */
+  === */
 
   chatFlatList: {
     flex: 1,
@@ -710,9 +710,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  /* =========================================================
+  /* ===
      CHAT ROW
-  ========================================================= */
+  === */
 
   chatRow: {
     flexDirection: "row",
@@ -769,9 +769,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
 
-  /* =========================================================
+  /* ===
      CHAT CONTENT
-  ========================================================= */
+  === */
 
   chatContent: {
     flex: 1,
@@ -832,9 +832,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
   },
 
-  /* =========================================================
+  /* ===
      UNREAD BADGE
-  ========================================================= */
+  === */
 
   unreadBadge: {
     minWidth: 22,
@@ -852,9 +852,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =========================================================
+  /* ===
      LOADING
-  ========================================================= */
+  === */
 
   loadingState: {
     flex: 1,
@@ -869,9 +869,9 @@ const styles = StyleSheet.create({
     color: COLORS.mutedGray,
   },
 
-  /* =========================================================
+  /* ===
      EMPTY STATE
-  ========================================================= */
+  === */
 
   emptyState: {
     flex: 1,
@@ -907,9 +907,9 @@ const styles = StyleSheet.create({
     maxWidth: 290,
   },
 
-  /* =========================================================
+  /* ===
      RETRY BUTTON
-  ========================================================= */
+  === */
 
   retryButton: {
     flexDirection: "row",
@@ -929,9 +929,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
 
-  /* =========================================================
+  /* ===
      PREMIUM BANNER
-  ========================================================= */
+  === */
 
   premiumCard: {
     minHeight: 90,

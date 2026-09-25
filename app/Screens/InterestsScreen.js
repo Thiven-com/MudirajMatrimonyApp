@@ -59,9 +59,9 @@ const TABS = [
   },
 ];
 
-// =====================================================
+// =======
 // HELPERS
-// =====================================================
+// =======
 
 /*
  * Alert.alert does nothing on Expo Web, so use window.alert there.
@@ -177,9 +177,9 @@ export default function InterestsScreen() {
 
   const [actionId, setActionId] = useState(null);
 
-  // =====================================================
+  // =======
   // BACK
-  // =====================================================
+  // =======
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -187,12 +187,12 @@ export default function InterestsScreen() {
     }
   }, [navigation]);
 
-  // =====================================================
+  // =======
   // ANDROID HARDWARE BACK
   // Same pattern as EditSocialBackground / EducationInformation:
   // intercept the hardware back button and route it through
   // handleBack(), ignored while an accept/reject is in progress.
-  // =====================================================
+  // =======
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -215,10 +215,10 @@ export default function InterestsScreen() {
     };
   }, [handleBack, actionId]);
 
-  // =====================================================
+  // =======
   // LOAD INTERESTS
   // silent = true -> refresh in the background (no spinner)
-  // =====================================================
+  // =======
 
   const loadInterests = async (
     tab = activeTab,
@@ -276,9 +276,9 @@ export default function InterestsScreen() {
     }, [activeTab]),
   );
 
-  // =====================================================
+  // =======
   // DATA HELPERS
-  // =====================================================
+  // =======
 
   /*
    * The profile we show is the OTHER person:
@@ -386,9 +386,9 @@ export default function InterestsScreen() {
   const getStatus = (item) =>
     item?.status ?? item?.interest_status ?? item?.request_status ?? "pending";
 
-  // =====================================================
+  // =======
   // PROFILE NAVIGATION
-  // =====================================================
+  // =======
 
   const openProfile = (item) => {
     const memberId = getMemberId(item);
@@ -408,9 +408,9 @@ export default function InterestsScreen() {
     });
   };
 
-  // =====================================================
+  // =======
   // TAB CHANGE
-  // =====================================================
+  // =======
 
   const handleTabPress = (tabKey) => {
     if (tabKey === activeTab) return;
@@ -420,9 +420,9 @@ export default function InterestsScreen() {
     setActiveTab(tabKey);
   };
 
-  // =====================================================
+  // =======
   // ACCEPT / REJECT  (shared flow)
-  // =====================================================
+  // =======
 
   const runInterestAction = async (type, interestId) => {
     if (actionId !== null) return;
@@ -506,9 +506,9 @@ export default function InterestsScreen() {
     }
   };
 
-  // =====================================================
+  // =======
   // ACCEPT INTEREST
-  // =====================================================
+  // =======
 
   const handleAccept = (item) => {
     const interestId = getInterestId(item);
@@ -545,9 +545,9 @@ export default function InterestsScreen() {
     ]);
   };
 
-  // =====================================================
+  // =======
   // REJECT INTEREST
-  // =====================================================
+  // =======
 
   const handleReject = (item) => {
     const interestId = getInterestId(item);
@@ -583,9 +583,9 @@ export default function InterestsScreen() {
     ]);
   };
 
-  // =====================================================
+  // =======
   // RENDER PROFILE
-  // =====================================================
+  // =======
 
   const renderItem = ({ item }) => {
     const interestId = getInterestId(item);
@@ -762,9 +762,9 @@ export default function InterestsScreen() {
       ? "No pending interest requests right now."
       : "You have not sent any interests yet.";
 
-  // =====================================================
+  // =======
   // LOADING
-  // =====================================================
+  // =======
 
   if (loading) {
     return (
@@ -786,9 +786,9 @@ export default function InterestsScreen() {
     );
   }
 
-  // =====================================================
+  // =======
   // MAIN UI
-  // =====================================================
+  // =======
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -904,9 +904,9 @@ export default function InterestsScreen() {
   );
 }
 
-// =====================================================
+// =======
 // STYLES  (unchanged)
-// =====================================================
+// =======
 
 const styles = StyleSheet.create({
   safeArea: {

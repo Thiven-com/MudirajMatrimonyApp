@@ -20,9 +20,9 @@ import { getMemberAstronomic } from "../utils/Functions";
 const AstronomicInformation = () => {
   const navigation = useNavigation();
 
-  /* =========================================================
+  /* ===
      STATE
-  ========================================================= */
+  === */
 
   const [astronomicData, setAstronomicData] = useState({
     sun_sign: "",
@@ -33,59 +33,29 @@ const AstronomicInformation = () => {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* =========================================================
+  /* ===
      GET ASTRONOMIC INFORMATION API
      
      GET:
      /api/member/astronomic
-  ========================================================= */
+  === */
 
   const getAstronomicInformation = async () => {
     try {
-      console.log("========================================");
-      console.log("ASTRONOMIC INFORMATION API");
-      console.log("========================================");
 
       const accessToken = await AsyncStorage.getItem("authToken"); // fixed: variable name matches usage below
 
-      console.log("TOKEN EXISTS:", !!accessToken);
-
       if (!accessToken) {
-        console.log("ACCESS TOKEN NOT FOUND");
         setErrorMessage("Please login again.");
         return;
       }
 
-      console.log("GET URL:", "/api/member/astronomic");
-
       const response = await getMemberAstronomic(accessToken);
-      // ...rest unchanged
-
-      console.log(
-        "ASTRONOMIC INFORMATION RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
-
-      /* =====================================================
-         RESPONSE VALIDATION
-      ===================================================== */
 
       if (!response) {
-        console.log("EMPTY RESPONSE");
         setErrorMessage("No information found.");
         return;
       }
-
-      /* =====================================================
-         HANDLE API DATA
-
-         Depending on your API response, data may be:
-         response.data
-         OR
-         response.data.data
-
-         We handle both.
-      ===================================================== */
 
       let data = response?.data;
 
@@ -93,11 +63,9 @@ const AstronomicInformation = () => {
         data = data.data;
       }
 
-      console.log("ASTRONOMIC DATA:", JSON.stringify(data, null, 2));
-
-      /* =====================================================
+      /* =====
          SET DATA
-      ===================================================== */
+      ===== */
 
       setAstronomicData({
         sun_sign: data?.sun_sign ?? data?.sunSign ?? "",
@@ -113,11 +81,6 @@ const AstronomicInformation = () => {
     } catch (error) {
       console.log("ASTRONOMIC INFORMATION ERROR:", error);
 
-      console.log(
-        "ERROR RESPONSE:",
-        JSON.stringify(error?.response?.data, null, 2),
-      );
-
       setErrorMessage(
         error?.response?.data?.message ||
           "Unable to load astronomic information.",
@@ -125,26 +88,11 @@ const AstronomicInformation = () => {
     }
   };
 
-  /* =========================================================
-     LOAD / REFRESH DATA WHEN SCREEN IS FOCUSED
-
-     No loading section is shown in the UI.
-     When the user returns from EditAstronomicInformation,
-     the latest saved values are fetched and displayed directly.
-  ========================================================= */
-
   useFocusEffect(
     useCallback(() => {
       getAstronomicInformation();
     }, []),
   );
-
-  /* ============================================================
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ============================================================ */
 
   useFocusEffect(
     useCallback(() => {
@@ -162,19 +110,17 @@ const AstronomicInformation = () => {
     }, [navigation]),
   );
 
-  /* =========================================================
+  /* ===
      ONLY EDIT DETAILS BUTTON
-  ========================================================= */
+  === */
 
   const handleEditDetails = () => {
-    console.log("EDIT DETAILS CLICKED");
-
     navigation.navigate("EditAstronomicInformation");
   };
 
-  /* =========================================================
+  /* ===
      UI
-  ========================================================= */
+  === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -182,9 +128,9 @@ const AstronomicInformation = () => {
 
       <View style={styles.screenContainer}>
         <View style={styles.card}>
-          {/* =================================================
+          {/* ======
               HEADER
-          ================================================= */}
+          ====== */}
 
           <View style={styles.header}>
             <TouchableOpacity
@@ -210,9 +156,9 @@ const AstronomicInformation = () => {
             </TouchableOpacity>
           </View>
 
-          {/* =================================================
+          {/* ======
               ERROR MESSAGE
-          ================================================= */}
+          ====== */}
 
           {errorMessage ? (
             <View style={styles.errorContainer}>
@@ -220,9 +166,9 @@ const AstronomicInformation = () => {
             </View>
           ) : null}
 
-          {/* =================================================
+          {/* ======
               INFORMATION
-          ================================================= */}
+          ====== */}
 
           <View style={styles.informationContainer}>
             {/* SUN SIGN */}
@@ -266,9 +212,9 @@ const AstronomicInformation = () => {
             />
           </View>
 
-          {/* =================================================
+          {/* ======
               EDIT DETAILS
-          ================================================= */}
+          ====== */}
 
           <TouchableOpacity
             style={styles.editDetailsButton}
@@ -285,9 +231,9 @@ const AstronomicInformation = () => {
   );
 };
 
-/* =========================================================
+/* ===
    INFORMATION ROW
-========================================================= */
+=== */
 
 const InformationRow = ({ icon, iconColor, iconBackground, title, value }) => {
   return (
@@ -320,9 +266,9 @@ const InformationRow = ({ icon, iconColor, iconBackground, title, value }) => {
   );
 };
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
   safeArea: {

@@ -31,9 +31,9 @@ export default function EducationInformation() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  /* =========================================================
+  /* ===
        BACK
-    ========================================================= */
+    === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -41,12 +41,12 @@ export default function EducationInformation() {
     }
   }, [navigation]);
 
-  /* =========================================================
+  /* ===
        ANDROID HARDWARE BACK
        Same pattern as EditSocialBackground / EditLanguages:
        intercept the hardware back button and route it through
        handleBack(), ignored while a delete is in progress.
-    ========================================================= */
+    === */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -69,9 +69,9 @@ export default function EducationInformation() {
     };
   }, [handleBack, deletingId]);
 
-  /* =========================================================
+  /* ===
        LOAD EDUCATION
-    ========================================================= */
+    === */
 
   const loadEducation = useCallback(async () => {
     try {
@@ -192,9 +192,9 @@ export default function EducationInformation() {
     }
   }, []);
 
-  /* =========================================================
+  /* ===
        LOAD WHEN SCREEN FOCUSES
-    ========================================================= */
+    === */
 
   useFocusEffect(
     useCallback(() => {
@@ -202,12 +202,12 @@ export default function EducationInformation() {
     }, [loadEducation]),
   );
 
-  /* =========================================================
+  /* ===
    DELETE EDUCATION
-========================================================= */
+=== */
 
   const handleDeleteEducation = (educationId) => {
-    console.log("======================================");
+    console.log("===");
     console.log("DELETE BUTTON CLICKED");
     console.log("RAW EDUCATION ID:", educationId);
 
@@ -276,13 +276,13 @@ export default function EducationInformation() {
       ],
     );
   };
-  /* =========================================================
+  /* ===
    PERFORM DELETE
-========================================================= */
+=== */
 
   const performDelete = async (numericId) => {
     try {
-      console.log("======================================");
+      console.log("===");
       console.log("PERFORM DELETE CALLED");
       console.log("EDUCATION ID:", numericId);
 
@@ -335,7 +335,7 @@ export default function EducationInformation() {
       // -------------------------------------------------
 
       if (success) {
-        console.log("======================================");
+        console.log("===");
 
         console.log("EDUCATION DELETE SUCCESS");
 
@@ -375,7 +375,7 @@ export default function EducationInformation() {
         Alert.alert("Delete Failed", message);
       }
     } catch (error) {
-      console.error("======================================");
+      console.error("===");
 
       console.error("DELETE EDUCATION ERROR:", error);
 
@@ -404,17 +404,17 @@ export default function EducationInformation() {
     }
   };
 
-  /* =========================================================
+  /* ===
        ADD EDUCATION
-    ========================================================= */
+    === */
 
   const handleAddEducation = () => {
     navigation.navigate("AddEducation");
   };
 
-  /* =========================================================
+  /* ===
        EDIT EDUCATION
-    ========================================================= */
+    === */
 
   const handleEdit = (item) => {
     if (!item?.id) {
@@ -430,17 +430,17 @@ export default function EducationInformation() {
     });
   };
 
-  /* =========================================================
+  /* ===
        MENU
-    ========================================================= */
+    === */
 
   const handleMenu = () => {
     Alert.alert("Menu", "More options");
   };
 
-  /* =========================================================
+  /* ===
        RENDER
-    ========================================================= */
+    === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -589,9 +589,9 @@ export default function EducationInformation() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
   safeArea: {

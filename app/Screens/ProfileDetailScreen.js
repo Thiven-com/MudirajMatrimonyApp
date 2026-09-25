@@ -35,16 +35,16 @@ const LOGO = require("../assets/images/logo.png");
 const FALLBACK_PHOTO = require("../assets/images/Match4.png");
 
 const TABS = [
-  { key: "about", label: "About", icon: "person" },
-  { key: "family", label: "Family", icon: "people" },
-  { key: "lifestyle", label: "Lifestyle", icon: "cafe" },
+  { key: "about", label: "About", icon: "user" },
+  { key: "family", label: "Family", icon: "users" },
+  { key: "lifestyle", label: "Lifestyle", icon: "smile" },
   { key: "career", label: "Education & Career", icon: "briefcase" },
   { key: "photos", label: "Photos", icon: "image" },
 ];
 
-/* =========================================================
+/* ===
    GET TOKEN (same pattern as matches screen)
-========================================================= */
+=== */
 const getToken = async () => {
   try {
     const authToken = await AsyncStorage.getItem("authToken");
@@ -275,9 +275,6 @@ export default function ProfileDetailScreen() {
   const rawId = params.id ?? params.memberId;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
-  console.log("PROFILE ROUTE PARAMS:", params);
-  console.log("PROFILE MEMBER ID:", id);
-
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -302,13 +299,13 @@ export default function ProfileDetailScreen() {
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
 
-  /* =========================================================
+  /* ===
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on
      HomeScreen / MatchesScreen / ProfileDetails / SearchScreen:
      active only while this screen is focused, cleaned up on
      blur/unmount.
-  ========================================================= */
+  === */
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -336,8 +333,6 @@ export default function ProfileDetailScreen() {
       }
 
       const token = await getToken();
-      console.log("loadProfile Token:", token ? "FOUND" : "NOT FOUND");
-      console.log("loadProfile id:", id);
 
       if (!token) {
         setLoadError("Authentication token not found. Please login again.");
@@ -351,11 +346,6 @@ export default function ProfileDetailScreen() {
         getPublicProfile(id, token),
       ]);
 
-      console.log("getMemberInfo result:", JSON.stringify(memberResult));
-      console.log("getPublicProfile result:", JSON.stringify(publicResult));
-
-      // Confirmed shape: { result: true, data: {...} } — data is the
-      // profile object directly, NOT nested under data.member.
       const memberData = isSuccessResponse(memberResult)
         ? (memberResult?.data?.member ?? memberResult?.data ?? null)
         : null;
@@ -391,9 +381,6 @@ export default function ProfileDetailScreen() {
 
       setProfile(mapped);
 
-      // Seed local toggle state from whatever the API already told us,
-      // using tolerant checks so differing backend value shapes don't
-      // silently fail to restore state after a reload/remount.
       setIsShortlisted(!!mapped.isShortlisted);
 
       if (isInterestSentStatus(mapped.interestStatus)) {
@@ -414,9 +401,9 @@ export default function ProfileDetailScreen() {
     }
   };
 
-  /* =========================================================
+  /* ===
      Shared token resolver used by every action handler below.
-  ========================================================= */
+  === */
   const ensureToken = async () => {
     let token = authToken;
     if (!token) {
@@ -430,8 +417,6 @@ export default function ProfileDetailScreen() {
     if (sendingInterest || interestSent) return;
 
     const targetId = profile?.id ?? id;
-
-    console.log("TARGET MEMBER ID:", targetId);
 
     if (!targetId) {
       setInterestError("Unable to identify this member.");
@@ -493,7 +478,6 @@ export default function ProfileDetailScreen() {
 
     try {
       const result = await rejectInterest(targetId, token);
-      console.log("rejectInterest result:", JSON.stringify(result));
 
       if (isSuccessResponse(result)) {
         setInterestRejected(true);
@@ -536,8 +520,6 @@ export default function ProfileDetailScreen() {
       const result = isShortlisted
         ? await removeFromShortlist(targetId, token)
         : await addToShortlist(targetId, token);
-
-      console.log("toggleShortlist result:", JSON.stringify(result));
 
       if (isSuccessResponse(result)) {
         setIsShortlisted((prev) => !prev);
@@ -621,7 +603,7 @@ export default function ProfileDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= TOP BAR ================= */}
+        {/* ====== TOP BAR ====== */}
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -633,7 +615,7 @@ export default function ProfileDetailScreen() {
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
 
-        {/* ================= PHOTO + SUMMARY ROW ================= */}
+        {/* ====== PHOTO + SUMMARY ROW ====== */}
         <View style={styles.summaryRow}>
           <View style={styles.photoCard}>
             <Image
@@ -767,7 +749,7 @@ export default function ProfileDetailScreen() {
           </View>
         </View>
 
-        {/* ================= TABS ================= */}
+        {/* ====== TABS ====== */}
         <View style={styles.tabsRow}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -795,7 +777,7 @@ export default function ProfileDetailScreen() {
         </View>
         <View style={styles.tabsDivider} />
 
-        {/* ================= TAB CONTENT ================= */}
+        {/* ====== TAB CONTENT ====== */}
         {activeTab === "about" ? (
           <View style={styles.aboutSection}>
             <Text style={styles.aboutHeading}>About {profile.name}</Text>
@@ -853,7 +835,7 @@ export default function ProfileDetailScreen() {
         )}
       </ScrollView>
 
-      {/* ================= STICKY BOTTOM BAR ================= */}
+      {/* ====== STICKY BOTTOM BAR ====== */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.bottomOutlineButton}
@@ -865,7 +847,7 @@ export default function ProfileDetailScreen() {
             <ActivityIndicator size="small" color={Colors.primaryRed} />
           ) : (
             <Feather
-              name={isShortlisted ? "heart" : "heart-outline"}
+              name={isShortlisted ? "heart" : "heart"}
               size={18}
               color={Colors.primaryRed}
             />
@@ -936,7 +918,7 @@ export default function ProfileDetailScreen() {
   );
 }
 
-// ================= SMALL SUBCOMPONENTS =================
+// ====== SMALL SUBCOMPONENTS ======
 function DetailRow({ icon, text }) {
   const isOm = icon === "om";
   return (

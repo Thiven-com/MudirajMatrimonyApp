@@ -55,8 +55,6 @@ const getToken = async () => {
     (await AsyncStorage.getItem("accessToken")) ||
     (await AsyncStorage.getItem("token"));
 
-  console.log("PRESENT ADDRESS TOKEN EXISTS:", !!token);
-
   return token;
 };
 
@@ -184,23 +182,6 @@ const findByName = (list, name) => {
 const normalizeAddress = (response) => {
   const body = unwrap(response);
 
-  console.log("NORMALIZE PRESENT ADDRESS BODY:", JSON.stringify(body, null, 2));
-
-  // Expected response:
-  // {
-  //   "data": {
-  //     "country": "India",
-  //     "state": "Andaman and Nicobar Islands",
-  //     "city": "Bombuflat",
-  //     "postal_code": "515801"
-  //   },
-  //   "result": true
-  // }
-  //
-  // NOTE: this response has NAMES only - no country_id / state_id /
-  // city_id. The screen resolves the IDs from the names (see
-  // resolveAddressIds) before the edit form opens.
-
   let address = null;
 
   if (
@@ -241,7 +222,7 @@ const normalizeAddress = (response) => {
   }
 
   if (!address || typeof address !== "object" || Array.isArray(address)) {
-    console.log("NO PRESENT ADDRESS DATA FOUND");
+
     return null;
   }
 
@@ -361,9 +342,9 @@ export default function PresentAddress() {
   const [defaultAddress, setDefaultAddress] = useState(true);
   const [editing, setEditing] = useState(false);
 
-  /* =====================================================
+  /* ===
        LOAD SAVED PRESENT ADDRESS
-    ===================================================== */
+    === */
 
   const loadMemberPresentAddress = useCallback(async () => {
     try {
@@ -393,16 +374,15 @@ export default function PresentAddress() {
     }
   }, []);
 
-  /* =====================================================
+  /* ===
        LOAD COUNTRIES
-    ===================================================== */
+    === */
 
   const loadMemberCountries = useCallback(async () => {
     try {
       const token = await getToken();
 
       if (!token) {
-        console.log("COUNTRIES: TOKEN MISSING");
         return [];
       }
 
@@ -416,8 +396,6 @@ export default function PresentAddress() {
       );
 
       const normalized = extractOptions(response, "country");
-
-      console.log("COUNTRIES COUNT:", normalized.length);
 
       setCountries(normalized);
 
@@ -435,9 +413,9 @@ export default function PresentAddress() {
     }
   }, []);
 
-  /* =====================================================
+  /* ===
        LOAD STATES  (needs country id)
-    ===================================================== */
+    === */
 
   const loadMemberStates = useCallback(async (countryId) => {
     if (!countryId) {
@@ -450,11 +428,6 @@ export default function PresentAddress() {
 
       const token = await getToken();
 
-      console.log("STATE REQUEST:", {
-        countryId,
-        tokenExists: !!token,
-      });
-
       if (!token) {
         setStates([]);
         return [];
@@ -462,11 +435,7 @@ export default function PresentAddress() {
 
       const response = await getMemberStates(token, countryId);
 
-      console.log("STATES RESPONSE:", JSON.stringify(response, null, 2));
-
       const normalized = extractOptions(response, "state");
-
-      console.log("STATES COUNT:", normalized.length);
 
       setStates(normalized);
 
@@ -481,15 +450,14 @@ export default function PresentAddress() {
     }
   }, []);
 
-  /* =====================================================
+  /* ===
        LOAD CITIES  (needs STATE id)
-    ===================================================== */
+    === */
 
   const loadMemberCities = useCallback(async (stateId) => {
     const numericStateId = Number(stateId);
 
     if (!Number.isFinite(numericStateId) || numericStateId <= 0) {
-      console.log("CITY LOAD SKIPPED - INVALID STATE ID:", stateId);
       setCities([]);
       return [];
     }
@@ -498,29 +466,15 @@ export default function PresentAddress() {
       const token = await getToken();
 
       if (!token) {
-        console.log("CITY LOAD SKIPPED - TOKEN MISSING");
         setCities([]);
         return [];
       }
 
       setCitiesLoading(true);
 
-      console.log("========================================");
-      console.log("GET MEMBER CITIES");
-      console.log("URL: /api/member/cities/" + numericStateId);
-      console.log("STATE ID:", numericStateId);
-      console.log("========================================");
-
       const response = await getMemberCities(token, numericStateId);
 
-      console.log(
-        "CITIES API FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
-
       const normalizedCities = extractOptions(response, "city");
-
-      console.log("NORMALIZED CITY COUNT:", normalizedCities.length);
 
       setCities(normalizedCities);
 
@@ -535,15 +489,11 @@ export default function PresentAddress() {
     }
   }, []);
 
-  /* =====================================================
+  /* ===
        INITIAL LOAD
-    ===================================================== */
+    === */
 
   useEffect(() => {
-    console.log("========================================");
-    console.log("PRESENT ADDRESS SCREEN - INITIAL LOAD");
-    console.log("========================================");
-
     loadMemberPresentAddress();
     loadMemberCountries();
   }, [loadMemberPresentAddress, loadMemberCountries]);
@@ -575,7 +525,7 @@ export default function PresentAddress() {
         resolved.country_id = match.id;
         resolved.country = match.name;
       } else {
-        console.log("COUNTRY NOT FOUND IN LIST:", resolved.country);
+
       }
     }
 
@@ -591,7 +541,7 @@ export default function PresentAddress() {
           resolved.state_id = match.id;
           resolved.state = match.name;
         } else {
-          console.log("STATE NOT FOUND IN LIST:", resolved.state);
+
         }
       }
     }
@@ -613,14 +563,12 @@ export default function PresentAddress() {
       }
     }
 
-    console.log("RESOLVED ADDRESS IDS:", JSON.stringify(resolved, null, 2));
-
     return resolved;
   };
 
-  /* =====================================================
+  /* ===
        DROPDOWNS
-    ===================================================== */
+    === */
 
   const selectAddressOption = async (option) => {
     if (!option || !addressDropdown) return;
@@ -707,9 +655,9 @@ export default function PresentAddress() {
     }
   };
 
-  /* =====================================================
+  /* ===
        EDIT / ADD / CANCEL
-    ===================================================== */
+    === */
 
   const handleEdit = async () => {
     const base = {
@@ -755,9 +703,9 @@ export default function PresentAddress() {
     setAddressDropdown(null);
   };
 
-  /* =====================================================
+  /* ===
        SAVE
-    ===================================================== */
+    === */
 
   const handleSavePresentAddress = async () => {
     if (savingPresentAddress || resolvingAddress) return;
@@ -803,20 +751,10 @@ export default function PresentAddress() {
       address_type: "present",
     };
 
-    console.log("========================================");
-    console.log("UPDATE PRESENT ADDRESS REQUEST");
-    console.log("TOKEN EXISTS:", !!token);
-    console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
     try {
       setSavingPresentAddress(true);
 
       const response = await updateMemberAddress(token, body);
-
-      console.log(
-        "UPDATE PRESENT ADDRESS RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       if (!isSuccess(response)) {
         Alert.alert(
@@ -836,7 +774,6 @@ export default function PresentAddress() {
         apiMessage(response, "Present address updated successfully."),
       );
 
-      console.log("UPDATED PRESENT ADDRESS:", JSON.stringify(updated, null, 2));
     } catch (error) {
       console.error(
         "UPDATE PRESENT ADDRESS ERROR:",
@@ -855,9 +792,9 @@ export default function PresentAddress() {
     }
   };
 
-  /* =====================================================
+  /* ===
        DERIVED
-    ===================================================== */
+    === */
 
   const currentAddressText = useMemo(() => {
     if (!presentAddress) return "No present address saved.";
@@ -902,9 +839,9 @@ export default function PresentAddress() {
         ? statesLoading
         : citiesLoading;
 
-  /* =====================================================
+  /* ===
        DROPDOWN MODAL
-    ===================================================== */
+    === */
 
   const renderDropdown = () => (
     <Modal
@@ -1002,9 +939,9 @@ export default function PresentAddress() {
     </Modal>
   );
 
-  /* =====================================================
+  /* ===
        UI
-    ===================================================== */
+    === */
 
   return (
     <SafeAreaView style={styles.safeArea}>

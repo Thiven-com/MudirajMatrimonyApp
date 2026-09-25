@@ -25,9 +25,9 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Fonts } from "../constants/Fonts";
 import { getPackagesData } from "../utils/Functions";
 
-/* ===
+/* =====
    RESPONSIVE SCALE
-=== */
+===== */
 
 const { width } = Dimensions.get("window");
 
@@ -39,9 +39,9 @@ const scale = (size) => {
   return Math.round(size * Math.min(factor, 1.12));
 };
 
-/* ===
+/* =====
    COLORS
-=== */
+===== */
 
 const COLORS = {
   white: "#FFFFFF",
@@ -67,9 +67,9 @@ const COLORS = {
   yellow: "#FFD83D",
 };
 
-/* ===
+/* =====
    TOP FEATURES
-=== */
+===== */
 
 const FEATURES = [
   {
@@ -115,9 +115,9 @@ const FEATURES = [
   },
 ];
 
-/* ===
+/* =====
    NORMALIZE API RESPONSE
-=== */
+===== */
 
 const normalizePackage = (apiItem = {}) => {
   return {
@@ -133,12 +133,12 @@ const normalizePackage = (apiItem = {}) => {
 
     image: apiItem.image_url
       ? {
-          uri: apiItem.image_url,
-        }
+        uri: apiItem.image_url,
+      }
       : apiItem.image
         ? {
-            uri: apiItem.image,
-          }
+          uri: apiItem.image,
+        }
         : null,
 
     oldPrice: apiItem.old_price ?? apiItem.oldPrice ?? "",
@@ -172,9 +172,9 @@ const normalizePackage = (apiItem = {}) => {
   };
 };
 
-/* ===
+/* =====
    FEATURE ITEM
-=== */
+===== */
 
 const FeatureItem = ({ icon, value, title, color, bg }) => {
   return (
@@ -213,9 +213,9 @@ const FeatureItem = ({ icon, value, title, color, bg }) => {
   );
 };
 
-/* ===
+/* =====
    EXTRA FEATURE
-=== */
+===== */
 
 const ExtraFeature = ({ enabled, children }) => {
   return (
@@ -235,9 +235,9 @@ const ExtraFeature = ({ enabled, children }) => {
   );
 };
 
-/* ===
+/* =====
    PACKAGE CARD
-=== */
+===== */
 
 const PackageCard = ({ item, onPress }) => {
   return (
@@ -471,16 +471,16 @@ const PackageCard = ({ item, onPress }) => {
   );
 };
 
-/* ===
+/* =====
    MAIN SCREEN
-=== */
+===== */
 
 export default function ChoosePackageScreen() {
   const navigation = useNavigation();
 
-  /* ====
+  /* ===
      STATE
-  ==== */
+  === */
 
   const [packages, setPackages] = useState([]);
 
@@ -488,9 +488,9 @@ export default function ChoosePackageScreen() {
 
   const [error, setError] = useState(null);
 
-  /* ====
+  /* ===
      BACK BUTTON
-  ==== */
+  === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -498,9 +498,9 @@ export default function ChoosePackageScreen() {
     }
   }, [navigation]);
 
-  /* ====
+  /* ===
      ANDROID HARDWARE BACK
-  ==== */
+  === */
 
   useFocusEffect(
     useCallback(() => {
@@ -521,9 +521,9 @@ export default function ChoosePackageScreen() {
     }, [handleBack]),
   );
 
-  /* ====
+  /* ===
      FETCH PACKAGES
-  ==== */
+  === */
 
   const fetchPackages = useCallback(async () => {
     try {
@@ -531,15 +531,7 @@ export default function ChoosePackageScreen() {
 
       setError(null);
 
-      console.log("=======");
-
-      console.log("FETCHING PACKAGES");
-
-      console.log("=======");
-
       const response = await getPackagesData();
-
-      console.log("PACKAGES API RESPONSE:", JSON.stringify(response, null, 2));
 
       const rawList = Array.isArray(response)
         ? response
@@ -557,17 +549,17 @@ export default function ChoosePackageScreen() {
     }
   }, []);
 
-  /* ====
+  /* ===
      INITIAL LOAD
-  ==== */
+  === */
 
   useEffect(() => {
     fetchPackages();
   }, [fetchPackages]);
 
-  /* ====
+  /* ===
      CHOOSE PACKAGE
-  ==== */
+  === */
 
   const handleChoosePackage = (item) => {
     console.log("SELECTED PACKAGE:", JSON.stringify(item, null, 2));
@@ -579,9 +571,9 @@ export default function ChoosePackageScreen() {
     });
   };
 
-  /* ====
+  /* ===
      UI
-  ==== */
+  === */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -826,9 +818,9 @@ export default function ChoosePackageScreen() {
   );
 }
 
-/* ===
+/* =====
    STYLES
-=== */
+===== */
 
 const styles = StyleSheet.create({
   /* =======

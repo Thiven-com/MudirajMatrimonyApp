@@ -30,7 +30,7 @@ import {
   updateMemberLanguages,
 } from "../utils/Functions";
 
-/* =========================================================
+/* ===
    WHY THIS FILE LOOKS DIFFERENT FROM THE OLD ONE
 
    updateMemberLanguages() (Functions.js) sends:
@@ -47,11 +47,11 @@ import {
    This version loads the real language list from
    getLanguages() and lets the user pick from it, so the
    screen always works in IDs, matching what the API expects.
-========================================================= */
+=== */
 
-/* =========================================================
+/* ===
    RESPONSE NORMALIZERS
-========================================================= */
+=== */
 
 // Recursively searches an API response for an array of
 // language-like objects (anything with a "name" or "language"
@@ -209,9 +209,9 @@ const resolveToOption = (rawValue, options) => {
   return options.find((option) => option.name.toLowerCase() === name) ?? null;
 };
 
-/* =========================================================
+/* ===
    API SUCCESS CHECK
-========================================================= */
+=== */
 
 const isApiSuccess = (response) => {
   if (!response) return false;
@@ -226,9 +226,9 @@ const isApiSuccess = (response) => {
   return false;
 };
 
-/* =========================================================
+/* ===
    EDIT LANGUAGES SCREEN
-========================================================= */
+=== */
 
 export default function EditLanguages() {
   const navigation = useNavigation();
@@ -239,9 +239,9 @@ export default function EditLanguages() {
 
   const isMotherTongue = field === "motherTongue";
 
-  /* =======================================================
+  /* ====
      STATE
-  ======================================================= */
+  ==== */
 
   // Master list of { id, name } loaded from getLanguages().
   const [languageOptions, setLanguageOptions] = useState([]);
@@ -259,9 +259,9 @@ export default function EditLanguages() {
   // Picker modal visibility ("motherTongue" | "knownLanguages" | null)
   const [activePicker, setActivePicker] = useState(null);
 
-  /* =======================================================
+  /* ====
      BACK
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -269,13 +269,13 @@ export default function EditLanguages() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
      Same pattern as ChatsScreen / OtpScreen / EditCareer /
      EditEducation / EditFamilyInformation: intercept the
      hardware back button and route it through handleBack(),
      ignored while saving.
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -298,9 +298,9 @@ export default function EditLanguages() {
     };
   }, [handleBack, saving]);
 
-  /* =======================================================
+  /* ====
      LOAD MASTER LIST + MEMBER'S CURRENT SELECTION
-  ======================================================= */
+  ==== */
 
   const loadData = useCallback(async () => {
     try {
@@ -382,9 +382,9 @@ export default function EditLanguages() {
     }, [loadData]),
   );
 
-  /* =======================================================
+  /* ====
      ADD / REMOVE KNOWN LANGUAGE
-  ======================================================= */
+  ==== */
 
   const toggleKnownLanguage = useCallback((option) => {
     setKnownLanguages((previous) => {
@@ -402,18 +402,18 @@ export default function EditLanguages() {
     setKnownLanguages((previous) => previous.filter((item) => item.id !== id));
   }, []);
 
-  /* =======================================================
+  /* ====
      SELECT MOTHER TONGUE
-  ======================================================= */
+  ==== */
 
   const handleSelectMotherTongue = useCallback((option) => {
     setMotherTongue(option);
     setActivePicker(null);
   }, []);
 
-  /* =======================================================
+  /* ====
      SAVE
-  ======================================================= */
+  ==== */
 
   const handleSave = useCallback(async () => {
     if (saving) return;
@@ -498,14 +498,14 @@ export default function EditLanguages() {
     loadData();
   }, [loadData]);
 
-  /* =======================================================
+  /* ====
      PICKER MODAL OPTIONS
 
      For "knownLanguages" mode, already-selected languages
      show a checkmark and tapping toggles them (multi-select,
      stays open). For "motherTongue" mode, tapping an option
      selects it and closes the modal (single-select).
-  ======================================================= */
+  ==== */
 
   const isKnownLanguagesPicker = activePicker === "knownLanguages";
 
@@ -539,17 +539,17 @@ export default function EditLanguages() {
     );
   };
 
-  /* =======================================================
+  /* ====
      MAIN UI
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* ===================================================
+      {/* =====
           HEADER
-      =================================================== */}
+      ===== */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -567,18 +567,18 @@ export default function EditLanguages() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* ===================================================
+      {/* =====
           CONTENT
-      =================================================== */}
+      ===== */}
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* =================================================
+        {/* ===
             ERROR
-        ================================================= */}
+        === */}
 
         {errorMessage ? (
           <View style={styles.errorContainer}>
@@ -606,9 +606,9 @@ export default function EditLanguages() {
           <Text style={styles.loadingText}>Loading languages...</Text>
         ) : (
           <>
-            {/* =============================================
+            {/* ====
                 MOTHER TONGUE
-            ============================================= */}
+            ==== */}
 
             {isMotherTongue && (
               <View style={styles.section}>
@@ -649,9 +649,9 @@ export default function EditLanguages() {
               </View>
             )}
 
-            {/* =============================================
+            {/* ====
                 KNOWN LANGUAGES
-            ============================================= */}
+            ==== */}
 
             {!isMotherTongue && (
               <View style={styles.section}>
@@ -730,9 +730,9 @@ export default function EditLanguages() {
         )}
       </ScrollView>
 
-      {/* ===================================================
+      {/* =====
           SAVE BUTTON
-      =================================================== */}
+      ===== */}
 
       <View style={styles.bottomContainer}>
         <TouchableOpacity
@@ -749,9 +749,9 @@ export default function EditLanguages() {
         </TouchableOpacity>
       </View>
 
-      {/* ===================================================
+      {/* =====
           PICKER MODAL
-      =================================================== */}
+      ===== */}
 
       <Modal
         visible={!!activePicker}
@@ -803,9 +803,9 @@ export default function EditLanguages() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
   safeArea: {

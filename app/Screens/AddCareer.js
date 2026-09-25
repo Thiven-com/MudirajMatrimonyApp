@@ -56,12 +56,12 @@ export default function AddCareer() {
 
   const [saving, setSaving] = useState(false);
 
-  /* ============================================================
+  /* ====
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ==== */
 
   useFocusEffect(
     useCallback(() => {
@@ -87,27 +87,19 @@ export default function AddCareer() {
     try {
       setSaving(true);
 
-      // ================================================
+      // ===
       // GET TOKEN
-      // ================================================
+      // ===
 
       const accessToken = await AsyncStorage.getItem("authToken");
-
-      console.log("=================================");
-
-      console.log("SAVE CAREER BUTTON CLICKED");
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("=================================");
 
       if (!accessToken) {
         throw new Error("Access token is missing. Please login again.");
       }
 
-      // ================================================
+      // ===
       // PREPARE CAREER DATA
-      // ================================================
+      // ===
 
       const careerData = {
         company: String(company || "").trim(),
@@ -119,19 +111,16 @@ export default function AddCareer() {
         end: Number(endYear),
       };
 
-      console.log("CAREER DATA:", JSON.stringify(careerData, null, 2));
 
-      // ================================================
+      // ===
       // CALL POST API
-      // ================================================
+      // ===
 
       const response = await addMemberCareer(accessToken, careerData);
 
-      console.log("CAREER POST RESPONSE:", JSON.stringify(response, null, 2));
-
-      // ================================================
+      // ===
       // SUCCESS
-      // ================================================
+      // ===
 
       if (
         response?.success === 1 ||
@@ -160,9 +149,9 @@ export default function AddCareer() {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.screen}>
-        {/* =================================================
+        {/* ====
                     HEADER
-                ================================================= */}
+                ==== */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -180,9 +169,9 @@ export default function AddCareer() {
           </TouchableOpacity>
         </View>
 
-        {/* =================================================
+        {/* ====
                     MAIN CARD
-                ================================================= */}
+                ==== */}
 
         <View style={styles.card}>
           <ScrollView
@@ -190,9 +179,9 @@ export default function AddCareer() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scrollContent}
           >
-            {/* =================================================
+            {/* ====
                             ROW 1
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.twoColumnRow}>
               {/* DESIGNATION */}
@@ -230,9 +219,9 @@ export default function AddCareer() {
               </View>
             </View>
 
-            {/* =================================================
+            {/* ====
                             ROW 2
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.twoColumnRow}>
               {/* START YEAR */}
@@ -269,9 +258,9 @@ export default function AddCareer() {
               </View>
             </View>
 
-            {/* =================================================
+            {/* ====
                             CURRENTLY WORKING
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.currentlyWorkingRow}>
               <TouchableOpacity
@@ -292,9 +281,9 @@ export default function AddCareer() {
               </Text>
             </View>
 
-            {/* =================================================
+            {/* ====
                             JOB LOCATION
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.fullField}>
               <Text style={styles.label}>Job Location</Text>
@@ -308,9 +297,9 @@ export default function AddCareer() {
               />
             </View>
 
-            {/* =================================================
+            {/* ====
                             JOB DESCRIPTION
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.descriptionField}>
               <Text style={styles.label}>Job Description</Text>
@@ -326,9 +315,9 @@ export default function AddCareer() {
               />
             </View>
 
-            {/* =================================================
+            {/* ====
                             BUTTONS
-                        ================================================= */}
+                        ==== */}
 
             <View style={styles.buttonRow}>
               {/* CANCEL */}
@@ -366,23 +355,23 @@ export default function AddCareer() {
   );
 }
 
-/* =========================================================
+/* ======
    STYLES
-========================================================= */
+====== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* ========
        SAFE AREA
-    ===================================================== */
+    ======== */
 
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
 
-  /* =====================================================
+  /* ========
        SCREEN
-    ===================================================== */
+    ======== */
 
   screen: {
     flex: 1,
@@ -396,9 +385,9 @@ const styles = StyleSheet.create({
     paddingBottom: 3,
   },
 
-  /* =====================================================
+  /* ========
        HEADER
-    ===================================================== */
+    ======== */
 
   header: {
     width: "100%",
@@ -424,9 +413,9 @@ const styles = StyleSheet.create({
     borderColor: "#E7E7E7",
   },
 
-  /* =====================================================
+  /* ========
        BACK BUTTON
-    ===================================================== */
+    ======== */
 
   backButton: {
     position: "absolute",
@@ -452,9 +441,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* ========
        HEADER TITLE
-    ===================================================== */
+    ======== */
 
   headerTitle: {
     fontSize: 20,
@@ -470,9 +459,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* =====================================================
+  /* ========
        MENU
-    ===================================================== */
+    ======== */
 
   menuButton: {
     position: "absolute",
@@ -490,9 +479,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* ========
        CARD
-    ===================================================== */
+    ======== */
 
   card: {
     flex: 1,
@@ -514,9 +503,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  /* =====================================================
+  /* ========
        SCROLL CONTENT
-    ===================================================== */
+    ======== */
 
   scrollContent: {
     paddingHorizontal: 9,
@@ -526,9 +515,9 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
 
-  /* =====================================================
+  /* ========
        TWO COLUMN ROW
-    ===================================================== */
+    ======== */
 
   twoColumnRow: {
     width: "100%",
@@ -540,17 +529,17 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  /* =====================================================
+  /* ========
        COLUMN
-    ===================================================== */
+    ======== */
 
   column: {
     width: "48.5%",
   },
 
-  /* =====================================================
+  /* ========
        LABEL
-    ===================================================== */
+    ======== */
 
   label: {
     fontSize: 15,
@@ -567,9 +556,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        REQUIRED
-    ===================================================== */
+    ======== */
 
   required: {
     color: COLORS.red,
@@ -579,9 +568,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
   },
 
-  /* =====================================================
+  /* ========
        SMALL INPUT
-    ===================================================== */
+    ======== */
 
   input: {
     fontFamily: Fonts.regular,
@@ -610,9 +599,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        SELECT INPUT
-    ===================================================== */
+    ======== */
 
   selectInput: {
     width: "100%",
@@ -636,9 +625,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  /* =====================================================
+  /* ========
        SELECT TEXT
-    ===================================================== */
+    ======== */
 
   selectText: {
     fontFamily: Fonts.regular,
@@ -653,9 +642,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        CURRENTLY WORKING
-    ===================================================== */
+    ======== */
 
   currentlyWorkingRow: {
     width: "48.5%",
@@ -673,9 +662,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  /* =====================================================
+  /* ========
        CHECKBOX
-    ===================================================== */
+    ======== */
 
   checkbox: {
     width: 18,
@@ -697,9 +686,9 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
 
-  /* =====================================================
+  /* ========
        CHECKBOX SELECTED
-    ===================================================== */
+    ======== */
 
   checkboxSelected: {
     backgroundColor: COLORS.checkbox,
@@ -707,9 +696,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.checkbox,
   },
 
-  /* =====================================================
+  /* ========
        CURRENTLY WORKING TEXT
-    ===================================================== */
+    ======== */
 
   currentlyWorkingText: {
     fontFamily: Fonts.regular,
@@ -722,9 +711,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        FULL WIDTH FIELD
-    ===================================================== */
+    ======== */
 
   fullField: {
     width: "100%",
@@ -732,9 +721,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  /* =====================================================
+  /* ========
        FULL INPUT
-    ===================================================== */
+    ======== */
 
   fullInput: {
     fontFamily: Fonts.regular,
@@ -763,9 +752,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        DESCRIPTION FIELD
-    ===================================================== */
+    ======== */
 
   descriptionField: {
     width: "100%",
@@ -773,9 +762,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  /* =====================================================
+  /* ========
        DESCRIPTION INPUT
-    ===================================================== */
+    ======== */
 
   descriptionInput: {
     fontFamily: Fonts.regular,
@@ -806,9 +795,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        BUTTON ROW
-    ===================================================== */
+    ======== */
 
   buttonRow: {
     width: "100%",
@@ -824,9 +813,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-  /* =====================================================
+  /* ========
        CANCEL BUTTON
-    ===================================================== */
+    ======== */
 
   cancelButton: {
     width: "38.5%",
@@ -842,9 +831,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* ========
        CANCEL TEXT
-    ===================================================== */
+    ======== */
 
   cancelText: {
     fontSize: 15,
@@ -858,9 +847,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  /* =====================================================
+  /* ========
        SAVE BUTTON
-    ===================================================== */
+    ======== */
 
   saveButton: {
     width: "38.5%",
@@ -876,9 +865,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* =====================================================
+  /* ========
        SAVE TEXT
-    ===================================================== */
+    ======== */
 
   saveText: {
     fontSize: 15,

@@ -20,16 +20,16 @@ import Fonts from "../constants/Fonts";
 
 import { getMemberFamilyInfo } from "../utils/Functions";
 
-/* =========================================================
+/* ===
    FAMILY INFORMATION SCREEN
-========================================================= */
+=== */
 
 export default function FamilyInformation() {
   const navigation = useNavigation();
 
-  /* =======================================================
+  /* ====
      BACK
-  ======================================================= */
+  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -37,9 +37,9 @@ export default function FamilyInformation() {
     }
   }, [navigation]);
 
-  /* =======================================================
+  /* ====
      FAMILY STATE
-  ======================================================= */
+  ==== */
 
   const [familyData, setFamilyData] = useState({
     father: "",
@@ -49,24 +49,24 @@ export default function FamilyInformation() {
     sibling: "",
   });
 
-  /* =======================================================
+  /* ====
      LOADING
-  ======================================================= */
+  ==== */
 
   const [loading, setLoading] = useState(true);
 
-  /* =======================================================
+  /* ====
      ERROR
-  ======================================================= */
+  ==== */
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* =======================================================
+  /* ====
      ANDROID HARDWARE BACK
      Same pattern as EditSocialBackground / EducationInformation:
      intercept the hardware back button and route it through
      handleBack(), ignored while the screen is loading.
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -89,9 +89,9 @@ export default function FamilyInformation() {
     };
   }, [handleBack, loading]);
 
-  /* =======================================================
+  /* ====
      GET FAMILY INFORMATION
-  ======================================================= */
+  ==== */
 
   const loadFamilyInformation = useCallback(async () => {
     try {
@@ -99,23 +99,23 @@ export default function FamilyInformation() {
 
       setErrorMessage("");
 
-      /* =================================================
+      /* ===
            GET ACCESS TOKEN
-        ================================================= */
+        === */
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("FAMILY INFORMATION SCREEN");
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
-      /* =================================================
+      /* ===
            TOKEN CHECK
-        ================================================= */
+        === */
 
       if (!accessToken) {
         setErrorMessage("Please login again.");
@@ -123,23 +123,23 @@ export default function FamilyInformation() {
         return;
       }
 
-      /* =================================================
+      /* ===
            CALL GET API
-        ================================================= */
+        === */
 
       const response = await getMemberFamilyInfo(accessToken);
 
-      console.log("========================================");
+      console.log("=====");
 
       console.log("FAMILY API FULL RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("========================================");
+      console.log("=====");
 
-      /* =================================================
+      /* ===
            RESPONSE DATA
-        ================================================= */
+        === */
 
       let data = response?.data;
 
@@ -172,9 +172,9 @@ export default function FamilyInformation() {
         data = data.data;
       }
 
-      /* =================================================
+      /* ===
            RESULT OBJECT
-        ================================================= */
+        === */
 
       if (
         data &&
@@ -187,9 +187,9 @@ export default function FamilyInformation() {
 
       console.log("FAMILY DATA USED BY SCREEN:", JSON.stringify(data, null, 2));
 
-      /* =================================================
+      /* ===
            SET FAMILY DATA
-        ================================================= */
+        === */
 
       setFamilyData({
         father: data?.father ?? data?.father_name ?? "",
@@ -199,7 +199,7 @@ export default function FamilyInformation() {
         sibling: data?.sibling ?? data?.siblings ?? data?.sibling_count ?? "",
       });
     } catch (error) {
-      console.error("========================================");
+      console.error("=====");
 
       console.error("FAMILY INFORMATION SCREEN ERROR");
 
@@ -210,7 +210,7 @@ export default function FamilyInformation() {
         JSON.stringify(error?.response?.data, null, 2),
       );
 
-      console.error("========================================");
+      console.error("=====");
 
       const message =
         error?.response?.data?.message ||
@@ -223,17 +223,17 @@ export default function FamilyInformation() {
     }
   }, []);
 
-  /* =======================================================
+  /* ====
      LOAD API WHEN SCREEN OPENS
-  ======================================================= */
+  ==== */
 
   useEffect(() => {
     loadFamilyInformation();
   }, [loadFamilyInformation]);
 
-  /* =======================================================
+  /* ====
      EDIT SINGLE FIELD
-  ======================================================= */
+  ==== */
 
   const handleEdit = (field) => {
     console.log("EDIT FAMILY FIELD:", field);
@@ -243,9 +243,9 @@ export default function FamilyInformation() {
     });
   };
 
-  /* =======================================================
+  /* ====
      EDIT DETAILS
-  ======================================================= */
+  ==== */
 
   const handleEditDetails = () => {
     console.log("EDIT FAMILY DETAILS CLICKED");
@@ -253,17 +253,17 @@ export default function FamilyInformation() {
     navigation.navigate("EditFamilyInformation");
   };
 
-  /* =======================================================
+  /* ====
      MORE BUTTON
-  ======================================================= */
+  ==== */
 
   const handleMore = () => {
     console.log("FAMILY INFORMATION MORE CLICKED");
   };
 
-  /* =======================================================
+  /* ====
      LOADING SCREEN
-  ======================================================= */
+  ==== */
 
   if (loading) {
     return (
@@ -279,23 +279,23 @@ export default function FamilyInformation() {
     );
   }
 
-  /* =======================================================
+  /* ====
      MAIN SCREEN
-  ======================================================= */
+  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F6F8" />
 
       <View style={styles.screen}>
-        {/* =================================================
+        {/* ===
             CARD
-        ================================================= */}
+        === */}
 
         <View style={styles.card}>
-          {/* ===============================================
+          {/* ======
               HEADER
-          =============================================== */}
+          ====== */}
 
           <View style={styles.header}>
             {/* HEADER ICON */}
@@ -319,15 +319,15 @@ export default function FamilyInformation() {
             </TouchableOpacity>
           </View>
 
-          {/* ===============================================
+          {/* ======
               DIVIDER
-          =============================================== */}
+          ====== */}
 
           <View style={styles.divider} />
 
-          {/* ===============================================
+          {/* ======
               ERROR
-          =============================================== */}
+          ====== */}
 
           {errorMessage ? (
             <View style={styles.errorBox}>
@@ -337,9 +337,9 @@ export default function FamilyInformation() {
             </View>
           ) : null}
 
-          {/* ===============================================
+          {/* ======
               FATHER
-          =============================================== */}
+          ====== */}
 
           <TouchableOpacity
             style={styles.row}
@@ -359,9 +359,9 @@ export default function FamilyInformation() {
             </View>
           </TouchableOpacity>
 
-          {/* ===============================================
+          {/* ======
               MOTHER
-          =============================================== */}
+          ====== */}
 
           <TouchableOpacity
             style={styles.row}
@@ -381,9 +381,9 @@ export default function FamilyInformation() {
             </View>
           </TouchableOpacity>
 
-          {/* ===============================================
+          {/* ======
               SIBLING
-          =============================================== */}
+          ====== */}
 
           <TouchableOpacity
             style={styles.row}
@@ -403,9 +403,9 @@ export default function FamilyInformation() {
             </View>
           </TouchableOpacity>
 
-          {/* ===============================================
+          {/* ======
               EDIT DETAILS
-          =============================================== */}
+          ====== */}
 
           <TouchableOpacity
             style={styles.editDetailsButton}
@@ -422,23 +422,23 @@ export default function FamilyInformation() {
   );
 }
 
-/* =========================================================
+/* ===
    STYLES
-========================================================= */
+=== */
 
 const styles = StyleSheet.create({
-  /* =====================================================
+  /* =======
        SAFE AREA
-    ===================================================== */
+    ======= */
 
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F6F8",
   },
 
-  /* =====================================================
+  /* =======
        SCREEN
-    ===================================================== */
+    ======= */
 
   screen: {
     flex: 1,
@@ -452,9 +452,9 @@ const styles = StyleSheet.create({
     paddingRight: 6,
   },
 
-  /* =====================================================
+  /* =======
        LOADING
-    ===================================================== */
+    ======= */
 
   loadingContainer: {
     flex: 1,
@@ -475,9 +475,9 @@ const styles = StyleSheet.create({
     color: "#777777",
   },
 
-  /* =====================================================
+  /* =======
        CARD
-    ===================================================== */
+    ======= */
 
   card: {
     width: "100%",
@@ -510,9 +510,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* =====================================================
+  /* =======
        HEADER
-    ===================================================== */
+    ======= */
 
   header: {
     minHeight: 32,
@@ -524,9 +524,9 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  /* =====================================================
+  /* =======
        HEADER ICON
-    ===================================================== */
+    ======= */
 
   headerIconContainer: {
     width: 30,
@@ -544,9 +544,9 @@ const styles = StyleSheet.create({
     marginRight: 9,
   },
 
-  /* =====================================================
+  /* =======
        HEADER TITLE
-    ===================================================== */
+    ======= */
 
   headerTitle: {
     flex: 1,
@@ -557,9 +557,9 @@ const styles = StyleSheet.create({
     color: "#222222",
   },
 
-  /* =====================================================
+  /* =======
        MORE
-    ===================================================== */
+    ======= */
 
   moreButton: {
     width: 30,
@@ -575,9 +575,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7F8",
   },
 
-  /* =====================================================
+  /* =======
        DIVIDER
-    ===================================================== */
+    ======= */
 
   divider: {
     height: 1,
@@ -587,9 +587,9 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  /* =====================================================
+  /* =======
        ERROR
-    ===================================================== */
+    ======= */
 
   errorBox: {
     flexDirection: "row",
@@ -618,9 +618,9 @@ const styles = StyleSheet.create({
     color: "#D7192A",
   },
 
-  /* =====================================================
+  /* =======
        ROW
-    ===================================================== */
+    ======= */
 
   row: {
     minHeight: 60,
@@ -634,9 +634,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F5F5F5",
   },
 
-  /* =====================================================
+  /* =======
        PERSON ICON
-    ===================================================== */
+    ======= */
 
   personIcon: {
     width: 32,
@@ -664,9 +664,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#EAF8F0",
   },
 
-  /* =====================================================
+  /* =======
        TEXT
-    ===================================================== */
+    ======= */
 
   textContainer: {
     flex: 1,
@@ -696,9 +696,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /* =====================================================
+  /* =======
        EDIT ICON
-    ===================================================== */
+    ======= */
 
   editIconButton: {
     width: 29,
@@ -716,9 +716,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /* =====================================================
+  /* =======
        EDIT DETAILS
-    ===================================================== */
+    ======= */
 
   editDetailsButton: {
     height: 43,

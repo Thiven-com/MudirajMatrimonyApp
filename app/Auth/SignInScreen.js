@@ -77,9 +77,6 @@ export default function LoginScreen() {
 
         try {
             const result = await sendLoginOtp(cleanedMobile);
-            console.log("sendLoginOtp() raw result:", JSON.stringify(result));
-
-            // User not found - redirect to registration
             if (
                 result?.userNotFound === true ||
                 result?.message?.toLowerCase().includes("user not found")
@@ -235,7 +232,7 @@ export default function LoginScreen() {
     );
 }
 
-// ================= HEADER WAVE (reversed: edges dip, center arches up) =================
+// ====== HEADER WAVE (reversed: edges dip, center arches up) ======
 // Same geometry as the OTP screen's HeaderWave.
 function HeaderWave({ width }) {
     const w = width;

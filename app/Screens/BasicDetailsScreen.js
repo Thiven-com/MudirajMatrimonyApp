@@ -47,12 +47,12 @@ export default function BasicDetailsScreen() {
   const [nationality, setNationality] = useState("Indian");
   const [city, setCity] = useState("");
 
-  /* ============================================================
+  /* ======
      HARDWARE BACK BUTTON
      Same useFocusEffect + BackHandler pattern used on the other
      screens: active only while this screen is focused, cleaned
      up on blur/unmount.
-  ============================================================ */
+  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -93,7 +93,7 @@ export default function BasicDetailsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
       <View style={styles.headerWrapper}>
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
@@ -131,7 +131,7 @@ export default function BasicDetailsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ================= PAGE TITLE ================= */}
+        {/* ====== PAGE TITLE ====== */}
         <Text style={styles.pageTitle}>Tell us about yourself</Text>
         <Text style={styles.pageSubtitle}>
           Please provide accurate information to help others know you better.
@@ -287,7 +287,7 @@ export default function BasicDetailsScreen() {
         <FieldLabel text="Currently Living In" required />
         <SelectField icon="map-pin" placeholder="Enter city" value={city} />
 
-        {/* ================= SAVE BUTTON ================= */}
+        {/* ====== SAVE BUTTON ====== */}
         <TouchableOpacity
           style={styles.saveButton}
           activeOpacity={0.85}
@@ -306,7 +306,7 @@ export default function BasicDetailsScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function FieldLabel({ text, required, optional }) {
   return (
     <View style={styles.fieldLabelRow}>

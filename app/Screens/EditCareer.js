@@ -31,9 +31,9 @@ import {
   updateMemberCareerById,
 } from "../utils/Functions";
 
-// =========================================================
+// ===
 // COLORS
-// =========================================================
+// ===
 
 const COLORS = {
   background: "#FFFFFF",
@@ -57,10 +57,10 @@ const COLORS = {
   overlay: "rgba(0,0,0,0.4)",
 };
 
-// =========================================================
+// ===
 // DROPDOWN OPTIONS
 // (replace with your API / master data when available)
-// =========================================================
+// ===
 
 const OCCUPATION_OPTIONS = [
   "Software Engineer",
@@ -116,9 +116,9 @@ const INCOME_OPTIONS = [
 
 const ABOUT_MAX_LENGTH = 500;
 
-// =========================================================
+// ===
 // FIELD ROW  (icon circle + label + control)
-// =========================================================
+// ===
 
 function FieldRow({ icon, label, required, children }) {
   return (
@@ -137,9 +137,9 @@ function FieldRow({ icon, label, required, children }) {
   );
 }
 
-// =========================================================
+// ===
 // SELECT FIELD  (dropdown that opens a bottom sheet)
-// =========================================================
+// ===
 
 function SelectField({
   value,
@@ -261,9 +261,9 @@ function SelectField({
   );
 }
 
-// =========================================================
+// ===
 // TEXT FIELD WITH CLEAR (X) BUTTON
-// =========================================================
+// ===
 
 function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
   return (
@@ -289,23 +289,23 @@ function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
   );
 }
 
-// =========================================================
+// ===
 // EDIT CAREER
-// =========================================================
+// ===
 
 export default function EditCareer() {
-  // =====================================================
+  // =======
   // NAVIGATION / ROUTE PARAM
-  // =====================================================
+  // =======
 
   const navigation = useNavigation();
   const route = useRoute();
 
   const careerId = route?.params?.id || route?.params?.careerId;
 
-  // =====================================================
+  // =======
   // STATE
-  // =====================================================
+  // =======
 
   const [occupation, setOccupation] = useState("");
 
@@ -333,9 +333,9 @@ export default function EditCareer() {
 
   const [saving, setSaving] = useState(false);
 
-  // =====================================================
+  // =======
   // BACK
-  // =====================================================
+  // =======
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -343,12 +343,12 @@ export default function EditCareer() {
     }
   }, [navigation]);
 
-  // =====================================================
+  // =======
   // ANDROID HARDWARE BACK
   // Same pattern as ChatsScreen / OtpScreen: intercept the
   // hardware back button and route it through handleBack()
   // so both the header arrow and the hardware key stay in sync.
-  // =====================================================
+  // =======
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -371,9 +371,9 @@ export default function EditCareer() {
     };
   }, [handleBack, saving]);
 
-  // =====================================================
+  // =======
   // LOAD CAREER BY ID
-  // =====================================================
+  // =======
 
   const loadCareer = useCallback(async () => {
     try {
@@ -416,13 +416,13 @@ export default function EditCareer() {
       // GET /api/member/career/{id}
       // -----------------------------------------
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("EDIT CAREER SCREEN");
 
       console.log("CAREER ID:", careerId);
 
-      console.log("======================================");
+      console.log("===");
 
       const response = await getMemberCareerById(accessToken, careerId);
 
@@ -525,19 +525,19 @@ export default function EditCareer() {
     }
   }, [careerId, handleBack]);
 
-  // =====================================================
+  // =======
   // LOAD ON SCREEN OPEN
-  // =====================================================
+  // =======
 
   useEffect(() => {
     loadCareer();
   }, [loadCareer]);
 
-  // =====================================================
+  // =======
   // CLEAR FORM  (header "Clear" button)
   // Only empties the fields on screen — nothing is deleted
   // until the user taps Save Changes.
-  // =====================================================
+  // =======
 
   const handleClear = () => {
     Alert.alert("Clear Form", "Clear all the details on this screen?", [
@@ -561,10 +561,10 @@ export default function EditCareer() {
     ]);
   };
 
-  // =====================================================
+  // =======
   // SAVE / UPDATE CAREER
   // PUT /api/member/career/{id}
-  // =====================================================
+  // =======
 
   const handleSave = async () => {
     if (saving) {
@@ -673,7 +673,7 @@ export default function EditCareer() {
       // DEBUG
       // -------------------------------------------------
 
-      console.log("======================================");
+      console.log("===");
 
       console.log("UPDATE CAREER BUTTON CLICKED");
 
@@ -683,7 +683,7 @@ export default function EditCareer() {
 
       console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
 
-      console.log("======================================");
+      console.log("===");
 
       // -------------------------------------------------
       // CALL PUT API
@@ -714,9 +714,9 @@ export default function EditCareer() {
     }
   };
 
-  // =====================================================
+  // =======
   // LOADING SCREEN
-  // =====================================================
+  // =======
 
   if (loading) {
     return (
@@ -732,15 +732,15 @@ export default function EditCareer() {
     );
   }
 
-  // =====================================================
+  // =======
   // UI
-  // =====================================================
+  // =======
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
-      {/* ================= HEADER ================= */}
+      {/* ====== HEADER ====== */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -777,7 +777,7 @@ export default function EditCareer() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ================= BANNER ================= */}
+          {/* ====== BANNER ====== */}
 
           <View style={styles.banner}>
             <View style={styles.bannerIcon}>
@@ -793,7 +793,7 @@ export default function EditCareer() {
             </View>
           </View>
 
-          {/* ================= OCCUPATION ================= */}
+          {/* ====== OCCUPATION ====== */}
 
           <FieldRow
             label="Occupation"
@@ -810,7 +810,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= INDUSTRY ================= */}
+          {/* ====== INDUSTRY ====== */}
 
           <FieldRow
             label="Industry"
@@ -827,7 +827,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= COMPANY ================= */}
+          {/* ====== COMPANY ====== */}
 
           <FieldRow
             label="Company Name"
@@ -841,7 +841,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= JOB LOCATION ================= */}
+          {/* ====== JOB LOCATION ====== */}
 
           <FieldRow
             label="Job Location"
@@ -859,7 +859,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= WORK MODE ================= */}
+          {/* ====== WORK MODE ====== */}
 
           <FieldRow
             label="Work Mode"
@@ -875,7 +875,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= DESIGNATION ================= */}
+          {/* ====== DESIGNATION ====== */}
 
           <FieldRow
             label="Designation"
@@ -890,7 +890,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= ANNUAL INCOME ================= */}
+          {/* ====== ANNUAL INCOME ====== */}
 
           <FieldRow
             label="Annual Income"
@@ -907,7 +907,7 @@ export default function EditCareer() {
             />
           </FieldRow>
 
-          {/* ================= ABOUT ================= */}
+          {/* ====== ABOUT ====== */}
 
           <FieldRow
             label="About Your Career"
@@ -935,7 +935,7 @@ export default function EditCareer() {
           </FieldRow>
         </ScrollView>
 
-        {/* ================= SAVE BUTTON ================= */}
+        {/* ====== SAVE BUTTON ====== */}
 
         <View style={styles.footer}>
           <TouchableOpacity
@@ -960,9 +960,9 @@ export default function EditCareer() {
   );
 }
 
-// =========================================================
+// ===
 // STYLES
-// =========================================================
+// ===
 
 const styles = StyleSheet.create({
   safeArea: {

@@ -23,9 +23,9 @@ import Fonts from "../constants/Fonts";
 import BASE_URL from "../constants/AppUrls";
 import * as Api from "../utils/Functions";
 
-/* =========================================================
+/* ===
    COLORS
-========================================================= */
+=== */
 
 const COLORS = {
   red: "#E51D35",
@@ -39,9 +39,9 @@ const COLORS = {
   lightRed: "#E79AA3",
 };
 
-/* =========================================================
+/* ===
    CONFIG
-========================================================= */
+=== */
 
 const PROFILE_FUNCTIONS = [
   "getMemberBasicInfo",
@@ -53,9 +53,9 @@ const PROFILE_FUNCTIONS = [
   "getProfile",
 ];
 
-/* =========================================================
+/* ===
    OPTIONS
-========================================================= */
+=== */
 
 const MARITAL_PLACEHOLDER = "Nothing selected";
 const CHILDREN_PLACEHOLDER = "Not specified";
@@ -99,9 +99,9 @@ const idFromLabel = (map, label) => {
   return entry ? Number(entry[0]) : null;
 };
 
-/* =========================================================
+/* ===
    HELPERS
-========================================================= */
+=== */
 
 const toText = (value) => {
   if (value == null) return "";
@@ -159,9 +159,9 @@ const buildPhotoFilePart = (photo) => {
   };
 };
 
-/* =========================================================
+/* ===
    DATE FORMAT
-========================================================= */
+=== */
 
 const formatDateForApi = (date) => {
   if (!date) return "";
@@ -188,9 +188,9 @@ const notify = (title, message, onOk) => {
   Alert.alert(title, message, [{ text: "OK", onPress: onOk }]);
 };
 
-/* =========================================================
+/* ===
    TOKEN
-========================================================= */
+=== */
 
 const getAccessToken = async () => {
   const tokenKeys = [
@@ -229,9 +229,9 @@ const getAccessToken = async () => {
   return null;
 };
 
-/* =========================================================
+/* ===
    PROFILE LOADING
-========================================================= */
+=== */
 
 const extractProfile = (response) => {
   if (!response || typeof response !== "object") return null;
@@ -281,9 +281,9 @@ const readStoredUser = async () => {
   return null;
 };
 
-/* =========================================================
+/* ===
    MAIN COMPONENT
-========================================================= */
+=== */
 
 export default function EditBasicInformation() {
   const navigation = useNavigation();

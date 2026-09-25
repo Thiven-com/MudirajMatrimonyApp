@@ -189,7 +189,7 @@ export default function ProfileVisitorsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= TOP BAR ================= */}
+        {/* ====== TOP BAR ====== */}
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -200,7 +200,7 @@ export default function ProfileVisitorsScreen() {
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
 
-        {/* ================= TITLE ================= */}
+        {/* ====== TITLE ====== */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconCircle}>
             <Feather name="eye" size={24} color={Colors.gold} />
@@ -213,7 +213,7 @@ export default function ProfileVisitorsScreen() {
           </View>
         </View>
 
-        {/* ================= STAT CARDS ================= */}
+        {/* ====== STAT CARDS ====== */}
         <View style={styles.statsRow}>
           <StatCard
             icon="people"
@@ -235,7 +235,7 @@ export default function ProfileVisitorsScreen() {
           />
         </View>
 
-        {/* ================= PREMIUM BANNER ================= */}
+        {/* ====== PREMIUM BANNER ====== */}
         <View style={styles.premiumBanner}>
           <View style={styles.premiumIconCircle}>
             <Feather name="award" size={22} color={Colors.white} />
@@ -254,7 +254,7 @@ export default function ProfileVisitorsScreen() {
           <Feather name="chevron-right" size={17} color={Colors.white} />
         </TouchableOpacity>
 
-        {/* ================= SEARCH + FILTERS ================= */}
+        {/* ====== SEARCH + FILTERS ====== */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
             <Feather name="search" size={19} color={Colors.textMuted} />
@@ -281,7 +281,7 @@ export default function ProfileVisitorsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ================= FILTER TABS ================= */}
+        {/* ====== FILTER TABS ====== */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -314,7 +314,7 @@ export default function ProfileVisitorsScreen() {
           })}
         </ScrollView>
 
-        {/* ================= VISITORS HEADING ================= */}
+        {/* ====== VISITORS HEADING ====== */}
         <View style={styles.recentHeadingRow}>
           <Text style={styles.recentHeading}>
             {FILTER_TAB_HEADINGS[activeFilter]}
@@ -325,7 +325,7 @@ export default function ProfileVisitorsScreen() {
           </Text>
         </View>
 
-        {/* ================= VISITOR LIST ================= */}
+        {/* ====== VISITOR LIST ====== */}
         <View style={styles.visitorList}>
           {filteredVisitors.length > 0 ? (
             filteredVisitors.map((visitor) => (
@@ -341,7 +341,7 @@ export default function ProfileVisitorsScreen() {
           )}
         </View>
 
-        {/* ================= UNLOCK PREMIUM BANNER ================= */}
+        {/* ====== UNLOCK PREMIUM BANNER ====== */}
         <View style={styles.unlockBanner}>
           <View style={styles.unlockIconCircle}>
             <Feather name="award" size={22} color={Colors.gold} />
@@ -360,7 +360,7 @@ export default function ProfileVisitorsScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ================= FILTERS BOTTOM SHEET ================= */}
+      {/* ====== FILTERS BOTTOM SHEET ====== */}
       <Modal
         visible={filtersVisible}
         transparent
@@ -438,7 +438,7 @@ export default function ProfileVisitorsScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function StatCard({ icon, iconBg, value, label }) {
   return (
     <View style={styles.statCard}>

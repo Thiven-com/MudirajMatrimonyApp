@@ -22,9 +22,9 @@ import { useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
 import { updateMemberSpiritualBackground } from "../utils/Functions";
 
-// =========================================================
+// ===
 // NAMED FIELD COMPONENT
-// =========================================================
+// ===
 
 const NamedField = ({
   label,
@@ -77,9 +77,9 @@ const NamedField = ({
   );
 };
 
-// =========================================================
+// ===
 // PLAIN FIELD COMPONENT
-// =========================================================
+// ===
 
 const PlainField = ({
   label,
@@ -113,9 +113,9 @@ const PlainField = ({
   );
 };
 
-// =========================================================
+// ===
 // SECTION HEADING COMPONENT
-// =========================================================
+// ===
 
 const SectionHeading = ({ title }) => {
   return (
@@ -126,16 +126,16 @@ const SectionHeading = ({ title }) => {
   );
 };
 
-// =========================================================
+// ===
 // MAIN COMPONENT
-// =========================================================
+// ===
 
 const EditSocialBackground = () => {
   const navigation = useNavigation();
 
-  // =========================================================
+  // ===
   // BACK
-  // =========================================================
+  // ===
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -143,9 +143,9 @@ const EditSocialBackground = () => {
     }
   }, [navigation]);
 
-  // =========================================================
+  // ===
   // FIELD VALUES
-  // =========================================================
+  // ===
 
   const [religion, setReligion] = useState("");
   const [religionId, setReligionId] = useState("");
@@ -166,11 +166,11 @@ const EditSocialBackground = () => {
 
   const [saving, setSaving] = useState(false);
 
-  // =========================================================
+  // ===
   // ANDROID HARDWARE BACK
   // Same pattern as EditLanguages: intercept the hardware back
   // button and route it through handleBack(), ignored while saving.
-  // =========================================================
+  // ===
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -193,9 +193,9 @@ const EditSocialBackground = () => {
     };
   }, [handleBack, saving]);
 
-  // =========================================================
+  // ===
   // VALIDATE NUMERIC ID
-  // =========================================================
+  // ===
 
   const parsePositiveId = (value) => {
     const raw = String(value ?? "").trim();
@@ -213,9 +213,9 @@ const EditSocialBackground = () => {
     return numeric;
   };
 
-  // =========================================================
+  // ===
   // SAVE DATA
-  // =========================================================
+  // ===
 
   const handleSave = async () => {
     if (saving) return;
@@ -342,9 +342,9 @@ const EditSocialBackground = () => {
     }
   };
 
-  // =========================================================
+  // ===
   // RENDER
-  // =========================================================
+  // ===
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -475,9 +475,9 @@ const EditSocialBackground = () => {
   );
 };
 
-// =========================================================
+// ===
 // STYLES
-// =========================================================
+// ===
 
 const styles = StyleSheet.create({
   safeArea: {

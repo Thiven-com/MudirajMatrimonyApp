@@ -123,7 +123,7 @@ export default function SubscriptionPlansScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ================= TOP BAR ================= */}
+        {/* ====== TOP BAR ====== */}
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={handleBack}
@@ -134,7 +134,7 @@ export default function SubscriptionPlansScreen() {
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
 
-        {/* ================= TITLE ================= */}
+        {/* ====== TITLE ====== */}
         <View style={styles.titleRow}>
           <View style={styles.titleIconCircle}>
             <Feather name="award" size={19} color={Colors.gold} />
@@ -147,7 +147,7 @@ export default function SubscriptionPlansScreen() {
           </View>
         </View>
 
-        {/* ================= TOP FEATURES ================= */}
+        {/* ====== TOP FEATURES ====== */}
         <View style={styles.featuresBar}>
           {TOP_FEATURES.map((f, i) => (
             <View key={i} style={styles.featureItem}>
@@ -160,13 +160,13 @@ export default function SubscriptionPlansScreen() {
           ))}
         </View>
 
-        {/* ================= PLANS HEADING ================= */}
+        {/* ====== PLANS HEADING ====== */}
         <View style={styles.sectionHeadingRow}>
           <Feather name="star" size={17} color={Colors.primaryRed} />
           <Text style={styles.sectionHeading}>Premium Plans</Text>
         </View>
 
-        {/* ================= PLAN CARDS ================= */}
+        {/* ====== PLAN CARDS ====== */}
         <View style={styles.planList}>
           {PLANS.map((plan) => (
             <PlanCard
@@ -178,7 +178,7 @@ export default function SubscriptionPlansScreen() {
           ))}
         </View>
 
-        {/* ================= FEATURES TABLE ================= */}
+        {/* ====== FEATURES TABLE ====== */}
         <View style={styles.tableCard}>
           <View style={styles.tableHeaderRow}>
             <Text style={[styles.tableHeaderText, styles.tableColFeature]}>
@@ -234,7 +234,7 @@ export default function SubscriptionPlansScreen() {
           ))}
         </View>
 
-        {/* ================= SECURE PAYMENTS ================= */}
+        {/* ====== SECURE PAYMENTS ====== */}
         <View style={styles.secureBox}>
           <View style={styles.secureIconCircle}>
             <Feather name="shield" size={18} color={Colors.primaryRed} />
@@ -247,7 +247,7 @@ export default function SubscriptionPlansScreen() {
           </View>
         </View>
 
-        {/* ================= CTA ================= */}
+        {/* ====== CTA ====== */}
         <TouchableOpacity
           style={styles.upgradeButton}
           activeOpacity={0.85}
@@ -258,7 +258,7 @@ export default function SubscriptionPlansScreen() {
           <Feather name="chevron-right" size={17} color={Colors.white} />
         </TouchableOpacity>
 
-        {/* ================= GUARANTEE ================= */}
+        {/* ====== GUARANTEE ====== */}
         <View style={styles.guaranteeRow}>
           <View style={styles.guaranteeDot}>
             <Feather name="check" size={11} color={Colors.white} />
@@ -270,7 +270,7 @@ export default function SubscriptionPlansScreen() {
   );
 }
 
-// ================= SUBCOMPONENTS =================
+// ====== SUBCOMPONENTS ======
 function PlanCard({ plan, selected, onPress }) {
   return (
     <TouchableOpacity
