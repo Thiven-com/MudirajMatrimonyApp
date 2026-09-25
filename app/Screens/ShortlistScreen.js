@@ -74,12 +74,11 @@ function mapShortlistProfile(api) {
     };
 }
 
-export default function ShortlistedProfilesScreen() {
-    const navigation = useNavigation();
+export default function ShortlistedProfilesScreen({ navigation, route }) {
 
     const handleBack = useCallback(() => {
         if (navigation.canGoBack()) {
-            navigation.goBack();
+            navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
             return true;
         }
         return false;
@@ -331,7 +330,6 @@ function ProfileCard({ profile, isToggling, onRemove }) {
                     style={styles.menuButton}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                    <Feather name="more-vertical" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>
 
                 <TouchableOpacity

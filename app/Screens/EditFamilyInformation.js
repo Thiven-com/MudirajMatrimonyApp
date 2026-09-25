@@ -76,23 +76,10 @@ const InputField = ({
   );
 };
 
-/* ===
-   EDIT FAMILY INFORMATION
-=== */
 
-export default function EditFamilyInformation() {
-  /* ====
-     NAVIGATION / ROUTE PARAMS
-  ==== */
-
-  const navigation = useNavigation();
-  const route = useRoute();
+export default function EditFamilyInformation({ navigation, route }) {
 
   const selectedField = route?.params?.field || "";
-
-  /* ====
-     STATES
-  ==== */
 
   const [father, setFather] = useState("");
 
@@ -100,9 +87,6 @@ export default function EditFamilyInformation() {
 
   const [sibling, setSibling] = useState("");
 
-  /* ====
-     SCREEN STATES
-  ==== */
 
   const [loading, setLoading] = useState(true);
 
@@ -126,16 +110,14 @@ export default function EditFamilyInformation() {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
     }
   }, [navigation]);
 
-  /* ====
-     ANDROID HARDWARE BACK
-     Same pattern as ChatsScreen / OtpScreen / EditCareer /
-     EditEducation: intercept the hardware back button and
-     route it through handleBack(), ignored while saving.
-  ==== */
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -200,33 +182,7 @@ export default function EditFamilyInformation() {
 
       const response = await getMemberFamilyInfo(accessToken);
 
-      console.log("=====");
-
-      console.log("EDIT FAMILY API RESPONSE");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      console.log("=====");
-
-      /* ===
-           RESPONSE DATA
-        === */
-
       let data = response?.data;
-
-      /*
-       * Possible response:
-       *
-       * response.data
-       *
-       * OR
-       *
-       * response.data.data
-       *
-       * OR
-       *
-       * response.data.result
-       */
 
       if (
         data &&
@@ -303,8 +259,8 @@ export default function EditFamilyInformation() {
 
       setErrorMessage(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to load family information.",
+        error?.message ||
+        "Unable to load family information.",
       );
     } finally {
       setLoading(false);
@@ -347,30 +303,17 @@ export default function EditFamilyInformation() {
     };
   }, [loading, selectedField]);
 
-  // ====
-  // SAVE FAMILY INFORMATION
-  // ====
-
   const handleSave = async () => {
     if (saving) {
       return;
     }
 
     try {
-      // ---------------------------------------------------
-      // CLEAN VALUES
-      // ---------------------------------------------------
-
       const fatherValue = String(father || "").trim();
 
       const motherValue = String(mother || "").trim();
 
       const siblingValue = String(sibling || "").trim();
-
-      // ---------------------------------------------------
-      // VALIDATION
-      // ---------------------------------------------------
-
       if (!fatherValue) {
         Alert.alert("Required", "Please enter father's name.");
         fatherRef.current?.focus();
@@ -389,19 +332,11 @@ export default function EditFamilyInformation() {
         return;
       }
 
-      // ---------------------------------------------------
-      // SIBLING VALIDATION
-      // ---------------------------------------------------
-
       if (!/^\d+$/.test(siblingValue)) {
         Alert.alert("Invalid Value", "Sibling must contain numbers only.");
         siblingRef.current?.focus();
         return;
       }
-
-      // ---------------------------------------------------
-      // GET TOKEN
-      // ---------------------------------------------------
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
@@ -414,16 +349,8 @@ export default function EditFamilyInformation() {
         return;
       }
 
-      // ---------------------------------------------------
-      // SET SAVING
-      // ---------------------------------------------------
-
       setSaving(true);
       setErrorMessage("");
-
-      // ---------------------------------------------------
-      // REQUEST BODY
-      // ---------------------------------------------------
 
       const body = {
         father: fatherValue,
@@ -431,51 +358,8 @@ export default function EditFamilyInformation() {
         sibling: siblingValue,
       };
 
-      // ---------------------------------------------------
-      // DEBUG
-      // ---------------------------------------------------
-
-      console.log("=====");
-
-      console.log("SAVE FAMILY INFORMATION");
-
-      console.log("METHOD:", "POST");
-
-      console.log("ENDPOINT:", "/api/member/family-info/update");
-
-      console.log("FATHER:", fatherValue);
-
-      console.log("MOTHER:", motherValue);
-
-      console.log("SIBLING:", siblingValue);
-
-      console.log("BODY:", JSON.stringify(body, null, 2));
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("=====");
-
-      // ---------------------------------------------------
-      // CALL UPDATE API
-      // ---------------------------------------------------
 
       const response = await updateMemberFamilyInfo(accessToken, body);
-
-      // ---------------------------------------------------
-      // RESPONSE
-      // ---------------------------------------------------
-
-      console.log("=====");
-
-      console.log("FAMILY UPDATE RESPONSE:");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      console.log("=====");
-
-      // ---------------------------------------------------
-      // CHECK SUCCESS
-      // ---------------------------------------------------
 
       const responseData = response?.data;
 
@@ -492,10 +376,6 @@ export default function EditFamilyInformation() {
         responseData?.message ||
         "Family information updated successfully.";
 
-      // ---------------------------------------------------
-      // SUCCESS
-      // ---------------------------------------------------
-
       if (success) {
         Alert.alert("Success", message, [
           {
@@ -504,10 +384,6 @@ export default function EditFamilyInformation() {
           },
         ]);
       } else {
-        // -------------------------------------------------
-        // API RETURNED FAILURE
-        // -------------------------------------------------
-
         const errorMessage = message || "Unable to update family information.";
 
         setErrorMessage(errorMessage);
@@ -966,15 +842,6 @@ const styles = StyleSheet.create({
     color: "#333333",
   },
 
-  /* =======
-       INPUT
-       Fixed height on the wrapper (not minHeight) + centered
-       content + zero vertical padding on the TextInput itself
-       is what keeps this pixel-consistent across iOS and
-       Android. Android's TextInput adds its own invisible
-       font padding, which is why includeFontPadding/
-       textAlignVertical are reset below.
-    ======= */
 
   inputWrapper: {
     height: 52,

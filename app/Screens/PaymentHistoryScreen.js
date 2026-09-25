@@ -226,16 +226,7 @@ const EMPTY_FILTERS = {
   types: [],
 };
 
-/* ===
-   MAIN SCREEN
-=== */
-
-export default function PaymentHistoryScreen() {
-  const navigation = useNavigation();
-
-  /* ====
-     STATE
-  ==== */
+export default function PaymentHistoryScreen({ navigation, route }) {
 
   const [activeStatus, setActiveStatus] = useState("All");
 
@@ -249,25 +240,13 @@ export default function PaymentHistoryScreen() {
 
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
-  /* ====
-     FILTER COUNT
-  ==== */
-
   const activeFilterCount = filters.types.length;
-
-  /* ====
-     BACK HANDLER
-  ==== */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
     }
   }, [navigation]);
-
-  /* ====
-     ANDROID HARDWARE BACK
-  ==== */
 
   useFocusEffect(
     useCallback(() => {

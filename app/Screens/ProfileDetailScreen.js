@@ -1,8 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
+  useFocusEffect
 } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -160,12 +158,12 @@ function getDisplayValue(value) {
   if (typeof value === "object") {
     return String(
       value.name ??
-        value.label ??
-        value.value ??
-        value.title ??
-        value.qualification ??
-        value.degree ??
-        "",
+      value.label ??
+      value.value ??
+      value.title ??
+      value.qualification ??
+      value.degree ??
+      "",
     );
   }
 
@@ -210,20 +208,20 @@ function mapProfile(api, routeId) {
     gender: basic.gender ?? "",
     profession: getDisplayValue(
       basic.profession ??
-        basic.occupation ??
-        careerList[0]?.profession ??
-        careerList[0]?.designation ??
-        "",
+      basic.occupation ??
+      careerList[0]?.profession ??
+      careerList[0]?.designation ??
+      "",
     ),
     location: getDisplayValue(
       basic.location ?? [basic.city, basic.state].filter(Boolean).join(", "),
     ),
     education: getDisplayValue(
       educationList[0]?.qualification ??
-        educationList[0]?.degree ??
-        basic.education ??
-        basic.qualification ??
-        "",
+      educationList[0]?.degree ??
+      basic.education ??
+      basic.qualification ??
+      "",
     ),
     height: getDisplayValue(
       physical.height ?? basic.height_text ?? basic.height ?? "",
@@ -268,9 +266,8 @@ function mapProfile(api, routeId) {
   };
 }
 
-export default function ProfileDetailScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
+export default function ProfileDetailScreen({ navigation, route }) {
+
   const params = route.params ?? {};
   const rawId = params.id ?? params.memberId;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -299,20 +296,14 @@ export default function ProfileDetailScreen() {
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
 
-  /* ===
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on
-     HomeScreen / MatchesScreen / ProfileDetails / SearchScreen:
-     active only while this screen is focused, cleaned up on
-     blur/unmount.
-  === */
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -357,8 +348,8 @@ export default function ProfileDetailScreen() {
       if (!memberData && !publicData) {
         setLoadError(
           memberResult?.message ||
-            publicResult?.message ||
-            "Unable to load profile.",
+          publicResult?.message ||
+          "Unable to load profile.",
         );
         return;
       }
@@ -606,7 +597,7 @@ export default function ProfileDetailScreen() {
         {/* ====== TOP BAR ====== */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
@@ -860,7 +851,7 @@ export default function ProfileDetailScreen() {
         <TouchableOpacity
           style={styles.bottomRedButton}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate("ChatConversion")}
+          onPress={() => navigation.navigate("ChatConversion", { page: route?.name, prevs: route?.params })}
         >
           <Feather name="message-circle" size={18} color={Colors.white} />
 

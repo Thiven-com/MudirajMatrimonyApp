@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import {
   BackHandler,
@@ -101,8 +101,8 @@ const SORT_OPTIONS = [
   { key: "frequent", label: "Most Frequent" },
 ];
 
-export default function ProfileVisitorsScreen() {
-  const navigation = useNavigation();
+export default function ProfileVisitorsScreen({ navigation, route }) {
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -117,19 +117,18 @@ export default function ProfileVisitorsScreen() {
   const [draftVerifiedOnly, setDraftVerifiedOnly] = useState(verifiedOnly);
   const [draftSortBy, setDraftSortBy] = useState(sortBy);
 
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return true;
-    }
-    return false;
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
   };
+
 
   useFocusEffect(
     useCallback(() => {
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
-        handleBack,
+        onBackPress,
       );
 
       return () => subscription.remove();
@@ -192,7 +191,7 @@ export default function ProfileVisitorsScreen() {
         {/* ====== TOP BAR ====== */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather name="arrow-left" size={26} color={Colors.primaryRed} />

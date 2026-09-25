@@ -133,12 +133,12 @@ const normalizePackage = (apiItem = {}) => {
 
     image: apiItem.image_url
       ? {
-          uri: apiItem.image_url,
-        }
+        uri: apiItem.image_url,
+      }
       : apiItem.image
         ? {
-            uri: apiItem.image,
-          }
+          uri: apiItem.image,
+        }
         : null,
 
     oldPrice: apiItem.old_price ?? apiItem.oldPrice ?? "",
@@ -471,16 +471,8 @@ const PackageCard = ({ item, onPress }) => {
   );
 };
 
-/* ===
-   MAIN SCREEN
-=== */
 
-export default function ChoosePackageScreen() {
-  const navigation = useNavigation();
-
-  /* ====
-     STATE
-  ==== */
+export default function ChoosePackageScreen({ navigation, route }) {
 
   const [packages, setPackages] = useState([]);
 
@@ -488,28 +480,13 @@ export default function ChoosePackageScreen() {
 
   const [error, setError] = useState(null);
 
-  /* ====
-     BACK BUTTON
-  ==== */
-
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  }, [navigation]);
-
-  /* ====
-     ANDROID HARDWARE BACK
-  ==== */
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        handleBack();
-
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -518,7 +495,7 @@ export default function ChoosePackageScreen() {
       return () => {
         subscription.remove();
       };
-    }, [handleBack]),
+    }, [route]),
   );
 
   /* ====
@@ -574,8 +551,8 @@ export default function ChoosePackageScreen() {
 
     navigation.navigate("Payment", {
       packageId: item.id,
-
       package: item,
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -598,7 +575,7 @@ export default function ChoosePackageScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={handleBack}
+            onPress={onBackPress}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={scale(26)} color="#D51D2C" />

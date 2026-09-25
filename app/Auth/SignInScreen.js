@@ -188,7 +188,7 @@ export default function LoginScreen() {
                                 ]}
                             >
                                 <Text style={styles.loginButtonText}>
-                                    {loading ? "PROCESSING..." : "Send OTP"}
+                                    {loading ? "Sending..." : "Send OTP"}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>

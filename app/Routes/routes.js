@@ -42,6 +42,7 @@ import SubscriptionPlansScreen from '../Screens/SubscriptionPlansScreen';
 import PremiumBenefits from '../Screens/PremiumBenefits';
 
 import { DarkTheme, LightTheme } from '../styles/theme';
+import Fonts from '../constants/Fonts';
 
 const width = Dimensions.get('window').width;
 
@@ -88,6 +89,7 @@ export const useRoutesList = () => {
             />
             <Text style={{
               color: focused ? theme.primary : theme.grey,
+              fontFamily: focused ? Fonts.bold : Fonts.regular,
               fontSize: 13,
               marginTop: 6,
             }}>
@@ -114,6 +116,7 @@ export const useRoutesList = () => {
             />
             <Text style={{
               color: focused ? theme.primary : theme.grey,
+              fontFamily: focused ? Fonts.bold : Fonts.regular,
               fontSize: 13,
               marginTop: 6,
             }}>
@@ -140,6 +143,7 @@ export const useRoutesList = () => {
             />
             <Text style={{
               color: focused ? theme.primary : theme.grey,
+              fontFamily: focused ? Fonts.bold : Fonts.regular,
               fontSize: 13,
               marginTop: 6,
             }}>
@@ -166,6 +170,7 @@ export const useRoutesList = () => {
             />
             <Text style={{
               color: focused ? theme.primary : theme.grey,
+              fontFamily: focused ? Fonts.bold : Fonts.regular,
               fontSize: 13,
               marginTop: 6,
             }}>

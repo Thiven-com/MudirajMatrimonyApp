@@ -17,14 +17,11 @@ import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import Fonts from "../constants/Fonts";
 import { updateMemberSpiritualBackground } from "../utils/Functions";
 
-// ===
-// NAMED FIELD COMPONENT
-// ===
 
 const NamedField = ({
   label,
@@ -126,26 +123,15 @@ const SectionHeading = ({ title }) => {
   );
 };
 
-// ===
-// MAIN COMPONENT
-// ===
 
-const EditSocialBackground = () => {
-  const navigation = useNavigation();
-
-  // ===
-  // BACK
-  // ===
+const EditSocialBackground = ({ navigation, route }) => {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
     }
   }, [navigation]);
 
-  // ===
-  // FIELD VALUES
-  // ===
 
   const [religion, setReligion] = useState("");
   const [religionId, setReligionId] = useState("");
@@ -166,32 +152,31 @@ const EditSocialBackground = () => {
 
   const [saving, setSaving] = useState(false);
 
-  // ===
-  // ANDROID HARDWARE BACK
-  // Same pattern as EditLanguages: intercept the hardware back
-  // button and route it through handleBack(), ignored while saving.
-  // ===
 
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (saving) {
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const handleHardwareBack = () => {
+        if (saving) {
+          return true;
+        }
+        handleBack();
         return true;
-      }
+      };
 
-      handleBack();
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleHardwareBack,
+      );
 
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack, saving]);
+      return () => {
+        subscription.remove();
+      };
+    }, [handleBack, saving]));
 
   // ===
   // VALIDATE NUMERIC ID
@@ -312,8 +297,8 @@ const EditSocialBackground = () => {
         Alert.alert(
           "Update Failed",
           response?.message ||
-            response?.error ||
-            "Social and Spiritual Background was not updated.",
+          response?.error ||
+          "Social and Spiritual Background was not updated.",
         );
         return;
       }
@@ -334,8 +319,8 @@ const EditSocialBackground = () => {
       Alert.alert(
         "Update Failed",
         error?.response?.data?.message ||
-          error?.message ||
-          "Something went wrong while updating.",
+        error?.message ||
+        "Something went wrong while updating.",
       );
     } finally {
       setSaving(false);

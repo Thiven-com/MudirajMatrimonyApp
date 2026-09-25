@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -8,11 +8,16 @@ import {
     TextInput,
     FlatList,
     Image,
+    BackHandler,
 } from 'react-native';
 
 import Feather from 'react-native-vector-icons/Feather';
 
-export default function ChatScreen({ navigation }) {
+import {
+    useFocusEffect
+} from "@react-navigation/native";
+
+export default function ChatScreen({ navigation, route }) {
     const [message, setMessage] = useState('');
 
     const [messages, setMessages] = useState([
@@ -90,12 +95,29 @@ export default function ChatScreen({ navigation }) {
         );
     };
 
+    const onBackPress = () => {
+        navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+        return true;
+    };
+
+
+    useFocusEffect(
+        useCallback(() => {
+            const subscription = BackHandler.addEventListener(
+                "hardwareBackPress",
+                onBackPress,
+            );
+
+            return () => subscription.remove();
+        }, [navigation]),
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
 
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => onBackPress()}>
                     <Feather
                         name="arrow-left"
                         size={22}
@@ -121,11 +143,6 @@ export default function ChatScreen({ navigation }) {
                 </View>
 
                 <TouchableOpacity>
-                    <Feather
-                        name="more-vertical"
-                        size={22}
-                        color="#FFF"
-                    />
                 </TouchableOpacity>
             </View>
 

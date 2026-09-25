@@ -20,21 +20,9 @@ import Feather from "react-native-vector-icons/Feather";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
-
-// NOTE: adjust this path to wherever your Fonts file lives.
 import Fonts from "../constants/Fonts";
 
 import { postMemberListing } from "../utils/Functions";
-
-/* ======
-   LOGO
-====== */
-
-const LOGO = require("../assets/images/logo.png");
-
-/* ======
-   COLORS
-====== */
 
 const COLORS = {
   red: "#B5120D",
@@ -52,10 +40,6 @@ const COLORS = {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-/* ======
-   GET TOKEN (same pattern as matches/home/profile screens)
-====== */
 
 const getToken = async () => {
   try {
@@ -87,33 +71,6 @@ const getToken = async () => {
   }
 };
 
-/* ======
-   FILTERS -> API BODY FOR POST /api/member/member-listing
-
-   Confirmed real request body:
-   {
-     age_from, age_to, member_code, marital_status, religion_id,
-     caste_id, sub_caste_id, mother_tongue, profession,
-     country_id, state_id, city_id, min_height, max_height,
-     member_type
-   }
-
-   *** ASSUMPTION WARNING ***
-   marital_status, religion_id, caste_id, country_id, state_id,
-   city_id, and member_type are numeric IDs on the backend, but
-   this screen only offers plain display strings ("Never
-   Married", "Hindu - Mudhiraj", "India", ...) with no real
-   taxonomy/lookup API wired up. ID_MAPS below is a BEST-GUESS
-   table built from this screen's own hardcoded option lists —
-   it is NOT verified against your actual database. Please check
-   these ids against your backend and correct any that are wrong.
-
-   NOTE: this same mapping logic also lives in matches.js (which
-   re-derives filters from route params so it can refetch on its
-   own). Consider moving both copies into a shared
-   utils/buildMemberFilters.js so they can't drift apart.
-====== */
-
 const ID_MAPS = {
   maritalStatus: {
     "Never Married": 1,
@@ -139,9 +96,6 @@ const ID_MAPS = {
     Canada: 5,
   },
 
-  // This screen's "location" is a single city+state string with no
-  // separate state selector, but the API wants state_id AND city_id
-  // separately.
   location: {
     "Hyderabad, Telangana": { state_id: 1, city_id: 1 },
     "Warangal, Telangana": { state_id: 1, city_id: 2 },
@@ -149,16 +103,12 @@ const ID_MAPS = {
     "Bengaluru, Karnataka": { state_id: 3, city_id: 4 },
   },
 
-  // No confirmed source field for member_type on this screen yet —
-  // guessing it corresponds to "Looking For" (Bride/Groom). Verify
-  // against backend; could instead mean membership tier.
   lookingFor: {
     Bride: 1,
     Groom: 2,
   },
 };
 
-// "5'3\" - 5'5\"" -> { min_height: 5.3, max_height: 5.5 }
 function parseHeightRange(heightLabel) {
   if (!heightLabel || typeof heightLabel !== "string") return {};
 
@@ -173,7 +123,6 @@ function parseHeightRange(heightLabel) {
   return result;
 }
 
-// "24 - 30 yrs" -> { age_from: 24, age_to: 30 }
 function parseAgeRange(ageLabel) {
   if (!ageLabel || typeof ageLabel !== "string") return {};
 
@@ -194,7 +143,6 @@ function buildFiltersFromState(filters) {
     !!value && value !== "Select" && value !== "Select City";
 
   const body = {
-    // Always present per the confirmed sample body, even when empty.
     member_code: "",
   };
 
@@ -247,19 +195,10 @@ function buildFiltersFromState(filters) {
     if (id !== undefined) body.member_type = id;
   }
 
-  // sub_caste_id: no corresponding filter exists on this screen yet.
-  // education / income / gender: not present in the confirmed API
-  // body, so intentionally not sent.
-
   return body;
 }
 
-/* ======
-   MAIN SCREEN
-====== */
-
-export default function SearchScreen() {
-  const navigation = useNavigation();
+export default function SearchScreen({ navigation, route }) {
 
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -281,10 +220,6 @@ export default function SearchScreen() {
     location: "Select City",
   });
 
-  /* ======
-     RECENT SEARCHES
-  ====== */
-
   const [recentSearches, setRecentSearches] = useState([
     "Hyderabad, Telangana",
     "24 - 30 yrs",
@@ -295,20 +230,14 @@ export default function SearchScreen() {
   const [searching, setSearching] = useState(false);
   const [searchApiError, setSearchApiError] = useState("");
 
-  /* ======
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on
-     HomeScreen / MatchesScreen / ProfileDetails: active only
-     while this screen is focused, cleaned up on blur/unmount.
-  ====== */
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -400,10 +329,6 @@ export default function SearchScreen() {
     [],
   );
 
-  /* ======
-     FUNCTIONS
-  ====== */
-
   const openFilter = (field) => {
     setActiveField(field);
     setShowFilterModal(true);
@@ -478,10 +403,6 @@ export default function SearchScreen() {
         return;
       }
 
-      // Matches screen re-derives the same filter body from these nav
-      // params (see buildFiltersFromParams there) and refetches on its
-      // own, so the person can still adjust the active tab / search box
-      // once they land on that screen.
       navigation.navigate("Matches", {
         lookingFor: filters.lookingFor,
         gender: filters.gender,
@@ -496,6 +417,7 @@ export default function SearchScreen() {
         income: filters.income,
         country: filters.country,
         location: filters.location,
+        page: route?.name, prevs: route?.params
       });
     } catch (e) {
       console.log("SearchScreen viewMatches Error:", e);
@@ -577,7 +499,7 @@ export default function SearchScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
           >
             <Feather name="arrow-left" size={22} color="#B5120D" />
           </TouchableOpacity>
@@ -629,7 +551,7 @@ export default function SearchScreen() {
               field="lookingFor"
               title="Looking For"
               value={filters.lookingFor}
-              icon="person-outline"
+              icon="user"
               color={COLORS.orange}
             />
 
@@ -637,7 +559,7 @@ export default function SearchScreen() {
               field="gender"
               title="Gender"
               value={filters.gender}
-              icon="person"
+              icon="user"
               color={COLORS.red}
             />
 
@@ -653,7 +575,7 @@ export default function SearchScreen() {
               field="height"
               title="Height"
               value={filters.height}
-              icon="resize-outline"
+              icon="smile"
               color={COLORS.orange}
             />
 
@@ -661,7 +583,7 @@ export default function SearchScreen() {
               field="maritalStatus"
               title="Marital Status"
               value={filters.maritalStatus}
-              icon="people-outline"
+              icon="user-check"
               color={COLORS.orange}
             />
 
@@ -677,7 +599,7 @@ export default function SearchScreen() {
               field="motherTongue"
               title="Mother Tongue"
               value={filters.motherTongue}
-              icon="language-outline"
+              icon="type"
               color={COLORS.red}
             />
 
@@ -685,7 +607,7 @@ export default function SearchScreen() {
               field="caste"
               title="Caste"
               value={filters.caste}
-              icon="people"
+              icon="users"
               color={COLORS.orange}
             />
 
@@ -693,7 +615,7 @@ export default function SearchScreen() {
               field="education"
               title="Education"
               value={filters.education}
-              icon="school"
+              icon="award"
               color={COLORS.orange}
             />
 
@@ -717,7 +639,7 @@ export default function SearchScreen() {
               field="country"
               title="Country Living In"
               value={filters.country}
-              icon="globe-outline"
+              icon="globe"
               color={COLORS.orange}
             />
           </View>
@@ -728,7 +650,7 @@ export default function SearchScreen() {
             field="location"
             title="Location"
             value={filters.location}
-            icon="location"
+            icon="map-pin"
             color={COLORS.red}
             fullWidth
           />
@@ -812,6 +734,8 @@ export default function SearchScreen() {
                   onPress={() =>
                     navigation.navigate("Matches", {
                       search: item,
+                      page: route?.name,
+                      prevs: route?.params
                     })
                   }
                 >

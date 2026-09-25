@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -28,6 +28,7 @@ import {
   getReviewsData,
   getTrustedByMillionsData,
 } from "../utils/Functions";
+import Fonts from "../constants/Fonts";
 
 const { width } = Dimensions.get("window");
 
@@ -72,193 +73,22 @@ const MATCH_IMAGES = {
   Match3: require("../assets/images/Match3.png"),
 };
 
-/* ===
-   DATA
-   NOTE: icon fields below are now Feather names (a single,
-   minimal icon set), swapped from the original Ionicons names.
-======= */
-
-const WHY_CHOOSE = [
-  {
-    id: "1",
-    icon: "shield",
-    title: "100%",
-    subtitle: "Verified Profiles",
-    color: COLORS.red,
-  },
-  {
-    id: "2",
-    icon: "users",
-    title: "Trusted",
-    subtitle: "Community",
-    color: COLORS.gold,
-  },
-  {
-    id: "3",
-    icon: "lock",
-    title: "Privacy",
-    subtitle: "Protected",
-    color: COLORS.red,
-  },
-  {
-    id: "4",
-    icon: "headphones",
-    title: "Dedicated",
-    subtitle: "Support",
-    color: COLORS.gold,
-  },
-];
-
-// Fallback membership plans shown until /getPackagesData returns real data.
-const PACKAGES = [
-  {
-    id: "1",
-    name: "Silver",
-    price: "₹1,999",
-    duration: "3 Months",
-    recommended: false,
-    features: [
-      "50 Profile Views",
-      "Chat with 10 Matches",
-      "Basic Search Filters",
-    ],
-  },
-  {
-    id: "2",
-    name: "Gold",
-    price: "₹3,999",
-    duration: "6 Months",
-    recommended: true,
-    features: [
-      "Unlimited Profile Views",
-      "Chat with 50 Matches",
-      "Advanced Search Filters",
-      "Priority Support",
-    ],
-  },
-  {
-    id: "3",
-    name: "Platinum",
-    price: "₹6,999",
-    duration: "12 Months",
-    recommended: false,
-    features: [
-      "Unlimited Everything",
-      "Dedicated Relationship Manager",
-      "Profile Highlighting",
-      "Horoscope Matching",
-    ],
-  },
-];
-
-// Fallback happy-couple stories shown until /getHappyStoriesData returns real data.
-const HAPPY_STORIES = [
-  {
-    id: "1",
-    coupleName: "Ravi & Sindhu",
-    marriedDate: "Feb 2025",
-    story:
-      "We found each other through Mudhiraj Matrimony and instantly connected over our shared values and love for family traditions.",
-    image: MATCH_IMAGES.Match1,
-  },
-  {
-    id: "2",
-    coupleName: "Kiran & Anjali",
-    marriedDate: "Nov 2024",
-    story:
-      "After months of searching, this platform helped us find a match that truly understood our community and culture.",
-    image: MATCH_IMAGES.Match2,
-  },
-  {
-    id: "3",
-    coupleName: "Suresh & Padma",
-    marriedDate: "Aug 2024",
-    story:
-      "Verified profiles gave us confidence from day one. We're grateful this app brought us together.",
-    image: MATCH_IMAGES.Match3,
-  },
-];
-
-// Fallback blog previews shown until /getBlogsData returns real data.
-const BLOGS = [
-  {
-    id: "1",
-    slug: "5-tips-for-a-successful-arranged-marriage",
-    title: "5 Tips for a Successful Arranged Marriage",
-    excerpt:
-      "Discover how to build trust and understanding when starting your journey together.",
-    category: "Relationships",
-    readTime: "4 min read",
-    image: MATCH_IMAGES.Match1,
-  },
-  {
-    id: "2",
-    slug: "understanding-mudhiraj-wedding-traditions",
-    title: "Understanding Mudhiraj Wedding Traditions",
-    excerpt:
-      "A look at the customs and rituals that make our community's weddings special.",
-    category: "Culture",
-    readTime: "6 min read",
-    image: MATCH_IMAGES.Match2,
-  },
-  {
-    id: "3",
-    slug: "how-to-write-a-profile-that-stands-out",
-    title: "How to Write a Profile That Stands Out",
-    excerpt: "Simple tips to help your profile attract the right matches.",
-    category: "Tips",
-    readTime: "3 min read",
-    image: MATCH_IMAGES.Match3,
-  },
-];
-
-// Fallback member reviews shown until /getReviewsData returns real data.
-const REVIEWS = [
-  {
-    id: "1",
-    name: "Lakshmi P.",
-    rating: 5,
-    comment:
-      "Found my life partner within 2 months! The verification process gave me peace of mind.",
-    image: MATCH_IMAGES.Match1,
-  },
-  {
-    id: "2",
-    name: "Venkat R.",
-    rating: 5,
-    comment:
-      "Great community-focused platform. The support team was very helpful throughout.",
-    image: MATCH_IMAGES.Match2,
-  },
-  {
-    id: "3",
-    name: "Sandhya K.",
-    rating: 4,
-    comment:
-      "Easy to use app with genuine profiles. Highly recommend to anyone in our community.",
-    image: MATCH_IMAGES.Match3,
-  },
-];
-
 /* =======
    HOME SCREEN
 ======= */
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
+export default function HomeScreen({ navigation, route }) {
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [whyChooseList, setWhyChooseList] = useState(WHY_CHOOSE);
-  const [packages, setPackages] = useState(PACKAGES);
-  const [happyStories, setHappyStories] = useState(HAPPY_STORIES);
+  const [whyChooseList, setWhyChooseList] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [happyStories, setHappyStories] = useState([]);
   const [premiumMembers, setPremiumMembers] = useState([]);
   const [newMembers, setNewMembers] = useState([]);
   const [howItWorks, setHowItWorks] = useState([]);
-  const [blogs, setBlogs] = useState(BLOGS);
-  const [reviews, setReviews] = useState(REVIEWS);
-
-  // Banner carousel state — array of { id, image, route? }.
-  // Empty array means "use the static HERO_IMAGE fallback".
+  const [blogs, setBlogs] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [banners, setBanners] = useState([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
@@ -320,63 +150,14 @@ export default function HomeScreen() {
       const token = await getToken();
 
       const [
-        trustedRes,
-        storiesRes,
         packagesRes,
         premiumRes,
-        bannerRes,
         newMembersRes,
-        howItWorksRes,
-        blogsRes,
-        reviewsRes,
       ] = await Promise.all([
-        getTrustedByMillionsData(token),
-        getHappyStoriesData(token),
         getPackagesData(token),
         getPremiumMembersData(token),
-        getBannerData(token),
         getNewMembersData(token),
-        getHowItWorksData(token),
-        getBlogsData(token),
-        getReviewsData(token),
       ]);
-
-      if (
-        trustedRes?.success === 1 &&
-        Array.isArray(trustedRes.data) &&
-        trustedRes.data.length > 0
-      ) {
-        const formattedWhy = trustedRes.data
-          .filter(Boolean)
-          .map((item, idx) => ({
-            id: String(item.id || idx + 1),
-            icon:
-              item.icon || item.image || (idx % 2 === 0 ? "shield" : "users"),
-            title: item.title || item.name || "100%",
-            subtitle:
-              item.subtitle || item.review || item.description || "Verified",
-            color: idx % 2 === 0 ? COLORS.red : COLORS.gold,
-          }));
-        setWhyChooseList(formattedWhy);
-      }
-
-      if (
-        storiesRes?.success === 1 &&
-        Array.isArray(storiesRes.data) &&
-        storiesRes.data.length > 0
-      ) {
-        const formattedStories = storiesRes.data
-          .filter(Boolean)
-          .map((s, idx) => ({
-            id: String(s.id || idx + 1),
-            coupleName:
-              s.couple_name || s.coupleName || s.name || `Couple ${idx + 1}`,
-            marriedDate: s.married_date || s.marriedDate || s.date || "",
-            story: s.story || s.description || s.message || "",
-            image: resolveImage(s.photo || s.image || s.couple_photo, idx),
-          }));
-        setHappyStories(formattedStories);
-      }
 
       if (
         packagesRes?.success === 1 &&
@@ -432,6 +213,74 @@ export default function HomeScreen() {
             image: resolveImage(m.photo || m.profile_photo || m.image, idx),
           }));
         setNewMembers(formattedNewMembers);
+      }
+
+    } catch (err) {
+      console.log("loadHomeData Error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const loadStaticData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const token = await getToken();
+
+      const [
+        bannerRes,
+        trustedRes,
+        storiesRes,
+        howItWorksRes,
+        blogsRes,
+        reviewsRes,
+      ] = await Promise.all([
+        getBannerData(token),
+        getTrustedByMillionsData(token),
+        getHappyStoriesData(token),
+        getHowItWorksData(token),
+        getBlogsData(token),
+        getReviewsData(token),
+      ]);
+
+      if (
+        trustedRes?.success === 1 &&
+        Array.isArray(trustedRes.data) &&
+        trustedRes.data.length > 0
+      ) {
+        const formattedWhy = trustedRes.data
+          .filter(Boolean)
+          .map((item, idx) => ({
+            id: String(item.id || idx + 1),
+            icon:
+              item.icon || item.image || (idx % 2 === 0 ? "shield" : "users"),
+            title: item.title || item.name || "100%",
+            subtitle:
+              item.subtitle || item.review || item.description || "Verified",
+            color: idx % 2 === 0 ? COLORS.red : COLORS.gold,
+          }));
+        setWhyChooseList(formattedWhy);
+      }
+
+      if (
+        storiesRes?.success === 1 &&
+        Array.isArray(storiesRes.data) &&
+        storiesRes.data.length > 0
+      ) {
+        const formattedStories = storiesRes.data
+          .filter(Boolean)
+          .map((s, idx) => ({
+            id: String(s.id || idx + 1),
+            coupleName:
+              s.couple_name || s.coupleName || s.name || `Couple ${idx + 1}`,
+            marriedDate: s.married_date || s.marriedDate || s.date || "",
+            story: s.story || s.description || s.message || "",
+            image: resolveImage(s.photo || s.image || s.couple_photo, idx),
+          }));
+        setHappyStories(formattedStories);
       }
 
       if (howItWorksRes?.success === 1 && Array.isArray(howItWorksRes.data)) {
@@ -526,25 +375,35 @@ export default function HomeScreen() {
     }, []),
   );
 
-  {
-    /*const openNotifications = () => navigation.navigate("PrivacyPolicy");*/
-  }
-  const openSearch = () => navigation.navigate("Search");
-  const openPremium = () => navigation.navigate("PremiumBenefits");
-  const openPremiumBenefits = () => navigation.navigate("PremiumBenefits");
+  useEffect(() => {
+    loadStaticData(false)
+    return;
+  }, []);
+
+  const openSearch = () => navigation.navigate("Search", { page: route?.name, prevs: route?.params });
+  const openPremium = () => navigation.navigate("PremiumBenefits", { page: route?.name, prevs: route?.params });
+  const openPremiumBenefits = () => navigation.navigate("PremiumBenefits", { page: route?.name, prevs: route?.params });
   const openProfile = (id) =>
-    navigation.navigate("MatchesDetail", { id: String(id) });
-  const openPackages = () => navigation.navigate("Packages");
-  const openHappyStories = () => navigation.navigate("HappyStories");
-  const openBlogs = () => navigation.navigate("Blogs");
+    navigation.navigate("MatchesDetail", {
+      id: String(id),
+      page: route?.name,
+      prevs: route?.params,
+    });
+  const openPackages = () => navigation.navigate("Packages", { page: route?.name, prevs: route?.params });
+  const openHappyStories = () => navigation.navigate("HappyStories", { page: route?.name, prevs: route?.params });
+  const openBlogs = () => navigation.navigate("Blogs", { page: route?.name, prevs: route?.params });
   const openBlog = (blog) =>
-    navigation.navigate("BlogDetail", { slug: blog.slug || blog.id });
-  const openReviews = () => navigation.navigate("Reviews");
+    navigation.navigate("BlogDetail", {
+      slug: blog.slug || blog.id,
+      page: route?.name,
+      prevs: route?.params,
+    });
+  const openReviews = () => navigation.navigate("Reviews", { page: route?.name, prevs: route?.params });
 
   const handleBannerPress = (banner) => {
     // if (banner?.route) navigation.navigate(banner.route);
     // else 
-      openPremium();
+    openPremium();
   };
 
   const handleBannerScroll = (event) => {
@@ -571,10 +430,6 @@ export default function HomeScreen() {
       >
         {/* ====== HEADER ====== */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Feather name="menu" size={28} color={COLORS.red} />
-          </TouchableOpacity>
-
           <View style={styles.headerCenter}>
             <View style={styles.logoRow}>
               <Image source={LOGO} style={styles.logo} resizeMode="contain" />
@@ -684,7 +539,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Premium Members</Text>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate("MatchesDetail")}
+                onPress={() => navigation.navigate("MatchesDetail", { page: route?.name, prevs: route?.params })}
                 activeOpacity={0.7}
               >
                 {/*<Text style={styles.seeAll}>See All</Text>*/}
@@ -721,7 +576,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>New Members</Text>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate("NewMembers")}
+                onPress={() => navigation.navigate("NewMembers", { page: route?.name, prevs: route?.params })}
                 activeOpacity={0.7}
               >
                 {/*<Text style={styles.seeAll}>See All</Text>*/}
@@ -1263,7 +1118,7 @@ const styles = StyleSheet.create({
   brandName: {
     color: COLORS.red,
     fontSize: width < 380 ? 22 : 25,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     letterSpacing: 0.5,
   },
   brandDividerRow: {
@@ -1280,14 +1135,14 @@ const styles = StyleSheet.create({
   brandMatrimony: {
     color: COLORS.text,
     fontSize: width < 380 ? 12 : 14,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     letterSpacing: 1.5,
     marginHorizontal: 3,
   },
   tagline: {
     color: COLORS.red,
     fontSize: 10,
-    fontWeight: "600",
+    fontFamily: Fonts.bold,
     marginTop: 3,
     textAlign: "center",
   },
@@ -1318,7 +1173,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     color: COLORS.white,
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
   },
 
   heroCard: {
@@ -1361,8 +1216,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitleRow: { flexDirection: "row", alignItems: "center" },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: "900" },
-  seeAll: { color: COLORS.red, fontSize: 13, fontWeight: "800" },
+  sectionTitle: { color: COLORS.text, fontSize: 18, fontFamily: Fonts.extraBold },
+  seeAll: { color: COLORS.red, fontSize: 13, fontFamily: Fonts.extraBold },
 
   matchesContainer: { paddingBottom: 18, paddingRight: 10 },
   matchCard: {
@@ -1397,22 +1252,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  newBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: "800" },
+  newBadgeText: { color: COLORS.white, fontSize: 10, fontFamily: Fonts.extraBold },
   matchInfo: { paddingHorizontal: 11, paddingTop: 17, paddingBottom: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   matchName: {
     color: COLORS.text,
     fontSize: 16,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginRight: 4,
     maxWidth: "88%",
   },
-  profession: { color: COLORS.gray, fontSize: 12, marginBottom: 7 },
+  profession: { color: COLORS.gray, fontSize: 12, fontFamily: Fonts.regular, marginBottom: 7 },
   detailRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   detailText: {
     flexShrink: 1,
     color: COLORS.gray,
     fontSize: 10.5,
+    fontFamily: Fonts.regular,
     marginLeft: 4,
   },
 
@@ -1458,17 +1314,17 @@ const styles = StyleSheet.create({
   premiumMemberName: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginBottom: 4,
   },
   premiumMemberId: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 11,
-    fontWeight: "500",
+    fontFamily: Fonts.regular,
   },
   premiumMemberIdBold: {
     color: COLORS.white,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
   },
 
   premiumBanner: {
@@ -1497,10 +1353,10 @@ const styles = StyleSheet.create({
   premiumTitle: {
     color: COLORS.darkRed,
     fontSize: width < 400 ? 13 : 14,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginBottom: 3,
   },
-  premiumSubtitle: { color: COLORS.text, fontSize: 10.5, lineHeight: 15 },
+  premiumSubtitle: { color: COLORS.text, fontSize: 10.5, fontFamily: Fonts.regular, lineHeight: 15 },
   upgradeNowButton: {
     minWidth: 95,
     height: 43,
@@ -1514,7 +1370,7 @@ const styles = StyleSheet.create({
   upgradeNowText: {
     color: COLORS.white,
     fontSize: 11.5,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginRight: 2,
   },
 
@@ -1528,7 +1384,7 @@ const styles = StyleSheet.create({
   whyTitle: {
     color: COLORS.text,
     fontSize: width < 400 ? 15 : 17,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginHorizontal: 9,
     textAlign: "center",
   },
@@ -1555,7 +1411,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1,
   },
-  stepNumberText: { color: COLORS.white, fontSize: 9, fontWeight: "900" },
+  stepNumberText: { color: COLORS.white, fontSize: 9, fontFamily: Fonts.extraBold },
   stepIconCircle: {
     width: 52,
     height: 52,
@@ -1570,13 +1426,14 @@ const styles = StyleSheet.create({
   stepTitle: {
     color: COLORS.text,
     fontSize: 11.5,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     textAlign: "center",
     marginBottom: 3,
   },
   stepDescription: {
     color: COLORS.gray,
     fontSize: 9.5,
+    fontFamily: Fonts.regular,
     textAlign: "center",
     lineHeight: 13,
   },
@@ -1587,7 +1444,8 @@ const styles = StyleSheet.create({
   },
   whyGrid: { flexDirection: "row", justifyContent: "space-between" },
   whyCard: {
-    width: "23.5%",
+    flex: 1,
+    margin: 4,
     minHeight: 112,
     backgroundColor: COLORS.white,
     borderRadius: 14,
@@ -1615,12 +1473,13 @@ const styles = StyleSheet.create({
   whyCardTitle: {
     color: COLORS.text,
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     textAlign: "center",
   },
   whyCardSubtitle: {
     color: COLORS.gray,
     fontSize: 9.5,
+    fontFamily: Fonts.regular,
     textAlign: "center",
     marginTop: 2,
   },
@@ -1657,11 +1516,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  packageBadgeText: { color: COLORS.white, fontSize: 9, fontWeight: "800" },
+  packageBadgeText: { color: COLORS.white, fontSize: 9, fontFamily: Fonts.extraBold },
   packageName: {
     color: COLORS.text,
     fontSize: 17,
-    fontWeight: "900",
+    fontFamily: Fonts.extraBold,
     marginTop: 6,
     marginBottom: 4,
   },
@@ -1670,8 +1529,8 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 12,
   },
-  packagePrice: { color: COLORS.red, fontSize: 22, fontWeight: "900" },
-  packageDuration: { color: COLORS.gray, fontSize: 12, marginLeft: 4 },
+  packagePrice: { color: COLORS.red, fontSize: 22, fontFamily: Fonts.extraBold },
+  packageDuration: { color: COLORS.gray, fontSize: 12, fontFamily: Fonts.regular, marginLeft: 4 },
   packageFeaturesList: { marginBottom: 14 },
   packageFeatureRow: {
     flexDirection: "row",
@@ -1683,6 +1542,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: COLORS.text,
     fontSize: 11.5,
+    fontFamily: Fonts.regular,
     lineHeight: 15,
   },
   packageCTAButton: {
@@ -1692,7 +1552,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  packageCTAText: { color: COLORS.white, fontSize: 13, fontWeight: "800" },
+  packageCTAText: { color: COLORS.white, fontSize: 13, fontFamily: Fonts.extraBold },
 
   /* ---------- Happy Story Card ---------- */
   storyCard: {
@@ -1714,6 +1574,7 @@ const styles = StyleSheet.create({
   storyText: {
     color: COLORS.text,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     lineHeight: 17,
     marginBottom: 10,
   },
@@ -1725,7 +1586,7 @@ const styles = StyleSheet.create({
   storyCoupleName: {
     color: COLORS.darkRed,
     fontSize: 12.5,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     flexShrink: 1,
     marginRight: 6,
   },
@@ -1735,7 +1596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  storyDateText: { color: COLORS.red, fontSize: 10, fontWeight: "700" },
+  storyDateText: { color: COLORS.red, fontSize: 10, fontFamily: Fonts.bold },
 
   /* ---------- Blog Card ---------- */
   blogCard: {
@@ -1762,22 +1623,23 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     marginBottom: 6,
   },
-  blogCategoryText: { color: COLORS.darkRed, fontSize: 9.5, fontWeight: "800" },
+  blogCategoryText: { color: COLORS.darkRed, fontSize: 9.5, fontFamily: Fonts.extraBold },
   blogTitle: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     marginBottom: 5,
     lineHeight: 17,
   },
   blogExcerpt: {
     color: COLORS.gray,
     fontSize: 10.5,
+    fontFamily: Fonts.regular,
     lineHeight: 14,
     marginBottom: 8,
   },
   blogMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  blogMetaText: { color: COLORS.gray, fontSize: 10, fontWeight: "600" },
+  blogMetaText: { color: COLORS.gray, fontSize: 10, fontFamily: Fonts.bold },
 
   /* ---------- Review Card ---------- */
   reviewCard: {
@@ -1804,9 +1666,9 @@ const styles = StyleSheet.create({
   reviewName: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: Fonts.extraBold,
     marginBottom: 3,
   },
   starRow: { flexDirection: "row", gap: 2 },
-  reviewComment: { color: COLORS.gray, fontSize: 11.5, lineHeight: 16 },
+  reviewComment: { color: COLORS.gray, fontSize: 11.5, fontFamily: Fonts.regular, lineHeight: 16 },
 });

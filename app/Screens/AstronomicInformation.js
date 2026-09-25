@@ -17,12 +17,7 @@ import Feather from "react-native-vector-icons/Feather";
 import Fonts from "../constants/Fonts";
 import { getMemberAstronomic } from "../utils/Functions";
 
-const AstronomicInformation = () => {
-  const navigation = useNavigation();
-
-  /* ===
-     STATE
-  === */
+const AstronomicInformation = ({ navigation, route }) => {
 
   const [astronomicData, setAstronomicData] = useState({
     sun_sign: "",
@@ -33,12 +28,6 @@ const AstronomicInformation = () => {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* ===
-     GET ASTRONOMIC INFORMATION API
-     
-     GET:
-     /api/member/astronomic
-  === */
 
   const getAstronomicInformation = async () => {
     try {
@@ -83,7 +72,7 @@ const AstronomicInformation = () => {
 
       setErrorMessage(
         error?.response?.data?.message ||
-          "Unable to load astronomic information.",
+        "Unable to load astronomic information.",
       );
     }
   };
@@ -96,10 +85,6 @@ const AstronomicInformation = () => {
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
 
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
@@ -110,12 +95,16 @@ const AstronomicInformation = () => {
     }, [navigation]),
   );
 
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
   /* ===
      ONLY EDIT DETAILS BUTTON
   === */
 
   const handleEditDetails = () => {
-    navigation.navigate("EditAstronomicInformation");
+    navigation.navigate("EditAstronomicInformation", { page: route?.name, prevs: route?.params });
   };
 
   /* ===
@@ -136,7 +125,7 @@ const AstronomicInformation = () => {
             <TouchableOpacity
               style={styles.backButton}
               activeOpacity={0.7}
-              onPress={() => navigation.goBack()}
+              onPress={() => onBackPress()}
             >
               <Feather name="chevron-left" size={25} color="#D7192E" />
             </TouchableOpacity>
@@ -148,11 +137,7 @@ const AstronomicInformation = () => {
             <TouchableOpacity
               style={styles.menuButton}
               activeOpacity={0.7}
-              onPress={() => {
-                console.log("MENU CLICKED");
-              }}
             >
-              <Feather name="more-vertical" size={21} color="#D7192E" />
             </TouchableOpacity>
           </View>
 

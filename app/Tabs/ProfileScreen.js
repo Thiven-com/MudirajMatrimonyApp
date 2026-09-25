@@ -18,7 +18,7 @@ import {
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 import Fonts from "../constants/Fonts";
@@ -40,9 +40,6 @@ import {
   updateMemberIntroduction,
 } from "../utils/Functions";
 
-/* =====
-   RESPONSIVE WIDTH
-===== */
 
 const { width } = Dimensions.get("window");
 
@@ -70,10 +67,6 @@ const COLORS = {
   purple: "#8337B9",
   blue: "#2C84D6",
 };
-
-/* =====
-   PROFILE FALLBACK DATA
-===== */
 
 const PROFILE = {
   name: "Priyanka",
@@ -243,9 +236,6 @@ const SectionHeader = ({ icon, title, showViewAll = false }) => {
   );
 };
 
-/* =====
-   PERSONAL ITEM
-===== */
 
 const PersonalItem = ({ item }) => {
   return (
@@ -309,7 +299,7 @@ const FamilyItem = ({ item }) => {
    MAIN SCREEN
 ===== */
 
-export default function ProfileDetails({ setIsLoggedIn, navigation }) {
+export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
 
   const [profileData, setProfileData] = useState(null);
 
@@ -324,26 +314,12 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
 
   const [aboutTextValue, setAboutTextValue] = useState("");
 
-  /* =======
-     PHOTOS
-  ======= */
-
   const [photos, setPhotos] = useState(PROFILE.photos);
 
-  // The member's actual uploaded profile photo (from Basic Information).
-  // Falls back to the static PROFILE.image asset until it loads.
   const [profilePhotoUri, setProfilePhotoUri] = useState("");
-
-  /* =======
-     INTERESTS / SHORTLISTS COUNTS
-  ======= */
 
   const [interestsCount, setInterestsCount] = useState(0);
   const [shortlistsCount, setShortlistsCount] = useState(0);
-
-  /* =======
-     PRESENT / PERMANENT ADDRESS
-  ======= */
 
   const [presentAddress, setPresentAddress] = useState(null);
 
@@ -374,10 +350,6 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
 
   const [citiesLoading, setCitiesLoading] = useState(false);
 
-  /* =======
-     BASIC INFORMATION
-  ======= */
-
   const [basicInfo, setBasicInfo] = useState({
     first_name: "",
     last_name: "",
@@ -390,13 +362,13 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
     children: 0,
   });
 
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -561,7 +533,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
   ======= */
 
   const handlePhotos = () => {
-    navigation.navigate("MyPhotos");
+    navigation.navigate("MyPhotos", { page: route?.name, prevs: route?.params });
   };
 
   /* =======
@@ -569,7 +541,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
   ======= */
 
   const handleMessage = () => {
-    navigation.navigate("Chatting");
+    navigation.navigate("Chatting", { page: route?.name, prevs: route?.params });
   };
 
   /* =======
@@ -585,7 +557,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
   ======= */
 
   const handleInterest = () => {
-    navigation.navigate("Interests");
+    navigation.navigate("Interests", { page: route?.name, prevs: route?.params });
 
     Alert.alert("Interest Sent", "Your interest has been sent successfully.");
   };
@@ -595,7 +567,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
   ======= */
 
   const handleInterests = () => {
-    navigation.navigate("Interests");
+    navigation.navigate("Interests", { page: route?.name, prevs: route?.params });
   };
 
   /* =======
@@ -603,7 +575,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
   ======= */
 
   const handleShortlists = () => {
-    navigation.navigate("Shortlist");
+    navigation.navigate("Shortlist", { page: route?.name, prevs: route?.params });
   };
 
   /* =======
@@ -1482,7 +1454,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
         <TouchableOpacity
           style={styles.headerSideButton}
           activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
+          onPress={() => onBackPress()}
         >
           <Ionicons name="chevron-back" size={27} color="#B71C28" />
         </TouchableOpacity>
@@ -1492,9 +1464,9 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
         <TouchableOpacity
           style={styles.headerSideButton}
           activeOpacity={0.8}
-          onPress={() => Alert.alert("More Options", "More profile options")}
+        // onPress={() => Alert.alert("More Options", "More profile options")}
         >
-          <Ionicons name="ellipsis-vertical" size={23} color="#B71C28" />
+          {/* <Ionicons name="ellipsis-vertical" size={23} color="#B71C28" /> */}
         </TouchableOpacity>
       </View>
 
@@ -1726,7 +1698,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("EditBasicInformation");
+              navigation.navigate("EditBasicInformation", { page: route?.name, prevs: route?.params });
             }}
           >
             <View
@@ -1777,14 +1749,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("PresentAddress");
-              // Alert.alert(
-              //   "Present Address",
-              //   presentAddress
-              //     ? `${presentAddress.city || ""}, ${presentAddress.state || ""
-              //     }`
-              //     : "Present address",
-              // );
+              navigation.navigate("PresentAddress", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#EAF9F1" }]}>
@@ -1804,7 +1769,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("EducationInformation");
+              navigation.navigate("EducationInformation", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF7E5" }]}>
@@ -1828,7 +1793,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("CareerInformation");
+              navigation.navigate("CareerInformation", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF7E5" }]}>
@@ -1852,7 +1817,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("Languages");
+              navigation.navigate("Languages", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#F3EAFE" }]}>
@@ -1872,7 +1837,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("SocialSpiritualBackground");
+              navigation.navigate("SocialSpiritualBackground", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFEAF2" }]}>
@@ -1896,7 +1861,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={styles.profileRow}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("AstronomicInformation");
+              navigation.navigate("AstronomicInformation", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF4E5" }]}>
@@ -1916,7 +1881,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation }) {
             style={[styles.profileRow, styles.lastProfileRow]}
             activeOpacity={0.8}
             onPress={() => {
-              navigation.navigate("FamilyInformation");
+              navigation.navigate("FamilyInformation", { page: route?.name, prevs: route?.params });
             }}
           >
             <View style={[styles.rowIcon, { backgroundColor: "#FFF0F2" }]}>

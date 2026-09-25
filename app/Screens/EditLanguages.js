@@ -255,8 +255,6 @@ export default function EditLanguages() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // Picker modal visibility ("motherTongue" | "knownLanguages" | null)
   const [activePicker, setActivePicker] = useState(null);
 
   /* ====
@@ -265,17 +263,14 @@ export default function EditLanguages() {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
     }
   }, [navigation]);
 
-  /* ====
-     ANDROID HARDWARE BACK
-     Same pattern as ChatsScreen / OtpScreen / EditCareer /
-     EditEducation / EditFamilyInformation: intercept the
-     hardware back button and route it through handleBack(),
-     ignored while saving.
-  ==== */
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -498,14 +493,6 @@ export default function EditLanguages() {
     loadData();
   }, [loadData]);
 
-  /* ====
-     PICKER MODAL OPTIONS
-
-     For "knownLanguages" mode, already-selected languages
-     show a checkmark and tapping toggles them (multi-select,
-     stays open). For "motherTongue" mode, tapping an option
-     selects it and closes the modal (single-select).
-  ==== */
 
   const isKnownLanguagesPicker = activePicker === "knownLanguages";
 

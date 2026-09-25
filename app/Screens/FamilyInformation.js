@@ -15,31 +15,14 @@ import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
 
 import { getMemberFamilyInfo } from "../utils/Functions";
 
-/* ===
-   FAMILY INFORMATION SCREEN
-=== */
 
-export default function FamilyInformation() {
-  const navigation = useNavigation();
 
-  /* ====
-     BACK
-  ==== */
-
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  }, [navigation]);
-
-  /* ====
-     FAMILY STATE
-  ==== */
+export default function FamilyInformation({ navigation, route }) {
 
   const [familyData, setFamilyData] = useState({
     father: "",
@@ -49,45 +32,43 @@ export default function FamilyInformation() {
     sibling: "",
   });
 
-  /* ====
-     LOADING
-  ==== */
-
   const [loading, setLoading] = useState(true);
-
-  /* ====
-     ERROR
-  ==== */
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* ====
-     ANDROID HARDWARE BACK
-     Same pattern as EditSocialBackground / EducationInformation:
-     intercept the hardware back button and route it through
-     handleBack(), ignored while the screen is loading.
-  ==== */
 
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (loading) {
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      onBackPress();
+    }
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const handleHardwareBack = () => {
+        if (loading) {
+          return true;
+        }
+
+        handleBack();
+
         return true;
-      }
+      };
 
-      handleBack();
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleHardwareBack,
+      );
 
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack, loading]);
+      return () => {
+        subscription.remove();
+      };
+    }, [handleBack, loading]));
 
   /* ====
      GET FAMILY INFORMATION
@@ -236,10 +217,9 @@ export default function FamilyInformation() {
   ==== */
 
   const handleEdit = (field) => {
-    console.log("EDIT FAMILY FIELD:", field);
-
     navigation.navigate("EditFamilyInformation", {
       field,
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -248,9 +228,7 @@ export default function FamilyInformation() {
   ==== */
 
   const handleEditDetails = () => {
-    console.log("EDIT FAMILY DETAILS CLICKED");
-
-    navigation.navigate("EditFamilyInformation");
+    navigation.navigate("EditFamilyInformation", { page: route?.name, prevs: route?.params });
   };
 
   /* ====
@@ -312,10 +290,8 @@ export default function FamilyInformation() {
 
             <TouchableOpacity
               style={styles.moreButton}
-              onPress={handleMore}
               activeOpacity={0.7}
             >
-              <Feather name="more-vertical" size={17} color="#D7192A" />
             </TouchableOpacity>
           </View>
 

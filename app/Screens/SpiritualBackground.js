@@ -75,12 +75,11 @@ function mapShortlistProfile(api) {
   };
 }
 
-export default function SpiritualBackground() {
-  const navigation = useNavigation();
+export default function SpiritualBackground({ navigation, route }) {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
       return true;
     }
     return false;
@@ -270,7 +269,7 @@ export default function SpiritualBackground() {
           <TouchableOpacity
             style={styles.exploreButton}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate("Matches")}
+            onPress={() => navigation.navigate("Matches", { page: route?.name, prevs: route?.params })}
           >
             <Feather name="search" size={15} color={Colors.white} />
             <Text style={styles.exploreButtonText}>Explore More Profiles</Text>
@@ -332,7 +331,6 @@ function ProfileCard({ profile, isToggling, onRemove }) {
           style={styles.menuButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Feather name="more-vertical" size={16} color={Colors.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity

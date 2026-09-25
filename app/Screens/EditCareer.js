@@ -21,7 +21,7 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 
 import Feather from "react-native-vector-icons/Feather";
 import Fonts from "../constants/Fonts";
@@ -161,7 +161,6 @@ function SelectField({
 
     return options;
   }, [options, value]);
-
   const filtered = useMemo(() => {
     if (!query.trim()) return allOptions;
 
@@ -169,7 +168,6 @@ function SelectField({
       item.toLowerCase().includes(query.trim().toLowerCase()),
     );
   }, [allOptions, query]);
-
   const close = () => {
     setOpen(false);
     setQuery("");
@@ -200,7 +198,7 @@ function SelectField({
         onRequestClose={close}
       >
         <Pressable style={styles.modalOverlay} onPress={close}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <Pressable style={styles.sheet} onPress={() => { }}>
             <View style={styles.sheetHandle} />
 
             <Text style={styles.sheetTitle}>{title}</Text>
@@ -293,110 +291,61 @@ function ClearableInput({ value, onChangeText, placeholder, editable = true }) {
 // EDIT CAREER
 // ===
 
-export default function EditCareer() {
-  // =======
-  // NAVIGATION / ROUTE PARAM
-  // =======
-
-  const navigation = useNavigation();
-  const route = useRoute();
-
+export default function EditCareer({ navigation, route }) {
   const careerId = route?.params?.id || route?.params?.careerId;
-
-  // =======
-  // STATE
-  // =======
-
   const [occupation, setOccupation] = useState("");
-
   const [industry, setIndustry] = useState("");
-
   const [company, setCompany] = useState("");
-
   const [jobLocation, setJobLocation] = useState("");
-
   const [workMode, setWorkMode] = useState("");
-
   const [designation, setDesignation] = useState("");
-
   const [annualIncome, setAnnualIncome] = useState("");
-
   const [about, setAbout] = useState("");
-
-  // Not shown in this UI, but the existing API body still uses them,
-  // so we keep the loaded values and send them back unchanged.
   const [start, setStart] = useState("");
-
   const [end, setEnd] = useState("");
-
   const [loading, setLoading] = useState(true);
-
   const [saving, setSaving] = useState(false);
-
-  // =======
-  // BACK
-  // =======
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
     }
   }, [navigation]);
 
-  // =======
-  // ANDROID HARDWARE BACK
-  // Same pattern as ChatsScreen / OtpScreen: intercept the
-  // hardware back button and route it through handleBack()
-  // so both the header arrow and the hardware key stay in sync.
-  // =======
-
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (saving) {
-        return true;
-      }
-
-      handleBack();
-
+  const onBackPress = () => {
+    if (saving) {
       return true;
-    };
+    }
 
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack, saving]);
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+      return () => subscription.remove();
+    }, [route, saving]),
+  );
 
-  // =======
-  // LOAD CAREER BY ID
-  // =======
 
   const loadCareer = useCallback(async () => {
     try {
       setLoading(true);
 
-      // -----------------------------------------
-      // CHECK CAREER ID
-      // -----------------------------------------
-
       if (!careerId) {
         Alert.alert("Error", "Career ID is missing.", [
           {
             text: "OK",
-            onPress: handleBack,
+            onPress: onBackPress,
           },
         ]);
 
         return;
       }
-
-      // -----------------------------------------
-      // GET TOKEN
-      // -----------------------------------------
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
@@ -404,7 +353,7 @@ export default function EditCareer() {
         Alert.alert("Session Expired", "Please login again.", [
           {
             text: "OK",
-            onPress: handleBack,
+            onPress: onBackPress,
           },
         ]);
 
@@ -450,12 +399,6 @@ export default function EditCareer() {
         throw new Error("Career details not found.");
       }
 
-      // -----------------------------------------
-      // SET FORM VALUES
-      // (new field names are best-guess fallbacks —
-      //  adjust to match your API response)
-      // -----------------------------------------
-
       setOccupation(String(careerData?.occupation || ""));
 
       setIndustry(String(careerData?.industry || ""));
@@ -463,9 +406,9 @@ export default function EditCareer() {
       setCompany(
         String(
           careerData?.company ||
-            careerData?.company_name ||
-            careerData?.companyName ||
-            "",
+          careerData?.company_name ||
+          careerData?.companyName ||
+          "",
         ),
       );
 
@@ -478,11 +421,11 @@ export default function EditCareer() {
       setDesignation(
         String(
           careerData?.designation ||
-            careerData?.job_title ||
-            careerData?.jobTitle ||
-            careerData?.position ||
-            careerData?.role ||
-            "",
+          careerData?.job_title ||
+          careerData?.jobTitle ||
+          careerData?.position ||
+          careerData?.role ||
+          "",
         ),
       );
 
@@ -500,20 +443,20 @@ export default function EditCareer() {
       setStart(
         String(
           careerData?.start ||
-            careerData?.start_year ||
-            careerData?.startYear ||
-            careerData?.career_start ||
-            "",
+          careerData?.start_year ||
+          careerData?.startYear ||
+          careerData?.career_start ||
+          "",
         ),
       );
 
       setEnd(
         String(
           careerData?.end ||
-            careerData?.end_year ||
-            careerData?.endYear ||
-            careerData?.career_end ||
-            "",
+          careerData?.end_year ||
+          careerData?.endYear ||
+          careerData?.career_end ||
+          "",
         ),
       );
     } catch (error) {
@@ -525,20 +468,9 @@ export default function EditCareer() {
     }
   }, [careerId, handleBack]);
 
-  // =======
-  // LOAD ON SCREEN OPEN
-  // =======
-
   useEffect(() => {
     loadCareer();
   }, [loadCareer]);
-
-  // =======
-  // CLEAR FORM  (header "Clear" button)
-  // Only empties the fields on screen — nothing is deleted
-  // until the user taps Save Changes.
-  // =======
-
   const handleClear = () => {
     Alert.alert("Clear Form", "Clear all the details on this screen?", [
       { text: "Cancel", style: "cancel" },
@@ -702,7 +634,7 @@ export default function EditCareer() {
       Alert.alert("Success", "Career updated successfully.", [
         {
           text: "OK",
-          onPress: handleBack,
+          onPress: onBackPress,
         },
       ]);
     } catch (error) {
@@ -746,7 +678,7 @@ export default function EditCareer() {
         <TouchableOpacity
           style={styles.backButton}
           activeOpacity={0.7}
-          onPress={handleBack}
+          onPress={onBackPress}
         >
           <Feather name="chevron-left" size={22} color={COLORS.text} />
         </TouchableOpacity>

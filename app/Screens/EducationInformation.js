@@ -18,56 +18,49 @@ import Feather from "react-native-vector-icons/Feather";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import Fonts from "../constants/Fonts";
 import { deleteMemberEducation, getMemberEducation } from "../utils/Functions";
 
-export default function EducationInformation() {
-  const navigation = useNavigation();
+export default function EducationInformation({ navigation, route }) {
 
   const [educationList, setEducationList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  /* ===
-       BACK
-    === */
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
     }
   }, [navigation]);
 
-  /* ===
-       ANDROID HARDWARE BACK
-       Same pattern as EditSocialBackground / EditLanguages:
-       intercept the hardware back button and route it through
-       handleBack(), ignored while a delete is in progress.
-    === */
-
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (deletingId !== null) {
+  useFocusEffect(
+    useCallback(() => {
+      const handleHardwareBack = () => {
+        if (deletingId !== null) {
+          return true;
+        }
+        handleBack();
         return true;
-      }
+      };
 
-      handleBack();
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleHardwareBack,
+      );
 
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack, deletingId]);
+      return () => {
+        subscription.remove();
+      };
+    }, [handleBack, deletingId]));
 
   /* ===
        LOAD EDUCATION
@@ -409,7 +402,7 @@ export default function EducationInformation() {
     === */
 
   const handleAddEducation = () => {
-    navigation.navigate("AddEducation");
+    navigation.navigate("AddEducation", { page: route?.name, prevs: route?.params });
   };
 
   /* ===
@@ -427,6 +420,7 @@ export default function EducationInformation() {
 
     navigation.navigate("EditEducation", {
       id: String(item.id),
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -463,9 +457,7 @@ export default function EducationInformation() {
           <TouchableOpacity
             style={styles.menuButton}
             activeOpacity={0.7}
-            onPress={handleMenu}
           >
-            <Feather name="more-vertical" size={20} color="#EF233C" />
           </TouchableOpacity>
         </View>
 

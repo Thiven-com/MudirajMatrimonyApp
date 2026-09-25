@@ -142,23 +142,20 @@ const TAB_ITEMS = [
   },
 ];
 
-export default function HelpSupportScreen() {
-  const navigation = useNavigation();
+export default function HelpSupportScreen({ navigation, route }) {
+
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return true;
-    }
-    return false;
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
   };
 
   useFocusEffect(
     useCallback(() => {
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
-        handleBack,
+        onBackPress,
       );
 
       return () => subscription.remove();
@@ -189,7 +186,7 @@ export default function HelpSupportScreen() {
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
-          onPress={() => navigation.goBack()}
+          onPress={() => onBackPress()}
         >
           <Feather name="arrow-left" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -276,7 +273,7 @@ export default function HelpSupportScreen() {
               style={[
                 styles.channelRow,
                 index !== SUPPORT_CHANNELS.length - 1 &&
-                  styles.channelRowDivider,
+                styles.channelRowDivider,
               ]}
             >
               <View

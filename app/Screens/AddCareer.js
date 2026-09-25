@@ -35,8 +35,7 @@ const COLORS = {
   checkbox: "#E91E32",
 };
 
-export default function AddCareer() {
-  const navigation = useNavigation();
+export default function AddCareer({ navigation, route }) {
 
   const [designation, setDesignation] = useState("Manager");
 
@@ -56,20 +55,8 @@ export default function AddCareer() {
 
   const [saving, setSaving] = useState(false);
 
-  /* ====
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ==== */
-
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -78,6 +65,11 @@ export default function AddCareer() {
       return () => subscription.remove();
     }, [navigation]),
   );
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   const handleSaveCareer = async () => {
     if (saving) {
@@ -131,7 +123,7 @@ export default function AddCareer() {
         alert("Career added successfully.");
 
         // Go back to Career Information
-        navigation.goBack();
+        onBackPress();
       } else {
         alert(response?.message || "Unable to add career.");
       }
@@ -157,7 +149,7 @@ export default function AddCareer() {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
           >
             <Feather name="chevron-left" size={16} color={COLORS.red} />
           </TouchableOpacity>
@@ -165,7 +157,6 @@ export default function AddCareer() {
           <Text style={styles.headerTitle}>Add Career</Text>
 
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Feather name="more-vertical" size={16} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
@@ -325,7 +316,7 @@ export default function AddCareer() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 activeOpacity={0.8}
-                onPress={() => navigation.goBack()}
+                onPress={() => onBackPress()}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>

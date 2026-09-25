@@ -17,21 +17,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { launchImageLibrary } from "react-native-image-picker";
 import Feather from "react-native-vector-icons/Feather";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
-
-// If you already have an API for photos, import it here.
-// Example:
-// import {
-//   getMemberPhotos,
-//   updateMemberPhotos,
-// } from "../utils/Functions";
-
-/* =====
-   PHOTO GUIDELINES
-===== */
 
 const PHOTO_GUIDELINES = [
   "Use a clear, recent photo",
@@ -42,22 +31,10 @@ const PHOTO_GUIDELINES = [
   "No filters or heavily edited photos",
 ];
 
-/* =====
-   ADDITIONAL PHOTO COUNT
-===== */
-
 const ADDITIONAL_PHOTO_SLOTS = 4;
 
-/* =====
-   MY PHOTOS
-===== */
 
-export default function MyPhotos() {
-  const navigation = useNavigation();
-
-  /* ===
-     STATE
-  === */
+export default function MyPhotos({ navigation, route }) {
 
   const [profilePhoto, setProfilePhoto] = useState(null);
 
@@ -69,45 +46,26 @@ export default function MyPhotos() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* ===
-     BACK
-  === */
+  const onBackPress = () => {
+    console.log('====================================');
+    console.log(route?.page);
+    console.log('====================================');
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  }, [navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
 
-  /* ===
-     ANDROID HARDWARE BACK
-     
-     Same pattern as Languages.jsx
-  === */
+      return () => {
+        subscription.remove();
+      };
+    }, [route]));
 
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      handleBack();
-
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack]);
-
-  /* ===
-     IMAGE PICKER
-     
-     React Native CLI
-     No Expo
-  === */
 
   const pickImage = useCallback(async (onPicked) => {
     try {
@@ -153,12 +111,6 @@ export default function MyPhotos() {
           return;
         }
 
-        /* -----------------------------------------------
-           FILE SIZE CHECK
-           
-           Maximum 5MB
-        ----------------------------------------------- */
-
         if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
           Alert.alert(
             "File Too Large",
@@ -181,10 +133,6 @@ export default function MyPhotos() {
       Alert.alert("Error", error?.message || "Unable to select image.");
     }
   }, []);
-
-  /* ===
-     PROFILE PHOTO
-  === */
 
   const handlePickProfilePhoto = () => {
     pickImage((image) => {
@@ -211,10 +159,6 @@ export default function MyPhotos() {
       ],
     );
   };
-
-  /* ===
-     ADDITIONAL PHOTO
-  === */
 
   const handlePickAdditionalPhoto = (index) => {
     pickImage((image) => {
@@ -250,18 +194,10 @@ export default function MyPhotos() {
     ]);
   };
 
-  /* ===
-     SAVE
-  === */
-
   const handleSaveAndContinue = async () => {
     if (saving) {
       return;
     }
-
-    /* -------------------------------------------------------
-       PROFILE PHOTO REQUIRED
-    ------------------------------------------------------- */
 
     if (!profilePhoto) {
       Alert.alert(
@@ -277,10 +213,6 @@ export default function MyPhotos() {
 
       setErrorMessage("");
 
-      /* -----------------------------------------------------
-         TOKEN
-      ----------------------------------------------------- */
-
       const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {
@@ -288,12 +220,6 @@ export default function MyPhotos() {
 
         return;
       }
-
-      /* -----------------------------------------------------
-         PHOTO DATA
-         
-         This is ready for your API.
-      ----------------------------------------------------- */
 
       const selectedAdditionalPhotos = additionalPhotos.filter(
         (photo) => photo !== null,
@@ -303,42 +229,6 @@ export default function MyPhotos() {
         profilePhoto,
         additionalPhotos: selectedAdditionalPhotos,
       };
-
-
-
-      /*
-      const response = await updateMemberPhotos(
-        accessToken,
-        photoData,
-      );
-
-      console.log(
-        "PHOTO API RESPONSE:",
-        JSON.stringify(
-          response,
-          null,
-          2,
-        ),
-      );
-
-      const success =
-        response?.success === 1 ||
-        response?.success === true ||
-        response?.result === true;
-
-      if (!success) {
-        throw new Error(
-          response?.message ||
-            "Unable to save photos.",
-        );
-      }
-      */
-
-      /* -----------------------------------------------------
-         TEMPORARY SUCCESS
-         
-         Remove this when API is connected.
-      ----------------------------------------------------- */
 
       Alert.alert("Success", "Photos selected successfully.", [
         {
@@ -366,27 +256,6 @@ export default function MyPhotos() {
     }
   };
 
-  /* ===
-     REFRESH / SCREEN FOCUS
-  === */
-
-  useFocusEffect(
-    useCallback(() => {
-      /*
-       * If you have a GET photos API,
-       * call it here.
-       *
-       * Example:
-       *
-       * loadPhotos();
-       */
-    }, []),
-  );
-
-  /* ===
-     UI
-  === */
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -404,7 +273,7 @@ export default function MyPhotos() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={handleBack}
+            onPress={onBackPress}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={24} color="#222222" />

@@ -30,16 +30,7 @@ import {
    MAIN COMPONENT
 === */
 
-export default function EditEducation() {
-  /* ====
-     NAVIGATION / GET EDUCATION ID FROM ROUTE
-
-     Example:
-     navigation.navigate("EditEducation", { id: 1 })
-  ==== */
-
-  const navigation = useNavigation();
-  const route = useRoute();
+export default function EditEducation({ navigation, route }) {
 
   const rawId = route?.params?.id;
   const educationId = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -66,17 +57,19 @@ export default function EditEducation() {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      onBackPress();
+      return true;
     }
   }, [navigation]);
 
-  /* ====
-     ANDROID HARDWARE BACK
-     Same pattern as ChatsScreen / OtpScreen / EditCareer:
-     intercept the hardware back button and route it through
-     handleBack() so both the header arrow and the hardware
-     key stay in sync. Ignored while a save is in flight.
-  ==== */
+  const onBackPress = () => {
+    if (saving) {
+      return true;
+    }
+
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   useEffect(() => {
     const handleHardwareBack = () => {
@@ -243,9 +236,9 @@ export default function EditEducation() {
       setDegree(
         String(
           education.degree ??
-            education.degree_name ??
-            education.qualification ??
-            "",
+          education.degree_name ??
+          education.qualification ??
+          "",
         ),
       );
 
@@ -256,10 +249,10 @@ export default function EditEducation() {
       setInstitution(
         String(
           education.institution ??
-            education.institution_name ??
-            education.college ??
-            education.college_name ??
-            "",
+          education.institution_name ??
+          education.college ??
+          education.college_name ??
+          "",
         ),
       );
 
@@ -273,9 +266,9 @@ export default function EditEducation() {
       setStartYear(
         String(
           education.education_start ??
-            education.start_year ??
-            education.startYear ??
-            "",
+          education.start_year ??
+          education.startYear ??
+          "",
         ),
       );
 
@@ -289,9 +282,9 @@ export default function EditEducation() {
       setEndYear(
         String(
           education.education_end ??
-            education.end_year ??
-            education.endYear ??
-            "",
+          education.end_year ??
+          education.endYear ??
+          "",
         ),
       );
     } catch (error) {
@@ -600,7 +593,6 @@ export default function EditEducation() {
           <Text style={styles.headerTitle}>Edit Education</Text>
 
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Feather name="more-vertical" size={18} color="#EF233C" />
           </TouchableOpacity>
         </View>
 

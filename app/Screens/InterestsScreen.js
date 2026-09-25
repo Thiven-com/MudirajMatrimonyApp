@@ -43,9 +43,6 @@ const COLORS = {
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300.png?text=Profile";
 
-// Screen that opens when a profile (photo / name) is tapped.
-// Change this one line if your registered screen name is different
-// (e.g. "MatchesDetails" or "MatchesDetail").
 const PROFILE_ROUTE = "matchesdetail";
 
 const TABS = [
@@ -59,13 +56,6 @@ const TABS = [
   },
 ];
 
-// =======
-// HELPERS
-// =======
-
-/*
- * Alert.alert does nothing on Expo Web, so use window.alert there.
- */
 const notify = (title, message) => {
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {
@@ -78,16 +68,6 @@ const notify = (title, message) => {
   Alert.alert(title, message);
 };
 
-/*
- * FIX: the old check was
- *     result?.success === 1 || result?.result === true
- * so a perfectly good response like { success: true, ... } or
- * { status: "success" } or { statusCode: 200 } was treated as a failure:
- * the card never disappeared and an error was shown.
- *
- * This accepts the common "success" shapes and still rejects
- * explicit failures.
- */
 const isApiSuccess = (result) => {
   if (result === true) return true;
 
@@ -117,9 +97,9 @@ const isApiSuccess = (result) => {
   // Fall back to an HTTP-style status code if one is present.
   const code = Number(
     result.statusCode ??
-      result.status_code ??
-      result.code ??
-      (typeof result.status === "number" ? result.status : undefined),
+    result.status_code ??
+    result.code ??
+    (typeof result.status === "number" ? result.status : undefined),
   );
 
   if (Number.isFinite(code) && code > 0) {
@@ -132,20 +112,10 @@ const isApiSuccess = (result) => {
 const apiMessage = (result, fallback) =>
   String(result?.message || result?.msg || result?.error || fallback);
 
-/*
- * The "received" API returns EVERY interest sent to you - including the
- * ones you already accepted (status "approved") or rejected. That is why an
- * accepted card kept coming back after the refresh, still with
- * Accept / Reject buttons.
- *
- * Only PENDING interests get action buttons now.
- */
 const ACCEPTED_STATUSES = ["approved", "accepted"];
 
 const REJECTED_STATUSES = ["rejected", "declined", "denied"];
 
-// false -> Received tab lists only pending requests (handled ones disappear)
-// true  -> handled ones stay in the list, shown with a status and no buttons
 const SHOW_HANDLED_ON_RECEIVED = false;
 
 const normalizeStatus = (value) =>
@@ -162,8 +132,7 @@ const isRejectedStatus = (value) =>
 const isPendingStatus = (value) =>
   !isAcceptedStatus(value) && !isRejectedStatus(value);
 
-export default function InterestsScreen() {
-  const navigation = useNavigation();
+export default function InterestsScreen({ navigation, route }) {
 
   const [activeTab, setActiveTab] = useState("sent");
 
@@ -177,43 +146,30 @@ export default function InterestsScreen() {
 
   const [actionId, setActionId] = useState(null);
 
-  // =======
-  // BACK
-  // =======
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  }, [navigation]);
-
-  // =======
-  // ANDROID HARDWARE BACK
-  // Same pattern as EditSocialBackground / EducationInformation:
-  // intercept the hardware back button and route it through
-  // handleBack(), ignored while an accept/reject is in progress.
-  // =======
-
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (actionId !== null) {
+  useFocusEffect(
+    useCallback(() => {
+      const handleHardwareBack = () => {
+        if (actionId !== null) {
+          return true;
+        }
+        onBackPress();
         return true;
-      }
+      };
 
-      handleBack();
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleHardwareBack,
+      );
 
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack, actionId]);
+      return () => {
+        subscription.remove();
+      };
+    }, [actionId]));
 
   // =======
   // LOAD INTERESTS
@@ -276,17 +232,6 @@ export default function InterestsScreen() {
     }, [activeTab]),
   );
 
-  // =======
-  // DATA HELPERS
-  // =======
-
-  /*
-   * The profile we show is the OTHER person:
-   *   Received tab -> the sender
-   *   Sent tab     -> the receiver
-   * (Looking at `sender` first on the Sent tab would give you your own
-   *  profile, and the click would open the wrong member.)
-   */
   const getMember = (item) =>
     activeTab === "received"
       ? (item?.member ??
@@ -323,12 +268,6 @@ export default function InterestsScreen() {
     );
   };
 
-  /*
-   * FIX: prefer the explicit interest / request id keys. The generic
-   * `item.id` is checked LAST, because on some list responses `id` is
-   * the member's id, and accept/reject then get called with the wrong
-   * id (server replies "not found" and nothing happens).
-   */
   const getInterestId = (item) =>
     item?.interest_id ??
     item?.request_id ??
@@ -401,10 +340,9 @@ export default function InterestsScreen() {
     }
 
     navigation.navigate(PROFILE_ROUTE, {
-      // Same value under both names, so the details screen can read
-      // either `memberId` or `id`.
       memberId: String(memberId),
       id: String(memberId),
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -471,13 +409,13 @@ export default function InterestsScreen() {
       setInterests((prev) =>
         SHOW_HANDLED_ON_RECEIVED
           ? prev.map((item) =>
-              String(getInterestId(item)) === String(interestId)
-                ? { ...item, status: isAccept ? "approved" : "rejected" }
-                : item,
-            )
+            String(getInterestId(item)) === String(interestId)
+              ? { ...item, status: isAccept ? "approved" : "rejected" }
+              : item,
+          )
           : prev.filter(
-              (item) => String(getInterestId(item)) !== String(interestId),
-            ),
+            (item) => String(getInterestId(item)) !== String(interestId),
+          ),
       );
 
       notify(
@@ -741,7 +679,7 @@ export default function InterestsScreen() {
         <TouchableOpacity
           style={styles.shortlistButton}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("shortlists")}
+          onPress={() => navigation.navigate("shortlists", { page: route?.name, prevs: route?.params })}
         >
           <Feather name="star" size={18} color={COLORS.gold} />
         </TouchableOpacity>
@@ -770,7 +708,7 @@ export default function InterestsScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
             <Feather name="arrow-left" size={23} color={COLORS.white} />
           </TouchableOpacity>
 
@@ -794,7 +732,7 @@ export default function InterestsScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
           <Feather name="arrow-left" size={23} color={COLORS.white} />
         </TouchableOpacity>
 
@@ -893,7 +831,7 @@ export default function InterestsScreen() {
 
             <TouchableOpacity
               style={styles.exploreButton}
-              onPress={() => navigation.navigate("matches")}
+              onPress={() => navigation.navigate("matches", { page: route?.name, prevs: route?.params })}
             >
               <Text style={styles.exploreButtonText}>Explore Matches</Text>
             </TouchableOpacity>

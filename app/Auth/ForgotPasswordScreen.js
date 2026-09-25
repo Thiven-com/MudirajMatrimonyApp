@@ -22,7 +22,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
       setTimeout(() => {
         setLoading(false);
-
         navigation.navigate('VerifyOTP', {
           mobile,
         });

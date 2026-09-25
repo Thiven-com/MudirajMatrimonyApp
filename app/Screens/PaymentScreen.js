@@ -101,34 +101,22 @@ const TRUST_BADGES = [
 
 const discountAmount = PLAN.originalPrice - PLAN.price;
 
-/* ===
-   PAYMENT SCREEN
-=== */
-
-export default function PaymentScreen() {
-  const navigation = useNavigation();
+export default function PaymentScreen({ navigation, route }) {
 
   const [selectedMethod, setSelectedMethod] = useState("upi");
 
-  /* ===
-     BACK HANDLER
-  === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
     }
   }, [navigation]);
 
-  /* ===
-     ANDROID HARDWARE BACK
-  === */
 
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
         handleBack();
-
         return true;
       };
 

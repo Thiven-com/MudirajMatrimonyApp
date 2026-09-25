@@ -56,18 +56,8 @@ const YEAR_OPTIONS = Array.from(
   (_, i) => String(CURRENT_YEAR + 5 - i),
 );
 
-/* ===
-   MAIN COMPONENT
 
-   Handles both:
-   - Add mode:  navigation.navigate("AddEducation")
-   - Edit mode: navigation.navigate("AddEducation", { id })
-=== */
-
-export default function AddEducation() {
-  const navigation = useNavigation();
-  const route = useRoute();
-
+export default function AddEducation({ navigation, route }) {
   const { id } = route.params || {};
 
   const educationId = id ? Number(id) : null;
@@ -86,30 +76,12 @@ export default function AddEducation() {
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
 
-  // Which dropdown modal is open: "degree" | "startYear" | "endYear" | null
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  /* ======
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ====== */
+
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        // If a dropdown modal is open, close that first instead of
-        // navigating away.
-        if (activeDropdown) {
-          setActiveDropdown(null);
-          return true;
-        }
-
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -119,6 +91,15 @@ export default function AddEducation() {
     }, [navigation, activeDropdown]),
   );
 
+
+  const onBackPress = () => {
+    if (activeDropdown) {
+      setActiveDropdown(null);
+      return true;
+    }
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
   /* ===
        LOAD EXISTING RECORD (EDIT MODE ONLY)
     === */
@@ -241,7 +222,7 @@ export default function AddEducation() {
       const response = isEditMode
         ? await updateMemberEducation(accessToken, educationId, payload)
         : await addMemberEducation(accessToken, payload);
-      navigation.goBack();
+      onBackPress();
     } catch (error) {
       console.error("SAVE EDUCATION ERROR:", error);
 
@@ -344,7 +325,7 @@ export default function AddEducation() {
         <TouchableOpacity
           style={styles.backButton}
           activeOpacity={0.7}
-          onPress={() => navigation.goBack()}
+          onPress={() => onBackPress()}
         >
           <Feather name="chevron-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -507,7 +488,7 @@ export default function AddEducation() {
                     style={[
                       styles.modalOptionText,
                       activeField.value === option &&
-                        styles.modalOptionTextSelected,
+                      styles.modalOptionTextSelected,
                     ]}
                   >
                     {option}

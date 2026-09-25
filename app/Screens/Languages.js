@@ -19,10 +19,6 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
 import { getMemberLanguages } from "../utils/Functions";
 
-/* ===
-   FIND VALUE DEEPLY INSIDE API RESPONSE
-=== */
-
 const findValueDeep = (data, keys) => {
   if (data === null || data === undefined) {
     return undefined;
@@ -32,19 +28,11 @@ const findValueDeep = (data, keys) => {
     return undefined;
   }
 
-  /* -------------------------------------------------------
-     CHECK CURRENT OBJECT FIRST
-  ------------------------------------------------------- */
-
   for (const key of keys) {
     if (data[key] !== undefined && data[key] !== null) {
       return data[key];
     }
   }
-
-  /* -------------------------------------------------------
-     SEARCH NESTED OBJECTS / ARRAYS
-  ------------------------------------------------------- */
 
   for (const key of Object.keys(data)) {
     const value = data[key];
@@ -61,11 +49,6 @@ const findValueDeep = (data, keys) => {
   return undefined;
 };
 
-/* ===
-   FIND VALUE WITH PRIORITY
-   First search exact/specific keys.
-   Generic "language" is searched only as fallback.
-=== */
 
 const findKnownLanguageValue = (data) => {
   const specificValue = findValueDeep(data, [
@@ -81,10 +64,6 @@ const findKnownLanguageValue = (data) => {
 
   return findValueDeep(data, ["languages", "language"]);
 };
-
-/* ===
-   MOTHER TONGUE
-=== */
 
 const getMotherTongue = (data) => {
   const value = findValueDeep(data, [
@@ -111,10 +90,6 @@ const getMotherTongue = (data) => {
     return "";
   }
 
-  /* -------------------------------------------------------
-     OBJECT
-  ------------------------------------------------------- */
-
   if (typeof value === "object" && !Array.isArray(value)) {
     const name =
       value?.name ??
@@ -129,19 +104,11 @@ const getMotherTongue = (data) => {
     return String(name).trim();
   }
 
-  /* -------------------------------------------------------
-     ARRAY
-  ------------------------------------------------------- */
-
   if (Array.isArray(value)) {
     const first = value.length > 0 ? getLanguageName(value[0]) : "";
 
     return first;
   }
-
-  /* -------------------------------------------------------
-     STRING / NUMBER
-  ------------------------------------------------------- */
 
   return String(value).trim();
 };
@@ -155,28 +122,20 @@ const getLanguageName = (item) => {
     return "";
   }
 
-  /* -------------------------------------------------------
-     STRING / NUMBER
-  ------------------------------------------------------- */
-
   if (typeof item === "string" || typeof item === "number") {
     return String(item).trim();
   }
 
-  /* -------------------------------------------------------
-     OBJECT
-  ------------------------------------------------------- */
-
   if (typeof item === "object" && !Array.isArray(item)) {
     return String(
       item?.name ??
-        item?.language ??
-        item?.language_name ??
-        item?.languageName ??
-        item?.title ??
-        item?.label ??
-        item?.value ??
-        "",
+      item?.language ??
+      item?.language_name ??
+      item?.languageName ??
+      item?.title ??
+      item?.label ??
+      item?.value ??
+      "",
     ).trim();
   }
 
@@ -239,13 +198,6 @@ const getKnownLanguages = (data) => {
       return [];
     }
 
-    /* -----------------------------------------------------
-       JSON ARRAY STRING
-
-       Example:
-       ["English","Hindi","Telugu"]
-    ----------------------------------------------------- */
-
     if (text.startsWith("[") && text.endsWith("]")) {
       try {
         const parsed = JSON.parse(text);
@@ -259,13 +211,6 @@ const getKnownLanguages = (data) => {
         console.log("LANGUAGE JSON PARSE ERROR:", error);
       }
     }
-
-    /* -----------------------------------------------------
-       JSON OBJECT STRING
-
-       Example:
-       {"name":"Telugu"}
-    ----------------------------------------------------- */
 
     if (text.startsWith("{") && text.endsWith("}")) {
       try {
@@ -281,13 +226,6 @@ const getKnownLanguages = (data) => {
       }
     }
 
-    /* -----------------------------------------------------
-       COMMA SEPARATED
-
-       Example:
-       English,Hindi,Telugu
-    ----------------------------------------------------- */
-
     if (text.includes(",")) {
       return removeDuplicateLanguages(
         text
@@ -296,13 +234,6 @@ const getKnownLanguages = (data) => {
           .filter(Boolean),
       );
     }
-
-    /* -----------------------------------------------------
-       SINGLE LANGUAGE
-
-       Example:
-       Telugu
-    ----------------------------------------------------- */
 
     return [text];
   }
@@ -325,15 +256,6 @@ const getKnownLanguages = (data) => {
   ==== */
 
   if (typeof value === "object") {
-    /* -----------------------------------------------------
-       Object containing array
-
-       Example:
-       {
-         data: [...]
-       }
-    ----------------------------------------------------- */
-
     const nestedArray =
       value?.data ??
       value?.items ??
@@ -346,16 +268,6 @@ const getKnownLanguages = (data) => {
 
       return removeDuplicateLanguages(languages);
     }
-
-    /* -----------------------------------------------------
-       Single language object
-
-       Example:
-       {
-         id: 1,
-         name: "Telugu"
-       }
-    ----------------------------------------------------- */
 
     const single = getLanguageName(value);
 
@@ -371,52 +283,28 @@ const getKnownLanguages = (data) => {
    LANGUAGES SCREEN
 === */
 
-export default function Languages() {
-  const navigation = useNavigation();
+export default function Languages({ navigation, route }) {
 
   const [motherTongue, setMotherTongue] = useState("");
-
   const [knownLanguages, setKnownLanguages] = useState([]);
-
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* ====
-     BACK
-  ==== */
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  }, [navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
 
-  /* ====
-     ANDROID HARDWARE BACK
-     Same pattern as EditSocialBackground / EducationInformation:
-     intercept the hardware back button and route it through
-     handleBack().
-  ==== */
-
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      handleBack();
-
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleHardwareBack,
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [handleBack]);
-
-  /* ====
-     LOAD LANGUAGES
-  ==== */
+      return () => {
+        subscription.remove();
+      };
+    }, [navigation]));
 
   const loadLanguages = useCallback(async () => {
     try {
@@ -539,8 +427,8 @@ export default function Languages() {
 
       setErrorMessage(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to load languages.",
+        error?.message ||
+        "Unable to load languages.",
       );
     }
   }, []);
@@ -562,6 +450,7 @@ export default function Languages() {
   const editMotherTongue = () => {
     navigation.navigate("EditLanguages", {
       field: "motherTongue",
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -572,6 +461,7 @@ export default function Languages() {
   const editKnownLanguages = () => {
     navigation.navigate("EditLanguages", {
       field: "knownLanguages",
+      page: route?.name, prevs: route?.params
     });
   };
 
@@ -590,7 +480,7 @@ export default function Languages() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={handleBack}
+          onPress={onBackPress}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={24} color="#222222" />
@@ -695,7 +585,7 @@ export default function Languages() {
 
         <TouchableOpacity
           style={styles.bottomEditButton}
-          onPress={() => navigation.navigate("EditLanguages")}
+          onPress={() => navigation.navigate("EditLanguages", { page: route?.name, prevs: route?.params })}
           activeOpacity={0.85}
         >
           <Feather name="edit-2" size={18} color="#FFFFFF" />

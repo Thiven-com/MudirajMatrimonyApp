@@ -229,8 +229,8 @@ const normalizeAddress = (response) => {
   const country =
     typeof address.country === "object"
       ? String(
-          address.country?.name ?? address.country?.country_name ?? "",
-        ).trim()
+        address.country?.name ?? address.country?.country_name ?? "",
+      ).trim()
       : String(address.country ?? "").trim();
 
   const state =
@@ -266,18 +266,13 @@ const normalizeAddress = (response) => {
 
     address: String(
       address.address ??
-        address.full_address ??
-        address.fullAddress ??
-        address.address_line ??
-        address.addressLine ??
-        "",
+      address.full_address ??
+      address.fullAddress ??
+      address.address_line ??
+      address.addressLine ??
+      "",
     ).trim(),
   };
-
-  console.log(
-    "NORMALIZED PRESENT ADDRESS:",
-    JSON.stringify(normalized, null, 2),
-  );
 
   return normalized;
 };
@@ -302,12 +297,11 @@ const apiMessage = (response, fallback) => {
   );
 };
 
-export default function PresentAddress() {
-  const navigation = useNavigation();
+export default function PresentAddress({ navigation, route }) {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
       return true;
     }
     return false;
@@ -355,10 +349,6 @@ export default function PresentAddress() {
       }
 
       const response = await getMemberPresentAddress(token);
-      console.log(
-        "PRESENT ADDRESS RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const address = normalizeAddress(response);
       setPresentAddress(address);
@@ -389,11 +379,6 @@ export default function PresentAddress() {
       setCountriesLoading(true);
 
       const response = await getMemberCountries(token);
-
-      console.log(
-        "COUNTRIES FULL RESPONSE:",
-        JSON.stringify(response, null, 2),
-      );
 
       const normalized = extractOptions(response, "country");
 
@@ -558,7 +543,6 @@ export default function PresentAddress() {
           resolved.city_id = match.id;
           resolved.city = match.name;
         } else {
-          console.log("CITY NOT FOUND IN LIST:", resolved.city);
         }
       }
     }
@@ -783,9 +767,9 @@ export default function PresentAddress() {
       Alert.alert(
         "Error",
         error?.response?.data?.message ||
-          error?.response?.data?.msg ||
-          error?.message ||
-          "Something went wrong while updating present address.",
+        error?.response?.data?.msg ||
+        error?.message ||
+        "Something went wrong while updating present address.",
       );
     } finally {
       setSavingPresentAddress(false);
@@ -902,7 +886,7 @@ export default function PresentAddress() {
                 const selected =
                   (addressDropdown === "country" &&
                     String(item.id) ===
-                      String(presentAddressForm.country_id)) ||
+                    String(presentAddressForm.country_id)) ||
                   (addressDropdown === "state" &&
                     String(item.id) === String(presentAddressForm.state_id)) ||
                   (addressDropdown === "city" &&
@@ -961,15 +945,8 @@ export default function PresentAddress() {
 
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() =>
-              Alert.alert(
-                "Present Address",
-                "Use Edit to change your present address.",
-              )
-            }
             activeOpacity={0.7}
           >
-            <Feather name="more-vertical" size={18} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
@@ -1232,7 +1209,7 @@ export default function PresentAddress() {
                     style={[
                       styles.saveButton,
                       (savingPresentAddress || resolvingAddress) &&
-                        styles.saveButtonDisabled,
+                      styles.saveButtonDisabled,
                     ]}
                     onPress={handleSavePresentAddress}
                     activeOpacity={0.85}

@@ -45,54 +45,19 @@ const COLORS = {
 // CAREER INFORMATION
 // =====
 
-export default function CareerInformation() {
-  const navigation = useNavigation();
+export default function CareerInformation({ navigation, route }) {
 
   const [careers, setCareers] = useState([]);
-
-  // -------------------------------------------------------
-  // DELETE CONFIRMATION MODAL
-  // -------------------------------------------------------
-
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedCareerId, setSelectedCareerId] = useState(null);
   const [deleting, setDeleting] = useState(false);
-
-  // -------------------------------------------------------
-  // RESULT ALERT MODAL
-  // -------------------------------------------------------
-
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
 
-  /* ========
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ======== */
-
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        // If a modal is open, close that first instead of
-        // navigating away.
-        if (confirmVisible) {
-          setConfirmVisible(false);
-          setSelectedCareerId(null);
-          return true;
-        }
-
-        if (alertVisible) {
-          setAlertVisible(false);
-          return true;
-        }
-
-        navigation.goBack();
-        return true;
-      };
 
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
@@ -102,6 +67,22 @@ export default function CareerInformation() {
       return () => subscription.remove();
     }, [navigation, confirmVisible, alertVisible]),
   );
+
+  const onBackPress = () => {
+    if (confirmVisible) {
+      setConfirmVisible(false);
+      setSelectedCareerId(null);
+      return true;
+    }
+
+    if (alertVisible) {
+      setAlertVisible(false);
+      return true;
+    }
+
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   // ===
   // SHOW CUSTOM ALERT
@@ -130,25 +111,13 @@ export default function CareerInformation() {
 
     let data = response;
 
-    // -----------------------------------------------
-    // response.data
-    // -----------------------------------------------
-
     if (data?.data && typeof data.data === "object") {
       data = data.data;
     }
 
-    // -----------------------------------------------
-    // response.data.data
-    // -----------------------------------------------
-
     if (data?.data && typeof data.data === "object") {
       data = data.data;
     }
-
-    // -----------------------------------------------
-    // result object
-    // -----------------------------------------------
 
     if (
       data?.result &&
@@ -158,41 +127,21 @@ export default function CareerInformation() {
       data = data.result;
     }
 
-    // -----------------------------------------------
-    // careers array
-    // -----------------------------------------------
-
     if (Array.isArray(data?.careers)) {
       return data.careers;
     }
-
-    // -----------------------------------------------
-    // data array
-    // -----------------------------------------------
 
     if (Array.isArray(data)) {
       return data;
     }
 
-    // -----------------------------------------------
-    // data.data array
-    // -----------------------------------------------
-
     if (Array.isArray(data?.data)) {
       return data.data;
     }
 
-    // -----------------------------------------------
-    // result array
-    // -----------------------------------------------
-
     if (Array.isArray(data?.result)) {
       return data.result;
     }
-
-    // -----------------------------------------------
-    // Single career object
-    // -----------------------------------------------
 
     if (
       data &&
@@ -237,8 +186,8 @@ export default function CareerInformation() {
       showAlert(
         "Error",
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to load career information.",
+        error?.message ||
+        "Unable to load career information.",
         "error",
       );
     }
@@ -355,11 +304,6 @@ export default function CareerInformation() {
         response?.data && typeof response.data === "object"
           ? response.data
           : response;
-
-      console.log(
-        "DELETE RESPONSE DATA:",
-        JSON.stringify(responseData, null, 2),
-      );
 
       const statusCode =
         response?.statusCode ??
@@ -529,6 +473,7 @@ export default function CareerInformation() {
 
               navigation.navigate("EditCareer", {
                 id: String(careerId),
+                page: route?.name, prevs: route?.params
               });
             }}
           >
@@ -567,7 +512,7 @@ export default function CareerInformation() {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
           >
             <Feather name="chevron-left" size={19} color={COLORS.red} />
           </TouchableOpacity>
@@ -579,7 +524,7 @@ export default function CareerInformation() {
             activeOpacity={0.7}
             onPress={handleRefresh}
           >
-            <Feather name="more-vertical" size={18} color={COLORS.red} />
+            <Feather name="refresh-ccw" size={18} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 

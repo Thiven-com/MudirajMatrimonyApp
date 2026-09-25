@@ -15,9 +15,7 @@ import {
 } from "react-native";
 
 import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
+  useFocusEffect
 } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Feather from "react-native-vector-icons/Feather";
@@ -100,9 +98,8 @@ function mapMessage(item, receiverId) {
   };
 }
 
-export default function ChatConversationScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
+export default function ChatConversationScreen({ navigation, route }) {
+
   const params = route.params || {};
   const chatId = Array.isArray(params.id) ? params.id[0] : params.id;
 
@@ -117,7 +114,7 @@ export default function ChatConversationScreen() {
   const resolvedChatId = chatId || routeThreadId;
 
   const memberId = routeMemberId || chatId;
-  
+
   const [chatThreadId, setChatThreadId] = useState(
     resolvedChatId ? String(resolvedChatId) : null,
   );
@@ -126,9 +123,6 @@ export default function ChatConversationScreen() {
   const [messages, setMessages] = useState([]);
   const [chat, setChat] = useState(null);
 
-  // Raw name fields from the last successful getChatView response, kept
-  // only so the debug banner can show both side by side. Safe to remove
-  // along with DEBUG_SHOW_RAW_NAMES once the mapping is verified.
   const [debugNames, setDebugNames] = useState(null);
 
   const [loading, setLoading] = useState(true);
@@ -142,19 +136,18 @@ export default function ChatConversationScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
       );
-
       return () => subscription.remove();
     }, [navigation]),
   );
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   /* ====== INITIAL LOAD ====== */
 
@@ -171,9 +164,6 @@ export default function ChatConversationScreen() {
     try {
       const token = await getToken();
       const result = await getChatView(resolvedChatId, token);
-
-      // This endpoint responds with `result: true` (not `success`), so
-      // check both to stay compatible with other endpoints too.
       const isSuccess =
         result?.success === 1 ||
         result?.success === true ||
@@ -183,10 +173,6 @@ export default function ChatConversationScreen() {
         const payload = result?.data || result;
 
         const partner = mapChatPartner(payload, memberId);
-
-        // API returns messages NEWEST-first (id 5, 4, 3, 2, 1). The
-        // FlatList expects oldest-first so it reads top-to-bottom and
-        // scrollToEnd() lands on the latest message — reverse here.
         const rawMessages = Array.isArray(payload?.messages)
           ? [...payload.messages].reverse()
           : [];
@@ -203,9 +189,9 @@ export default function ChatConversationScreen() {
           setChatThreadId(
             String(
               payload?.chat_thread_id ??
-                payload?.thread_id ??
-                payload?.id ??
-                resolvedChatId,
+              payload?.thread_id ??
+              payload?.id ??
+              resolvedChatId,
             ),
           );
         }
@@ -270,7 +256,7 @@ export default function ChatConversationScreen() {
 
   /* ====== SEND MESSAGE ====== */
 
-  const handleBack = () => navigation.goBack();
+  const handleBack = () => onBackPress();
 
   const handleSend = async () => {
     const trimmed = message.trim();
@@ -384,7 +370,7 @@ export default function ChatConversationScreen() {
         <TouchableOpacity
           style={styles.headerProfile}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("Profile", { id: chat.id })}
+          onPress={() => navigation.navigate("Profile", { id: chat.id, page: route?.name, prevs: route?.params })}
         >
           <View style={styles.headerAvatarWrapper}>
             <Image source={avatarSource} style={styles.headerAvatar} />
@@ -420,7 +406,6 @@ export default function ChatConversationScreen() {
             <Feather name="phone" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-            <Feather name="more-vertical" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
         </View>
       </View>

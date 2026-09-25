@@ -88,12 +88,11 @@ const TABLE_ROWS = [
   { icon: "headphones", label: "Priority Customer Support", free: false },
 ];
 
-export default function SubscriptionPlansScreen() {
-  const navigation = useNavigation();
+export default function SubscriptionPlansScreen({ navigation, route }) {
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
       return true;
     }
     return false;
@@ -113,7 +112,7 @@ export default function SubscriptionPlansScreen() {
 
   const handleUpgrade = () => {
     // Wire this up to your checkout flow, e.g.:
-    // navigation.navigate("Checkout", { plan: selectedPlan });
+    // navigation.navigate("Checkout", { plan: selectedPlan, page: route?.name, prevs: route?.params });
   };
 
   return (

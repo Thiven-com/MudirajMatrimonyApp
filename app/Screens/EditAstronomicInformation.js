@@ -140,8 +140,8 @@ const INITIAL_FAMILY_INFO = {
 const INITIAL_ABOUT_ME =
   "I am a simple, positive and family-oriented person. I believe in our traditions and values. Looking for a life partner who understands and respects family values.";
 
-export default function EditProfileScreen() {
-  const navigation = useNavigation();
+export default function EditProfileScreen({ navigation, route }) {
+
   const [photos, setPhotos] = useState(INITIAL_PHOTOS);
 
   const [basicInfo, setBasicInfo] = useState(INITIAL_BASIC_INFO);
@@ -151,31 +151,12 @@ export default function EditProfileScreen() {
   const [familyInfo, setFamilyInfo] = useState(INITIAL_FAMILY_INFO);
   const [aboutMe, setAboutMe] = useState(INITIAL_ABOUT_ME);
 
-  // Which section's edit sheet is open, plus its draft (edited-but-not-saved) values
   const [editingSection, setEditingSection] = useState(null);
   const [draftFields, setDraftFields] = useState([]);
   const [draftText, setDraftText] = useState("");
 
-  /* ======
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ====== */
-
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        // If the edit sheet is open, close that first instead of
-        // navigating away.
-        if (editingSection !== null) {
-          closeEditor();
-          return true;
-        }
-
-        navigation.goBack();
-        return true;
-      };
 
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
@@ -186,6 +167,16 @@ export default function EditProfileScreen() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigation, editingSection]),
   );
+
+
+  const onBackPress = () => {
+    if (editingSection !== null) {
+      closeEditor();
+      return true;
+    }
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   const removePhoto = (id) => {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -201,7 +192,7 @@ export default function EditProfileScreen() {
       aboutMe,
     });
     // TODO: submit the updated profile to your backend, then:
-    // navigation.goBack();
+    // onBackPress();
   };
 
   // ---- Opening an edit sheet for a section ----
@@ -336,7 +327,7 @@ export default function EditProfileScreen() {
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.75}
           >

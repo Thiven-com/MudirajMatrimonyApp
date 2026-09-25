@@ -31,8 +31,7 @@ const GENDER_OPTIONS = [
   { key: "other", label: "Other", icon: "person", activeColor: "#E0A93E" },
 ];
 
-export default function BasicDetailsScreen() {
-  const navigation = useNavigation();
+export default function BasicDetailsScreen({ navigation, route }) {
 
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState("");
@@ -47,20 +46,8 @@ export default function BasicDetailsScreen() {
   const [nationality, setNationality] = useState("Indian");
   const [city, setCity] = useState("");
 
-  /* ======
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ====== */
-
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        navigation.goBack();
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
@@ -69,6 +56,11 @@ export default function BasicDetailsScreen() {
       return () => subscription.remove();
     }, [navigation]),
   );
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
 
   const handleSaveAndContinue = () => {
     console.log("Saving basic details...", {
@@ -85,8 +77,6 @@ export default function BasicDetailsScreen() {
       nationality,
       city,
     });
-    // TODO: submit to backend, then navigate to next onboarding step
-    // navigation.navigate("NextOnboardingStep");
   };
 
   return (
@@ -97,7 +87,7 @@ export default function BasicDetailsScreen() {
       <View style={styles.headerWrapper}>
         <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.75}
             style={styles.backButton}

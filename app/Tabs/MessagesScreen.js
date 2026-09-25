@@ -85,7 +85,7 @@ function getInitials(name) {
 }
 
 const FILTERS = [
-  { key: "all", label: "All Chats", icon: "chatbubble" },
+  { key: "all", label: "All Chats", icon: "grid" },
   {
     key: "unread",
     label: "Unread",
@@ -102,11 +102,6 @@ const FILTERS = [
   { key: "favourites", label: "Favourites", icon: "star" },
 ];
 
-// ---- API response -> chat row model ----
-// Matches the real /api/member/chat-list response shape:
-// { id, user_id, active, blocked_by_user, unseen_message_count,
-//   last_message, last_message_time, member_name, member_package,
-//   member_photo }
 function mapChat(item) {
   return {
     threadId: String(item.id ?? ""), // conversation/chat id, e.g. 1
@@ -122,8 +117,7 @@ function mapChat(item) {
   };
 }
 
-export default function ChatsScreen() {
-  const navigation = useNavigation();
+export default function ChatsScreen({ navigation, route }) {
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -131,13 +125,6 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-
-  /* ======
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ====== */
 
   useFocusEffect(
     useCallback(() => {
@@ -213,11 +200,16 @@ export default function ChatsScreen() {
       name: chat.name,
       profession: chat.profession,
       online: chat.online ? "true" : "false",
+      page: route?.name,
+      prevs: route?.params,
     });
   };
 
   const handleUpgrade = () => {
-    navigation.navigate("SubscriptionPlans");
+    navigation.navigate("SubscriptionPlans", {
+      page: route?.name,
+      prevs: route?.params,
+    });
   };
 
   const normalizedSearch = search.trim().toLowerCase();

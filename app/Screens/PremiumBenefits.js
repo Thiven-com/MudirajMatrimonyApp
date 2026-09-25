@@ -471,16 +471,8 @@ const PackageCard = ({ item, onPress }) => {
   );
 };
 
-/* =====
-   MAIN SCREEN
-===== */
+export default function ChoosePackageScreen({ navigation, route }) {
 
-export default function ChoosePackageScreen() {
-  const navigation = useNavigation();
-
-  /* ===
-     STATE
-  === */
 
   const [packages, setPackages] = useState([]);
 
@@ -488,25 +480,18 @@ export default function ChoosePackageScreen() {
 
   const [error, setError] = useState(null);
 
-  /* ===
-     BACK BUTTON
-  === */
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
     }
   }, [navigation]);
 
-  /* ===
-     ANDROID HARDWARE BACK
-  === */
 
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
         handleBack();
-
         return true;
       };
 
@@ -562,12 +547,11 @@ export default function ChoosePackageScreen() {
   === */
 
   const handleChoosePackage = (item) => {
-    console.log("SELECTED PACKAGE:", JSON.stringify(item, null, 2));
 
     navigation.navigate("Payment", {
       packageId: item.id,
-
       package: item,
+      page: route?.name, prevs: route?.params
     });
   };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,33 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {
+  useFocusEffect
+} from "@react-navigation/native";
 
-const ProfileDetailsScreen = ({ navigation }) => {
+const ProfileDetailsScreen = ({ navigation, route }) => {
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -37,7 +58,7 @@ const ProfileDetailsScreen = ({ navigation }) => {
 
           <TouchableOpacity style={styles.backBtn}
             onPress={() =>
-              navigation.goBack()
+              onBackPress()
             }>
             <Feather
               name="arrow-left"

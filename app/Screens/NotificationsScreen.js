@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
+  BackHandler,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,8 +14,8 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 
-// ====== MOCK DATA ======
-// Replace with the notifications feed from your backend.
+import { useFocusEffect } from "@react-navigation/native";
+
 const FILTERS = [
   { key: "all", label: "All", icon: "notifications" },
   { key: "matches", label: "Matches", icon: "heart-outline" },
@@ -133,7 +134,7 @@ const NOTIFICATION_SECTIONS = [
   },
 ];
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen({ navigation, route }) {
   const [activeFilter, setActiveFilter] = useState("all");
 
   const handleMarkAllRead = () => {
@@ -141,10 +142,22 @@ export default function NotificationsScreen() {
     console.log("Mark all as read");
   };
 
-  const handleNotificationPress = (item) => {
-    // TODO: navigate based on notification type
-    console.log("Opened notification", item.id);
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [route]));
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -250,7 +263,7 @@ export default function NotificationsScreen() {
                   key={item.id}
                   item={item}
                   isLast={index === section.items.length - 1}
-                  onPress={() => handleNotificationPress(item)}
+                  onPress={() => onBackPress(item)}
                 />
               ))}
             </View>

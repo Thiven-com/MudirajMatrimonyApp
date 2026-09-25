@@ -1,5 +1,6 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import {
+  BackHandler,
   Image,
   ScrollView,
   StatusBar,
@@ -11,6 +12,7 @@ import {
 import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
+import { useCallback } from "react";
 
 // Swap for real profile photos, e.g. { uri: profile.photoUrl }
 const PHOTO_PLACEHOLDER = require("../assets/images/Match7.png");
@@ -84,17 +86,34 @@ const RECENTLY_VIEWED_PROFILES = [
   },
 ];
 
-export default function RecentlyViewedScreen() {
-  const navigation = useNavigation();
+export default function RecentlyViewedScreen({ navigation, route }) {
 
   const handleViewProfile = (profile) => {
-    navigation.navigate("ProfileDetail", { id: profile.id });
+    navigation.navigate("ProfileDetail", { id: profile.id, page: route?.name, prevs: route?.params });
   };
 
   const handleInterested = (profile) => {
     // TODO: send an "interested" action to the backend
     console.log("Interested in", profile.id);
   };
+
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -105,7 +124,7 @@ export default function RecentlyViewedScreen() {
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.75}
-          onPress={() => navigation.goBack()}
+          onPress={() => onBackPress()}
         >
           <Feather name="arrow-left" size={24} color={Colors.primaryRed} />
         </TouchableOpacity>

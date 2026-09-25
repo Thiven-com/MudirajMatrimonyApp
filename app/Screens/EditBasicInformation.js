@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
   Modal,
   SafeAreaView,
@@ -15,7 +16,7 @@ import {
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { launchImageLibrary } from "react-native-image-picker";
 import Feather from "react-native-vector-icons/Feather";
 import Fonts from "../constants/Fonts";
@@ -285,8 +286,7 @@ const readStoredUser = async () => {
    MAIN COMPONENT
 === */
 
-export default function EditBasicInformation() {
-  const navigation = useNavigation();
+export default function EditBasicInformation({ navigation, route }) {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -306,6 +306,23 @@ export default function EditBasicInformation() {
   const [showChildrenModal, setShowChildrenModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+
+  const onBackPress = () => {
+    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    return true;
+  };
+  
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+      return () => subscription.remove();
+    }, [route]),
+  );
+
 
   const applyProfile = useCallback((p) => {
     const joinedName = firstText(p, ["name", "full_name"]);
@@ -548,7 +565,7 @@ export default function EditBasicInformation() {
       await loadProfile();
 
       notify("Success", "Basic information updated successfully.", () => {
-        navigation.goBack();
+        onBackPress();
       });
     } catch (error) {
       notify("Update Failed", error?.message || "Unable to update details.");
@@ -649,13 +666,12 @@ export default function EditBasicInformation() {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
+            onPress={() => onBackPress()}
           >
             <Feather name="chevron-left" size={22} color="#222222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Basic Information</Text>
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Feather name="more-vertical" size={18} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 

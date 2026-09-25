@@ -354,9 +354,8 @@ const tabs = [
    COMPONENT
 === */
 
-export default function MatchesScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
+export default function MatchesScreen({ navigation, route }) {
+
     const params = route.params || {};
 
     const [matches, setMatches] = useState([]);
@@ -707,7 +706,11 @@ export default function MatchesScreen() {
                                 style={styles.matchCard}
                                 activeOpacity={0.85}
                                 onPress={() =>
-                                    navigation.navigate("MatchesDetail", { id: item.id })
+                                    navigation.navigate("MatchesDetail", {
+                                        id: item.id,
+                                        page: route?.name,
+                                        prevs: route?.params,
+                                    })
                                 }
                             >
                                 {/* ===
@@ -872,6 +875,8 @@ export default function MatchesScreen() {
                                                     threadId: item.chat_thread_id
                                                         ? String(item.chat_thread_id)
                                                         : "",
+                                                    page: route?.name,
+                                                    prevs: route?.params,
                                                 });
                                             }}
                                             activeOpacity={0.8}
