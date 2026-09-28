@@ -1,10 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   BackHandler,
-  Image,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -13,69 +11,69 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Feather from "react-native-vector-icons/Feather";
-import { Colors } from "../constants/colors";
-import Fonts from "../constants/Fonts";
-import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
 
-const FALLBACK_PHOTO = require("../assets/images/Match5.png");
+import Ionicons from "react-native-vector-icons/Ionicons";
 
-/* ======
-   GET TOKEN (same pattern used across the app)
-====== */
-const getToken = async () => {
-  try {
-    const authToken = await AsyncStorage.getItem("authToken");
-    if (authToken) return authToken;
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-    const userdata = await AsyncStorage.getItem("userdata");
-    if (userdata) {
-      try {
-        const parsed = JSON.parse(userdata);
-        const token =
-          parsed?.data?.token || parsed?.token || parsed?.access_token || null;
-        if (token) return token;
-      } catch (error) {
-        console.log("getToken userdata parse error:", error);
-      }
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getMemberSpiritualBackground } from "../utils/Functions";
+
+const SocialBackgroundScreen = ({ navigation, route }) => {
+
+  const [socialBackground, setSocialBackground] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  const getValue = (value, fallback = "-") => {
+    if (value === null || value === undefined || value === "") {
+      return fallback;
     }
 
-    return null;
-  } catch (error) {
-    console.log("getToken Error:", error);
-    return null;
-  }
-};
-
-/* ======
-   API -> UI MAPPING
-   Adjust field names once you confirm the real response
-   shape from /api/member/my-shortlists
-====== */
-function mapShortlistProfile(api) {
-  const joinedName = [api.first_name, api.last_name].filter(Boolean).join(" ");
-
-  return {
-    id: api.id ?? api.user_id ?? api.member_id,
-    name: (api.name ?? api.full_name ?? joinedName) || "Unknown",
-    age: api.age ?? null,
-    profession: api.profession ?? api.occupation ?? "",
-    location: api.location ?? [api.city, api.state].filter(Boolean).join(", "),
-    education: api.education ?? api.qualification ?? "",
-    religionCaste:
-      api.religion_caste ??
-      [api.religion, api.caste].filter(Boolean).join(", "),
-    online: !!(api.is_online ?? api.online),
-    verified: !!(api.is_verified ?? api.verified),
-    image: api.photo_url
-      ? { uri: api.photo_url }
-      : api.photo
-        ? { uri: api.photo }
-        : FALLBACK_PHOTO,
+    return String(value);
   };
-}
 
-export default function SpiritualBackground({ navigation, route }) {
+  const loadSpiritualBackground = useCallback(async () => {
+    try {
+      setLoadError(null);
+
+      const accessToken = await AsyncStorage.getItem("authToken");
+
+      if (!accessToken) {
+        setLoadError("You're not logged in. Please login again.");
+        return;
+      }
+
+      const response = await getMemberSpiritualBackground(accessToken);
+      let data = {};
+
+      if (response?.data && typeof response.data === "object") {
+        data = response.data;
+      } else if (response?.result && typeof response.result === "object") {
+        data = response.result;
+      } else if (
+        response?.result?.data &&
+        typeof response.result.data === "object"
+      ) {
+        data = response.result.data;
+      } else if (typeof response === "object") {
+        data = response;
+      }
+
+      setSocialBackground(data ?? {});
+    } catch (error) {
+      console.error("SPIRITUAL BACKGROUND SCREEN ERROR:", error);
+
+      setLoadError(
+        error?.message || "Unable to load your spiritual background.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -87,8 +85,6 @@ export default function SpiritualBackground({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadShortlists();
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         handleBack,
@@ -98,551 +94,456 @@ export default function SpiritualBackground({ navigation, route }) {
     }, [handleBack]),
   );
 
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [togglingId, setTogglingId] = useState(null);
+  useEffect(() => {
+    loadSpiritualBackground();
+  }, [loadSpiritualBackground]);
 
-  /* ======
-     LOAD SHORTLISTS
-  ====== */
-  const loadShortlists = async () => {
-    setLoading(true);
-    setLoadError("");
 
+  const handleRefresh = async () => {
     try {
-      const token = await getToken();
+      setRefreshing(true);
 
-      if (!token) {
-        setLoadError("Authentication token not found. Please login again.");
-        return;
-      }
-
-      const result = await getMyShortlists(token);
-
-      if (result?.success === 1 || result?.result === true) {
-        const apiData =
-          result?.data?.shortlists ??
-          result?.data?.members ??
-          (Array.isArray(result?.data) ? result.data : []);
-
-        setProfiles(apiData.filter(Boolean).map(mapShortlistProfile));
-      } else {
-        setProfiles([]);
-        setLoadError(result?.message || "Unable to load shortlisted profiles.");
-      }
-    } catch (e) {
-      console.log("loadShortlists Error:", e);
-      setLoadError(e?.message || "Unable to load shortlisted profiles.");
+      await loadSpiritualBackground();
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  /* ======
-     REMOVE FROM SHORTLIST
-  ====== */
-  const handleRemove = async (id) => {
-    setTogglingId(id);
+  const religion =
+    socialBackground?.religion ??
+    socialBackground?.religion_name ??
+    socialBackground?.religion_id ??
+    "-";
 
-    try {
-      const token = await getToken();
-      if (!token) {
-        setLoadError("Authentication token not found. Please login again.");
-        return;
-      }
+  const caste =
+    socialBackground?.caste ??
+    socialBackground?.caste_name ??
+    socialBackground?.caste_id ??
+    "-";
 
-      const result = await removeFromShortlist(id, token);
-      console.log("removeFromShortlist result:", JSON.stringify(result));
+  const subCaste =
+    socialBackground?.sub_caste ??
+    socialBackground?.sub_caste_name ??
+    socialBackground?.sub_caste_id ??
+    "-";
 
-      if (result?.success === 1 || result?.result === true) {
-        setProfiles((prev) => prev.filter((p) => p.id !== id));
-      } else {
-        setLoadError(result?.message || "Unable to update shortlist.");
-      }
-    } catch (e) {
-      console.log("handleRemove Error:", e);
-      setLoadError(e?.message || "Unable to update shortlist.");
-    } finally {
-      setTogglingId(null);
-    }
+  const ethnicity =
+    socialBackground?.ethnicity_name ?? socialBackground?.ethnicity ?? "-";
+
+  const personalValues =
+    socialBackground?.personal_values ??
+    socialBackground?.personal_value ??
+    "-";
+
+  const familyValue =
+    socialBackground?.family_value ??
+    socialBackground?.family_values ??
+    socialBackground?.family_value_id ??
+    "-";
+
+  const communityValue =
+    socialBackground?.community_value ??
+    socialBackground?.community_values ??
+    "-";
+
+  const details = [
+    {
+      label: "Religion",
+      value: getValue(religion),
+      icon: "flower-outline",
+      iconColor: "#E83E75",
+      editable: true,
+    },
+
+    {
+      label: "Caste",
+      value: getValue(caste),
+      icon: "people-outline",
+      iconColor: "#F4B83F",
+      editable: true,
+    },
+
+    {
+      label: "Sub Caste",
+      value: getValue(subCaste),
+      icon: "planet-outline",
+      iconColor: "#8D5BE8",
+      editable: false,
+      arrow: true,
+    },
+
+    {
+      label: "Ethnicity",
+      value: getValue(ethnicity),
+      icon: "globe-outline",
+      iconColor: "#4E9BE8",
+      editable: false,
+      arrow: true,
+    },
+
+    {
+      label: "Personal Values",
+      value: getValue(personalValues),
+      icon: "star-outline",
+      iconColor: "#F0B63D",
+      editable: false,
+      arrow: true,
+    },
+
+    {
+      label: "Family Value",
+      value: getValue(familyValue),
+      icon: "home-outline",
+      iconColor: "#63B85A",
+      editable: false,
+      arrow: true,
+    },
+
+    {
+      label: "Community Value",
+      value: getValue(communityValue),
+      icon: "people-circle-outline",
+      iconColor: "#E84887",
+      editable: false,
+      arrow: true,
+    },
+  ];
+
+  const handleEdit = () => {
+    navigation.navigate("EditSocialBackground", { page: route?.name, prevs: route?.params });
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={Colors.primaryRed} />
-          <Text style={styles.centerStateText}>
-            Loading shortlisted profiles...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleItemEdit = (item) => {
+    navigation.navigate("EditSocialBackground", {
+      field: item.label,
+      data: socialBackground,
+      page: route?.name,
+      prevs: route?.params
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
-
-      {/* ====== HEADER ====== */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={handleBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather name="arrow-left" size={24} color={Colors.white} />
-        </TouchableOpacity>
-
-        <View style={styles.headerTextBlock}>
-          <Text style={styles.headerTitle}>Shortlists</Text>
-          <Text style={styles.headerSubtitle}>Your saved profiles</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather name="heart" size={22} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       >
-        {/* ====== SHORTLIST BANNER ====== */}
-        <View style={styles.bannerCard}>
-          <View style={styles.bannerIconCircle}>
-            <Feather name="bookmark" size={20} color={Colors.white} />
-          </View>
-          <View style={styles.bannerTextBlock}>
-            <Text style={styles.bannerTitle}>Your Shortlist</Text>
-            <Text style={styles.bannerSubtitle}>
-              Keep track of profiles you are interested in.
-            </Text>
-          </View>
-          <View style={styles.bannerCountBadge}>
-            <Text style={styles.bannerCountText}>
-              {profiles.length} Profile{profiles.length === 1 ? "" : "s"}
-            </Text>
-          </View>
-        </View>
+        <View style={styles.card}>
 
-        {/* ====== ERROR ====== */}
-        {!!loadError && (
-          <View style={styles.errorBanner}>
-            <Feather name="alert-circle" size={16} color={Colors.primaryRed} />
-            <Text style={styles.errorBannerText}>{loadError}</Text>
-            <TouchableOpacity onPress={loadShortlists}>
-              <Text style={styles.retryLink}>Retry</Text>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              activeOpacity={0.7}
+              onPress={() => handleBack()}
+            >
+              <Ionicons name="chevron-back" size={25} color="#D92332" />
+            </TouchableOpacity>
+
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              Spiritual & Social Background
+            </Text>
+
+            <TouchableOpacity
+              style={styles.menuButton}
+              activeOpacity={0.7}
+              onPress={() => console.log("MENU CLICKED")}
+            >
+              {/* <Ionicons name="ellipsis-vertical" size={19} color="#D92332" /> */}
             </TouchableOpacity>
           </View>
-        )}
 
-        {/* ====== PROFILE LIST ====== */}
-        <View style={styles.profileList}>
-          {profiles.map((profile) => (
-            <ProfileCard
-              key={profile.id}
-              profile={profile}
-              isToggling={togglingId === profile.id}
-              onRemove={() => handleRemove(profile.id)}
-            />
-          ))}
-        </View>
+          {loading ? (
+            <View style={styles.stateContainer}>
+              <ActivityIndicator size="small" color="#D92332" />
 
-        {/* ====== EMPTY / END-OF-LIST FOOTER ====== */}
-        <View style={styles.footerEmpty}>
-          <View style={styles.footerIconCircle}>
-            <Feather name="bookmark" size={30} color={Colors.primaryRed} />
-          </View>
-          <Text style={styles.footerTitle}>
-            {profiles.length === 0
-              ? "No shortlisted profiles yet"
-              : "No more profiles in shortlist"}
-          </Text>
-          <Text style={styles.footerSubtitle}>
-            Add profiles to your shortlist for easy access.
-          </Text>
-          <TouchableOpacity
-            style={styles.exploreButton}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate("Matches", { page: route?.name, prevs: route?.params })}
-          >
-            <Feather name="search" size={15} color={Colors.white} />
-            <Text style={styles.exploreButtonText}>Explore More Profiles</Text>
-          </TouchableOpacity>
+              <Text style={styles.stateText}>Loading your details…</Text>
+            </View>
+          ) : loadError ? (
+
+            <View style={styles.stateContainer}>
+              <Ionicons name="alert-circle-outline" size={22} color="#D92332" />
+
+              <Text style={[styles.stateText, styles.stateErrorText]}>
+                {loadError}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.retryButton}
+                activeOpacity={0.8}
+                onPress={loadSpiritualBackground}
+              >
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+
+              <View style={styles.detailsContainer}>
+                {details.map((item, index) => (
+                  <View
+                    key={item.label}
+                    style={[
+                      styles.row,
+                      index === details.length - 1 && styles.lastRow,
+                    ]}
+                  >
+
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        {
+                          backgroundColor: item.iconColor + "18",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={18}
+                        color={item.iconColor}
+                      />
+                    </View>
+                    <Text style={styles.label} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+
+
+                    <View style={styles.valueContainer}>
+                      <Text style={styles.value} numberOfLines={1}>
+                        {item.value}
+                      </Text>
+                    </View>
+
+                    {item.editable ? (
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        activeOpacity={0.7}
+                        onPress={() => handleItemEdit(item)}
+                      >
+                        <Ionicons name="pencil" size={12} color="#A7A7A7" />
+                      </TouchableOpacity>
+                    ) : (
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color="#999999"
+                        style={styles.arrow}
+                      />
+                    )}
+                  </View>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={styles.editButton}
+                activeOpacity={0.85}
+                onPress={handleEdit}
+              >
+                <Ionicons name="pencil" size={15} color="#FFFFFF" />
+
+                <Text style={styles.editButtonText}>Edit Details</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
-// ====== SUBCOMPONENTS ======
-
-function ProfileCard({ profile, isToggling, onRemove }) {
-  const metaLine1 = [profile.age, profile.location].filter(Boolean).join(", ");
-  const metaLine2 = [profile.education, profile.profession]
-    .filter(Boolean)
-    .join(", ");
-
-  return (
-    <View style={styles.profileCard}>
-      <View style={styles.photoWrapper}>
-        <Image source={profile.image} style={styles.photo} resizeMode="cover" />
-        {profile.online && <View style={styles.onlineDot} />}
-      </View>
-
-      <View style={styles.infoColumn}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {profile.name}
-          </Text>
-          {profile.verified && (
-            <Feather
-              name="check-circle"
-              size={16}
-              color={Colors.success}
-              style={styles.verifiedIcon}
-            />
-          )}
-        </View>
-
-        {!!metaLine1 && <Text style={styles.metaText}>{metaLine1}</Text>}
-        {!!metaLine2 && <Text style={styles.metaText}>{metaLine2}</Text>}
-        {!!profile.religionCaste && (
-          <Text style={styles.metaText}>{profile.religionCaste}</Text>
-        )}
-
-        <View style={styles.tagsRow}>
-          {!!profile.profession && (
-            <Tag icon="briefcase" label={profile.profession} />
-          )}
-          {!!profile.location && (
-            <Tag icon="location" label={profile.location} />
-          )}
-        </View>
-      </View>
-
-      <View style={styles.actionsColumn}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.removeButton}
-          activeOpacity={0.8}
-          onPress={onRemove}
-          disabled={isToggling}
-        >
-          {isToggling ? (
-            <ActivityIndicator size="small" color={Colors.primaryRed} />
-          ) : (
-            <>
-              <Feather name="heart" size={13} color={Colors.primaryRed} />
-              <Text style={styles.removeText}>Remove</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function Tag({ icon, label }) {
-  return (
-    <View style={styles.tag}>
-      <Feather name={icon} size={11} color={Colors.primaryRed} />
-      <Text style={styles.tagText} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
+export default SocialBackgroundScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-
-  centerState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  centerStateText: {
-    marginTop: 12,
-    fontSize: Fonts.size.md,
-    color: Colors.textSecondary,
-  },
-
-  /* ===== HEADER ===== */
-  header: {
-    backgroundColor: Colors.primaryRed,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 18,
-  },
-  headerIconButton: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextBlock: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: Fonts.size.xxl,
-    fontFamily: Fonts.extraBold,
-    color: Colors.white,
-  },
-  headerSubtitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: "#FBDCDC",
-    marginTop: 2,
+    backgroundColor: "#F7F7F7",
   },
 
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 28,
+    flexGrow: 1,
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 0,
   },
 
-  /* ===== BANNER ===== */
-  bannerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FBE6E2",
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    marginBottom: 18,
-  },
-  bannerIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.primaryRed,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bannerTextBlock: {
-    flex: 1,
-  },
-  bannerTitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.primaryRedDark,
-  },
-  bannerSubtitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  bannerCountBadge: {
-    backgroundColor: "#F6C9C0",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  bannerCountText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
-    color: Colors.primaryRedDark,
-  },
-
-  /* ===== ERROR ===== */
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEE2E2",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  errorBannerText: {
-    flex: 1,
-    fontSize: Fonts.size.sm,
-    color: Colors.primaryRed,
-    fontFamily: Fonts.regular,
-  },
-  retryLink: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
-    color: Colors.primaryRed,
-    textDecorationLine: "underline",
-  },
-
-  /* ===== PROFILE LIST ===== */
-  profileList: {
-    gap: 14,
-  },
-  profileCard: {
-    flexDirection: "row",
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 18,
-    padding: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  photoWrapper: {
-    width: 78,
-    height: 96,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: Colors.border,
-  },
-  photo: {
+  card: {
     width: "100%",
-    height: "100%",
-  },
-  onlineDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.success,
-    borderWidth: 2,
-    borderColor: Colors.white,
-  },
-
-  infoColumn: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  name: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
-    flexShrink: 1,
-  },
-  verifiedIcon: {
-    marginLeft: 5,
-  },
-  metaText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginTop: 3,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 8,
-  },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FBE6E2",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-    maxWidth: 130,
-  },
-  tagText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.semiBold,
-    color: Colors.primaryRedDark,
-    flexShrink: 1,
-  },
-
-  actionsColumn: {
-    width: 78,
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingVertical: 2,
-  },
-  menuButton: {
-    width: 26,
-    height: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.3,
-    borderColor: Colors.primaryRed,
+    backgroundColor: "#FFFFFF",
     borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    gap: 4,
-  },
-  removeText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.bold,
-    color: Colors.primaryRed,
+    paddingTop: 20,
+    paddingBottom: 210,
+
+    shadowColor: "#000",
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+
+    elevation: 3,
   },
 
-  /* ===== FOOTER / EMPTY STATE ===== */
-  footerEmpty: {
+  header: {
+    height: 48,
+    flexDirection: "row",
     alignItems: "center",
-    paddingTop: 34,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
+
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F2",
   },
-  footerIconCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    backgroundColor: "#FBE6E2",
-    alignItems: "center",
+
+  backButton: {
+    width: 30,
+    height: 30,
     justifyContent: "center",
-    marginBottom: 16,
+    alignItems: "center",
   },
-  footerTitle: {
-    fontSize: Fonts.size.base,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    color: "#D92332",
+    fontSize: 17,
+    fontWeight: "700",
+    marginLeft: 4,
+  },
+
+  menuButton: {
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  stateContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 50,
+    paddingBottom: 40,
+    alignItems: "center",
+  },
+
+  stateText: {
+    marginTop: 10,
+    color: "#8A8080",
+    fontSize: 13,
+    fontWeight: "500",
     textAlign: "center",
   },
-  footerSubtitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    textAlign: "center",
-    marginTop: 6,
-    marginBottom: 20,
+
+  stateErrorText: {
+    color: "#B23327",
   },
-  exploreButton: {
+
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 7,
+    backgroundColor: "#D92332",
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  detailsContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 18,
+    paddingBottom: 30,
+  },
+
+  row: {
+    minHeight: 60,
+    flexDirection: "row",
+    alignItems: "center",
+
+    borderBottomWidth: 3,
+    borderBottomColor: "#F5F5F5",
+  },
+
+  lastRow: {
+    borderBottomWidth: 0,
+  },
+
+  iconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+
+  label: {
+    width: 88,
+    color: "#777777",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  valueContainer: {
+    flex: 1,
+    paddingLeft: 50,
+    paddingRight: 4,
+  },
+
+  value: {
+    color: "#555555",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  actionButton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#F2F2F2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  arrow: {
+    width: 25,
+    textAlign: "center",
+  },
+
+  editButton: {
+    height: 37,
+    marginHorizontal: 12,
+    marginTop: 80,
+    borderRadius: 7,
+    backgroundColor: "#D92332",
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 12,
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    gap: 8,
+
+    shadowColor: "#D92332",
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+
+    elevation: 2,
   },
-  exploreButtonText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
+
+  editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    marginLeft: 6,
   },
 });

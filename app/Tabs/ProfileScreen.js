@@ -69,16 +69,16 @@ const COLORS = {
 };
 
 const PROFILE = {
-  name: "Priyanka",
-  age: "25",
-  profession: "Software Engineer",
-  location: "Hyderabad, Telangana, India",
-  image: require("../assets/images/Match6.png"),
+  name: "",
+  age: "",
+  profession: "",
+  location: "",
+  image: require("../assets/images/logo.png"),
 
   about:
-    "I am a simple, ambitious and family oriented person. I love traveling, listening to music and spending time with family and friends.",
+    "",
 
-  photos: [require("../assets/images/Match6.png")],
+  photos: [require("../assets/images/logo.png")],
 
   personal: [
     {
@@ -202,10 +202,6 @@ const PROFILE = {
   ],
 };
 
-/* =====
-   SECTION HEADER
-===== */
-
 const SectionHeader = ({ icon, title, showViewAll = false }) => {
   return (
     <View style={styles.sectionHeader}>
@@ -264,10 +260,6 @@ const PersonalItem = ({ item }) => {
   );
 };
 
-/* =====
-   FAMILY ITEM
-===== */
-
 const FamilyItem = ({ item }) => {
   return (
     <View style={styles.familyItem}>
@@ -294,10 +286,6 @@ const FamilyItem = ({ item }) => {
     </View>
   );
 };
-
-/* =====
-   MAIN SCREEN
-===== */
 
 export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
 
@@ -378,10 +366,6 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
     }, [navigation]),
   );
 
-  /* =======
-     INITIAL LOAD
-  ======= */
-
   useEffect(() => {
     loadProfileDetails();
     loadMemberIntroduction();
@@ -438,32 +422,16 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
   }, [presentAddressForm.state_id]);
 
   const currentOption = (type) => {
-    /* ===
-       COUNTRY
-    === */
 
     if (type === "country") {
       return countries;
     }
 
-    /* ===
-       STATE
-    === */
-
     if (type === "state") {
       return states;
     }
-
-    /* ===
-       CITY
-    === */
-
     return cities;
   };
-
-  /* =======
-     GET PROFILE DETAILS
-  ======= */
 
   const loadProfileDetails = async () => {
     try {

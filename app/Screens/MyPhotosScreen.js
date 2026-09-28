@@ -214,7 +214,6 @@ export default function MyPhotos({ navigation, route }) {
 
       if (!accessToken) {
         Alert.alert("Login Required", "Please login again.");
-
         return;
       }
 

@@ -65,12 +65,12 @@ const COLORS = {
 
 const LOGO = require("../assets/images/logo.png");
 
-const HERO_IMAGE = require("../assets/images/banner9.png");
+const HERO_IMAGE = require("../assets/images/logo.png");
 
 const MATCH_IMAGES = {
-  Match1: require("../assets/images/Match1.png"),
-  Match2: require("../assets/images/Match2.png"),
-  Match3: require("../assets/images/Match3.png"),
+  Match1: require("../assets/images/logo.png"),
+  Match2: require("../assets/images/logo.png"),
+  Match3: require("../assets/images/logo.png")
 };
 
 /* =======
@@ -497,7 +497,7 @@ export default function HomeScreen({ navigation, route }) {
               ))}
             </ScrollView>
 
-            {banners.length > 1 && (
+            {banners.length > 0 && (
               <View style={styles.bannerDots}>
                 {banners.map((banner, idx) => (
                   <View
@@ -520,7 +520,7 @@ export default function HomeScreen({ navigation, route }) {
             <Image
               source={HERO_IMAGE}
               style={styles.heroImage}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </TouchableOpacity>
         )}
@@ -850,6 +850,9 @@ export default function HomeScreen({ navigation, route }) {
 ======= */
 
 function PremiumMemberCard({ member, onPress }) {
+
+  const [error, setError] = useState(false);
+
   return (
     <TouchableOpacity
       style={styles.premiumMemberCard}
@@ -857,9 +860,10 @@ function PremiumMemberCard({ member, onPress }) {
       activeOpacity={0.9}
     >
       <Image
-        source={member.image}
+        source={error ? LOGO : member.image || LOGO}
         style={styles.premiumMemberImage}
-        resizeMode="cover"
+        onError={() => setError(true)}
+        resizeMode={error ? "contain" : "cover"}
       />
 
       <View style={styles.premiumCrownBadge}>

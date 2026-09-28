@@ -101,7 +101,7 @@ const FEATURES = [
   },
 
   {
-    icon: "images",
+    icon: "image",
     label: "Gallery",
     label2: "Views",
     color: "#E31E2F",
