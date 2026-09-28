@@ -1,11 +1,8 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
-  BackHandler,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
+  ActivityIndicator,
+  Alert,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -15,1082 +12,672 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import LinearGradient from "react-native-linear-gradient";
-import Svg, { Path } from "react-native-svg";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import Feather from "react-native-vector-icons/Feather";
-import { Colors } from "../constants/colors";
-import { Fonts, FontSizes } from "../constants/Fonts";
 
-// Swap each of these for the user's actual uploaded photos, e.g. { uri: photo.url }
-const PHOTO_PLACEHOLDER = require("../../assets/images/Match7.png");
+import Fonts from "../constants/Fonts";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import {
+  getMemberAstronomic,
+  updateMemberAstronomic,
+} from "../utils/Functions";
 
-const INITIAL_PHOTOS = [
-  { id: "1", isPrimary: true },
-  { id: "2", isPrimary: false },
-  { id: "3", isPrimary: false },
-];
+/* =========================================================
+   COLORS
+========================================================= */
 
-const INITIAL_BASIC_INFO = [
-  {
-    icon: "user",
-    iconBg: "#FDEAE0",
-    label: "Full Name",
-    value: "Priya Sharma",
-  },
-  {
-    icon: "user",
-    iconBg: "#EDE7F6",
-    label: "Profile Created By",
-    value: "Self",
-  },
-  {
-    icon: "calendar",
-    iconBg: "#FDEAE0",
-    label: "Date of Birth",
-    value: "15 Mar 1999",
-  },
-  {
-    icon: "clock",
-    iconBg: "#FFF6DC",
-    label: "Time of Birth",
-    value: "10:30 AM",
-  },
-  {
-    icon: "user",
-    iconBg: "#FCE4EC",
-    label: "Gender",
-    value: "Female",
-  },
-  {
-    icon: "maximize-2",
-    iconBg: "#E3F2FD",
-    label: "Height",
-    value: "5'4\" (162 cm)",
-  },
-  {
-    icon: "heart",
-    iconBg: "#FCE4EC",
-    label: "Marital Status",
-    value: "Never Married",
-  },
-  {
-    icon: "globe",
-    iconBg: "#E3F2FD",
-    label: "Mother Tongue",
-    value: "Telugu",
-  },
-];
-
-const INITIAL_LOCATION_INFO = [
-  {
-    icon: "map-pin",
-    iconBg: "#E8F5E9",
-    label: "Living in",
-    value: "Hyderabad, Telangana, India",
-  },
-  {
-    icon: "users",
-    iconBg: "#FFF6DC",
-    label: "Community",
-    value: "Mudhiraj",
-  },
-];
-
-const INITIAL_EDUCATION_INFO = [
-  {
-    icon: "book-open",
-    iconBg: "#E3F2FD",
-    label: "Education",
-    value: "B.E / B.Tech",
-  },
-  {
-    icon: "briefcase",
-    iconBg: "#E3F2FD",
-    label: "Profession",
-    value: "Software Engineer",
-  },
-];
-
-const INITIAL_LIFESTYLE_INFO = [
-  {
-    icon: "feather",
-    iconBg: "#E8F5E9",
-    label: "Diet",
-    value: "Vegetarian",
-  },
-  { icon: "slash", iconBg: "#FDEAE0", label: "Smoke", value: "No" },
-  { icon: "slash", iconBg: "#FDEAE0", label: "Drink", value: "No" },
-  {
-    icon: "user",
-    iconBg: "#E3F2FD",
-    label: "Body Type",
-    value: "Slim",
-  },
-];
-
-const INITIAL_FAMILY_INFO = {
-  father: { name: "Rajesh Sharma", note: "Business" },
-  mother: { name: "Suman Sharma", note: "Homemaker" },
-  siblings: { name: "1 Brother", note: "Younger" },
+const COLORS = {
+  red: "#E51D35",
+  white: "#FFFFFF",
+  black: "#222222",
+  text: "#555555",
+  gray: "#777777",
+  placeholder: "#999999",
+  border: "#E8E8E8",
+  background: "#F5F5F5",
+  lightRed: "#E79AA3",
 };
 
-const INITIAL_ABOUT_ME =
-  "I am a simple, positive and family-oriented person. I believe in our traditions and values. Looking for a life partner who understands and respects family values.";
+/* =========================================================
+   COMPONENT
+========================================================= */
 
-export default function EditProfileScreen() {
+export default function EditAstronomicInformation() {
   const navigation = useNavigation();
-  const [photos, setPhotos] = useState(INITIAL_PHOTOS);
+  const route = useRoute();
 
-  const [basicInfo, setBasicInfo] = useState(INITIAL_BASIC_INFO);
-  const [locationInfo, setLocationInfo] = useState(INITIAL_LOCATION_INFO);
-  const [educationInfo, setEducationInfo] = useState(INITIAL_EDUCATION_INFO);
-  const [lifestyleInfo, setLifestyleInfo] = useState(INITIAL_LIFESTYLE_INFO);
-  const [familyInfo, setFamilyInfo] = useState(INITIAL_FAMILY_INFO);
-  const [aboutMe, setAboutMe] = useState(INITIAL_ABOUT_ME);
+  const selectedField = route?.params?.field || "";
 
-  // Which section's edit sheet is open, plus its draft (edited-but-not-saved) values
-  const [editingSection, setEditingSection] = useState(null);
-  const [draftFields, setDraftFields] = useState([]);
-  const [draftText, setDraftText] = useState("");
+  /* =======================================================
+     STATES
+  ======================================================= */
 
-  /* ============================================================
-     HARDWARE BACK BUTTON
-     Same useFocusEffect + BackHandler pattern used on the other
-     screens: active only while this screen is focused, cleaned
-     up on blur/unmount.
-  ============================================================ */
+  const [sunSign, setSunSign] = useState("");
+  const [moonSign, setMoonSign] = useState("");
+  const [timeOfBirth, setTimeOfBirth] = useState("");
+  const [cityOfBirth, setCityOfBirth] = useState("");
 
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        // If the edit sheet is open, close that first instead of
-        // navigating away.
-        if (editingSection !== null) {
-          closeEditor();
-          return true;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  /* =======================================================
+     TOKEN
+  ======================================================= */
+
+  const getAccessToken = async () => {
+    const tokenKeys = [
+      "authToken",
+      "access_token",
+      "accessToken",
+      "token",
+      "userToken",
+      "auth_token",
+    ];
+
+    for (const key of tokenKeys) {
+      try {
+        const storedValue = await AsyncStorage.getItem(key);
+
+        if (!storedValue) continue;
+
+        let accessToken = null;
+
+        try {
+          const parsedValue = JSON.parse(storedValue);
+
+          if (typeof parsedValue === "object" && parsedValue !== null) {
+            accessToken =
+              parsedValue.token ||
+              parsedValue.access_token ||
+              parsedValue.authToken ||
+              parsedValue.accessToken ||
+              parsedValue.userToken ||
+              null;
+          } else if (typeof parsedValue === "string") {
+            accessToken = parsedValue;
+          }
+        } catch {
+          accessToken = storedValue;
         }
 
-        navigation.goBack();
-        return true;
-      };
+        if (accessToken) {
+          return accessToken;
+        }
+      } catch (error) {
+        console.log(`Token error (${key}):`, error);
+      }
+    }
 
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
+    return null;
+  };
+
+  /* =======================================================
+     LOAD ASTRONOMIC INFORMATION
+  ======================================================= */
+
+  const loadAstronomicInformation = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        setErrorMessage("Access token not found. Please login again.");
+        return;
+      }
+
+      const response = await getMemberAstronomic(accessToken);
+
+      console.log("Astronomic Information Response:", response);
+
+      let data =
+        response?.data?.data ??
+        response?.data?.result ??
+        response?.data ??
+        response?.result ??
+        response;
+
+      if (Array.isArray(data)) {
+        data = data[0];
+      }
+
+      if (
+        data &&
+        typeof data === "object" &&
+        data.data &&
+        typeof data.data === "object"
+      ) {
+        data = data.data;
+      }
+
+      if (!data || typeof data !== "object") {
+        setErrorMessage("Unable to load astronomic information.");
+        return;
+      }
+
+      setSunSign(String(data?.sun_sign ?? data?.sunSign ?? "").trim());
+
+      setMoonSign(String(data?.moon_sign ?? data?.moonSign ?? "").trim());
+
+      setTimeOfBirth(
+        String(data?.time_of_birth ?? data?.timeOfBirth ?? "").trim(),
       );
 
-      return () => subscription.remove();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [navigation, editingSection]),
-  );
+      setCityOfBirth(
+        String(data?.city_of_birth ?? data?.cityOfBirth ?? "").trim(),
+      );
+    } catch (error) {
+      console.log("loadAstronomicInformation error:", error);
 
-  const removePhoto = (id) => {
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleSave = () => {
-    console.log("Saving profile changes...", {
-      basicInfo,
-      locationInfo,
-      educationInfo,
-      lifestyleInfo,
-      familyInfo,
-      aboutMe,
-    });
-    // TODO: submit the updated profile to your backend, then:
-    // navigation.goBack();
-  };
-
-  // ---- Opening an edit sheet for a section ----
-  const openFieldEditor = (section, items) => {
-    setEditingSection(section);
-    setDraftFields(
-      items.map((item) => ({ label: item.label, value: item.value })),
-    );
-  };
-
-  const openFamilyEditor = () => {
-    setEditingSection("family");
-    setDraftFields([
-      {
-        key: "father.name",
-        label: "Father - Name",
-        value: familyInfo.father.name,
-      },
-      {
-        key: "father.note",
-        label: "Father - Occupation",
-        value: familyInfo.father.note,
-      },
-      {
-        key: "mother.name",
-        label: "Mother - Name",
-        value: familyInfo.mother.name,
-      },
-      {
-        key: "mother.note",
-        label: "Mother - Occupation",
-        value: familyInfo.mother.note,
-      },
-      {
-        key: "siblings.name",
-        label: "Siblings",
-        value: familyInfo.siblings.name,
-      },
-      {
-        key: "siblings.note",
-        label: "Siblings - Note",
-        value: familyInfo.siblings.note,
-      },
-    ]);
-  };
-
-  const openAboutEditor = () => {
-    setEditingSection("about");
-    setDraftText(aboutMe);
-  };
-
-  const closeEditor = () => {
-    setEditingSection(null);
-    setDraftFields([]);
-    setDraftText("");
-  };
-
-  const updateDraftField = (index, value) => {
-    setDraftFields((prev) =>
-      prev.map((f, i) => (i === index ? { ...f, value } : f)),
-    );
-  };
-
-  const saveEditor = () => {
-    switch (editingSection) {
-      case "basic":
-        setBasicInfo((prev) =>
-          prev.map((item, i) => ({
-            ...item,
-            value: draftFields[i]?.value ?? item.value,
-          })),
-        );
-        break;
-      case "location":
-        setLocationInfo((prev) =>
-          prev.map((item, i) => ({
-            ...item,
-            value: draftFields[i]?.value ?? item.value,
-          })),
-        );
-        break;
-      case "education":
-        setEducationInfo((prev) =>
-          prev.map((item, i) => ({
-            ...item,
-            value: draftFields[i]?.value ?? item.value,
-          })),
-        );
-        break;
-      case "lifestyle":
-        setLifestyleInfo((prev) =>
-          prev.map((item, i) => ({
-            ...item,
-            value: draftFields[i]?.value ?? item.value,
-          })),
-        );
-        break;
-      case "family": {
-        const get = (key) =>
-          draftFields.find((f) => f.key === key)?.value ?? "";
-        setFamilyInfo({
-          father: { name: get("father.name"), note: get("father.note") },
-          mother: { name: get("mother.name"), note: get("mother.note") },
-          siblings: { name: get("siblings.name"), note: get("siblings.note") },
-        });
-        break;
-      }
-      case "about":
-        setAboutMe(draftText);
-        break;
-      default:
-        break;
+      setErrorMessage(
+        error?.message || "Unable to load astronomic information.",
+      );
+    } finally {
+      setLoading(false);
     }
-    closeEditor();
   };
 
-  const editorTitles = {
-    basic: "Edit Basic Information",
-    location: "Edit Location & Community",
-    education: "Edit Education & Career",
-    lifestyle: "Edit Lifestyle",
-    family: "Edit Family Details",
-    about: "Edit About Me",
+  /* =======================================================
+     LOAD ON SCREEN OPEN
+  ======================================================= */
+
+  useEffect(() => {
+    loadAstronomicInformation();
+  }, []);
+
+  /* =======================================================
+     FOCUS SELECTED FIELD
+  ======================================================= */
+
+  const shouldFocus = (field) => {
+    return selectedField === field;
   };
+
+  /* =======================================================
+     SAVE
+  ======================================================= */
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        Alert.alert(
+          "Login Required",
+          "Access token not found. Please login again.",
+        );
+        return;
+      }
+
+      const cleanSunSign = String(sunSign || "").trim();
+
+      const cleanMoonSign = String(moonSign || "").trim();
+
+      const cleanTimeOfBirth = String(timeOfBirth || "").trim();
+
+      const cleanCityOfBirth = String(cityOfBirth || "").trim();
+
+      /* ================================================
+         VALIDATION
+      ================================================= */
+
+      if (!cleanSunSign) {
+        Alert.alert("Validation", "Sun Sign is required.");
+        return;
+      }
+
+      if (!cleanMoonSign) {
+        Alert.alert("Validation", "Moon Sign is required.");
+        return;
+      }
+
+      if (!cleanTimeOfBirth) {
+        Alert.alert("Validation", "Time Of Birth is required.");
+        return;
+      }
+
+      if (!cleanCityOfBirth) {
+        Alert.alert("Validation", "City Of Birth is required.");
+        return;
+      }
+
+      /* ================================================
+         REQUEST BODY
+      ================================================= */
+
+      const body = {
+        sun_sign: cleanSunSign,
+        moon_sign: cleanMoonSign,
+        time_of_birth: cleanTimeOfBirth,
+        city_of_birth: cleanCityOfBirth,
+      };
+
+      console.log("Update Astronomic Body:", body);
+
+      /* ================================================
+         API
+      ================================================= */
+
+      const response = await updateMemberAstronomic(accessToken, body);
+
+      console.log("Update Astronomic Response:", response);
+
+      const success =
+        response?.success === 1 ||
+        response?.success === true ||
+        response?.result === true;
+
+      if (!success) {
+        throw new Error(
+          response?.message ||
+            response?.error ||
+            "Unable to update astronomic information.",
+        );
+      }
+
+      Alert.alert("Success", "Astronomic information updated successfully.", [
+        {
+          text: "OK",
+          onPress: () => {
+            navigation.goBack();
+          },
+        },
+      ]);
+    } catch (error) {
+      console.log("handleSave error:", error);
+
+      Alert.alert(
+        "Update Failed",
+        error?.message || "Unable to update astronomic information.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* =======================================================
+     INPUT COMPONENT
+  ======================================================= */
+
+  const renderInput = ({
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    field,
+    keyboardType = "default",
+    multiline = false,
+  }) => {
+    const focused = shouldFocus(field);
+
+    return (
+      <View style={styles.fieldContainer}>
+        <Text style={styles.label}>
+          {label}
+          <Text style={styles.required}> *</Text>
+        </Text>
+
+        <View
+          style={[styles.inputWrapper, focused && styles.inputWrapperFocused]}
+        >
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={COLORS.placeholder}
+            style={[styles.input, multiline && styles.multilineInput]}
+            keyboardType={keyboardType}
+            multiline={multiline}
+            textAlignVertical={multiline ? "top" : "center"}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
-      {/* ================= HEADER — back button only, luxury look ================= */}
-      <View style={styles.headerWrapper}>
-        <LinearGradient colors={Colors.gradientLogo} style={styles.header}>
+      <View style={styles.screen}>
+        {/* ================================================
+            HEADER
+        ================================================= */}
+
+        <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
+            activeOpacity={0.7}
             onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            activeOpacity={0.75}
           >
-            <View style={styles.backButtonCircle}>
-              <Feather name="arrow-left" size={20} color={Colors.primaryRed} />
-            </View>
+            <Feather name="chevron-left" size={22} color={COLORS.black} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Edit Profile</Text>
-        </LinearGradient>
+          <Text style={styles.headerTitle}>Edit Astronomic Information</Text>
 
-        <Svg
-          width={SCREEN_WIDTH}
-          height={24}
-          viewBox={`0 0 ${SCREEN_WIDTH} 24`}
-          style={styles.headerWave}
-        >
-          <Path
-            d={`M0,4 Q${SCREEN_WIDTH * 0.25},22 ${SCREEN_WIDTH * 0.5},10 Q${SCREEN_WIDTH * 0.75},-2 ${SCREEN_WIDTH},14`}
-            stroke={Colors.goldLight}
-            strokeWidth={5}
-            fill="none"
-            strokeLinecap="round"
-          />
-        </Svg>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ================= PAGE TITLE ================= */}
-        <View style={styles.titleRow}>
-          <View style={styles.titleIconWrapper}>
-            <Ionicons name="user" size={26} color={Colors.primaryRed} />
-            <Feather
-              name="edit-2"
-              size={13}
-              color={Colors.primaryRed}
-              style={styles.titleIconPencil}
-            />
-          </View>
-          <View style={styles.titleTextBlock}>
-            <Text style={styles.titleText}>Edit Profile</Text>
-            <Text style={styles.subtitleText}>
-              Update your details and tell others about yourself
-            </Text>
-          </View>
+          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
+            <Feather name="more-vertical" size={18} color={COLORS.red} />
+          </TouchableOpacity>
         </View>
 
-        {/* ================= PROFILE PHOTOS ================= */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Profile Photos</Text>
-            <TouchableOpacity>
-              <Text style={styles.sectionLink}>Add / Remove</Text>
-            </TouchableOpacity>
-          </View>
+        {/* ================================================
+            CARD
+        ================================================= */}
 
-          <View style={styles.photosRow}>
-            {photos.map((photo) => (
-              <View key={photo.id} style={styles.photoTile}>
-                <Image
-                  source={PHOTO_PLACEHOLDER}
-                  style={styles.photoImage}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.35)"]}
-                  style={styles.photoShade}
-                  pointerEvents="none"
-                />
-                {photo.isPrimary ? (
-                  <View style={styles.primaryBadge}>
-                    <Feather
-                      name="star"
-                      size={10}
-                      color={Colors.white}
-                      style={{ marginRight: 3 }}
-                    />
-                    <Text style={styles.primaryBadgeText}>Primary</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.removePhotoButton}
-                    onPress={() => removePhoto(photo.id)}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <Feather name="x" size={13} color={Colors.white} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
+        <View style={styles.card}>
+          {loading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={COLORS.red} />
 
-            <TouchableOpacity style={styles.addPhotoTile} activeOpacity={0.7}>
-              <View style={styles.addPhotoIconCircle}>
-                <Feather name="plus" size={22} color={Colors.primaryRed} />
-              </View>
-              <Text style={styles.addPhotoText}>Add Photo</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.tipBanner}>
-            <Feather name="sun" size={15} color={Colors.primaryRedDark} />
-            <Text style={styles.tipText}>
-              Add at least 4 photos for better visibility
-            </Text>
-          </View>
-        </View>
-
-        {/* ================= BASIC INFORMATION ================= */}
-        <InfoSection
-          title="Basic Information"
-          onEdit={() => openFieldEditor("basic", basicInfo)}
-        >
-          <InfoGrid items={basicInfo} />
-        </InfoSection>
-
-        {/* ================= LOCATION & COMMUNITY ================= */}
-        <InfoSection
-          title="Location & Community"
-          onEdit={() => openFieldEditor("location", locationInfo)}
-        >
-          <InfoGrid items={locationInfo} />
-        </InfoSection>
-
-        {/* ================= EDUCATION & CAREER ================= */}
-        <InfoSection
-          title="Education & Career"
-          onEdit={() => openFieldEditor("education", educationInfo)}
-        >
-          <InfoGrid items={educationInfo} />
-        </InfoSection>
-
-        {/* ================= ABOUT ME ================= */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleRow}>
-              <Feather
-                name="edit-3"
-                size={17}
-                color={Colors.primaryRed}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.sectionTitle}>About Me</Text>
+              <Text style={styles.loaderText}>Loading your details...</Text>
             </View>
-            <TouchableOpacity style={styles.editRow} onPress={openAboutEditor}>
-              <Feather name="edit-2" size={13} color={Colors.primaryRed} />
-              <Text style={styles.sectionLink}> Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.aboutMeText}>{aboutMe}</Text>
-        </View>
-
-        {/* ================= LIFESTYLE ================= */}
-        <InfoSection
-          title="Lifestyle"
-          onEdit={() => openFieldEditor("lifestyle", lifestyleInfo)}
-        >
-          <View style={styles.lifestyleRow}>
-            {lifestyleInfo.map((item) => (
-              <View key={item.label} style={styles.lifestyleItem}>
-                <View
-                  style={[
-                    styles.infoIconCircle,
-                    { backgroundColor: item.iconBg },
-                  ]}
-                >
-                  <Ionicons
-                    name={item.icon}
-                    size={15}
-                    color={Colors.textSecondary}
-                  />
-                </View>
-                <Text style={styles.infoLabel}>{item.label}</Text>
-                <Text style={styles.infoValue}>{item.value}</Text>
-              </View>
-            ))}
-          </View>
-        </InfoSection>
-
-        {/* ================= FAMILY DETAILS ================= */}
-        <InfoSection title="Family Details" onEdit={openFamilyEditor}>
-          <View style={styles.familyRow}>
-            <FamilyColumn
-              label="Father"
-              name={familyInfo.father.name}
-              note={familyInfo.father.note}
-            />
-            <FamilyColumn
-              label="Mother"
-              name={familyInfo.mother.name}
-              note={familyInfo.mother.note}
-            />
-            <FamilyColumn
-              label="Siblings"
-              name={familyInfo.siblings.name}
-              note={familyInfo.siblings.note}
-            />
-          </View>
-        </InfoSection>
-
-        {/* ================= SAVE BUTTON ================= */}
-        <TouchableOpacity
-          style={styles.saveButton}
-          activeOpacity={0.85}
-          onPress={handleSave}
-        >
-          <Feather
-            name="save"
-            size={19}
-            color={Colors.white}
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.saveButtonText}>Save Changes</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* ================= EDIT SHEET ================= */}
-      <Modal
-        visible={editingSection !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={closeEditor}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={closeEditor}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>
-                {editorTitles[editingSection]}
-              </Text>
-              <TouchableOpacity
-                onPress={closeEditor}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Feather name="x" size={22} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
+          ) : (
             <ScrollView
               showsVerticalScrollIndicator={false}
-              style={{ maxHeight: 420 }}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.scrollContent}
             >
-              {editingSection === "about" ? (
-                <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldLabel}>About Me</Text>
-                  <TextInput
-                    style={[styles.fieldInput, styles.fieldInputMultiline]}
-                    value={draftText}
-                    onChangeText={setDraftText}
-                    multiline
-                    placeholder="Tell others about yourself"
-                    placeholderTextColor={Colors.placeholder}
-                  />
-                </View>
-              ) : (
-                draftFields.map((field, index) => (
-                  <View
-                    key={field.key ?? field.label}
-                    style={styles.fieldBlock}
-                  >
-                    <Text style={styles.fieldLabel}>{field.label}</Text>
-                    <TextInput
-                      style={styles.fieldInput}
-                      value={field.value}
-                      onChangeText={(text) => updateDraftField(index, text)}
-                      placeholderTextColor={Colors.placeholder}
-                    />
-                  </View>
-                ))
-              )}
-            </ScrollView>
+              {/* ERROR */}
 
-            <View style={styles.modalActionsRow}>
+              {errorMessage ? (
+                <View style={styles.errorBox}>
+                  <Feather name="alert-circle" size={18} color={COLORS.red} />
+
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              ) : null}
+
+              {/* ========================================
+                  SUN SIGN
+              ======================================== */}
+
+              {renderInput({
+                label: "Sun Sign",
+                value: sunSign,
+                onChangeText: setSunSign,
+                placeholder: "Enter Sun Sign",
+                field: "sun_sign",
+              })}
+
+              {/* ========================================
+                  MOON SIGN
+              ======================================== */}
+
+              {renderInput({
+                label: "Moon Sign",
+                value: moonSign,
+                onChangeText: setMoonSign,
+                placeholder: "Enter Moon Sign",
+                field: "moon_sign",
+              })}
+
+              {/* ========================================
+                  TIME OF BIRTH
+              ======================================== */}
+
+              {renderInput({
+                label: "Time Of Birth",
+                value: timeOfBirth,
+                onChangeText: setTimeOfBirth,
+                placeholder: "Enter Time Of Birth",
+                field: "time_of_birth",
+              })}
+
+              {/* ========================================
+                  CITY OF BIRTH
+              ======================================== */}
+
+              {renderInput({
+                label: "City Of Birth",
+                value: cityOfBirth,
+                onChangeText: setCityOfBirth,
+                placeholder: "Enter City Of Birth",
+                field: "city_of_birth",
+              })}
+
+              {/* ========================================
+                  SAVE BUTTON
+              ======================================== */}
+
               <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={closeEditor}
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 activeOpacity={0.8}
+                onPress={handleSave}
+                disabled={saving}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                {saving ? (
+                  <ActivityIndicator color={COLORS.white} size="small" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
               </TouchableOpacity>
+
+              {/* ========================================
+                  CANCEL BUTTON
+              ======================================== */}
+
               <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={saveEditor}
-                activeOpacity={0.85}
+                style={styles.cancelButton}
+                activeOpacity={0.8}
+                onPress={() => navigation.goBack()}
+                disabled={saving}
               >
-                <Text style={styles.modalSaveText}>Save</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+            </ScrollView>
+          )}
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
-// ================= SUBCOMPONENTS =================
-function InfoSection({ title, onEdit, children }) {
-  return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <TouchableOpacity
-          style={styles.editRow}
-          onPress={onEdit}
-          activeOpacity={0.7}
-        >
-          <Feather name="edit-2" size={13} color={Colors.primaryRed} />
-          <Text style={styles.sectionLink}> Edit</Text>
-        </TouchableOpacity>
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function InfoGrid({ items }) {
-  return (
-    <View style={styles.infoGrid}>
-      {items.map((item) => (
-        <View key={item.label} style={styles.infoGridItem}>
-          <View
-            style={[styles.infoIconCircle, { backgroundColor: item.iconBg }]}
-          >
-            <Feather name={item.icon} size={16} color={Colors.textSecondary} />
-          </View>
-          <View style={styles.infoTextBlock}>
-            <Text style={styles.infoLabel}>{item.label}</Text>
-            <Text style={styles.infoValue}>{item.value}</Text>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function FamilyColumn({ label, name, note }) {
-  return (
-    <View style={styles.familyColumn}>
-      <Text style={styles.familyLabel}>{label}</Text>
-      <Text style={styles.familyName}>{name}</Text>
-      <Text style={styles.familyNote}>({note})</Text>
-    </View>
-  );
-}
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 22,
-    paddingBottom: 30,
+    backgroundColor: COLORS.background,
   },
 
-  /* ===== HEADER — back button only, luxury look ===== */
-  headerWrapper: {
-    width: "100%",
-  },
-  header: {
-    height: 90,
-    flexDirection: "row",
-    alignItems: "center",
+  screen: {
+    flex: 1,
     paddingHorizontal: 16,
   },
+
+  /* =====================================================
+     HEADER
+  ===================================================== */
+
+  header: {
+    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
   backButton: {
-    marginRight: 14,
+    padding: 8,
   },
-  backButtonCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-  },
+
   headerTitle: {
-    fontSize: FontSizes.welcome,
-    fontFamily: Fonts.display.bold,
-    color: Colors.white,
-    letterSpacing: 0.3,
-  },
-  headerWave: {
-    marginTop: -6,
-  },
-
-  /* ===== PAGE TITLE ===== */
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  titleIconWrapper: {
-    marginRight: 14,
-  },
-  titleIconPencil: {
-    position: "absolute",
-    bottom: -3,
-    right: -6,
-  },
-  titleTextBlock: {
     flex: 1,
-  },
-  titleText: {
-    fontSize: FontSizes.welcome + 2,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  subtitleText: {
-    fontSize: FontSizes.subtitle,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 3,
-  },
-
-  /* ===== SECTION CARD (shared) ===== */
-  sectionCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: FontSizes.welcome - 4,
-    fontFamily: Fonts.display.bold,
-    color: Colors.primaryRed,
-  },
-  editRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sectionLink: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
-  },
-
-  /* ===== PROFILE PHOTOS ===== */
-  photosRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  photoTile: {
-    flex: 1,
-    aspectRatio: 0.82,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: Colors.border,
-    position: "relative",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  photoImage: {
-    width: "100%",
-    height: "100%",
-  },
-  photoShade: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "45%",
-  },
-  primaryBadge: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.primaryRed,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  primaryBadgeText: {
-    fontSize: 9.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
-  removePhotoButton: {
-    position: "absolute",
-    top: 7,
-    right: 7,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(179,21,28,0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  addPhotoTile: {
-    flex: 1,
-    aspectRatio: 0.82,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.primaryRed,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FDF1EF",
-  },
-  addPhotoIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  addPhotoText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
     textAlign: "center",
-  },
-  tipBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FDF3D8",
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    marginTop: 12,
-    gap: 8,
-  },
-  tipText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.medium,
-    color: Colors.primaryRedDark,
-    flexShrink: 1,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.base,
+    color: COLORS.black,
   },
 
-  /* ===== INFO GRID ===== */
-  infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  infoGridItem: {
-    width: "50%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingRight: 8,
-    marginBottom: 16,
-  },
-  infoIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  infoTextBlock: {
-    flexShrink: 1,
-  },
-  infoLabel: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-  },
-  infoValue: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-    marginTop: 2,
+  menuButton: {
+    padding: 8,
   },
 
-  /* ===== ABOUT ME ===== */
-  aboutMeText: {
-    fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textSecondary,
-    lineHeight: 21,
-  },
+  /* =====================================================
+     CARD
+  ===================================================== */
 
-  /* ===== LIFESTYLE ===== */
-  lifestyleRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  lifestyleItem: {
-    width: "22%",
-    alignItems: "center",
-  },
-
-  /* ===== FAMILY ===== */
-  familyRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  familyColumn: {
+  card: {
     flex: 1,
-  },
-  familyLabel: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginBottom: 3,
-  },
-  familyName: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-  familyNote: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    marginVertical: 10,
+    padding: 16,
+    elevation: 2,
   },
 
-  /* ===== SAVE BUTTON ===== */
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primaryRedDark,
-    borderRadius: 16,
-    paddingVertical: 17,
-    marginTop: 6,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
-  },
+  /* =====================================================
+     LOADER
+  ===================================================== */
 
-  /* ===== EDIT MODAL ===== */
-  modalOverlay: {
+  loaderContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-  modalCard: {
-    backgroundColor: Colors.cardBackground,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 30 : 20,
-    maxHeight: "85%",
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: FontSizes.welcome - 2,
-    fontFamily: Fonts.display.bold,
-    color: Colors.textPrimary,
-    flexShrink: 1,
+
+  loaderText: {
+    marginTop: 10,
+    color: COLORS.gray,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
   },
-  fieldBlock: {
-    marginBottom: 16,
+
+  /* =====================================================
+     SCROLL
+  ===================================================== */
+
+  scrollContent: {
+    paddingBottom: 25,
   },
-  fieldLabel: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.semiBold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  fieldInput: {
+
+  /* =====================================================
+     ERROR
+  ===================================================== */
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF0F0",
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
+    borderColor: "#F2C4C9",
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textPrimary,
-    ...Platform.select({ web: { outlineStyle: "none" } }),
+    marginBottom: 18,
   },
-  fieldInputMultiline: {
-    minHeight: 90,
-    textAlignVertical: "top",
-  },
-  modalActionsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 6,
-  },
-  modalCancelButton: {
+
+  errorText: {
     flex: 1,
+    marginLeft: 8,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.sm,
+    color: COLORS.red,
+  },
+
+  /* =====================================================
+     FIELD
+  ===================================================== */
+
+  fieldContainer: {
+    marginBottom: 18,
+  },
+
+  label: {
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.md,
+    color: COLORS.black,
+    marginBottom: 7,
+  },
+
+  required: {
+    color: COLORS.red,
+    fontFamily: Fonts.semiBold,
+  },
+
+  /* =====================================================
+     INPUT
+  ===================================================== */
+
+  inputWrapper: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+  },
+
+  inputWrapperFocused: {
+    borderColor: COLORS.red,
+  },
+
+  input: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: Fonts.regular,
+    fontSize: Fonts.size.md,
+    color: COLORS.black,
+  },
+
+  multilineInput: {
+    minHeight: 90,
+  },
+
+  /* =====================================================
+     SAVE
+  ===================================================== */
+
+  saveButton: {
+    height: 48,
+    backgroundColor: COLORS.red,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: Colors.primaryRed,
-    borderRadius: 12,
-    paddingVertical: 14,
+    marginTop: 5,
   },
-  modalCancelText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
+
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
-  modalSaveButton: {
-    flex: 2,
+
+  saveButtonText: {
+    color: COLORS.white,
+    fontFamily: Fonts.bold,
+    fontSize: Fonts.size.md,
+  },
+
+  /* =====================================================
+     CANCEL
+  ===================================================== */
+
+  cancelButton: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 12,
-    paddingVertical: 14,
+    marginTop: 12,
   },
-  modalSaveText: {
-    fontSize: 14,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
+
+  cancelButtonText: {
+    color: COLORS.black,
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.md,
   },
 });
