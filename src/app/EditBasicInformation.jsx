@@ -4,6 +4,8 @@ import {
   Alert,
   Image,
   Modal,
+  PermissionsAndroid,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -16,12 +18,30 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { launchImageLibrary } from "react-native-image-picker";
 import Feather from "react-native-vector-icons/Feather";
 import Fonts from "../constants/Fonts";
 
 import BASE_URL from "../constants/AppUrls";
 import * as Api from "../utils/Functions";
+
+/* =========================================================
+   IMAGE PICKER (safe loader)
+   Loads react-native-image-picker lazily so a missing / unlinked
+   package shows a clear message instead of "Cannot find module".
+========================================================= */
+
+const getImagePicker = () => {
+  try {
+    // eslint-disable-next-line global-require
+    const picker = require("react-native-image-picker");
+    if (picker && typeof picker.launchImageLibrary === "function") {
+      return { picker, error: null };
+    }
+    return { picker: null, error: "launchImageLibrary is not available." };
+  } catch (error) {
+    return { picker: null, error: error?.message || String(error) };
+  }
+};
 
 /* =========================================================
    COLORS
@@ -570,18 +590,66 @@ export default function EditBasicInformation() {
     ]);
   };
 
+  // Only needed on Android 12 and below. Android 13+ uses the system photo picker.
+  const ensureGalleryPermission = async () => {
+    if (Platform.OS !== "android" || Platform.Version >= 33) return true;
+    try {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+      );
+      return result === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (error) {
+      console.log("permission error:", error);
+      return false;
+    }
+  };
+
   const handleUploadPhoto = async () => {
     if (uploadingPhoto) return;
 
+    const { picker, error: pickerError } = getImagePicker();
+
+    if (!picker) {
+      console.log("image-picker load error:", pickerError);
+      notify(
+        "Photo picker unavailable",
+        "react-native-image-picker is not installed or not linked in this build.\n\n" +
+          "Run: npm install react-native-image-picker, then rebuild the app " +
+          "(npx react-native run-android).\n\n" +
+          `Details: ${pickerError}`,
+      );
+      return;
+    }
+
     try {
       setUploadingPhoto(true);
-      const result = await launchImageLibrary({
+
+      const allowed = await ensureGalleryPermission();
+      if (!allowed) {
+        notify(
+          "Permission needed",
+          "Please allow photo access in Settings to choose a picture.",
+        );
+        return;
+      }
+
+      const result = await picker.launchImageLibrary({
         mediaType: "photo",
         quality: 0.8,
         selectionLimit: 1,
       });
 
-      if (result.didCancel || !result.assets?.length) return;
+      if (result?.didCancel) return;
+
+      if (result?.errorCode) {
+        notify(
+          "Error",
+          result.errorMessage || `Picker error: ${result.errorCode}`,
+        );
+        return;
+      }
+
+      if (!result?.assets?.length) return;
 
       const asset = result.assets[0];
       const fileName =
