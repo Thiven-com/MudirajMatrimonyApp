@@ -1,0 +1,3 @@
+// const BASE_URL = "http://192.168.0.9:8000";
+const BASE_URL = "https://mudirajworld.runserver.in";
+export default BASE_URL;
