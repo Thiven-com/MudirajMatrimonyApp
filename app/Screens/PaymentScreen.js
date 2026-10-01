@@ -1,30 +1,41 @@
-import { useCallback, useState } from "react";
+import Feather from "react-native-vector-icons/Feather";
+import LinearGradient from "react-native-linear-gradient";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler } from "react-native";
 
 import {
-  BackHandler,
-  SafeAreaView,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+
+import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  SafeAreaView,
 } from "react-native";
 
-import Feather from "react-native-vector-icons/Feather";
-
-import LinearGradient from "react-native-linear-gradient";
-
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-
 import { Colors } from "../constants/colors";
-import Fonts from "../constants/Fonts";
+import { Fonts, FontSizes } from "../constants/Fonts";
 
-/* ===
-   PLAN DATA
-=== */
+import {
+  createPayment,
+  getPackageDetails,
+  getPaymentTypes,
+  getToken,
+} from "../utils/Functions";
 
-const PLAN = {
+// =====================================================
+// FALLBACK PACKAGE
+// =====================================================
+
+const DEFAULT_PLAN = {
   name: "Premium Membership",
   duration: "12 Months Plan",
   badge: "Best Value",
@@ -33,149 +44,923 @@ const PLAN = {
   discountPercent: 40,
 };
 
-/* ===
-   PAYMENT METHODS
-=== */
+// =====================================================
+// FALLBACK PAYMENT METHODS
+// =====================================================
 
-const PAYMENT_METHODS = [
+const FALLBACK_PAYMENT_METHODS = [
   {
     key: "upi",
-    icon: "zap",
+    icon: "flash-outline",
     label: "UPI",
     subtitle: "Pay using any UPI App",
     recommended: true,
   },
-
   {
     key: "card",
-    icon: "credit-card",
+    icon: "card-outline",
     label: "Debit / Credit Cards",
     subtitle: "Visa, MasterCard, RuPay",
+    recommended: false,
   },
-
   {
     key: "netbanking",
-    icon: "briefcase",
+    icon: "business-outline",
     label: "Net Banking",
     subtitle: "All major banks supported",
+    recommended: false,
   },
-
   {
     key: "wallet",
-    icon: "wallet",
+    icon: "wallet-outline",
     label: "Wallets",
     subtitle: "PhonePe, Paytm, Amazon Pay & more",
+    recommended: false,
   },
-
   {
     key: "emi",
-    icon: "calendar",
+    icon: "calendar-outline",
     label: "EMI / Pay Later",
     subtitle: "Pay in easy installments",
+    recommended: false,
   },
 ];
 
-/* ===
-   TRUST BADGES
-=== */
+// =====================================================
+// TRUST BADGES
+// =====================================================
 
 const TRUST_BADGES = [
   {
-    icon: "shield",
+    icon: "shield-checkmark-outline",
     title: "100% Secure",
     subtitle: "Your payments are safe with us",
   },
-
   {
-    icon: "award",
+    icon: "ribbon-outline",
     title: "Trusted by Thousands",
     subtitle: "Join 1L+ happy Mudhiraj families",
   },
-
   {
-    icon: "headphones",
+    icon: "headset-outline",
     title: "24/7 Support",
     subtitle: "We're here to help you anytime",
   },
 ];
 
-const discountAmount = PLAN.originalPrice - PLAN.price;
+// =====================================================
+// PAYMENT ICON
+// =====================================================
 
-export default function PaymentScreen({ navigation, route }) {
+const getPaymentIcon = (value) => {
+  const text = String(value || "").toLowerCase();
+
+  if (text.includes("upi")) {
+    return "flash-outline";
+  }
+
+  if (
+    text.includes("card") ||
+    text.includes("credit") ||
+    text.includes("debit")
+  ) {
+    return "card-outline";
+  }
+
+  if (text.includes("bank") || text.includes("netbank")) {
+    return "business-outline";
+  }
+
+  if (
+    text.includes("wallet") ||
+    text.includes("paytm") ||
+    text.includes("phonepe")
+  ) {
+    return "wallet-outline";
+  }
+
+  if (text.includes("emi") || text.includes("later")) {
+    return "calendar-outline";
+  }
+
+  return "card-outline";
+};
+
+// =====================================================
+// PAYMENT LABEL
+// =====================================================
+
+const getPaymentLabel = (item) => {
+  return (
+    item?.label ||
+    item?.name ||
+    item?.title ||
+    item?.payment_method_name ||
+    item?.payment_type_name ||
+    item?.payment_method ||
+    "Payment"
+  );
+};
+
+// =====================================================
+// PAYMENT KEY
+// =====================================================
+
+const getPaymentKey = (item, index) => {
+  const value =
+    item?.key ||
+    item?.slug ||
+    item?.code ||
+    item?.payment_method ||
+    item?.payment_type ||
+    item?.name ||
+    item?.title;
+
+  if (value) {
+    return String(value).toLowerCase().trim().replace(/\s+/g, "_");
+  }
+
+  return `payment_${index}`;
+};
+
+// =====================================================
+// GET PACKAGE DATA
+// =====================================================
+
+const extractPackageData = (response) => {
+  if (!response) {
+    return null;
+  }
+
+  let data = response?.data;
+
+  if (data?.package) {
+    data = data.package;
+  }
+
+  if (data?.package_details) {
+    data = data.package_details;
+  }
+
+  if (data?.packageDetails) {
+    data = data.packageDetails;
+  }
+
+  if (!data && response?.package) {
+    data = response.package;
+  }
+
+  if (!data && response?.package_details) {
+    data = response.package_details;
+  }
+
+  if (!data && response?.packageDetails) {
+    data = response.packageDetails;
+  }
+
+  if (!data && typeof response === "object") {
+    data = response;
+  }
+
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  return data;
+};
+
+// =====================================================
+// PAYMENT SCREEN
+// =====================================================
+
+export default function PaymentScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  // React Native CLI:
+  // navigation.navigate("PaymentScreen", {
+  //   packageId: 3,
+  // });
+
+  const { packageId } = route.params || {};
+
+  // ===================================================
+  // STATES
+  // ===================================================
+
+  const [plan, setPlan] = useState(DEFAULT_PLAN);
+
+  const [paymentMethods, setPaymentMethods] = useState(
+    FALLBACK_PAYMENT_METHODS,
+  );
 
   const [selectedMethod, setSelectedMethod] = useState("upi");
 
+  const [isLoadingPackage, setIsLoadingPackage] = useState(true);
 
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    }
-  }, [navigation]);
+  const [isLoadingPaymentTypes, setIsLoadingPaymentTypes] = useState(true);
 
+  const [isPaying, setIsPaying] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        handleBack();
-        return true;
-      };
+  // ===================================================
+  // PACKAGE ID
+  // ===================================================
 
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
+  const selectedPackageId = Number(
+    Array.isArray(packageId) ? packageId[0] : packageId,
+  );
+
+  // ===================================================
+  // LOAD DATA
+  // ===================================================
+
+  useEffect(() => {
+    loadPackageDetails();
+    loadPaymentTypes();
+  }, [packageId]);
+
+  // ===================================================
+  // LOAD PACKAGE DETAILS
+  // ===================================================
+
+  const loadPackageDetails = async () => {
+    try {
+      setIsLoadingPackage(true);
+
+      console.log("=================================");
+      console.log("GET PACKAGE DETAILS");
+      console.log("=================================");
+
+      console.log("Package ID:", selectedPackageId);
+
+      if (!selectedPackageId || Number.isNaN(selectedPackageId)) {
+        console.log("Package ID is missing.");
+
+        Alert.alert(
+          "Error",
+          "Package ID is missing. Please select a package again.",
+        );
+
+        return;
+      }
+
+      const token = await getToken();
+
+      console.log("Token exists:", !!token);
+
+      if (!token) {
+        Alert.alert("Login Required", "Please login again.");
+
+        return;
+      }
+
+      const response = await getPackageDetails(
+        token,
+        selectedPackageId,
       );
 
-      return () => {
+      console.log("=================================");
+      console.log("PACKAGE DETAILS RESPONSE");
+      console.log("=================================");
+
+      console.log(JSON.stringify(response, null, 2));
+
+      console.log("=================================");
+
+      if (
+        response?.success === 0 ||
+        response?.success === false ||
+        response?.result === false
+      ) {
+        Alert.alert(
+          "Package Error",
+          response?.message ||
+            "Unable to load package details.",
+        );
+
+        return;
+      }
+
+      const data = extractPackageData(response);
+
+      console.log("Extracted package data:", data);
+
+      if (!data) {
+        console.log("Package data not found in response.");
+
+        return;
+      }
+
+      const packageName =
+        data?.name ||
+        data?.package_name ||
+        data?.packageName ||
+        data?.title ||
+        "Premium Membership";
+
+      let duration =
+        data?.duration ||
+        data?.validity ||
+        data?.package_duration ||
+        data?.package_validity ||
+        data?.duration_text ||
+        "";
+
+      if (!duration && data?.duration_days) {
+        duration = `${data.duration_days} Days`;
+      }
+
+      if (!duration && data?.validity_days) {
+        duration = `${data.validity_days} Days`;
+      }
+
+      if (!duration) {
+        duration = "12 Months Plan";
+      }
+
+      const price = Number(
+        data?.price ??
+          data?.amount ??
+          data?.package_price ??
+          data?.selling_price ??
+          data?.discounted_price ??
+          DEFAULT_PLAN.price,
+      );
+
+      const originalPrice = Number(
+        data?.original_price ??
+          data?.originalPrice ??
+          data?.mrp ??
+          data?.regular_price ??
+          data?.actual_price ??
+          price,
+      );
+
+      let discountPercent = 0;
+
+      if (originalPrice > price) {
+        discountPercent = Math.round(
+          ((originalPrice - price) / originalPrice) * 100,
+        );
+      }
+
+      if (!discountPercent && data?.discount_percentage) {
+        discountPercent = Number(
+          data.discount_percentage,
+        );
+      }
+
+      if (!discountPercent && data?.discountPercent) {
+        discountPercent = Number(
+          data.discountPercent,
+        );
+      }
+
+      const badge =
+        data?.badge ||
+        data?.label ||
+        data?.package_badge ||
+        (discountPercent > 0 ? "Best Value" : "Popular");
+
+      setPlan({
+        name: packageName,
+        duration,
+        badge,
+        price,
+        originalPrice,
+        discountPercent,
+      });
+    } catch (error) {
+      console.error(
+        "=================================",
+      );
+
+      console.error(
+        "GET PACKAGE DETAILS ERROR",
+      );
+
+      console.error(
+        "=================================",
+      );
+
+      console.error(error);
+
+      console.error(
+        "Error message:",
+        error?.message,
+      );
+
+      Alert.alert(
+        "Package Error",
+        error?.message ||
+          "Something went wrong while loading package details.",
+      );
+    } finally {
+      setIsLoadingPackage(false);
+    }
+  };
+
+  // ===================================================
+  // LOAD PAYMENT TYPES
+  // ===================================================
+
+  const loadPaymentTypes = async () => {
+    try {
+      setIsLoadingPaymentTypes(true);
+
+      console.log("=================================");
+      console.log("GET PAYMENT TYPES");
+      console.log("=================================");
+
+      const token = await getToken();
+
+      console.log("Token exists:", !!token);
+
+      if (!token) {
+        console.log(
+          "Token not available. Using fallback payment methods.",
+        );
+
+        setPaymentMethods(
+          FALLBACK_PAYMENT_METHODS,
+        );
+
+        return;
+      }
+
+      const response = await getPaymentTypes(token);
+
+      console.log("=================================");
+      console.log("PAYMENT TYPES RESPONSE");
+      console.log("=================================");
+
+      console.log(JSON.stringify(response, null, 2));
+
+      console.log("=================================");
+
+      if (
+        response?.success === 0 ||
+        response?.success === false ||
+        response?.result === false
+      ) {
+        console.log(
+          "Payment types API failed. Using fallback.",
+        );
+
+        setPaymentMethods(
+          FALLBACK_PAYMENT_METHODS,
+        );
+
+        return;
+      }
+
+      let methods = [];
+
+      if (Array.isArray(response)) {
+        methods = response;
+      } else if (Array.isArray(response?.data)) {
+        methods = response.data;
+      } else if (
+        Array.isArray(response?.data?.payment_types)
+      ) {
+        methods = response.data.payment_types;
+      } else if (
+        Array.isArray(response?.data?.paymentTypes)
+      ) {
+        methods = response.data.paymentTypes;
+      } else if (
+        Array.isArray(response?.payment_types)
+      ) {
+        methods = response.payment_types;
+      } else if (
+        Array.isArray(response?.paymentTypes)
+      ) {
+        methods = response.paymentTypes;
+      } else if (
+        Array.isArray(response?.types)
+      ) {
+        methods = response.types;
+      }
+
+      if (!methods.length) {
+        console.log(
+          "No payment methods received. Using fallback.",
+        );
+
+        setPaymentMethods(
+          FALLBACK_PAYMENT_METHODS,
+        );
+
+        return;
+      }
+
+      const mappedMethods = methods.map(
+        (item, index) => {
+          const label = getPaymentLabel(item);
+
+          const key = getPaymentKey(
+            item,
+            index,
+          );
+
+          const icon =
+            item?.icon ||
+            getPaymentIcon(
+              `${label} ${key}`,
+            );
+
+          return {
+            key,
+            icon,
+            label,
+            subtitle:
+              item?.subtitle ||
+              item?.description ||
+              item?.details ||
+              "",
+            recommended:
+              item?.recommended === true ||
+              item?.is_recommended === true ||
+              key === "upi",
+          };
+        },
+      );
+
+      setPaymentMethods(mappedMethods);
+
+      const selectedStillExists =
+        mappedMethods.some(
+          (item) =>
+            item.key === selectedMethod,
+        );
+
+      if (!selectedStillExists) {
+        setSelectedMethod(
+          mappedMethods[0]?.key || "upi",
+        );
+      }
+    } catch (error) {
+      console.error(
+        "=================================",
+      );
+
+      console.error(
+        "GET PAYMENT TYPES ERROR",
+      );
+
+      console.error(
+        "=================================",
+      );
+
+      console.error(error);
+
+      setPaymentMethods(
+        FALLBACK_PAYMENT_METHODS,
+      );
+    } finally {
+      setIsLoadingPaymentTypes(false);
+    }
+  };
+
+  // ===================================================
+  // PAY
+  // ===================================================
+
+  const handlePay = async () => {
+    if (isPaying) {
+      return;
+    }
+
+    // -----------------------------------------------
+    // PACKAGE ID
+    // -----------------------------------------------
+
+    if (
+      !selectedPackageId ||
+      Number.isNaN(selectedPackageId)
+    ) {
+      Alert.alert(
+        "Payment Error",
+        "Package ID is missing.",
+      );
+
+      return;
+    }
+
+    // -----------------------------------------------
+    // PAYMENT METHOD
+    // -----------------------------------------------
+
+    if (!selectedMethod) {
+      Alert.alert(
+        "Payment Error",
+        "Please select a payment method.",
+      );
+
+      return;
+    }
+
+    try {
+      setIsPaying(true);
+
+      const token = await getToken();
+
+      console.log(
+        "Token exists:",
+        !!token,
+      );
+
+      if (!token) {
+        Alert.alert(
+          "Login Required",
+          "Your login session has expired. Please login again.",
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // AMOUNT
+      // -----------------------------------------------
+
+      const amount = Number(plan.price);
+
+      if (!amount || amount <= 0) {
+        Alert.alert(
+          "Payment Error",
+          "Invalid package amount.",
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // LOG REQUEST
+      // -----------------------------------------------
+
+      console.log(
+        "=================================",
+      );
+
+      console.log(
+        "CREATE PAYMENT REQUEST",
+      );
+
+      console.log(
+        "=================================",
+      );
+
+      console.log(
+        "API:",
+        "POST /api/createpayment",
+      );
+
+      console.log(
+        "Package ID:",
+        selectedPackageId,
+      );
+
+      console.log(
+        "Payment Type:",
+        "package",
+      );
+
+      console.log(
+        "Amount:",
+        amount,
+      );
+
+      console.log(
+        "Payment Method:",
+        selectedMethod,
+      );
+
+      console.log(
+        "=================================",
+      );
+
+      // -----------------------------------------------
+      // CREATE PAYMENT
+      // -----------------------------------------------
+
+      const response = await createPayment(
+        token,
+        selectedPackageId,
+        amount,
+        selectedMethod,
+      );
+
+      // -----------------------------------------------
+      // LOG RESPONSE
+      // -----------------------------------------------
+
+      console.log(
+        "=================================",
+      );
+
+      console.log(
+        "CREATE PAYMENT RESPONSE",
+      );
+
+      console.log(
+        "=================================",
+      );
+
+      console.log(
+        JSON.stringify(
+          response,
+          null,
+          2,
+        ),
+      );
+
+      console.log(
+        "=================================",
+      );
+
+      // -----------------------------------------------
+      // NO RESPONSE
+      // -----------------------------------------------
+
+      if (!response) {
+        Alert.alert(
+          "Payment Failed",
+          "No response received from the server.",
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // FAILURE
+      // -----------------------------------------------
+
+      if (
+        response.success === 0 ||
+        response.success === false ||
+        response.result === false
+      ) {
+        Alert.alert(
+          "Payment Failed",
+          response.message ||
+            "Unable to create payment.",
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // SUCCESS
+      // -----------------------------------------------
+
+      if (
+        response.success === 1 ||
+        response.success === true
+      ) {
+        const razorpayOrderId =
+          response.paymentOrderId;
+
+        console.log(
+          "Razorpay Order ID:",
+          razorpayOrderId,
+        );
+
+        if (!razorpayOrderId) {
+          Alert.alert(
+            "Payment Error",
+            "Razorpay order ID was not received.",
+          );
+
+          return;
+        }
+
+        /*
+         * IMPORTANT
+         *
+         * /api/createpayment only creates
+         * the Razorpay order.
+         *
+         * NEXT:
+         *
+         * Razorpay Checkout
+         *        ↓
+         * Payment
+         *        ↓
+         * razorpay_payment_id
+         * razorpay_order_id
+         * razorpay_signature
+         *        ↓
+         * Backend verification
+         *
+         * Do NOT navigate to
+         * PaymentSuccessful yet.
+         */
+
+        Alert.alert(
+          "Payment Order Created",
+          `Razorpay Order ID:\n${razorpayOrderId}`,
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // UNKNOWN RESPONSE
+      // -----------------------------------------------
+
+      Alert.alert(
+        "Payment Status",
+        response.message ||
+          "Unexpected server response.",
+      );
+    } catch (error) {
+      console.error(
+        "=================================",
+      );
+
+      console.error(
+        "CREATE PAYMENT ERROR",
+      );
+
+      console.error(
+        "=================================",
+      );
+
+      console.error(error);
+
+      console.error(
+        "Error message:",
+        error?.message,
+      );
+
+      console.error(
+        "=================================",
+      );
+
+      Alert.alert(
+        "Payment Failed",
+        error?.message ||
+          "Something went wrong while creating the payment.",
+      );
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  // ===================================================
+  // BACK
+  // ===================================================
+
+  const handleBack = useCallback(() => {
+    navigation.goBack();
+    return true;
+  }, [navigation]);
+
+  // Android hardware back button
+  useFocusEffect(
+    useCallback(() => {
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          handleBack,
+        );
+
+      return () =>
         subscription.remove();
-      };
     }, [handleBack]),
   );
 
-  /* ===
-     PAYMENT
-  === */
+  // ===================================================
+  // DISCOUNT
+  // ===================================================
 
-  const handlePay = () => {
-    /*
-      TODO:
-      Connect your actual payment API
-      here.
+  const discountAmount = Math.max(
+    0,
+    Number(plan.originalPrice) -
+      Number(plan.price),
+  );
 
-      Example:
-
-      navigation.navigate("PaymentGateway", {
-        paymentMethod: selectedMethod,
-        amount: PLAN.price,
-      });
-    */
-  };
-
-  /* ===
-     UI
-  === */
+  // ===================================================
+  // UI
+  // ===================================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={
+          Colors.primaryRed
+        }
+      />
 
-      {/* ===
+      {/* =================================================
           HEADER
-      === */}
+      ================================================= */}
 
       <LinearGradient
         colors={Colors.gradientLogo}
-        start={{
-          x: 0,
-          y: 0,
-        }}
-        end={{
-          x: 1,
-          y: 0,
-        }}
         style={styles.header}
       >
-        {/* BACK */}
-
         <TouchableOpacity
           hitSlop={{
             top: 10,
@@ -185,840 +970,1258 @@ export default function PaymentScreen({ navigation, route }) {
           }}
           activeOpacity={0.75}
           onPress={handleBack}
-          style={styles.headerBackButton}
         >
-          <Feather name="arrow-left" size={24} color={Colors.white} />
+      <Feather name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
 
-        {/* TITLE */}
-
         <View style={styles.headerTitleBlock}>
-          <Text style={styles.headerTitle}>Payment</Text>
+          <Text style={styles.headerTitle}>
+            Payment
+          </Text>
 
-          <Text style={styles.headerSubtitle}>Secure & Safe Transactions</Text>
+          <Text
+            style={
+              styles.headerSubtitle
+            }
+          >
+            Secure & Safe Transactions
+          </Text>
         </View>
 
-        {/* SECURE */}
+        <View
+          style={
+            styles.headerSecureBlock
+          }
+        >
+         <Feather
+  name="shield"
+  size={20}
+  color={Colors.white}
+/>
 
-        <View style={styles.headerSecureBlock}>
-          <Feather name="shield" size={20} color={Colors.white} />
-
-          <Text style={styles.headerSecureText}>{"100% Secure\nPayment"}</Text>
+          <Text
+            style={
+              styles.headerSecureText
+            }
+          >
+            {"100% Secure\nPayment"}
+          </Text>
         </View>
       </LinearGradient>
 
-      {/* ===
-          SCROLL CONTENT
-      === */}
+      {/* =================================================
+          CONTENT
+      ================================================= */}
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={
+          styles.scrollContent
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
       >
-        {/* ===
+        {/* =================================================
             PLAN CARD
-        === */}
+        ================================================= */}
 
-        <View style={styles.planCard}>
-          {/* ICON */}
+        {isLoadingPackage ? (
+          <View
+            style={
+              styles.packageLoading
+            }
+          >
+            <ActivityIndicator
+              size="small"
+              color={
+                Colors.primaryRed
+              }
+            />
 
-          <View style={styles.planIconCircle}>
-            <Feather name="award" size={26} color={Colors.white} />
+            <Text
+              style={
+                styles.loadingText
+              }
+            >
+              Loading package details...
+            </Text>
           </View>
+        ) : (
+          <View style={styles.planCard}>
+            <View
+              style={
+                styles.planIconCircle
+              }
+            >
+           <Feather
+  name="award"
+  size={26}
+  color={Colors.white}
+/>
+            </View>
 
-          {/* PLAN NAME */}
+            <View
+              style={
+                styles.planTextBlock
+              }
+            >
+              <Text
+                style={
+                  styles.planName
+                }
+              >
+                {plan.name}
+              </Text>
 
-          <View style={styles.planTextBlock}>
-            <Text style={styles.planName}>{PLAN.name}</Text>
+              <View
+                style={
+                  styles.planMetaRow
+                }
+              >
+                <Text
+                  style={
+                    styles.planDuration
+                  }
+                >
+                  {plan.duration}
+                </Text>
 
-            <View style={styles.planMetaRow}>
-              <Text style={styles.planDuration}>{PLAN.duration}</Text>
-
-              <View style={styles.planBadge}>
-                <Text style={styles.planBadgeText}>{PLAN.badge}</Text>
+                <View
+                  style={
+                    styles.planBadge
+                  }
+                >
+                  <Text
+                    style={
+                      styles.planBadgeText
+                    }
+                  >
+                    {plan.badge}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* PRICE */}
+            <View
+              style={
+                styles.planPriceBlock
+              }
+            >
+              <Text
+                style={
+                  styles.planPrice
+                }
+              >
+                ₹{" "}
+                {Number(
+                  plan.price,
+                ).toLocaleString(
+                  "en-IN",
+                )}
+              </Text>
 
-          <View style={styles.planPriceBlock}>
-            <Text style={styles.planPrice}>
-              ₹ {PLAN.price.toLocaleString("en-IN")}
-            </Text>
-
-            <Text style={styles.planOriginalPrice}>
-              ₹ {PLAN.originalPrice.toLocaleString("en-IN")}
-            </Text>
-          </View>
-
-          {/* DISCOUNT */}
-
-          <View style={styles.planDiscountBlock}>
-            <Text style={styles.planDiscountPercent}>
-              {PLAN.discountPercent}%
-            </Text>
-
-            <Text style={styles.planDiscountLabel}>OFF</Text>
-          </View>
-        </View>
-
-        {/* ===
-            PAYMENT METHODS
-        === */}
-
-        <Text style={styles.sectionHeading}>Select Payment Method</Text>
-
-        <View style={styles.methodsList}>
-          {PAYMENT_METHODS.map((method) => (
-            <PaymentMethodRow
-              key={method.key}
-              method={method}
-              selected={selectedMethod === method.key}
-              onSelect={() => setSelectedMethod(method.key)}
-            />
-          ))}
-        </View>
-
-        {/* ===
-            ORDER SUMMARY
-        === */}
-
-        <Text style={styles.sectionHeading}>Order Summary</Text>
-
-        <View style={styles.summaryCard}>
-          {/* PLAN */}
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Plan</Text>
-
-            <Text style={styles.summaryValue}>
-              12 Months Premium Membership
-            </Text>
-          </View>
-
-          {/* ORIGINAL PRICE */}
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Original Price</Text>
-
-            <Text style={styles.summaryStrikeValue}>
-              ₹ {PLAN.originalPrice.toLocaleString("en-IN")}
-            </Text>
-          </View>
-
-          {/* DISCOUNT */}
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryDiscountLabel}>
-              Discount ({PLAN.discountPercent}%)
-            </Text>
-
-            <Text style={styles.summaryDiscountValue}>
-              - ₹ {discountAmount.toLocaleString("en-IN")}
-            </Text>
-          </View>
-
-          {/* DIVIDER */}
-
-          <View style={styles.summaryDivider} />
-
-          {/* TOTAL */}
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryTotalLabel}>Total Amount</Text>
-
-            <Text style={styles.summaryTotalValue}>
-              ₹ {PLAN.price.toLocaleString("en-IN")}
-            </Text>
-          </View>
-        </View>
-
-        {/* ===
-            TRUST BADGES
-        === */}
-
-        <View style={styles.trustBanner}>
-          {TRUST_BADGES.map((badge) => (
-            <View key={badge.title} style={styles.trustItem}>
-              <Feather name={badge.icon} size={20} color={Colors.primaryRed} />
-
-              <Text style={styles.trustTitle}>{badge.title}</Text>
-
-              <Text style={styles.trustSubtitle}>{badge.subtitle}</Text>
+              {Number(
+                plan.originalPrice,
+              ) >
+                Number(plan.price) && (
+                <Text
+                  style={
+                    styles.planOriginalPrice
+                  }
+                >
+                  ₹{" "}
+                  {Number(
+                    plan.originalPrice,
+                  ).toLocaleString(
+                    "en-IN",
+                  )}
+                </Text>
+              )}
             </View>
-          ))}
+
+            <View
+              style={
+                styles.planDiscountBlock
+              }
+            >
+              <Text
+                style={
+                  styles.planDiscountPercent
+                }
+              >
+                {plan.discountPercent}%
+              </Text>
+
+              <Text
+                style={
+                  styles.planDiscountLabel
+                }
+              >
+                OFF
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* =================================================
+            PAYMENT METHODS
+        ================================================= */}
+
+        <Text
+          style={
+            styles.sectionHeading
+          }
+        >
+          Select Payment Method
+        </Text>
+
+        {isLoadingPaymentTypes ? (
+          <View
+            style={
+              styles.loadingContainer
+            }
+          >
+            <ActivityIndicator
+              size="small"
+              color={
+                Colors.primaryRed
+              }
+            />
+
+            <Text
+              style={
+                styles.loadingText
+              }
+            >
+              Loading payment methods...
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={
+              styles.methodsList
+            }
+          >
+            {paymentMethods.map(
+              (method) => (
+                <PaymentMethodRow
+                  key={method.key}
+                  method={method}
+                  selected={
+                    selectedMethod ===
+                    method.key
+                  }
+                  onSelect={() =>
+                    setSelectedMethod(
+                      method.key,
+                    )
+                  }
+                />
+              ),
+            )}
+          </View>
+        )}
+
+        {/* =================================================
+            ORDER SUMMARY
+        ================================================= */}
+
+        <Text
+          style={
+            styles.sectionHeading
+          }
+        >
+          Order Summary
+        </Text>
+
+        <View
+          style={
+            styles.summaryCard
+          }
+        >
+          <View
+            style={
+              styles.summaryRow
+            }
+          >
+            <Text
+              style={
+                styles.summaryLabel
+              }
+            >
+              Plan
+            </Text>
+
+            <Text
+              style={
+                styles.summaryValue
+              }
+            >
+              {plan.name}
+            </Text>
+          </View>
+
+          <View
+            style={
+              styles.summaryRow
+            }
+          >
+            <Text
+              style={
+                styles.summaryLabel
+              }
+            >
+              Duration
+            </Text>
+
+            <Text
+              style={
+                styles.summaryValue
+              }
+            >
+              {plan.duration}
+            </Text>
+          </View>
+
+          {Number(
+            plan.originalPrice,
+          ) >
+            Number(plan.price) && (
+            <View
+              style={
+                styles.summaryRow
+              }
+            >
+              <Text
+                style={
+                  styles.summaryLabel
+                }
+              >
+                Original Price
+              </Text>
+
+              <Text
+                style={
+                  styles.summaryStrikeValue
+                }
+              >
+                ₹{" "}
+                {Number(
+                  plan.originalPrice,
+                ).toLocaleString(
+                  "en-IN",
+                )}
+              </Text>
+            </View>
+          )}
+
+          {discountAmount > 0 && (
+            <View
+              style={
+                styles.summaryRow
+              }
+            >
+              <Text
+                style={
+                  styles.summaryLabel
+                }
+              >
+                Discount
+              </Text>
+
+              <Text
+                style={
+                  styles.summaryDiscount
+                }
+              >
+                - ₹{" "}
+                {discountAmount.toLocaleString(
+                  "en-IN",
+                )}
+              </Text>
+            </View>
+          )}
+
+          <View
+            style={
+              styles.summaryDivider
+            }
+          />
+
+          <View
+            style={
+              styles.summaryTotalRow
+            }
+          >
+            <Text
+              style={
+                styles.summaryTotalLabel
+              }
+            >
+              Total Amount
+            </Text>
+
+            <Text
+              style={
+                styles.summaryTotalValue
+              }
+            >
+              ₹{" "}
+              {Number(
+                plan.price,
+              ).toLocaleString(
+                "en-IN",
+              )}
+            </Text>
+          </View>
         </View>
+
+        {/* =================================================
+            TRUST BADGES
+        ================================================= */}
+
+        <View
+          style={
+            styles.trustContainer
+          }
+        >
+          {TRUST_BADGES.map(
+            (item, index) => (
+              <View
+                key={index}
+                style={
+                  styles.trustItem
+                }
+              >
+                <View
+                  style={
+                    styles.trustIconCircle
+                  }
+                >
+               <Feather
+  name={item.icon}
+  size={20}
+  color={Colors.primaryRed}
+/>
+                </View>
+
+                <View
+                  style={
+                    styles.trustTextBlock
+                  }
+                >
+                  <Text
+                    style={
+                      styles.trustTitle
+                    }
+                  >
+                    {item.title}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.trustSubtitle
+                    }
+                  >
+                    {item.subtitle}
+                  </Text>
+                </View>
+              </View>
+            ),
+          )}
+        </View>
+
+        {/* =================================================
+            BOTTOM SPACE
+        ================================================= */}
+
+        <View
+          style={
+            styles.bottomSpacing
+          }
+        />
       </ScrollView>
 
-      {/* ===
-          STICKY PAY FOOTER
-      === */}
+      {/* =================================================
+          FOOTER
+      ================================================= */}
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.payButton}
-          activeOpacity={0.85}
-          onPress={handlePay}
+      <View
+        style={
+          styles.footer
+        }
+      >
+        <View
+          style={
+            styles.footerTerms
+          }
         >
-          <Feather name="lock" size={18} color={Colors.white} />
+        <Feather
+  name="lock"
+  size={16}
+  color={Colors.primaryRed}
+/>
 
-          <Text style={styles.payButtonText}>
-            Pay ₹ {PLAN.price.toLocaleString("en-IN")} Securely
-          </Text>
-
-          <Feather name="arrow-right" size={18} color={Colors.white} />
-        </TouchableOpacity>
-
-        {/* TERMS */}
-
-        <View style={styles.termsRow}>
-          <Feather name="shield" size={13} color={Colors.primaryRed} />
-
-          <Text style={styles.termsText}>
-            {" "}
-            By proceeding, you agree to our{" "}
-            <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
+          <Text
+            style={
+              styles.footerTermsText
+            }
+          >
+            By continuing, you agree to our{" "}
+            <Text
+              style={
+                styles.footerTermsBold
+              }
+            >
+              Terms & Conditions
+            </Text>
           </Text>
         </View>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={
+            isPaying ||
+            isLoadingPackage ||
+            isLoadingPaymentTypes
+          }
+          onPress={handlePay}
+          style={[
+            styles.payButton,
+            (isPaying ||
+              isLoadingPackage ||
+              isLoadingPaymentTypes) &&
+              styles.payButtonDisabled,
+          ]}
+        >
+          {isPaying ? (
+            <>
+              <ActivityIndicator
+                size="small"
+                color={Colors.white}
+              />
+
+              <Text
+                style={
+                  styles.payButtonText
+                }
+              >
+                Processing...
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text
+                style={
+                  styles.payButtonText
+                }
+              >
+                Pay ₹{" "}
+                {Number(
+                  plan.price,
+                ).toLocaleString(
+                  "en-IN",
+                )}
+              </Text>
+
+             <Feather
+  name="arrow-right"
+  size={20}
+  color={Colors.white}
+/>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-/* ===
-   PAYMENT METHOD ROW
-=== */
+// =====================================================
+// PAYMENT METHOD ROW
+// =====================================================
 
-function PaymentMethodRow({ method, selected, onSelect }) {
+function PaymentMethodRow({
+  method,
+  selected,
+  onSelect,
+}) {
   return (
     <TouchableOpacity
-      style={[styles.methodRow, selected && styles.methodRowSelected]}
       activeOpacity={0.8}
       onPress={onSelect}
+      style={[
+        styles.paymentMethodRow,
+        selected &&
+          styles.paymentMethodRowSelected,
+      ]}
     >
-      {/* ICON */}
-
-      <View style={styles.methodIconCircle}>
-        <Feather name={method.icon} size={20} color={Colors.primaryRed} />
+      <View
+        style={
+          styles.paymentMethodIconCircle
+        }
+      >
+   <Feather
+  name={
+    method.icon ||
+    getPaymentIcon(method.label)
+  }
+  size={23}
+  color={
+    selected
+      ? Colors.primaryRed
+      : Colors.textDark
+  }
+/>
       </View>
 
-      {/* TEXT */}
+      <View
+        style={
+          styles.paymentMethodContent
+        }
+      >
+        <View
+          style={
+            styles.paymentMethodTitleRow
+          }
+        >
+          <Text
+            style={[
+              styles.paymentMethodTitle,
+              selected &&
+                styles.paymentMethodTitleSelected,
+            ]}
+          >
+            {method.label}
+          </Text>
 
-      <View style={styles.methodTextBlock}>
-        <Text style={styles.methodLabel}>{method.label}</Text>
-
-        <Text style={styles.methodSubtitle}>{method.subtitle}</Text>
-      </View>
-
-      {/* RECOMMENDED */}
-
-      {method.recommended && (
-        <View style={styles.recommendedPill}>
-          <Text style={styles.recommendedPillText}>Recommended</Text>
+          {method.recommended && (
+            <View
+              style={
+                styles.recommendedBadge
+              }
+            >
+              <Text
+                style={
+                  styles.recommendedBadgeText
+                }
+              >
+                Recommended
+              </Text>
+            </View>
+          )}
         </View>
-      )}
 
-      {/* RADIO */}
+        {!!method.subtitle && (
+          <Text
+            style={
+              styles.paymentMethodSubtitle
+            }
+          >
+            {method.subtitle}
+          </Text>
+        )}
+      </View>
 
-      <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-        {selected && <View style={styles.radioInner} />}
+      <View
+        style={[
+          styles.radioOuter,
+          selected &&
+            styles.radioOuterSelected,
+        ]}
+      >
+        {selected && (
+          <View
+            style={
+              styles.radioInner
+            }
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
 }
 
-/* ===
-   STYLES
-=== */
+// =====================================================
+// STYLES
+// =====================================================
 
 const styles = StyleSheet.create({
-  /* ===
-     SAFE AREA
-  === */
-
   safeArea: {
     flex: 1,
-
-    backgroundColor: Colors.background,
+    backgroundColor:
+      Colors.background,
   },
 
-  scrollContent: {
-    paddingHorizontal: 18,
-
-    paddingTop: 18,
-
-    paddingBottom: 24,
-  },
-
-  /* ===
-     HEADER
-  === */
+  // ===================================================
+  // HEADER
+  // ===================================================
 
   header: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
+    minHeight: 72,
     paddingHorizontal: 18,
-
-    paddingVertical: 18,
-  },
-
-  headerBackButton: {
+    paddingVertical: 12,
+    flexDirection: "row",
     alignItems: "center",
-
-    justifyContent: "center",
-
-    width: 32,
-
-    height: 32,
   },
 
   headerTitleBlock: {
     flex: 1,
-
     marginLeft: 14,
   },
 
   headerTitle: {
-    fontSize: Fonts.size.xxl,
-
-    fontFamily: Fonts.extraBold,
-
     color: Colors.white,
+    fontSize:
+      FontSizes?.heading ||
+      20,
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 
   headerSubtitle: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: "#FCE4D6",
-
+    color: Colors.white,
+    opacity: 0.85,
     marginTop: 2,
+    fontSize:
+      FontSizes?.small ||
+      12,
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
   headerSecureBlock: {
     flexDirection: "row",
-
     alignItems: "center",
+    gap: 6,
   },
 
   headerSecureText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.bold,
-
     color: Colors.white,
-
-    marginLeft: 6,
-
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: "right",
+    fontFamily:
+      Fonts?.body?.medium,
   },
 
-  /* ===
-     PLAN CARD
-  === */
+  // ===================================================
+  // SCROLL
+  // ===================================================
+
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+
+  // ===================================================
+  // PACKAGE LOADING
+  // ===================================================
+
+  packageLoading: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    paddingVertical: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+
+  loadingContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    paddingVertical: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+
+  loadingText: {
+    marginTop: 8,
+    fontSize: 13,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
+  },
+
+  // ===================================================
+  // PLAN CARD
+  // ===================================================
 
   planCard: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    backgroundColor: "#FDF3E7",
-
-    borderRadius: 14,
-
-    padding: 14,
-
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 22,
-
-    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor:
+      Colors.border ||
+      "#EAEAEA",
   },
 
   planIconCircle: {
     width: 48,
-
     height: 48,
-
     borderRadius: 24,
-
-    backgroundColor: Colors.primaryRed,
-
-    alignItems: "center",
-
+    backgroundColor:
+      Colors.primaryRed,
     justifyContent: "center",
-
-    marginRight: 12,
+    alignItems: "center",
+    marginRight: 11,
   },
 
   planTextBlock: {
     flex: 1,
-
     minWidth: 0,
   },
 
   planName: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.primaryRed,
+    fontSize: 15,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 
   planMetaRow: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    marginTop: 4,
-
     flexWrap: "wrap",
+    marginTop: 5,
   },
 
   planDuration: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textSecondary,
-
-    marginRight: 8,
+    fontSize: 12,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
   planBadge: {
-    backgroundColor: "#FCE9A8",
-
-    paddingHorizontal: 8,
-
+    marginLeft: 7,
+    backgroundColor:
+      Colors.primaryRed,
+    borderRadius: 5,
+    paddingHorizontal: 6,
     paddingVertical: 3,
-
-    borderRadius: 10,
   },
 
   planBadgeText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.bold,
-
-    color: "#7A5B00",
+    color: Colors.white,
+    fontSize: 8,
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "700",
   },
 
   planPriceBlock: {
     alignItems: "flex-end",
-
-    marginRight: 12,
+    marginLeft: 8,
   },
 
   planPrice: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.primaryRed,
+    fontSize: 17,
+    color:
+      Colors.primaryRed,
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 
   planOriginalPrice: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    textDecorationLine: "line-through",
-
+    fontSize: 11,
+    color:
+      Colors.textMuted ||
+      "#888",
+    textDecorationLine:
+      "line-through",
     marginTop: 2,
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
   planDiscountBlock: {
-    backgroundColor: "#FFCC00",
-
+    marginLeft: 8,
     alignItems: "center",
-
     justifyContent: "center",
-
-    paddingVertical: 8,
-
-    paddingHorizontal: 10,
-
-    borderRadius: 10,
-
-    alignSelf: "stretch",
   },
 
   planDiscountPercent: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.primaryRed,
+    color:
+      Colors.primaryRed,
+    fontSize: 12,
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "700",
   },
 
   planDiscountLabel: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.primaryRed,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontSize: 8,
+    fontFamily:
+      Fonts?.body?.medium,
   },
 
-  /* ===
-     SECTION HEADING
-  === */
+  // ===================================================
+  // SECTION
+  // ===================================================
 
   sectionHeading: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.textPrimary,
-
-    marginBottom: 12,
+    fontSize: 17,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
+    marginBottom: 11,
   },
 
-  /* ===
-     PAYMENT METHODS
-  === */
+  // ===================================================
+  // METHODS
+  // ===================================================
 
   methodsList: {
     marginBottom: 22,
   },
 
-  methodRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    backgroundColor: Colors.cardBackground,
-
+  paymentMethodRow: {
+    backgroundColor: Colors.white,
+    minHeight: 76,
     borderRadius: 14,
-
-    borderWidth: 1.5,
-
-    borderColor: "transparent",
-
+    paddingHorizontal: 14,
     paddingVertical: 12,
-
-    paddingHorizontal: 12,
-
     marginBottom: 10,
-  },
-
-  methodRowSelected: {
-    borderColor: Colors.primaryRed,
-
-    backgroundColor: "#FDF3E7",
-  },
-
-  methodIconCircle: {
-    width: 42,
-
-    height: 42,
-
-    borderRadius: 21,
-
-    backgroundColor: "#FCE4D6",
-
+    flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor:
+      Colors.border ||
+      "#E7E7E7",
+  },
 
+  paymentMethodRowSelected: {
+    borderColor:
+      Colors.primaryRed,
+    backgroundColor:
+      "#FFF8F8",
+  },
+
+  paymentMethodIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor:
+      "#F7F7F7",
+    alignItems: "center",
     justifyContent: "center",
-
     marginRight: 12,
   },
 
-  methodTextBlock: {
+  paymentMethodContent: {
     flex: 1,
-
-    minWidth: 0,
   },
 
-  methodLabel: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.textPrimary,
+  paymentMethodTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
   },
 
-  methodSubtitle: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    marginTop: 2,
+  paymentMethodTitle: {
+    fontSize: 14,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "600",
   },
 
-  recommendedPill: {
-    backgroundColor: "#DCF3E3",
-
-    paddingHorizontal: 9,
-
-    paddingVertical: 4,
-
-    borderRadius: 12,
-
-    marginRight: 10,
+  paymentMethodTitleSelected: {
+    color:
+      Colors.primaryRed,
   },
 
-  recommendedPillText: {
-    fontSize: Fonts.size.sm,
+  paymentMethodSubtitle: {
+    marginTop: 4,
+    fontSize: 11,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
+  },
 
-    fontFamily: Fonts.bold,
+  recommendedBadge: {
+    marginLeft: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    backgroundColor:
+      "#EAF7EE",
+  },
 
-    color: "#1F7A3D",
+  recommendedBadgeText: {
+    fontSize: 8,
+    color: "#258A45",
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "700",
   },
 
   radioOuter: {
-    width: 22,
-
-    height: 22,
-
+    width: 21,
+    height: 21,
     borderRadius: 11,
-
-    borderWidth: 1.5,
-
-    borderColor: Colors.border,
-
+    borderWidth: 2,
+    borderColor:
+      "#CFCFCF",
     alignItems: "center",
-
     justifyContent: "center",
+    marginLeft: 8,
   },
 
   radioOuterSelected: {
-    borderColor: Colors.primaryRed,
+    borderColor:
+      Colors.primaryRed,
   },
 
   radioInner: {
-    width: 12,
-
-    height: 12,
-
+    width: 11,
+    height: 11,
     borderRadius: 6,
-
-    backgroundColor: Colors.primaryRed,
+    backgroundColor:
+      Colors.primaryRed,
   },
 
-  /* ===
-     ORDER SUMMARY
-  === */
+  // ===================================================
+  // SUMMARY
+  // ===================================================
 
   summaryCard: {
-    backgroundColor: Colors.cardBackground,
-
-    borderRadius: 14,
-
+    backgroundColor: Colors.white,
+    borderRadius: 16,
     padding: 16,
-
-    marginBottom: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor:
+      Colors.border ||
+      "#E7E7E7",
   },
 
   summaryRow: {
     flexDirection: "row",
-
-    justifyContent: "space-between",
-
     alignItems: "center",
-
-    marginBottom: 10,
+    justifyContent: "space-between",
+    paddingVertical: 7,
   },
 
   summaryLabel: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textSecondary,
-
-    flexShrink: 1,
+    fontSize: 12,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
   summaryValue: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.textPrimary,
-
+    fontSize: 12,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.body?.medium,
+    maxWidth: "65%",
     textAlign: "right",
-
-    marginLeft: 10,
-
-    flexShrink: 1,
   },
 
   summaryStrikeValue: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    textDecorationLine: "line-through",
+    fontSize: 12,
+    color:
+      Colors.textMuted ||
+      "#888",
+    textDecorationLine:
+      "line-through",
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
-  summaryDiscountLabel: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: "#1F7A3D",
-  },
-
-  summaryDiscountValue: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.bold,
-
-    color: "#1F7A3D",
+  summaryDiscount: {
+    fontSize: 12,
+    color: "#258A45",
+    fontFamily:
+      Fonts?.body?.bold,
   },
 
   summaryDivider: {
-    borderTopWidth: 1,
+    height: 1,
+    backgroundColor:
+      Colors.border ||
+      "#EAEAEA",
+    marginVertical: 8,
+  },
 
-    borderTopColor: Colors.border,
-
-    borderStyle: "dashed",
-
-    marginVertical: 6,
+  summaryTotalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 4,
   },
 
   summaryTotalLabel: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.textPrimary,
+    fontSize: 15,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 
   summaryTotalValue: {
-    fontSize: Fonts.size.lg,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.primaryRed,
+    fontSize: 19,
+    color:
+      Colors.primaryRed,
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 
-  /* ===
-     TRUST BANNER
-  === */
+  // ===================================================
+  // TRUST
+  // ===================================================
 
-  trustBanner: {
-    flexDirection: "row",
-
-    backgroundColor: "#FDF3E7",
-
-    borderRadius: 14,
-
-    paddingVertical: 16,
-
-    paddingHorizontal: 10,
+  trustContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 15,
+    borderWidth: 1,
+    borderColor:
+      Colors.border ||
+      "#E7E7E7",
   },
 
   trustItem: {
-    flex: 1,
-
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 7,
+  },
 
-    paddingHorizontal: 4,
+  trustIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor:
+      "#FFF4F4",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+
+  trustTextBlock: {
+    flex: 1,
   },
 
   trustTitle: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.textPrimary,
-
-    marginTop: 6,
-
-    textAlign: "center",
+    fontSize: 12,
+    color:
+      Colors.textDark ||
+      "#222",
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "600",
   },
 
   trustSubtitle: {
-    fontSize: Fonts.size.xs,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
     marginTop: 2,
-
-    textAlign: "center",
+    fontSize: 10,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
   },
 
-  /* ===
-     STICKY FOOTER
-  === */
+  bottomSpacing: {
+    height: 15,
+  },
+
+  // ===================================================
+  // FOOTER
+  // ===================================================
 
   footer: {
-    paddingHorizontal: 18,
-
-    paddingTop: 12,
-
-    paddingBottom: 14,
-
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderTopWidth: 1,
+    borderTopColor:
+      Colors.border ||
+      "#E7E7E7",
+  },
 
-    borderTopColor: Colors.border,
+  footerTerms: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 9,
+  },
 
-    backgroundColor: Colors.cardBackground,
+  footerTermsText: {
+    flex: 1,
+    marginLeft: 7,
+    fontSize: 10,
+    color:
+      Colors.textMuted ||
+      "#777",
+    fontFamily:
+      Fonts?.body?.regular,
+    lineHeight: 15,
+  },
+
+  footerTermsBold: {
+    color:
+      Colors.primaryRed,
+    fontFamily:
+      Fonts?.body?.bold,
+    fontWeight: "700",
   },
 
   payButton: {
+    minHeight: 52,
+    borderRadius: 12,
+    backgroundColor:
+      Colors.primaryRed,
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
+    paddingHorizontal: 18,
+    gap: 9,
+  },
 
-    backgroundColor: Colors.primaryRed,
-
-    borderRadius: 26,
-
-    height: 52,
+  payButtonDisabled: {
+    opacity: 0.55,
   },
 
   payButtonText: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
     color: Colors.white,
-
-    marginHorizontal: 10,
-  },
-
-  termsRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    marginTop: 10,
-
-    paddingHorizontal: 12,
-  },
-
-  termsText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    textAlign: "center",
-
-    flexShrink: 1,
-  },
-
-  termsLink: {
-    color: Colors.primaryRed,
-
-    fontFamily: Fonts.bold,
+    fontSize: 15,
+    fontFamily:
+      Fonts?.display?.bold,
+    fontWeight: "700",
   },
 });

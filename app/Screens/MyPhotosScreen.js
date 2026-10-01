@@ -1,11 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import Feather from "react-native-vector-icons/Feather";
+import LinearGradient from "react-native-linear-gradient";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 
 import {
+  ActivityIndicator,
   Alert,
   BackHandler,
+  Dimensions,
   Image,
-  SafeAreaView,
+  Linking,
+  Modal,
+  Pressable,
+  RefreshControl,
   ScrollView,
+  SafeAreaView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,969 +23,1725 @@ import {
   View,
 } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { launchImageLibrary } from "react-native-image-picker";
-import Feather from "react-native-vector-icons/Feather";
-
-import { useFocusEffect } from "@react-navigation/native";
-
+import BASE_URL from "../constants/AppUrls";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 
-const PHOTO_GUIDELINES = [
-  "Use a clear, recent photo",
-  "Your face should be clearly visible",
-  "Good lighting and background",
-  "JPG, JPEG or PNG format",
-  "Maximum file size 5MB",
-  "No filters or heavily edited photos",
-];
+import {
+  deleteGalleryImage,
+  getGalleryImages,
+  getToken,
+} from "../utils/Functions";
 
-const ADDITIONAL_PHOTO_SLOTS = 4;
+/* ============================================================
+   CONFIG
+============================================================ */
+
+const MAX_PHOTOS = 100;
+const COLUMNS = 3;
+const H_PADDING = 16;
+const GAP = 10;
+
+const TILE_WIDTH =
+  (Dimensions.get("window").width -
+    H_PADDING * 2 -
+    GAP * (COLUMNS - 1)) /
+  COLUMNS;
+
+const TILE_HEIGHT = TILE_WIDTH * 1.25;
+
+const DANGER = "#D92D20";
+const DANGER_SOFT = "#FEE4E2";
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const toAbsoluteUrl = (value) => {
+  if (!value) return "";
+
+  if (
+    /^(https?:|file:|content:|data:)/i.test(value)
+  ) {
+    return value;
+  }
+
+  return `${String(BASE_URL).replace(
+    /\/+$/,
+    "",
+  )}/${String(value).replace(/^\/+/, "")}`;
+};
 
 
-export default function MyPhotos({ navigation, route }) {
+const extractList = (result) => {
+  if (Array.isArray(result)) {
+    return result;
+  }
 
-  const [profilePhoto, setProfilePhoto] = useState(null);
-
-  const [additionalPhotos, setAdditionalPhotos] = useState(
-    Array(ADDITIONAL_PHOTO_SLOTS).fill(null),
+  return (
+    [
+      result?.data,
+      result?.data?.data,
+      result?.data?.images,
+      result?.images,
+    ].find(Array.isArray) || []
   );
+};
 
-  const [saving, setSaving] = useState(false);
 
-  const [errorMessage, setErrorMessage] = useState("");
+const extractPhotos = (result) =>
+  extractList(result)
+    .map((item) => {
+      const uri = toAbsoluteUrl(
+        item?.image_path,
+      );
+
+      return uri
+        ? {
+            id: item?.image_id ?? null,
+            uri,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+
+/* ============================================================
+   SCREEN
+============================================================ */
+
+export default function MyGalleryScreen({
+  navigation,
+  route,
+}) {
+  const [photos, setPhotos] = useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [viewerIndex, setViewerIndex] =
+    useState(null);
+
+  const [menuIndex, setMenuIndex] =
+    useState(null);
+
+  const [deleteIndex, setDeleteIndex] =
+    useState(null);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+
+  /* ==========================================================
+     BACK HANDLER
+  ========================================================== */
+
+  const closeDeleteDialog = () => {
+    if (!deleting) {
+      setDeleteIndex(null);
+    }
+  };
+
 
   const onBackPress = () => {
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+    if (menuIndex !== null) {
+      setMenuIndex(null);
+      return true;
+    }
+
+    if (deleteIndex !== null) {
+      closeDeleteDialog();
+      return true;
+    }
+
+    if (viewerIndex !== null) {
+      setViewerIndex(null);
+      return true;
+    }
+
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate(
+        route?.params?.page || "Home",
+        route?.params?.prevs || {},
+      );
+    }
+
     return true;
   };
 
+
   useFocusEffect(
     useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
+      const subscription =
+        BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress,
+        );
 
-      return () => {
+      return () =>
         subscription.remove();
-      };
-    }, [route]));
+    }, [
+      navigation,
+      route,
+      menuIndex,
+      deleteIndex,
+      viewerIndex,
+      deleting,
+    ]),
+  );
 
 
-  const pickImage = useCallback(async (onPicked) => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: "photo",
+  /* ==========================================================
+     LOAD PHOTOS
+  ========================================================== */
 
-        selectionLimit: 1,
+  const loadPhotos = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        }
 
-        includeBase64: false,
+        const token = await getToken();
 
-        quality: 0.8,
-
-        presentationStyle: "pageSheet",
-      });
-
-      if (result.didCancel) {
-        return;
-      }
-
-      if (result.errorCode) {
-        console.error(
-          "IMAGE PICKER ERROR:",
-          result.errorCode,
-          result.errorMessage,
-        );
-
-        Alert.alert(
-          "Image Picker Error",
-          result.errorMessage || "Unable to select image.",
-        );
-
-        return;
-      }
-
-      if (result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-
-        const uri = asset.uri;
-
-        if (!uri) {
-          Alert.alert("Error", "Unable to get selected image.");
-
+        if (!token) {
           return;
         }
 
-        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-          Alert.alert(
-            "File Too Large",
-            "Please select an image smaller than 5MB.",
-          );
+        const result =
+          await getGalleryImages(token);
 
-          return;
-        }
+        const list =
+          extractPhotos(result);
 
-        onPicked({
-          uri,
-          fileName: asset.fileName || "photo.jpg",
-          type: asset.type || "image/jpeg",
-          fileSize: asset.fileSize || 0,
-        });
+        console.log(
+          "GALLERY PARSED:",
+          list.length,
+          list[0],
+        );
+
+        setPhotos(list);
+      } catch (error) {
+        console.log(
+          "loadPhotos error:",
+          error,
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.error("IMAGE PICKER ERROR:", error);
+    },
+    [],
+  );
 
-      Alert.alert("Error", error?.message || "Unable to select image.");
-    }
-  }, []);
 
-  const handlePickProfilePhoto = () => {
-    pickImage((image) => {
-      setProfilePhoto(image);
-    });
-  };
+  /* ==========================================================
+     RELOAD WHEN SCREEN FOCUSES
+  ========================================================== */
 
-  const handleRemoveProfilePhoto = () => {
-    Alert.alert(
-      "Remove Photo",
-      "Are you sure you want to remove your profile photo?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            setProfilePhoto(null);
-          },
-        },
-      ],
-    );
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadPhotos();
+    }, [loadPhotos]),
+  );
 
-  const handlePickAdditionalPhoto = (index) => {
-    pickImage((image) => {
-      setAdditionalPhotos((previous) => {
-        const next = [...previous];
 
-        next[index] = image;
+  /* ==========================================================
+     ADD PHOTO
+  ========================================================== */
 
-        return next;
-      });
-    });
-  };
-
-  const handleRemoveAdditionalPhoto = (index) => {
-    Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => {
-          setAdditionalPhotos((previous) => {
-            const next = [...previous];
-
-            next[index] = null;
-
-            return next;
-          });
-        },
-      },
-    ]);
-  };
-
-  const handleSaveAndContinue = async () => {
-    if (saving) {
-      return;
-    }
-
-    if (!profilePhoto) {
+  const handleAddPress = () => {
+    if (photos.length >= MAX_PHOTOS) {
       Alert.alert(
-        "Profile Photo Required",
-        "Please add a profile photo before continuing.",
+        "Limit reached",
+        `You can add up to ${MAX_PHOTOS} photos. Delete one to add another.`,
       );
 
       return;
     }
 
+    navigation.navigate("Addphoto");
+  };
+
+
+  /* ==========================================================
+     SHARE
+  ========================================================== */
+
+  const handleShare = async (index) => {
+    const photo = photos[index];
+
+    if (!photo) {
+      return;
+    }
+
     try {
-      setSaving(true);
-
-      setErrorMessage("");
-
-      const accessToken = await AsyncStorage.getItem("authToken");
-
-      if (!accessToken) {
-        Alert.alert("Login Required", "Please login again.");
-        return;
-      }
-
-      const selectedAdditionalPhotos = additionalPhotos.filter(
-        (photo) => photo !== null,
-      );
-
-      const photoData = {
-        profilePhoto,
-        additionalPhotos: selectedAdditionalPhotos,
-      };
-
-      Alert.alert("Success", "Photos selected successfully.", [
-        {
-          text: "Continue",
-          onPress: () => {
-            if (navigation.canGoBack()) {
-             onBackPress();
-            }
-          },
-        },
-      ]);
+      await Share.share({
+        message: photo.uri,
+        url: photo.uri,
+      });
     } catch (error) {
-      console.error("SAVE PHOTOS ERROR:", error);
-
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Something went wrong while saving your photos.";
-
-      setErrorMessage(message);
-
-      Alert.alert("Error", message);
-    } finally {
-      setSaving(false);
+      console.log(
+        "share error:",
+        error,
+      );
     }
   };
+
+
+  /* ==========================================================
+     DOWNLOAD
+  ========================================================== */
+
+  const handleDownload = (index) => {
+    const photo = photos[index];
+
+    if (photo) {
+      Linking.openURL(
+        photo.uri,
+      ).catch(() => {});
+    }
+  };
+
+
+  /* ==========================================================
+     DELETE PHOTO
+  ========================================================== */
+
+  const performDelete = async () => {
+    const photo =
+      photos[deleteIndex];
+
+    if (!photo || deleting) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+
+      const token =
+        await getToken();
+
+      await deleteGalleryImage(
+        token,
+        photo.id,
+      );
+
+      const removedIndex =
+        deleteIndex;
+
+      const remaining =
+        photos.length - 1;
+
+      setPhotos((prev) =>
+        prev.filter(
+          (_, i) =>
+            i !== removedIndex,
+        ),
+      );
+
+      setViewerIndex((current) => {
+        if (
+          current === null ||
+          remaining <= 0
+        ) {
+          return null;
+        }
+
+        return Math.min(
+          current,
+          remaining - 1,
+        );
+      });
+
+      setDeleteIndex(null);
+    } catch (error) {
+      setDeleteIndex(null);
+
+      Alert.alert(
+        "Delete failed",
+        error?.message ||
+          "Please try again.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
+  /* ==========================================================
+     RENDER VALUES
+  ========================================================== */
+
+  const canAdd =
+    photos.length < MAX_PHOTOS;
+
+  const viewerOpen =
+    viewerIndex !== null &&
+    !!photos[viewerIndex];
+
+
+  /* ==========================================================
+     UI
+  ========================================================== */
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView
+      style={styles.root}
+    >
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#D7192A"
+      />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
+      <LinearGradient
+        colors={
+          Colors.gradientLogo
+        }
+        style={styles.header}
       >
-        {/* ===
-            HEADER
-        === */}
+        <TouchableOpacity
+          style={styles.headerBack}
+          onPress={onBackPress}
+          activeOpacity={0.7}
+        >
+          <Feather
+  name="arrow-left"
+  size={26}
+  color="#FFFFFF"
+/>
+        </TouchableOpacity>
 
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={onBackPress}
-            activeOpacity={0.7}
+
+        <Text
+          style={styles.headerTitle}
+        >
+          My Gallery
+        </Text>
+
+
+        <View
+          style={
+            styles.headerPrivate
+          }
+        >
+       <Feather
+  name="shield"
+  size={26}
+  color="#FFFFFF"
+/>
+
+          <Text
+            style={
+              styles.headerPrivateText
+            }
           >
-            <Feather name="arrow-left" size={24} color="#222222" />
-          </TouchableOpacity>
-
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
-              <View style={styles.progressActive} />
-            </View>
-
-            <Text style={styles.progressText}>Step 6 of 7</Text>
-          </View>
-        </View>
-
-        {/* ===
-            TITLE
-        === */}
-
-        <View style={styles.titleSection}>
-          <Text style={styles.pageTitle}>Add your photos</Text>
-
-          <Text style={styles.pageSubtitle}>
-            Let your personality shine through your photos.
+            Your photos{"\n"}
+            are private
           </Text>
         </View>
+      </LinearGradient>
 
-        {/* ===
-            PROFILE PHOTO CARD
-        === */}
 
-        <View style={styles.profileCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>Profile photo</Text>
+      {/* ======================================================
+          CONTENT
+      ====================================================== */}
 
-              <Text style={styles.cardSubtitle}>
-                Your primary profile picture
-              </Text>
-            </View>
+      <ScrollView
+        contentContainerStyle={
+          styles.content
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() =>
+              loadPhotos(true)
+            }
+            tintColor={
+              Colors.primaryRed
+            }
+            colors={[
+              Colors.primaryRed,
+            ]}
+          />
+        }
+      >
 
-            <View style={styles.requiredBadge}>
-              <Text style={styles.requiredText}>Required</Text>
-            </View>
+
+        {/* ====================================================
+            PRIVATE GALLERY
+        ==================================================== */}
+
+        <View
+          style={
+            styles.privateCard
+          }
+        >
+          <View
+            style={
+              styles.lockCircle
+            }
+          >
+         <Feather
+  name="lock"
+  size={24}
+  color={Colors.primaryRed}
+/>
           </View>
 
-          <View style={styles.profileContent}>
-            <PhotoUploadBox
-              image={profilePhoto}
-              size="large"
-              label="Add photo"
-              helperText="JPG, PNG • Max 5MB"
-              onPress={handlePickProfilePhoto}
-              onRemove={handleRemoveProfilePhoto}
-            />
 
-            <View style={styles.guidelinesBlock}>
-              <Text style={styles.guidelinesTitle}>Photo guidelines</Text>
+          <View
+            style={
+              styles.privateContent
+            }
+          >
+            <Text
+              style={
+                styles.privateTitle
+              }
+            >
+              Private Gallery
+            </Text>
 
-              {PHOTO_GUIDELINES.map((item) => (
-                <View key={item} style={styles.guidelineRow}>
-                  <Feather name="check-circle" size={16} color="#2E9B65" />
-
-                  <Text style={styles.guidelineText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* ===
-            MORE PHOTOS
-        === */}
-
-        <View style={styles.additionalSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>More photos</Text>
-
-              <Text style={styles.sectionSubtitle}>
-                Add up to 4 additional photos
-              </Text>
-            </View>
-
-            <Text style={styles.optionalText}>Optional</Text>
-          </View>
-
-          <View style={styles.additionalGrid}>
-            {additionalPhotos.map((image, index) => (
-              <PhotoUploadBox
-                key={index}
-                image={image}
-                size="small"
-                label="Add photo"
-                helperText="Max 5MB"
-                onPress={() => handlePickAdditionalPhoto(index)}
-                onRemove={() => handleRemoveAdditionalPhoto(index)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* ===
-            PRIVACY
-        === */}
-
-        <View style={styles.privacyCard}>
-          <View style={styles.privacyIcon}>
-            <Feather name="shield" size={19} color="#4F46E5" />
-          </View>
-
-          <View style={styles.privacyContent}>
-            <Text style={styles.privacyTitle}>Your privacy matters</Text>
-
-            <Text style={styles.privacyText}>
-              Your photos are securely stored and only shown according to your
-              profile visibility settings.
+            <Text
+              style={
+                styles.privateText
+              }
+            >
+              Only approved members can
+              view your photos.
             </Text>
           </View>
         </View>
 
-        {/* ===
-            ERROR
-        === */}
 
-        {errorMessage ? (
-          <View style={styles.errorBox}>
-            <Feather name="alert-circle" size={18} color="#D32F2F" />
+        {/* ====================================================
+            GRID
+        ==================================================== */}
 
-            <Text style={styles.errorText}>{errorMessage}</Text>
+        {loading ? (
+          <View
+            style={
+              styles.loadingBox
+            }
+          >
+            <ActivityIndicator
+              size="large"
+              color={
+                Colors.primaryRed
+              }
+            />
           </View>
-        ) : null}
+        ) : (
+          <View
+            style={styles.grid}
+          >
 
-        {/* ===
-            SAVE BUTTON
-        === */}
+            {/* ADD PHOTO */}
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          activeOpacity={0.85}
-          disabled={saving}
-          onPress={handleSaveAndContinue}
+            {canAdd && (
+              <TouchableOpacity
+                style={
+                  styles.addTile
+                }
+                activeOpacity={0.8}
+                onPress={
+                  handleAddPress
+                }
+              >
+             <Feather
+  name="camera"
+  size={34}
+  color={Colors.primaryRed}
+/>
+
+                <Text
+                  style={
+                    styles.addText
+                  }
+                >
+                  Add Photo
+                </Text>
+              </TouchableOpacity>
+            )}
+
+
+            {/* PHOTOS */}
+
+            {photos.map(
+              (photo, index) => (
+                <Pressable
+                  key={
+                    photo.id ??
+                    photo.uri
+                  }
+                  style={
+                    styles.tile
+                  }
+                  onPress={() =>
+                    setViewerIndex(
+                      index,
+                    )
+                  }
+                >
+                  <Image
+                    source={{
+                      uri: photo.uri,
+                    }}
+                    style={
+                      styles.fill
+                    }
+                  />
+
+
+                  {/* MENU */}
+
+                  <TouchableOpacity
+                    style={
+                      styles.menuButton
+                    }
+                    hitSlop={{
+                      top: 8,
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                    }}
+                    onPress={() =>
+                      setMenuIndex(
+                        index,
+                      )
+                    }
+                  >
+                    <Feather
+                      name="ellipsis-vertical"
+                      size={15}
+                      color="#1B1B1B"
+                    />
+                  </TouchableOpacity>
+                </Pressable>
+              ),
+            )}
+          </View>
+        )}
+
+
+        {/* ====================================================
+            FOOTER
+        ==================================================== */}
+
+        <View
+          style={styles.footer}
         >
-          {saving ? (
-            <Text style={styles.saveButtonText}>Saving...</Text>
-          ) : (
-            <>
-              <Text style={styles.saveButtonText}>Save & Continue</Text>
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            {photos.length}{" "}
+            {photos.length === 1
+              ? "Photo"
+              : "Photos"}
+          </Text>
 
-              <Feather name="arrow-right" size={19} color="#FFFFFF" />
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* ===
-            BOTTOM HINT
-        === */}
-
-        <Text style={styles.bottomHint}>
-          You can update your photos anytime from your profile.
-        </Text>
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            Maximum {MAX_PHOTOS}{" "}
+            photos allowed
+          </Text>
+        </View>
       </ScrollView>
+
+
+      {/* ======================================================
+          DELETE DIALOG - GRID
+      ====================================================== */}
+
+      {deleteIndex !== null &&
+        !viewerOpen && (
+          <DeleteDialog
+            deleting={deleting}
+            onCancel={
+              closeDeleteDialog
+            }
+            onConfirm={
+              performDelete
+            }
+          />
+        )}
+
+
+      {/* ======================================================
+          PHOTO OPTIONS
+      ====================================================== */}
+
+      <Modal
+        visible={
+          menuIndex !== null
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setMenuIndex(null)
+        }
+      >
+        <Pressable
+          style={styles.backdrop}
+          onPress={() =>
+            setMenuIndex(null)
+          }
+        />
+
+        <View
+          style={styles.sheet}
+        >
+          <View
+            style={
+              styles.sheetHandle
+            }
+          />
+
+          <Text
+            style={
+              styles.sheetTitle
+            }
+          >
+            Photo options
+          </Text>
+
+
+          {/* VIEW */}
+
+          <SheetRow
+            icon="expand-outline"
+            label="View photo"
+            tint="#1F6FEB"
+            tintBg="#E6F0FF"
+            onPress={() => {
+              const index =
+                menuIndex;
+
+              setMenuIndex(null);
+
+              setViewerIndex(
+                index,
+              );
+            }}
+          />
+
+
+          {/* DOWNLOAD */}
+
+          <SheetRow
+            icon="download-outline"
+            label="Download"
+            tint="#039855"
+            tintBg="#DCFAE6"
+            onPress={() => {
+              const index =
+                menuIndex;
+
+              setMenuIndex(null);
+
+              handleDownload(
+                index,
+              );
+            }}
+          />
+
+
+          {/* DELETE */}
+
+          <SheetRow
+            icon="trash-outline"
+            label="Delete photo"
+            tint={DANGER}
+            tintBg={
+              DANGER_SOFT
+            }
+            danger
+            onPress={() => {
+              const index =
+                menuIndex;
+
+              setMenuIndex(null);
+
+              setDeleteIndex(
+                index,
+              );
+            }}
+          />
+
+
+          {/* CANCEL */}
+
+          <TouchableOpacity
+            style={
+              styles.sheetCancel
+            }
+            activeOpacity={0.8}
+            onPress={() =>
+              setMenuIndex(null)
+            }
+          >
+            <Text
+              style={
+                styles.sheetCancelText
+              }
+            >
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+
+      {/* ======================================================
+          FULL SCREEN VIEWER
+      ====================================================== */}
+
+      <Modal
+        visible={viewerOpen}
+        animationType="fade"
+        onRequestClose={() =>
+          setViewerIndex(null)
+        }
+      >
+        {viewerOpen && (
+          <View
+            style={styles.viewer}
+          >
+            <StatusBar
+              barStyle="light-content"
+              backgroundColor="#000000"
+            />
+
+
+            {/* VIEWER HEADER */}
+
+            <View
+              style={
+                styles.viewerTop
+              }
+            >
+              <TouchableOpacity
+                style={
+                  styles.viewerIconBtn
+                }
+                onPress={() =>
+                  setViewerIndex(
+                    null,
+                  )
+                }
+              >
+              <Feather
+  name="arrow-left"
+  size={24}
+  color="#FFFFFF"
+/>
+              </TouchableOpacity>
+
+
+              <Text
+                style={
+                  styles.viewerCount
+                }
+              >
+                {viewerIndex + 1}{" "}
+                of {photos.length}
+              </Text>
+
+
+              <TouchableOpacity
+                style={
+                  styles.viewerIconBtn
+                }
+                onPress={() =>
+                  setDeleteIndex(
+                    viewerIndex,
+                  )
+                }
+              >
+             <Feather
+  name="trash-2"
+  size={22}
+  color="#FFFFFF"
+/>
+              </TouchableOpacity>
+            </View>
+
+
+            {/* IMAGE */}
+
+            <View
+              style={
+                styles.viewerStage
+              }
+            >
+              <Image
+                source={{
+                  uri:
+                    photos[
+                      viewerIndex
+                    ].uri,
+                }}
+                style={
+                  styles.fill
+                }
+                resizeMode="cover"
+              />
+
+
+              {/* PREVIOUS */}
+
+              {viewerIndex > 0 && (
+                <TouchableOpacity
+                  style={[
+                    styles.arrow,
+                    styles.arrowLeft,
+                  ]}
+                  onPress={() =>
+                    setViewerIndex(
+                      viewerIndex - 1,
+                    )
+                  }
+                >
+                <Feather
+  name="chevron-left"
+  size={22}
+  color="#111"
+/>
+                </TouchableOpacity>
+              )}
+
+
+              {/* NEXT */}
+
+              {viewerIndex <
+                photos.length - 1 && (
+                <TouchableOpacity
+                  style={[
+                    styles.arrow,
+                    styles.arrowRight,
+                  ]}
+                  onPress={() =>
+                    setViewerIndex(
+                      viewerIndex + 1,
+                    )
+                  }
+                >
+                  <Feather
+                    name="chevron-right"
+                    size={22}
+                    color="#111"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+
+            {/* VIEWER ACTIONS */}
+
+            <View
+              style={
+                styles.viewerBottom
+              }
+            >
+              <ViewerAction
+                icon="download-outline"
+                label="Download"
+                onPress={() =>
+                  handleDownload(
+                    viewerIndex,
+                  )
+                }
+              />
+
+              <ViewerAction
+                icon="share-social-outline"
+                label="Share"
+                onPress={() =>
+                  handleShare(
+                    viewerIndex,
+                  )
+                }
+              />
+
+              <ViewerAction
+                icon="trash-outline"
+                label="Delete"
+                danger
+                onPress={() =>
+                  setDeleteIndex(
+                    viewerIndex,
+                  )
+                }
+              />
+            </View>
+
+
+            {/* DELETE DIALOG */}
+
+            {deleteIndex !== null && (
+              <DeleteDialog
+                deleting={
+                  deleting
+                }
+                onCancel={
+                  closeDeleteDialog
+                }
+                onConfirm={
+                  performDelete
+                }
+              />
+            )}
+          </View>
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
 
-/* =====
-   PHOTO UPLOAD BOX
-===== */
 
-function PhotoUploadBox({ image, size, label, helperText, onPress, onRemove }) {
-  const isLarge = size === "large";
+/* ============================================================
+   SUB COMPONENTS
+============================================================ */
 
+function SheetRow({
+  icon,
+  label,
+  tint,
+  tintBg,
+  danger,
+  onPress,
+}) {
   return (
     <TouchableOpacity
-      style={[
-        styles.photoBox,
-        isLarge ? styles.photoBoxLarge : styles.photoBoxSmall,
-      ]}
-      activeOpacity={0.8}
+      style={
+        styles.sheetRow
+      }
+      activeOpacity={0.75}
       onPress={onPress}
     >
-      {image?.uri ? (
-        <>
-          <Image
-            source={{
-              uri: image.uri,
-            }}
-            style={styles.photoPreview}
-            resizeMode="cover"
-          />
+      <View
+        style={[
+          styles.sheetIcon,
+          {
+            backgroundColor:
+              tintBg,
+          },
+        ]}
+      >
+        <Feather
+          name={icon}
+          size={20}
+          color={tint}
+        />
+      </View>
 
-          <TouchableOpacity
-            style={styles.removeButton}
-            hitSlop={{
-              top: 8,
-              bottom: 8,
-              left: 8,
-              right: 8,
-            }}
-            onPress={onRemove}
-            activeOpacity={0.8}
-          >
-            <Feather name="x" size={14} color="#FFFFFF" />
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <View
-            style={[
-              styles.photoIconCircle,
-              isLarge
-                ? styles.photoIconCircleLarge
-                : styles.photoIconCircleSmall,
-            ]}
-          >
-            <Feather
-              name="camera"
-              size={isLarge ? 28 : 20}
-              color={Colors.primaryRed || "#D7192E"}
-            />
 
-            <View style={styles.photoIconPlusBadge}>
-              <Feather name="plus" size={isLarge ? 12 : 9} color="#FFFFFF" />
-            </View>
-          </View>
+      <Text
+        style={[
+          styles.sheetLabel,
+          danger && {
+            color: DANGER,
+          },
+        ]}
+      >
+        {label}
+      </Text>
 
-          <Text
-            style={isLarge ? styles.photoLabelLarge : styles.photoLabelSmall}
-          >
-            {label}
-          </Text>
 
-          {helperText ? (
-            <Text
-              style={
-                isLarge ? styles.photoHelperLarge : styles.photoHelperSmall
-              }
-            >
-              {helperText}
-            </Text>
-          ) : null}
-        </>
-      )}
+    <Feather
+  name="chevron-right"
+  size={18}
+  color={danger ? "#F4A6A0" : "#B6BBC3"}
+/>
     </TouchableOpacity>
   );
 }
 
-/* =====
+
+function ViewerAction({
+  icon,
+  label,
+  danger,
+  onPress,
+}) {
+  return (
+    <TouchableOpacity
+      style={
+        styles.viewerAction
+      }
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      <View
+        style={[
+          styles.viewerActionCircle,
+          danger &&
+            styles.viewerActionDanger,
+        ]}
+      >
+    <Feather
+  name={icon}
+  size={22}
+  color={danger ? "#FF6B60" : "#FFFFFF"}
+/>
+      </View>
+
+      <Text
+        style={[
+          styles.viewerActionText,
+          danger && {
+            color: "#FF8A80",
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+
+function DeleteDialog({
+  deleting,
+  onCancel,
+  onConfirm,
+}) {
+  return (
+    <View
+      style={
+        styles.dialogOverlay
+      }
+    >
+      <View
+        style={
+          styles.dialogCard
+        }
+      >
+
+        <View
+          style={
+            styles.dialogIconOuter
+          }
+        >
+          <View
+            style={
+              styles.dialogIconInner
+            }
+          >
+         <Feather
+  name="trash-2"
+  size={26}
+  color={DANGER}
+/>
+          </View>
+        </View>
+
+
+        <Text
+          style={
+            styles.dialogTitle
+          }
+        >
+          Delete this photo?
+        </Text>
+
+
+        <Text
+          style={
+            styles.dialogText
+          }
+        >
+          This photo will be
+          permanently removed
+          from your gallery. This
+          action can't be undone.
+        </Text>
+
+
+        <View
+          style={
+            styles.dialogActions
+          }
+        >
+
+          <TouchableOpacity
+            style={
+              styles.dialogCancel
+            }
+            activeOpacity={0.8}
+            disabled={deleting}
+            onPress={onCancel}
+          >
+            <Text
+              style={
+                styles.dialogCancelText
+              }
+            >
+              Cancel
+            </Text>
+          </TouchableOpacity>
+
+
+          <TouchableOpacity
+            style={[
+              styles.dialogDelete,
+              deleting && {
+                opacity: 0.7,
+              },
+            ]}
+            activeOpacity={0.85}
+            disabled={deleting}
+            onPress={onConfirm}
+          >
+            {deleting ? (
+              <ActivityIndicator
+                size="small"
+                color="#FFFFFF"
+              />
+            ) : (
+              <Text
+                style={
+                  styles.dialogDeleteText
+                }
+              >
+                Delete
+              </Text>
+            )}
+          </TouchableOpacity>
+
+        </View>
+      </View>
+    </View>
+  );
+}
+
+
+/* ============================================================
    STYLES
-===== */
+============================================================ */
 
-const styles = StyleSheet.create({
-  /* =======
-     SAFE AREA
-  ======= */
+const styles =
+  StyleSheet.create({
 
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-  /* =======
-     SCROLL
-  ======= */
-
-  scrollView: {
-    flex: 1,
-  },
-
-  contentContainer: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 35,
-  },
-
-  /* =======
-     HEADER
-  ======= */
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
-  },
-
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
-  },
-
-  progressContainer: {
-    flex: 1,
-    marginLeft: 14,
-  },
-
-  progressTrack: {
-    height: 5,
-    borderRadius: 5,
-    backgroundColor: "#E9E9E9",
-    overflow: "hidden",
-  },
-
-  progressActive: {
-    width: "85%",
-    height: "100%",
-    backgroundColor: Colors.primaryRed || "#D7192E",
-    borderRadius: 5,
-  },
-
-  progressText: {
-    marginTop: 5,
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    textAlign: "right",
-  },
-
-  /* =======
-     TITLE
-  ======= */
-
-  titleSection: {
-    marginBottom: 22,
-  },
-
-  pageTitle: {
-    fontSize: Fonts.size.title,
-    fontFamily: Fonts.extraBold,
-    color: Colors.textPrimary || "#222222",
-    letterSpacing: -0.4,
-  },
-
-  pageSubtitle: {
-    marginTop: 7,
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    lineHeight: 20,
-  },
-
-  /* =======
-     PROFILE CARD
-  ======= */
-
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    marginBottom: 24,
-
-    shadowColor: "#000000",
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    shadowOffset: {
-      width: 0,
-      height: 2,
+    root: {
+      flex: 1,
+      backgroundColor:
+        "#FFFFFF",
     },
 
-    elevation: 2,
-  },
-
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 17,
-  },
-
-  cardTitle: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-  },
-
-  cardSubtitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    marginTop: 3,
-  },
-
-  requiredBadge: {
-    backgroundColor: "#FCE9E7",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  requiredText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.bold,
-    color: Colors.primaryRed || "#D7192E",
-  },
-
-  /* =======
-     PROFILE CONTENT
-  ======= */
-
-  profileContent: {
-    flexDirection: "row",
-  },
-
-  /* =======
-     GUIDELINES
-  ======= */
-
-  guidelinesBlock: {
-    flex: 1,
-    paddingTop: 2,
-    paddingLeft: 15,
-  },
-
-  guidelinesTitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-    marginBottom: 10,
-  },
-
-  guidelineRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 7,
-  },
-
-  guidelineText: {
-    flex: 1,
-    marginLeft: 6,
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    lineHeight: 15,
-  },
-
-  /* =======
-     ADDITIONAL SECTION
-  ======= */
-
-  additionalSection: {
-    marginBottom: 20,
-  },
-
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 13,
-  },
-
-  sectionTitle: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-  },
-
-  sectionSubtitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    marginTop: 3,
-  },
-
-  optionalText: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: Colors.textMuted || "#777777",
-    backgroundColor: "#F3F3F3",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  /* =======
-     GRID
-  ======= */
-
-  additionalGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  /* =======
-     PHOTO BOX
-  ======= */
-
-  photoBox: {
-    borderWidth: 1.4,
-    borderColor: "#E3B3AE",
-    borderStyle: "dashed",
-    borderRadius: 16,
-    backgroundColor: "#FFF9F8",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-
-  photoBoxLarge: {
-    width: 142,
-    height: 142,
-  },
-
-  photoBoxSmall: {
-    width: "23.5%",
-    height: 92,
-    paddingHorizontal: 3,
-  },
-
-  photoPreview: {
-    width: "100%",
-    height: "100%",
-  },
-
-  removeButton: {
-    position: "absolute",
-    top: 7,
-    right: 7,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  /* =======
-     PHOTO ICON
-  ======= */
-
-  photoIconCircle: {
-    borderRadius: 999,
-    backgroundColor: "#FBE9E7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  photoIconCircleLarge: {
-    width: 57,
-    height: 57,
-    marginBottom: 9,
-  },
-
-  photoIconCircleSmall: {
-    width: 37,
-    height: 37,
-    marginBottom: 5,
-  },
-
-  photoIconPlusBadge: {
-    position: "absolute",
-    right: -2,
-    bottom: -1,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.primaryRed || "#D7192E",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#FFF9F8",
-  },
-
-  photoLabelLarge: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-  },
-
-  photoLabelSmall: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-  },
-
-  photoHelperLarge: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    textAlign: "center",
-    marginTop: 3,
-  },
-
-  photoHelperSmall: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    textAlign: "center",
-    marginTop: 1,
-  },
-
-  /* =======
-     PRIVACY
-  ======= */
-
-  privacyCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F4F5FF",
-    borderRadius: 15,
-    padding: 13,
-    marginBottom: 20,
-  },
-
-  privacyIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E6E8FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-
-  privacyContent: {
-    flex: 1,
-  },
-
-  privacyTitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
-    color: Colors.textPrimary || "#222222",
-    marginBottom: 2,
-  },
-
-  privacyText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-    lineHeight: 15,
-  },
-
-  /* =======
-     ERROR
-  ======= */
-
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF3F3",
-    borderWidth: 1,
-    borderColor: "#FFD2D2",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
-  },
-
-  errorText: {
-    flex: 1,
-    marginLeft: 8,
-    color: "#D32F2F",
-    fontSize: Fonts.size.md,
-  },
-
-  /* =======
-     SAVE BUTTON
-  ======= */
-
-  saveButton: {
-    height: 54,
-    borderRadius: 15,
-    backgroundColor: Colors.primaryRedDark || "#B51225",
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    shadowColor: "#000000",
-
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    fill: {
+      width: "100%",
+      height: "100%",
     },
 
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
 
-    elevation: 4,
-  },
+    /* HEADER */
 
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 18,
+    },
 
-  saveButtonText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.white || "#FFFFFF",
-    marginRight: 9,
-  },
+    headerBack: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  /* =======
-     BOTTOM HINT
-  ======= */
+    headerTitle: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 22,
+      fontFamily:
+        Fonts.display?.bold ||
+        Fonts.bold,
+      color: "#FFFFFF",
+    },
 
-  bottomHint: {
-    textAlign: "center",
-    marginTop: 10,
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted || "#777777",
-  },
-});
+    headerPrivate: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+
+    headerPrivateText: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color: "#FFFFFF",
+    },
+
+
+    /* CONTENT */
+
+    content: {
+      paddingHorizontal:
+        H_PADDING,
+      paddingTop: 16,
+    },
+
+
+    /* PRIVATE CARD */
+
+    privateCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor:
+        "#FDECEC",
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 20,
+    },
+
+    lockCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor:
+        "#F9D3D3",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 14,
+    },
+
+    privateContent: {
+      flex: 1,
+    },
+
+    privateTitle: {
+      fontSize: 16,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color:
+        Colors.textPrimary ||
+        "#111",
+    },
+
+    privateText: {
+      marginTop: 3,
+      fontSize: 13,
+      lineHeight: 18,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color:
+        Colors.textSecondary ||
+        "#555",
+    },
+
+
+    /* GRID */
+
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: GAP,
+    },
+
+    tile: {
+      width: TILE_WIDTH,
+      height: TILE_HEIGHT,
+      borderRadius: 10,
+      overflow: "hidden",
+      backgroundColor:
+        "#F1F1F1",
+    },
+
+    addTile: {
+      width: TILE_WIDTH,
+      height: TILE_HEIGHT,
+      borderRadius: 10,
+      backgroundColor:
+        "#FDF1F1",
+      borderWidth: 1.2,
+      borderColor:
+        "#EBB9B9",
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    addText: {
+      marginTop: 10,
+      fontSize: 14,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color:
+        Colors.primaryRed,
+    },
+
+    menuButton: {
+      position: "absolute",
+      top: 7,
+      right: 7,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor:
+        "rgba(255,255,255,0.92)",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    loadingBox: {
+      paddingVertical: 60,
+      alignItems: "center",
+    },
+
+
+    /* FOOTER */
+
+    footer: {
+      flexDirection: "row",
+      justifyContent:
+        "space-between",
+      marginTop: 22,
+    },
+
+    footerText: {
+      fontSize: 13.5,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color: "#7A7F87",
+    },
+
+
+    /* OPTIONS SHEET */
+
+    backdrop: {
+      flex: 1,
+      backgroundColor:
+        "rgba(16,24,40,0.55)",
+    },
+
+    sheet: {
+      backgroundColor:
+        "#FFFFFF",
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 18,
+      paddingTop: 10,
+      paddingBottom: 16,
+    },
+
+    sheetHandle: {
+      alignSelf: "center",
+      width: 44,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor:
+        "#D0D5DD",
+      marginBottom: 14,
+    },
+
+    sheetTitle: {
+      fontSize: 17,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color:
+        Colors.textPrimary ||
+        "#101828",
+      marginBottom: 12,
+    },
+
+    sheetRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor:
+        "#F9FAFB",
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      height: 58,
+      marginBottom: 8,
+    },
+
+    sheetIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 12,
+    },
+
+    sheetLabel: {
+      flex: 1,
+      fontSize: 15.5,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color:
+        Colors.textPrimary ||
+        "#101828",
+    },
+
+    sheetCancel: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor:
+        "#E4E7EC",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginTop: 6,
+    },
+
+    sheetCancelText: {
+      fontSize: 15.5,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color: "#344054",
+    },
+
+
+    /* DELETE DIALOG */
+
+    dialogOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor:
+        "rgba(16,24,40,0.6)",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      paddingHorizontal: 28,
+      zIndex: 100,
+      elevation: 100,
+    },
+
+    dialogCard: {
+      width: "100%",
+      backgroundColor:
+        "#FFFFFF",
+      borderRadius: 20,
+      paddingHorizontal: 22,
+      paddingTop: 26,
+      paddingBottom: 20,
+      alignItems: "center",
+    },
+
+    dialogIconOuter: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor:
+        "#FEF3F2",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginBottom: 16,
+    },
+
+    dialogIconInner: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor:
+        DANGER_SOFT,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    dialogTitle: {
+      fontSize: 18,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color: "#101828",
+    },
+
+    dialogText: {
+      marginTop: 8,
+      marginBottom: 22,
+      textAlign: "center",
+      fontSize: 14,
+      lineHeight: 21,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color: "#667085",
+    },
+
+    dialogActions: {
+      flexDirection: "row",
+      gap: 12,
+      width: "100%",
+    },
+
+    dialogCancel: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor:
+        "#D0D5DD",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    dialogCancelText: {
+      fontSize: 15,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color: "#344054",
+    },
+
+    dialogDelete: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor:
+        DANGER,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    dialogDeleteText: {
+      fontSize: 15,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color: "#FFFFFF",
+    },
+
+
+    /* VIEWER */
+
+    viewer: {
+      flex: 1,
+      backgroundColor:
+        "#000000",
+    },
+
+    viewerTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      paddingBottom: 12,
+    },
+
+    viewerIconBtn: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor:
+        "rgba(255,255,255,0.12)",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    viewerCount: {
+      fontSize: 17,
+      fontFamily:
+        Fonts.body?.bold ||
+        Fonts.bold,
+      color: "#FFFFFF",
+    },
+
+    viewerStage: {
+      flex: 1,
+      backgroundColor: "#111",
+    },
+
+    arrow: {
+      position: "absolute",
+      top: "50%",
+      marginTop: -24,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor:
+        "#FFFFFF",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    arrowLeft: {
+      left: 20,
+    },
+
+    arrowRight: {
+      right: 20,
+    },
+
+    viewerBottom: {
+      flexDirection: "row",
+      justifyContent:
+        "space-around",
+      paddingTop: 20,
+    },
+
+    viewerAction: {
+      alignItems: "center",
+      minWidth: 80,
+    },
+
+    viewerActionCircle: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor:
+        "rgba(255,255,255,0.14)",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    viewerActionDanger: {
+      backgroundColor:
+        "rgba(217,45,32,0.22)",
+    },
+
+    viewerActionText: {
+      marginTop: 8,
+      fontSize: 13,
+      fontFamily:
+        Fonts.body?.regular ||
+        Fonts.regular,
+      color: "#FFFFFF",
+    },
+  });

@@ -40,7 +40,8 @@ import ProfileVisitorsScreen from '../Screens/ProfileVisitorsScreen';
 import RecentlyViewedScreen from '../Screens/RecentlyViewedScreen';
 import SubscriptionPlansScreen from '../Screens/SubscriptionPlansScreen';
 import PremiumBenefits from '../Screens/PremiumBenefits';
-
+import AddPhotoScreen from '../Screens/AddPhotoScreen';
+import InvoiceDetailsScreen from '../Screens/InvoiceDetailsScreen';
 import { DarkTheme, LightTheme } from '../styles/theme';
 import Fonts from '../constants/Fonts';
 
@@ -323,10 +324,17 @@ export const useRoutesList = () => {
       options: notTabBar,
     },
     {
-      name: 'MyPhotos',
+      name: 'MyPhoto',
       component: MyPhotosScreen,
       options: notTabBar,
     },
+{
+
+name: 'AddPhoto',
+component: AddPhotoScreen,
+options: notTabBar,
+},
+
     {
       name: 'BasicDetails',
       component: BasicDetailsScreen,
@@ -357,5 +365,10 @@ export const useRoutesList = () => {
       component: SearchScreen,
       options: notTabBar,
     },
+{
+name: 'Invoice',
+component: InvoiceDetailsScreen,
+options: notTabBar,
+}
   ];
 };

@@ -1752,6 +1752,25 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
 
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
+{/* === PaymenyHistoryScreen == */}
+<TouchableOpacity
+  style={styles.profileRow}
+  activeOpacity={0.8}
+  onPress={() => {
+    navigation.navigate("PaymentHistoryScreen", {
+      page: route?.name,
+      prevs: route?.params,
+    });
+  }}
+>
+  <View style={[styles.rowIcon, { backgroundColor: "#EAF2FF" }]}>
+    <Ionicons name="card-outline" size={21} color="#2878D8" />
+  </View>
+
+  <Text style={styles.rowTitle}>Payment History</Text>
+
+  <Ionicons name="chevron-forward" size={18} color="#666666" />
+</TouchableOpacity>
 
           {/* ===
             CAREER

@@ -1,8 +1,11 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
+  ActivityIndicator,
+  Alert,
   BackHandler,
-  Dimensions,
-  Modal,
-  Platform,
+  Linking,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -13,1688 +16,1735 @@ import {
 } from "react-native";
 
 import Feather from "react-native-vector-icons/Feather";
-
 import LinearGradient from "react-native-linear-gradient";
+import Clipboard from "@react-native-clipboard/clipboard";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-
-import Svg, { Path } from "react-native-svg";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 
 import { Colors } from "../constants/colors";
-
-import Fonts from "../constants/Fonts";
-
-/* ===
-   SCREEN WIDTH
-=== */
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-const HEADER_HEIGHT = 108;
-
-/* ===
-   STATUS TABS
-=== */
-
-const STATUS_TABS = ["All", "Successful", "Pending", "Failed"];
-
-/* ===
-   DATE RANGES
-=== */
-
-const DATE_RANGES = [
-  {
-    key: "all",
-    label: "All Time",
-  },
-
-  {
-    key: "30d",
-    label: "Last 30 Days",
-  },
-
-  {
-    key: "3m",
-    label: "Last 3 Months",
-  },
-
-  {
-    key: "6m",
-    label: "Last 6 Months",
-  },
-];
-
-/* ===
-   TRANSACTIONS
-=== */
-
-const TRANSACTIONS = [
-  {
-    id: "1",
-
-    title: "Premium Membership – 12 Months",
-
-    orderId: "MW12345678",
-
-    date: "20 May 2024, 10:30 AM",
-
-    dateValue: new Date(2024, 4, 20),
-
-    amount: 2999,
-
-    status: "Successful",
-
-    icon: "crown",
-
-    iconBg: "#FDF3D8",
-  },
-
-  {
-    id: "2",
-
-    title: "Premium Membership – 6 Months",
-
-    orderId: "MW98765432",
-
-    date: "15 Nov 2023, 09:15 AM",
-
-    dateValue: new Date(2023, 10, 15),
-
-    amount: 1999,
-
-    status: "Successful",
-
-    icon: "crown",
-
-    iconBg: "#FDF3D8",
-  },
-
-  {
-    id: "3",
-
-    title: "Premium Membership – 3 Months",
-
-    orderId: "MW56781234",
-
-    date: "10 Aug 2023, 08:45 PM",
-
-    dateValue: new Date(2023, 7, 10),
-
-    amount: 999,
-
-    status: "Successful",
-
-    icon: "wallet",
-
-    iconBg: "#FDEAE0",
-  },
-
-  {
-    id: "4",
-
-    title: "Contact Details Access",
-
-    orderId: "MW34567890",
-
-    date: "05 Jul 2023, 07:20 PM",
-
-    dateValue: new Date(2023, 6, 5),
-
-    amount: 199,
-
-    status: "Successful",
-
-    icon: "log-in",
-
-    iconBg: "#EDE7F6",
-  },
-
-  {
-    id: "5",
-
-    title: "Premium Membership – 12 Months",
-
-    orderId: "MW24681357",
-
-    date: "18 Jun 2023, 11:05 AM",
-
-    dateValue: new Date(2023, 5, 18),
-
-    amount: 2999,
-
-    status: "Failed",
-
-    icon: "credit-card",
-
-    iconBg: "#FDEAE0",
-  },
-
-  {
-    id: "6",
-
-    title: "Premium Membership – 12 Months",
-
-    orderId: "MW13579246",
-
-    date: "20 May 2023, 10:30 AM",
-
-    dateValue: new Date(2023, 4, 20),
-
-    amount: 2999,
-
-    status: "Successful",
-
-    icon: "crown",
-
-    iconBg: "#FDF3D8",
-  },
-
-  {
-    id: "7",
-
-    title: "Profile Highlight",
-
-    orderId: "MW11223344",
-
-    date: "12 Apr 2023, 06:40 PM",
-
-    dateValue: new Date(2023, 3, 12),
-
-    amount: 149,
-
-    status: "Successful",
-
-    icon: "log-in",
-
-    iconBg: "#EDE7F6",
-  },
-];
-
-/* ===
-   TRANSACTION TYPES
-=== */
-
-const TRANSACTION_TYPES = [
-  ...new Set(TRANSACTIONS.map((transaction) => transaction.title)),
-];
-
-/* ===
-   EMPTY FILTERS
-=== */
-
-const EMPTY_FILTERS = {
-  types: [],
-};
-
-export default function PaymentHistoryScreen({ navigation, route }) {
-
-  const [activeStatus, setActiveStatus] = useState("All");
-
-  const [dateRange, setDateRange] = useState("all");
-
-  const [dateMenuVisible, setDateMenuVisible] = useState(false);
-
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-
-  const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
-
-  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-
-  const activeFilterCount = filters.types.length;
+import { Fonts, FontSizes } from "../constants/Fonts";
+
+import {
+  getPackagePurchaseHistory,
+  getPackagePurchaseInvoice,
+  getToken,
+} from "../utils/Functions";
+
+// =====================================================
+// SCREEN
+// =====================================================
+
+export default function PurchaseHistory() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+
+  // =====================================================
+  // BACK HANDLER
+  // =====================================================
 
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
-      navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
+      navigation.goBack();
+    } else {
+      navigation.navigate(
+        route?.params?.page || "Home",
+        route?.params?.prevs || {},
+      );
     }
-  }, [navigation]);
+
+    return true;
+  }, [navigation, route]);
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        if (filterSheetVisible) {
-          setFilterSheetVisible(false);
-
-          return true;
-        }
-
-        if (dateMenuVisible) {
-          setDateMenuVisible(false);
-
-          return true;
-        }
-
-        handleBack();
-
-        return true;
-      };
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
-        onBackPress,
+        handleBack,
       );
 
-      return () => {
-        subscription.remove();
-      };
-    }, [handleBack, filterSheetVisible, dateMenuVisible]),
+      return () => subscription.remove();
+    }, [handleBack]),
   );
 
-  /* ====
-     OPEN FILTER
-  ==== */
+  // =====================================================
+  // HELPERS
+  // =====================================================
 
-  const openFilterSheet = () => {
-    setDraftFilters(filters);
+  const extractHistory = useCallback((response) => {
+    if (!response) {
+      return [];
+    }
 
-    setFilterSheetVisible(true);
-  };
+    if (Array.isArray(response)) {
+      return response;
+    }
 
-  /* ====
-     APPLY FILTER
-  ==== */
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
 
-  const applyFilters = () => {
-    setFilters(draftFilters);
+    if (Array.isArray(response?.result)) {
+      return response.result;
+    }
 
-    setFilterSheetVisible(false);
-  };
+    if (Array.isArray(response?.payments)) {
+      return response.payments;
+    }
 
-  /* ====
-     RESET FILTER
-  ==== */
+    if (Array.isArray(response?.data?.payments)) {
+      return response.data.payments;
+    }
 
-  const resetDraftFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
-  };
+    if (Array.isArray(response?.result?.payments)) {
+      return response.result.payments;
+    }
 
-  /* ====
-     TOGGLE TRANSACTION TYPE
-  ==== */
+    if (Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
 
-  const toggleDraftType = (type) => {
-    setDraftFilters((previous) => {
-      const has = previous.types.includes(type);
+    if (Array.isArray(response?.result?.data)) {
+      return response.result.data;
+    }
 
-      return {
-        ...previous,
-
-        types: has
-          ? previous.types.filter((item) => item !== type)
-          : [...previous.types, type],
-      };
-    });
-  };
-
-  /* ====
-     SUMMARY
-  ==== */
-
-  const summary = useMemo(() => {
-    const successful = TRANSACTIONS.filter(
-      (transaction) => transaction.status === "Successful",
-    );
-
-    const failed = TRANSACTIONS.filter(
-      (transaction) => transaction.status === "Failed",
-    );
-
-    const totalSpent = successful.reduce(
-      (sum, transaction) => sum + transaction.amount,
-
-      0,
-    );
-
-    return {
-      totalSpent,
-
-      successfulAmount: totalSpent,
-
-      successfulCount: successful.length,
-
-      failedAmount: failed.reduce(
-        (sum, transaction) => sum + transaction.amount,
-
-        0,
-      ),
-
-      failedCount: failed.length,
-    };
+    return [];
   }, []);
 
-  /* ====
-     FILTERED TRANSACTIONS
-  ==== */
-
-  const filteredTransactions = useMemo(() => {
-    let list = TRANSACTIONS;
-
-    /* STATUS */
-
-    if (activeStatus !== "All") {
-      list = list.filter((transaction) => transaction.status === activeStatus);
+  const formatDate = useCallback((dateValue) => {
+    if (!dateValue) {
+      return "-";
     }
 
-    /* DATE */
+    try {
+      const date = new Date(dateValue);
 
-    if (dateRange !== "all") {
-      const now = new Date();
+      if (Number.isNaN(date.getTime())) {
+        return String(dateValue);
+      }
 
-      const cutoffDays = {
-        "30d": 30,
-        "3m": 90,
-        "6m": 180,
-      }[dateRange];
+      return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return String(dateValue);
+    }
+  }, []);
 
-      const cutoff = new Date(now.getTime() - cutoffDays * 24 * 60 * 60 * 1000);
-
-      list = list.filter((transaction) => transaction.dateValue >= cutoff);
+  const formatDateTime = useCallback((dateValue) => {
+    if (!dateValue) {
+      return "-";
     }
 
-    /* TRANSACTION TYPE */
+    try {
+      const date = new Date(dateValue);
 
-    if (filters.types.length > 0) {
-      list = list.filter((transaction) =>
-        filters.types.includes(transaction.title),
+      if (Number.isNaN(date.getTime())) {
+        return String(dateValue);
+      }
+
+      return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return String(dateValue);
+    }
+  }, []);
+
+  const formatCurrency = useCallback((value) => {
+    if (value === null || value === undefined || value === "") {
+      return "₹0";
+    }
+
+    const numericValue = Number(value);
+
+    if (Number.isNaN(numericValue)) {
+      return String(value);
+    }
+
+    return `₹${numericValue.toLocaleString("en-IN", {
+      maximumFractionDigits: 2,
+    })}`;
+  }, []);
+
+  const getPaymentId = useCallback((item) => {
+    return (
+      item?.package_payment_id ??
+      item?.payment_id ??
+      item?.id ??
+      item?.transaction_id ??
+      item?.transactionId
+    );
+  }, []);
+
+  const getTransactionId = useCallback((item) => {
+    return (
+      item?.transaction_id ??
+      item?.transactionId ??
+      item?.txn_id ??
+      item?.txnId ??
+      item?.payment_reference ??
+      item?.reference_id ??
+      item?.reference
+    );
+  }, []);
+
+  const getPackageName = useCallback((item) => {
+    return (
+      item?.package_name ??
+      item?.package?.name ??
+      item?.package?.package_name ??
+      item?.name ??
+      item?.title ??
+      "Membership Package"
+    );
+  }, []);
+
+  const getAmount = useCallback((item) => {
+    return (
+      item?.amount ??
+      item?.paid_amount ??
+      item?.payment_amount ??
+      item?.price ??
+      item?.package_amount ??
+      0
+    );
+  }, []);
+
+  const getPaymentDate = useCallback((item) => {
+    return (
+      item?.payment_date ??
+      item?.paid_at ??
+      item?.created_at ??
+      item?.date ??
+      item?.purchase_date
+    );
+  }, []);
+
+  const getPaymentMethod = useCallback((item) => {
+    return (
+      item?.payment_method ??
+      item?.method ??
+      item?.payment_type ??
+      item?.gateway ??
+      "Card"
+    );
+  }, []);
+
+  const getStatus = useCallback((item) => {
+    const status =
+      item?.status ??
+      item?.payment_status ??
+      item?.transaction_status ??
+      "success";
+
+    return String(status);
+  }, []);
+
+  const getMethodIcon = useCallback((method) => {
+    const value = String(method || "").toLowerCase();
+
+    if (value.includes("upi")) {
+      return "smartphone";
+    }
+
+    if (value.includes("card")) {
+      return "credit-card";
+    }
+
+    if (value.includes("bank")) {
+      return "briefcase";
+    }
+
+    if (value.includes("wallet")) {
+      return "briefcase";
+    }
+
+    if (value.includes("emi")) {
+      return "calendar";
+    }
+
+    return "credit-card";
+  }, []);
+
+  const isSuccessful = useCallback((status) => {
+    const value = String(status || "").toLowerCase();
+
+    return (
+      value === "success" ||
+      value === "successful" ||
+      value === "paid" ||
+      value === "completed" ||
+      value === "active"
+    );
+  }, []);
+
+  // =====================================================
+  // FETCH PAYMENT HISTORY
+  // =====================================================
+
+  const fetchPaymentHistory = useCallback(
+    async (showLoader = true) => {
+      try {
+        if (showLoader) {
+          setLoading(true);
+        }
+
+        const token = await getToken();
+
+        if (!token) {
+          Alert.alert(
+            "Session Expired",
+            "Please login again to view your purchase history.",
+          );
+          setPayments([]);
+          return;
+        }
+
+        const response = await getPackagePurchaseHistory(token);
+
+        const history = extractHistory(response);
+
+        setPayments(history);
+      } catch (error) {
+        console.log("Purchase history error:", error);
+
+        Alert.alert(
+          "Error",
+          error?.message ||
+            "Unable to load your purchase history. Please try again.",
+        );
+
+        setPayments([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [extractHistory],
+  );
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
+  useEffect(() => {
+    fetchPaymentHistory(true);
+  }, [fetchPaymentHistory]);
+
+  // =====================================================
+  // REFRESH
+  // =====================================================
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPaymentHistory(false);
+  }, [fetchPaymentHistory]);
+
+  // =====================================================
+  // INVOICE
+  // =====================================================
+
+  const handleInvoice = useCallback(
+    async (payment) => {
+      const paymentId = getPaymentId(payment);
+
+      if (!paymentId) {
+        Alert.alert(
+          "Invoice Unavailable",
+          "Payment ID is not available for this transaction.",
+        );
+        return;
+      }
+
+      try {
+        setInvoiceLoading(true);
+
+        const token = await getToken();
+
+        if (!token) {
+          Alert.alert(
+            "Session Expired",
+            "Please login again to download your invoice.",
+          );
+          return;
+        }
+
+        const response = await getPackagePurchaseInvoice(
+          token,
+          paymentId,
+        );
+
+        const invoiceUrl =
+          response?.invoice_url ??
+          response?.url ??
+          response?.data?.invoice_url ??
+          response?.data?.url ??
+          response?.result?.invoice_url ??
+          response?.result?.url;
+
+        if (!invoiceUrl) {
+          Alert.alert(
+            "Invoice Unavailable",
+            "Invoice link is not available for this payment.",
+          );
+          return;
+        }
+
+        const supported = await Linking.canOpenURL(invoiceUrl);
+
+        if (!supported) {
+          Alert.alert(
+            "Unable to Open Invoice",
+            "Your device cannot open this invoice link.",
+          );
+          return;
+        }
+
+        await Linking.openURL(invoiceUrl);
+      } catch (error) {
+        console.log("Invoice error:", error);
+
+        Alert.alert(
+          "Invoice Error",
+          error?.message ||
+            "Unable to open invoice. Please try again.",
+        );
+      } finally {
+        setInvoiceLoading(false);
+      }
+    },
+    [getPaymentId],
+  );
+
+  // =====================================================
+  // DETAILS
+  // =====================================================
+
+  const handleDetails = useCallback(
+    (payment) => {
+      const transactionId = getTransactionId(payment);
+      const packageName = getPackageName(payment);
+      const amount = getAmount(payment);
+      const paymentDate = getPaymentDate(payment);
+      const paymentMethod = getPaymentMethod(payment);
+      const status = getStatus(payment);
+
+      Alert.alert(
+        "Payment Details",
+        `Package: ${packageName}\n\n` +
+          `Amount: ${formatCurrency(amount)}\n\n` +
+          `Payment Method: ${paymentMethod}\n\n` +
+          `Transaction ID: ${transactionId || "-"}\n\n` +
+          `Date: ${formatDateTime(paymentDate)}\n\n` +
+          `Status: ${status}`,
+        [
+          {
+            text: "Close",
+            style: "cancel",
+          },
+        ],
       );
-    }
+    },
+    [
+      formatCurrency,
+      formatDateTime,
+      getAmount,
+      getPackageName,
+      getPaymentDate,
+      getPaymentMethod,
+      getStatus,
+      getTransactionId,
+    ],
+  );
 
-    return list;
-  }, [activeStatus, dateRange, filters]);
+  // =====================================================
+  // COPY TRANSACTION ID
+  // =====================================================
 
-  /* ====
-     CURRENT DATE LABEL
-  ==== */
+  const handleCopyTransaction = useCallback(
+    async (transactionId) => {
+      if (!transactionId) {
+        Alert.alert(
+          "Unavailable",
+          "Transaction ID is not available.",
+        );
+        return;
+      }
 
-  const currentDateRangeLabel = DATE_RANGES.find(
-    (range) => range.key === dateRange,
-  )?.label;
+      try {
+        await Clipboard.setString(String(transactionId));
 
-  /* ====
-     UI
-  ==== */
+        Alert.alert(
+          "Copied",
+          "Transaction ID copied to clipboard.",
+        );
+      } catch (error) {
+        console.log("Clipboard error:", error);
+      }
+    },
+    [],
+  );
+
+  // =====================================================
+  // SUMMARY
+  // =====================================================
+
+  const summary = useMemo(() => {
+    const successfulPayments = payments.filter((item) =>
+      isSuccessful(getStatus(item)),
+    );
+
+    const totalSpent = successfulPayments.reduce((sum, item) => {
+      const amount = Number(getAmount(item));
+
+      if (Number.isNaN(amount)) {
+        return sum;
+      }
+
+      return sum + amount;
+    }, 0);
+
+    return {
+      totalPayments: payments.length,
+      successfulPayments: successfulPayments.length,
+      totalSpent,
+    };
+  }, [payments, getAmount, getStatus, isSuccessful]);
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={Colors?.primary || "#D92332"}
+        />
+
+        <LinearGradient
+          colors={[
+            Colors?.primary || "#D92332",
+            Colors?.primaryDark || "#B51E2A",
+          ]}
+          style={styles.loadingContainer}
+        >
+          <ActivityIndicator
+            size="large"
+            color="#FFFFFF"
+          />
+
+          <Text style={styles.loadingText}>
+            Loading purchase history...
+          </Text>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // =====================================================
+  // EMPTY STATE
+  // =====================================================
+
+  const renderEmptyState = () => {
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={styles.emptyIconContainer}>
+          <Feather
+            name="file-text"
+            size={42}
+            color="#D92332"
+          />
+        </View>
+
+        <Text style={styles.emptyTitle}>
+          No Purchase History
+        </Text>
+
+        <Text style={styles.emptyDescription}>
+          You haven't made any package purchases yet.
+        </Text>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.emptyButton}
+          onPress={() =>
+            navigation.navigate(
+              route?.params?.packagePage || "Packages",
+            )
+          }
+        >
+          <Text style={styles.emptyButtonText}>
+            View Packages
+          </Text>
+
+          <Feather
+            name="arrow-right"
+            size={18}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // =====================================================
+  // MAIN UI
+  // =====================================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primaryRed} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors?.primary || "#D92332"}
+      />
 
-      {/* =====
+      {/* =================================================
           HEADER
-      ===== */}
+      ================================================= */}
 
-      <View style={styles.headerWrapper}>
-        <LinearGradient
-          colors={Colors.gradientHeader}
-          start={{
-            x: 0,
-            y: 0,
-          }}
-          end={{
-            x: 1,
-            y: 0,
-          }}
-          style={styles.header}
-        >
-          {/* BACK */}
-
+      <LinearGradient
+        colors={[
+          Colors?.primary || "#D92332",
+          Colors?.primaryDark || "#B51E2A",
+        ]}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
           <TouchableOpacity
-            onPress={handleBack}
-            hitSlop={{
-              top: 10,
-              bottom: 10,
-              left: 10,
-              right: 10,
-            }}
             activeOpacity={0.8}
-            style={styles.headerBackButton}
+            style={styles.backButton}
+            onPress={handleBack}
           >
-            <Feather name="arrow-left" size={24} color={Colors.white} />
+            <Feather
+              name="arrow-left"
+              size={23}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
 
-          {/* TITLE */}
-
-          <View style={styles.headerTitleBlock}>
-            <Text style={styles.headerTitle}>Payment History</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>
+              Purchase History
+            </Text>
 
             <Text style={styles.headerSubtitle}>
-              View your all payment transactions
+              Your membership payments
             </Text>
           </View>
-
-          {/* FILTER */}
 
           <TouchableOpacity
-            style={styles.filterHeaderButton}
-            onPress={openFilterSheet}
             activeOpacity={0.8}
+            style={styles.refreshButton}
+            onPress={handleRefresh}
           >
-            <Feather name="filter" size={16} color={Colors.white} />
-
-            <Text style={styles.filterHeaderText}>Filter</Text>
-
-            {activeFilterCount > 0 && (
-              <View style={styles.filterHeaderBadge}>
-                <Text style={styles.filterHeaderBadgeText}>
-                  {activeFilterCount}
-                </Text>
-              </View>
-            )}
+            <Feather
+              name="refresh-cw"
+              size={20}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
-        </LinearGradient>
-
-        {/* GOLD LINE */}
-
-        <Svg
-          width={SCREEN_WIDTH}
-          height={10}
-          viewBox={`0 0 ${SCREEN_WIDTH} 10`}
-        >
-          <Path d={`M0,0 H${SCREEN_WIDTH} V6 H0 Z`} fill={Colors.gold} />
-        </Svg>
-      </View>
-
-      {/* =====
-          CONTENT
-      ===== */}
+        </View>
+      </LinearGradient>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#D92332"
+            colors={["#D92332"]}
+          />
+        }
       >
-        {/* ===
+        {/* =================================================
             SUMMARY CARD
-        === */}
+        ================================================= */}
 
         <View style={styles.summaryCard}>
-          {/* TOTAL */}
-
-          <View style={styles.summaryLeft}>
-            <View style={styles.summaryIconCircle}>
-              <Feather name="credit-card" size={22} color={Colors.white} />
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryIcon}>
+              <Feather
+                name="file-text"
+                size={24}
+                color="#D92332"
+              />
             </View>
 
-            <View>
-              <Text style={styles.summaryLabel}>Total Spent</Text>
-
-              <Text style={styles.summaryAmount}>
-                ₹ {summary.totalSpent.toLocaleString("en-IN")}
+            <View style={styles.summaryHeaderText}>
+              <Text style={styles.summaryTitle}>
+                Payment Summary
               </Text>
 
-              <Text style={styles.summarySub}>All Time</Text>
+              <Text style={styles.summarySubtitle}>
+                Overview of your purchases
+              </Text>
             </View>
           </View>
 
           <View style={styles.summaryDivider} />
 
-          {/* SUCCESSFUL */}
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {summary.totalPayments}
+              </Text>
 
-          <View style={styles.summaryStat}>
-            <Text style={styles.summaryStatLabel}>Successful</Text>
-
-            <Text
-              style={[
-                styles.summaryStatAmount,
-                {
-                  color: Colors.success,
-                },
-              ]}
-            >
-              ₹ {summary.successfulAmount.toLocaleString("en-IN")}
-            </Text>
-
-            <Text style={styles.summaryStatSub}>
-              {summary.successfulCount} Transactions
-            </Text>
-          </View>
-
-          <View style={styles.summaryDivider} />
-
-          {/* FAILED */}
-
-          <View style={styles.summaryStat}>
-            <Text style={styles.summaryStatLabel}>Failed</Text>
-
-            <Text
-              style={[
-                styles.summaryStatAmount,
-                {
-                  color: Colors.primaryRed,
-                },
-              ]}
-            >
-              ₹ {summary.failedAmount.toLocaleString("en-IN")}
-            </Text>
-
-            <Text style={styles.summaryStatSub}>
-              {summary.failedCount} Transactions
-            </Text>
-          </View>
-        </View>
-
-        {/* ===
-            STATUS TABS
-        === */}
-
-        <View style={styles.tabsRow}>
-          <View style={styles.statusTabsGroup}>
-            {STATUS_TABS.map((status) => {
-              const isActive = activeStatus === status;
-
-              return (
-                <TouchableOpacity
-                  key={status}
-                  style={[styles.statusTab, isActive && styles.statusTabActive]}
-                  onPress={() => setActiveStatus(status)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.statusTabText,
-                      isActive && styles.statusTabTextActive,
-                    ]}
-                  >
-                    {status}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ===
-            DATE RANGE
-        === */}
-
-        <TouchableOpacity
-          style={styles.dateRangeButton}
-          onPress={() => setDateMenuVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Feather name="calendar" size={16} color={Colors.primaryRed} />
-
-          <Text style={styles.dateRangeText}>{currentDateRangeLabel}</Text>
-
-          <Feather name="chevron-down" size={15} color={Colors.primaryRed} />
-        </TouchableOpacity>
-
-        {/* ===
-            TRANSACTION LIST
-        === */}
-
-        <View style={styles.transactionList}>
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map((transaction) => (
-              <TransactionRow key={transaction.id} tx={transaction} />
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <Feather name="file-text" size={30} color={Colors.textMuted} />
-
-              <Text style={styles.emptyStateText}>
-                No transactions match these filters.
+              <Text style={styles.summaryLabel}>
+                Total Payments
               </Text>
             </View>
-          )}
-        </View>
 
-        {/* ===
-            NEED HELP
-        === */}
+            <View style={styles.summaryVerticalDivider} />
 
-        <View style={styles.helpBanner}>
-          <View style={styles.helpIconCircle}>
-            <Feather name="headphones" size={20} color={Colors.white} />
-          </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {summary.successfulPayments}
+              </Text>
 
-          <View style={styles.helpTextBlock}>
-            <Text style={styles.helpTitle}>Need Help?</Text>
+              <Text style={styles.summaryLabel}>
+                Successful
+              </Text>
+            </View>
 
-            <Text style={styles.helpSubtitle}>
-              If you have any queries regarding payments, please contact our
-              support team.
-            </Text>
-          </View>
-        </View>
+            <View style={styles.summaryVerticalDivider} />
 
-        {/* CONTACT SUPPORT */}
-
-        <TouchableOpacity
-          style={styles.contactSupportButton}
-          activeOpacity={0.8}
-        >
-          <Feather name="headphones" size={16} color={Colors.primaryRed} />
-
-          <Text style={styles.contactSupportText}>Contact Support</Text>
-        </TouchableOpacity>
-
-        {/* ===
-            FOOTER
-        === */}
-
-        <View style={styles.secureRow}>
-          <Feather name="lock" size={13} color={Colors.textMuted} />
-
-          <Text style={styles.secureText}>
-            All transactions are secure and encrypted.
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* =====
-          DATE RANGE MODAL
-      ===== */}
-
-      <Modal
-        visible={dateMenuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDateMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.dateModalOverlay}
-          activeOpacity={1}
-          onPress={() => setDateMenuVisible(false)}
-        >
-          <View style={styles.dateMenu}>
-            {DATE_RANGES.map((range) => (
-              <TouchableOpacity
-                key={range.key}
-                style={styles.dateMenuOption}
-                onPress={() => {
-                  setDateRange(range.key);
-
-                  setDateMenuVisible(false);
-                }}
+            <View style={styles.summaryItem}>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  styles.amountValue,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.dateMenuOptionText,
-                    dateRange === range.key && styles.dateMenuOptionTextActive,
-                  ]}
-                >
-                  {range.label}
-                </Text>
+                {formatCurrency(summary.totalSpent)}
+              </Text>
 
-                {dateRange === range.key && (
-                  <Feather name="check" size={16} color={Colors.primaryRed} />
-                )}
-              </TouchableOpacity>
+              <Text style={styles.summaryLabel}>
+                Total Spent
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* =================================================
+            PURCHASE HISTORY
+        ================================================= */}
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Payment History
+            </Text>
+
+            <Text style={styles.sectionSubtitle}>
+              {payments.length} transaction
+              {payments.length === 1 ? "" : "s"}
+            </Text>
+          </View>
+
+          <View style={styles.receiptIcon}>
+            <Feather
+              name="receipt"
+              size={21}
+              color="#D92332"
+            />
+          </View>
+        </View>
+
+        {payments.length === 0
+          ? renderEmptyState()
+          : payments.map((payment, index) => (
+              <PaymentCard
+                key={
+                  getPaymentId(payment) ??
+                  payment?.transaction_id ??
+                  index
+                }
+                payment={payment}
+                navigation={navigation}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+                getPaymentId={getPaymentId}
+                getTransactionId={getTransactionId}
+                getPackageName={getPackageName}
+                getAmount={getAmount}
+                getPaymentDate={getPaymentDate}
+                getPaymentMethod={getPaymentMethod}
+                getStatus={getStatus}
+                getMethodIcon={getMethodIcon}
+                isSuccessful={isSuccessful}
+                handleInvoice={handleInvoice}
+                handleDetails={handleDetails}
+                handleCopyTransaction={
+                  handleCopyTransaction
+                }
+                invoiceLoading={invoiceLoading}
+              />
             ))}
+
+        {/* =================================================
+            SECURITY BANNER
+        ================================================= */}
+
+        <View style={styles.securityBanner}>
+          <View style={styles.securityIcon}>
+            <Feather
+              name="shield"
+              size={24}
+              color="#2E7D32"
+            />
           </View>
-        </TouchableOpacity>
-      </Modal>
 
-      {/* =====
-          FILTER MODAL
-      ===== */}
+          <View style={styles.securityContent}>
+            <Text style={styles.securityTitle}>
+              Your payments are secure
+            </Text>
 
-      <Modal
-        visible={filterSheetVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFilterSheetVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.filterModalOverlay}
-          activeOpacity={1}
-          onPress={() => setFilterSheetVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.filterModalCard}>
-            {/* HANDLE */}
+            <Text style={styles.securityDescription}>
+              All your payment transactions are securely
+              recorded and protected.
+            </Text>
+          </View>
+        </View>
 
-            <View style={styles.modalHandle} />
-
-            {/* HEADER */}
-
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Filter Transactions</Text>
-
-              <TouchableOpacity
-                onPress={() => setFilterSheetVisible(false)}
-                hitSlop={{
-                  top: 10,
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                }}
-              >
-                <Feather name="x" size={22} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* TRANSACTION TYPE */}
-
-            <Text style={styles.modalSectionLabel}>Transaction Type</Text>
-
-            <View style={styles.modalToggleRow}>
-              {TRANSACTION_TYPES.map((type) => {
-                const selected = draftFilters.types.includes(type);
-
-                return (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.toggleChip,
-                      selected && styles.toggleChipActive,
-                    ]}
-                    onPress={() => toggleDraftType(type)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.toggleChipText,
-                        selected && styles.toggleChipTextActive,
-                      ]}
-                    >
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* ACTIONS */}
-
-            <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={styles.modalResetButton}
-                onPress={resetDraftFilters}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalResetText}>Reset</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalApplyButton}
-                onPress={applyFilters}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalApplyText}>Apply Filters</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpace} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-/* ===
-   TRANSACTION ROW
-=== */
+// =====================================================
+// PAYMENT CARD
+// =====================================================
 
-function TransactionRow({ tx }) {
-  const statusStyles = {
-    Successful: {
-      bg: "#E8F5E9",
-      color: Colors.success,
-    },
+function PaymentCard({
+  payment,
+  navigation,
+  formatCurrency,
+  formatDate,
+  getPaymentId,
+  getTransactionId,
+  getPackageName,
+  getAmount,
+  getPaymentDate,
+  getPaymentMethod,
+  getStatus,
+  getMethodIcon,
+  isSuccessful,
+  handleInvoice,
+  handleDetails,
+  handleCopyTransaction,
+  invoiceLoading,
+}) {
+  const paymentId = getPaymentId(payment);
+  const transactionId = getTransactionId(payment);
+  const packageName = getPackageName(payment);
+  const amount = getAmount(payment);
+  const paymentDate = getPaymentDate(payment);
+  const paymentMethod = getPaymentMethod(payment);
+  const status = getStatus(payment);
 
-    Failed: {
-      bg: "#FDEAE0",
-      color: Colors.primaryRed,
-    },
+  const successful = isSuccessful(status);
 
-    Pending: {
-      bg: "#FFF6DC",
-      color: Colors.gold,
-    },
-  }[tx.status];
+  const normalizedStatus = String(status || "")
+    .toLowerCase()
+    .trim();
 
-  let iconName = tx.icon;
-
-  if (tx.icon === "crown") {
-    iconName = "award";
-  }
+  const statusText = successful
+    ? "Successful"
+    : normalizedStatus
+      ? normalizedStatus.charAt(0).toUpperCase() +
+        normalizedStatus.slice(1)
+      : "Pending";
 
   return (
-    <TouchableOpacity style={styles.transactionRow} activeOpacity={0.7}>
-      {/* ICON */}
+    <View style={styles.paymentCard}>
+      {/* =================================================
+          CARD HEADER
+      ================================================= */}
 
-      <View
-        style={[
-          styles.transactionIconCircle,
-          {
-            backgroundColor: tx.iconBg,
-          },
-        ]}
-      >
-        <Feather name={iconName} size={18} color={Colors.primaryRed} />
-      </View>
+      <View style={styles.paymentHeader}>
+        <View style={styles.packageIcon}>
+          <Feather
+            name="award"
+            size={25}
+            color="#D92332"
+          />
+        </View>
 
-      {/* INFO */}
+        <View style={styles.packageInfo}>
+          <Text
+            style={styles.packageName}
+            numberOfLines={2}
+          >
+            {packageName}
+          </Text>
 
-      <View style={styles.transactionInfo}>
-        <Text style={styles.transactionTitle} numberOfLines={2}>
-          {tx.title}
-        </Text>
-
-        <Text style={styles.transactionMeta}>Order ID: {tx.orderId}</Text>
-
-        <Text style={styles.transactionMeta}>{tx.date}</Text>
-      </View>
-
-      {/* RIGHT */}
-
-      <View style={styles.transactionRight}>
-        <Text style={styles.transactionAmount}>
-          ₹ {tx.amount.toLocaleString("en-IN")}
-        </Text>
+          <Text style={styles.paymentDate}>
+            {formatDate(paymentDate)}
+          </Text>
+        </View>
 
         <View
           style={[
-            styles.statusPill,
-            {
-              backgroundColor: statusStyles.bg,
-            },
+            styles.statusBadge,
+            successful
+              ? styles.statusSuccess
+              : styles.statusPending,
           ]}
         >
+          <Feather
+            name={
+              successful
+                ? "check-circle"
+                : "alert-circle"
+            }
+            size={13}
+            color={
+              successful
+                ? "#2E7D32"
+                : "#F57C00"
+            }
+          />
+
           <Text
             style={[
-              styles.statusPillText,
-              {
-                color: statusStyles.color,
-              },
+              styles.statusText,
+              successful
+                ? styles.statusSuccessText
+                : styles.statusPendingText,
             ]}
           >
-            {tx.status}
+            {statusText}
           </Text>
         </View>
       </View>
 
-      {/* CHEVRON */}
+      {/* =================================================
+          AMOUNT
+      ================================================= */}
 
-      <Feather
-        name="chevron-right"
-        size={18}
-        color={Colors.primaryRed}
-        style={{
-          marginLeft: 6,
-        }}
-      />
-    </TouchableOpacity>
+      <View style={styles.amountSection}>
+        <Text style={styles.amountLabel}>
+          Amount Paid
+        </Text>
+
+        <Text style={styles.amount}>
+          {formatCurrency(amount)}
+        </Text>
+      </View>
+
+      {/* =================================================
+          DETAILS
+      ================================================= */}
+
+      <View style={styles.detailsContainer}>
+        <View style={styles.detailRow}>
+          <View style={styles.detailLeft}>
+            <View style={styles.detailIcon}>
+              <Feather
+                name={getMethodIcon(paymentMethod)}
+                size={17}
+                color="#666666"
+              />
+            </View>
+
+            <Text style={styles.detailLabel}>
+              Payment Method
+            </Text>
+          </View>
+
+          <Text style={styles.detailValue}>
+            {paymentMethod || "-"}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <View style={styles.detailLeft}>
+            <View style={styles.detailIcon}>
+              <Feather
+                name="calendar"
+                size={17}
+                color="#666666"
+              />
+            </View>
+
+            <Text style={styles.detailLabel}>
+              Payment Date
+            </Text>
+          </View>
+
+          <Text style={styles.detailValue}>
+            {formatDate(paymentDate)}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <View style={styles.detailLeft}>
+            <View style={styles.detailIcon}>
+              <Feather
+                name="check-circle"
+                size={17}
+                color="#666666"
+              />
+            </View>
+
+            <Text style={styles.detailLabel}>
+              Status
+            </Text>
+          </View>
+
+          <Text
+            style={[
+              styles.detailValue,
+              successful && styles.successDetailValue,
+            ]}
+          >
+            {statusText}
+          </Text>
+        </View>
+      </View>
+
+      {/* =================================================
+          TRANSACTION ID
+      ================================================= */}
+
+      {transactionId ? (
+        <View style={styles.transactionContainer}>
+          <View style={styles.transactionHeader}>
+            <View style={styles.transactionTitleContainer}>
+              <Feather
+                name="file-text"
+                size={15}
+                color="#777777"
+              />
+
+              <Text style={styles.transactionLabel}>
+                Transaction ID
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() =>
+                handleCopyTransaction(transactionId)
+              }
+            >
+              <Feather
+                name="copy"
+                size={17}
+                color="#D92332"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Text
+            style={styles.transactionId}
+            numberOfLines={1}
+            ellipsizeMode="middle"
+          >
+            {String(transactionId)}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* =================================================
+          ACTIONS
+      ================================================= */}
+
+      <View style={styles.actionContainer}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.detailsButton}
+          onPress={() => handleDetails(payment)}
+        >
+          <Feather
+            name="file-text"
+            size={17}
+            color="#D92332"
+          />
+
+          <Text style={styles.detailsButtonText}>
+            Details
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.invoiceButton}
+          disabled={invoiceLoading}
+          onPress={() => handleInvoice(payment)}
+        >
+          {invoiceLoading ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
+          ) : (
+            <>
+              <Feather
+                name="file-text"
+                size={17}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.invoiceButtonText}>
+                Invoice
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* =================================================
+          PACKAGE PAYMENT DETAILS
+      ================================================= */}
+
+      {paymentId ? (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.viewPaymentButton}
+          onPress={() =>
+            navigation.navigate("InvoiceDetailsScreen", {
+              package_payment_id: paymentId,
+            })
+          }
+        >
+          <View style={styles.viewPaymentLeft}>
+            <Feather
+              name="file-text"
+              size={16}
+              color="#777777"
+            />
+
+            <Text style={styles.viewPaymentText}>
+              View payment details
+            </Text>
+          </View>
+
+          <Feather
+            name="chevron-right"
+            size={18}
+            color="#777777"
+          />
+        </TouchableOpacity>
+      ) : null}
+    </View>
   );
 }
 
-/* ===
-   STYLES
-=== */
+// =====================================================
+// STYLES
+// =====================================================
 
 const styles = StyleSheet.create({
-  /* =======
-     SAFE AREA
-  ======= */
-
   safeArea: {
     flex: 1,
-
-    backgroundColor: Colors.background,
+    backgroundColor: "#F7F7F7",
   },
 
-  scrollContent: {
-    paddingHorizontal: 18,
-
-    paddingTop: 18,
-
-    paddingBottom: 30,
-  },
-
-  /* =======
-     HEADER
-  ======= */
-
-  headerWrapper: {
-    width: "100%",
-  },
+  // ===================================================
+  // HEADER
+  // ===================================================
 
   header: {
-    height: HEADER_HEIGHT,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 18,
+  },
 
+  headerTop: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    paddingHorizontal: 18,
-
-    paddingBottom: 14,
-
-    gap: 12,
   },
 
-  headerBackButton: {
-    width: 30,
-
-    height: 30,
-
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
-
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
   },
 
-  headerTitleBlock: {
-    flex: 1,
+  refreshButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
 
-    minWidth: 0,
+  headerTitleContainer: {
+    flex: 1,
+    marginHorizontal: 14,
   },
 
   headerTitle: {
-    fontSize: Fonts.size.xxl,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.white,
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: FontSizes?.large || 20,
+    color: "#FFFFFF",
   },
 
   headerSubtitle: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.goldLight,
-
     marginTop: 3,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: FontSizes?.small || 12,
+    color: "rgba(255,255,255,0.82)",
   },
 
-  filterHeaderButton: {
-    flexDirection: "row",
+  // ===================================================
+  // CONTAINER
+  // ===================================================
 
-    alignItems: "center",
-
-    gap: 5,
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F7F7",
   },
 
-  filterHeaderText: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.semiBold,
-
-    color: Colors.white,
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 30,
   },
 
-  filterHeaderBadge: {
-    backgroundColor: Colors.white,
-
-    borderRadius: 8,
-
-    minWidth: 16,
-
-    height: 16,
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    paddingHorizontal: 3,
-
-    marginLeft: 2,
-  },
-
-  filterHeaderBadgeText: {
-    fontSize: Fonts.size.xs,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.primaryRed,
-  },
-
-  /* =======
-     SUMMARY
-  ======= */
+  // ===================================================
+  // SUMMARY CARD
+  // ===================================================
 
   summaryCard: {
-    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 22,
 
-    alignItems: "center",
-
-    backgroundColor: "#FDF3D8",
-
-    borderRadius: 16,
-
-    padding: 16,
-
-    marginBottom: 18,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 7,
+    elevation: 3,
   },
 
-  summaryLeft: {
+  summaryHeader: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    flex: 1.3,
-
-    gap: 12,
-
-    minWidth: 0,
   },
 
-  summaryIconCircle: {
-    width: 46,
-
-    height: 46,
-
-    borderRadius: 23,
-
-    backgroundColor: Colors.primaryRed,
-
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FFF1F2",
     alignItems: "center",
-
     justifyContent: "center",
   },
 
-  summaryLabel: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.medium,
-
-    color: Colors.textSecondary,
+  summaryHeaderText: {
+    flex: 1,
+    marginLeft: 12,
   },
 
-  summaryAmount: {
-    fontSize: Fonts.size.lg,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.primaryRed,
-
-    marginTop: 2,
+  summaryTitle: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 17,
+    color: "#222222",
   },
 
-  summarySub: {
-    fontSize: Fonts.size.xs,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    marginTop: 1,
+  summarySubtitle: {
+    marginTop: 3,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#888888",
   },
 
   summaryDivider: {
+    height: 1,
+    backgroundColor: "#EEEEEE",
+    marginVertical: 18,
+  },
+
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  summaryItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  summaryValue: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 18,
+    color: "#222222",
+  },
+
+  amountValue: {
+    fontSize: 16,
+    color: "#D92332",
+  },
+
+  summaryLabel: {
+    marginTop: 5,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 11,
+    color: "#888888",
+    textAlign: "center",
+  },
+
+  summaryVerticalDivider: {
     width: 1,
-
-    height: 46,
-
-    backgroundColor: "#E5D6A0",
-
-    marginHorizontal: 8,
+    height: 38,
+    backgroundColor: "#EEEEEE",
   },
 
-  summaryStat: {
-    flex: 1,
+  // ===================================================
+  // SECTION
+  // ===================================================
 
-    minWidth: 0,
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
 
-  summaryStatLabel: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.medium,
-
-    color: Colors.textSecondary,
+  sectionTitle: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 18,
+    color: "#222222",
   },
 
-  summaryStatAmount: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
+  sectionSubtitle: {
     marginTop: 3,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#888888",
   },
 
-  summaryStatSub: {
-    fontSize: Fonts.size.xs,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    marginTop: 1,
-  },
-
-  /* =======
-     STATUS TABS
-  ======= */
-
-  tabsRow: {
-    marginBottom: 12,
-  },
-
-  statusTabsGroup: {
-    flexDirection: "row",
-
-    gap: 8,
-  },
-
-  statusTab: {
-    flex: 1,
-
+  receiptIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "#FFF1F2",
     alignItems: "center",
-
     justifyContent: "center",
-
-    paddingVertical: 10,
-
-    borderRadius: 10,
-
-    borderWidth: 1,
-
-    borderColor: Colors.border,
   },
 
-  statusTabActive: {
-    backgroundColor: Colors.primaryRed,
+  // ===================================================
+  // PAYMENT CARD
+  // ===================================================
 
-    borderColor: Colors.primaryRed,
-  },
+  paymentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 15,
 
-  statusTabText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.semiBold,
-
-    color: Colors.textSecondary,
-  },
-
-  statusTabTextActive: {
-    color: Colors.white,
-  },
-
-  /* =======
-     DATE RANGE
-  ======= */
-
-  dateRangeButton: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    borderWidth: 1,
-
-    borderColor: Colors.primaryRed,
-
-    borderRadius: 10,
-
-    paddingVertical: 10,
-
-    gap: 6,
-
-    marginBottom: 18,
-  },
-
-  dateRangeText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.semiBold,
-
-    color: Colors.primaryRed,
-  },
-
-  /* =======
-     TRANSACTION LIST
-  ======= */
-
-  transactionList: {
-    marginBottom: 20,
-  },
-
-  transactionRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    backgroundColor: Colors.cardBackground,
-
-    borderRadius: 14,
-
-    padding: 12,
-
-    marginBottom: 12,
-
-    elevation: 1,
-
-    shadowColor: "#000",
-
-    shadowOpacity: 0.04,
-
-    shadowRadius: 6,
-
+    shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-
       height: 2,
     },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
-  transactionIconCircle: {
-    width: 42,
+  paymentHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
 
-    height: 42,
-
-    borderRadius: 21,
-
+  packageIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FFF1F2",
     alignItems: "center",
-
     justifyContent: "center",
-
-    marginRight: 12,
-
-    flexShrink: 0,
   },
 
-  transactionInfo: {
+  packageInfo: {
     flex: 1,
-
-    minWidth: 0,
+    marginLeft: 12,
+    paddingRight: 8,
   },
 
-  transactionTitle: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.textPrimary,
+  packageName: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 15,
+    color: "#222222",
+    lineHeight: 21,
   },
 
-  transactionMeta: {
-    fontSize: 11,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    marginTop: 2,
-  },
-
-  transactionRight: {
-    alignItems: "flex-end",
-
-    marginLeft: 5,
-  },
-
-  transactionAmount: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.textPrimary,
-  },
-
-  statusPill: {
-    borderRadius: 8,
-
-    paddingHorizontal: 8,
-
-    paddingVertical: 3,
-
+  paymentDate: {
     marginTop: 5,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#888888",
   },
 
-  statusPillText: {
-    fontSize: Fonts.size.xs,
-
-    fontFamily: Fonts.bold,
-  },
-
-  /* =======
-     EMPTY
-  ======= */
-
-  emptyState: {
+  statusBadge: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
 
-    paddingVertical: 40,
+  statusSuccess: {
+    backgroundColor: "#E8F5E9",
+  },
 
+  statusPending: {
+    backgroundColor: "#FFF3E0",
+  },
+
+  statusText: {
+    marginLeft: 4,
+    fontFamily: Fonts?.semiBold || Fonts?.medium || undefined,
+    fontSize: 10,
+  },
+
+  statusSuccessText: {
+    color: "#2E7D32",
+  },
+
+  statusPendingText: {
+    color: "#F57C00",
+  },
+
+  // ===================================================
+  // AMOUNT
+  // ===================================================
+
+  amountSection: {
+    marginTop: 18,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  amountLabel: {
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#777777",
+  },
+
+  amount: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 21,
+    color: "#D92332",
+  },
+
+  // ===================================================
+  // DETAILS
+  // ===================================================
+
+  detailsContainer: {
+    marginTop: 15,
+  },
+
+  detailRow: {
+    minHeight: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  detailLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  detailIcon: {
+    width: 30,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+
+  detailLabel: {
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#777777",
+  },
+
+  detailValue: {
+    maxWidth: "50%",
+    fontFamily: Fonts?.medium || Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#333333",
+    textAlign: "right",
+  },
+
+  successDetailValue: {
+    color: "#2E7D32",
+  },
+
+  // ===================================================
+  // TRANSACTION
+  // ===================================================
+
+  transactionContainer: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 11,
+    backgroundColor: "#F8F8F8",
+    borderWidth: 1,
+    borderColor: "#EEEEEE",
+  },
+
+  transactionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  transactionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  transactionLabel: {
+    marginLeft: 6,
+    fontFamily: Fonts?.medium || Fonts?.regular || undefined,
+    fontSize: 11,
+    color: "#777777",
+  },
+
+  transactionId: {
+    marginTop: 7,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 11,
+    color: "#444444",
+  },
+
+  // ===================================================
+  // ACTION BUTTONS
+  // ===================================================
+
+  actionContainer: {
+    flexDirection: "row",
+    marginTop: 15,
     gap: 10,
   },
 
-  emptyStateText: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-
-    textAlign: "center",
-
-    paddingHorizontal: 30,
-  },
-
-  /* =======
-     HELP
-  ======= */
-
-  helpBanner: {
+  detailsButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: "#D92332",
     flexDirection: "row",
-
-    backgroundColor: "#FDF3D8",
-
-    borderRadius: 16,
-
-    padding: 16,
-
-    marginBottom: 12,
-
-    gap: 12,
-  },
-
-  helpIconCircle: {
-    width: 42,
-
-    height: 42,
-
-    borderRadius: 21,
-
-    backgroundColor: Colors.gold,
-
     alignItems: "center",
-
     justifyContent: "center",
   },
 
-  helpTextBlock: {
+  detailsButtonText: {
+    marginLeft: 7,
+    fontFamily: Fonts?.semiBold || Fonts?.medium || undefined,
+    fontSize: 13,
+    color: "#D92332",
+  },
+
+  invoiceButton: {
     flex: 1,
-
-    minWidth: 0,
+    minHeight: 44,
+    borderRadius: 11,
+    backgroundColor: "#D92332",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  helpTitle: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.primaryRed,
+  invoiceButtonText: {
+    marginLeft: 7,
+    fontFamily: Fonts?.semiBold || Fonts?.medium || undefined,
+    fontSize: 13,
+    color: "#FFFFFF",
   },
 
-  helpSubtitle: {
-    fontSize: Fonts.size.sm,
+  // ===================================================
+  // VIEW PAYMENT
+  // ===================================================
 
-    fontFamily: Fonts.regular,
+  viewPaymentButton: {
+    marginTop: 13,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 
-    color: Colors.textSecondary,
+  viewPaymentLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
+  viewPaymentText: {
+    marginLeft: 7,
+    fontFamily: Fonts?.medium || Fonts?.regular || undefined,
+    fontSize: 12,
+    color: "#777777",
+  },
+
+  // ===================================================
+  // EMPTY STATE
+  // ===================================================
+
+  emptyContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 38,
+    alignItems: "center",
+    justifyContent: "center",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
+  emptyIconContainer: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: "#FFF1F2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyTitle: {
+    marginTop: 17,
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 18,
+    color: "#222222",
+  },
+
+  emptyDescription: {
+    marginTop: 7,
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 13,
+    color: "#888888",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  emptyButton: {
+    marginTop: 20,
+    minHeight: 44,
+    paddingHorizontal: 20,
+    borderRadius: 11,
+    backgroundColor: "#D92332",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyButtonText: {
+    marginRight: 8,
+    fontFamily: Fonts?.semiBold || Fonts?.medium || undefined,
+    fontSize: 13,
+    color: "#FFFFFF",
+  },
+
+  // ===================================================
+  // SECURITY
+  // ===================================================
+
+  securityBanner: {
+    marginTop: 6,
+    padding: 15,
+    borderRadius: 15,
+    backgroundColor: "#EAF6EB",
+    borderWidth: 1,
+    borderColor: "#D5EBD7",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  securityIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#DFF0E1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  securityContent: {
+    flex: 1,
+    marginLeft: 11,
+  },
+
+  securityTitle: {
+    fontFamily: Fonts?.bold || undefined,
+    fontSize: 13,
+    color: "#2E7D32",
+  },
+
+  securityDescription: {
     marginTop: 3,
-
+    fontFamily: Fonts?.regular || undefined,
+    fontSize: 11,
+    color: "#558B5A",
     lineHeight: 17,
   },
 
-  contactSupportButton: {
-    flexDirection: "row",
+  // ===================================================
+  // LOADING
+  // ===================================================
 
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    borderWidth: 1.3,
-
-    borderColor: Colors.primaryRed,
-
-    borderRadius: 12,
-
-    paddingVertical: 12,
-
-    gap: 8,
-
-    marginBottom: 20,
-  },
-
-  contactSupportText: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.primaryRed,
-  },
-
-  /* =======
-     FOOTER
-  ======= */
-
-  secureRow: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    gap: 6,
-  },
-
-  secureText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textMuted,
-  },
-
-  /* =======
-     DATE MODAL
-  ======= */
-
-  dateModalOverlay: {
+  loadingContainer: {
     flex: 1,
-
-    backgroundColor: "rgba(0,0,0,0.15)",
-  },
-
-  dateMenu: {
-    position: "absolute",
-
-    top: 300,
-
-    right: 18,
-
-    backgroundColor: Colors.cardBackground,
-
-    borderRadius: 14,
-
-    paddingVertical: 6,
-
-    minWidth: 190,
-
-    elevation: 6,
-
-    shadowColor: "#000",
-
-    shadowOpacity: 0.15,
-
-    shadowRadius: 10,
-
-    shadowOffset: {
-      width: 0,
-
-      height: 4,
-    },
-  },
-
-  dateMenuOption: {
-    flexDirection: "row",
-
     alignItems: "center",
-
-    justifyContent: "space-between",
-
-    paddingHorizontal: 16,
-
-    paddingVertical: 12,
-  },
-
-  dateMenuOptionText: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.regular,
-
-    color: Colors.textPrimary,
-  },
-
-  dateMenuOptionTextActive: {
-    color: Colors.primaryRed,
-
-    fontFamily: Fonts.bold,
-  },
-
-  /* =======
-     FILTER MODAL
-  ======= */
-
-  filterModalOverlay: {
-    flex: 1,
-
-    backgroundColor: "rgba(0,0,0,0.4)",
-
-    justifyContent: "flex-end",
-  },
-
-  filterModalCard: {
-    backgroundColor: Colors.cardBackground,
-
-    borderTopLeftRadius: 22,
-
-    borderTopRightRadius: 22,
-
-    paddingHorizontal: 22,
-
-    paddingTop: 12,
-
-    paddingBottom: Platform.OS === "ios" ? 34 : 24,
-  },
-
-  modalHandle: {
-    width: 40,
-
-    height: 4,
-
-    borderRadius: 2,
-
-    backgroundColor: Colors.border,
-
-    alignSelf: "center",
-
-    marginBottom: 16,
-  },
-
-  modalHeaderRow: {
-    flexDirection: "row",
-
-    justifyContent: "space-between",
-
-    alignItems: "center",
-
-    marginBottom: 18,
-  },
-
-  modalTitle: {
-    fontSize: Fonts.size.xl,
-
-    fontFamily: Fonts.extraBold,
-
-    color: Colors.textPrimary,
-  },
-
-  modalSectionLabel: {
-    fontSize: Fonts.size.md,
-
-    fontFamily: Fonts.semiBold,
-
-    color: Colors.textPrimary,
-
-    marginBottom: 10,
-  },
-
-  modalToggleRow: {
-    flexDirection: "row",
-
-    flexWrap: "wrap",
-
-    gap: 10,
-
-    marginBottom: 20,
-  },
-
-  toggleChip: {
-    borderWidth: 1,
-
-    borderColor: Colors.border,
-
-    borderRadius: 20,
-
-    paddingHorizontal: 14,
-
-    paddingVertical: 9,
-  },
-
-  toggleChipActive: {
-    backgroundColor: Colors.primaryRed,
-
-    borderColor: Colors.primaryRed,
-  },
-
-  toggleChipText: {
-    fontSize: Fonts.size.sm,
-
-    fontFamily: Fonts.medium,
-
-    color: Colors.textSecondary,
-  },
-
-  toggleChipTextActive: {
-    color: Colors.white,
-
-    fontFamily: Fonts.bold,
-  },
-
-  modalActionsRow: {
-    flexDirection: "row",
-
-    gap: 12,
-
-    marginTop: 4,
-  },
-
-  modalResetButton: {
-    flex: 1,
-
-    alignItems: "center",
-
     justifyContent: "center",
-
-    borderWidth: 1.5,
-
-    borderColor: Colors.primaryRed,
-
-    borderRadius: 12,
-
-    paddingVertical: 14,
   },
 
-  modalResetText: {
-    fontSize: 14,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.primaryRed,
+  loadingText: {
+    marginTop: 13,
+    fontFamily: Fonts?.medium || Fonts?.regular || undefined,
+    fontSize: 13,
+    color: "#FFFFFF",
   },
 
-  modalApplyButton: {
-    flex: 2,
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    backgroundColor: Colors.primaryRed,
-
-    borderRadius: 12,
-
-    paddingVertical: 14,
-  },
-
-  modalApplyText: {
-    fontSize: 14,
-
-    fontFamily: Fonts.bold,
-
-    color: Colors.white,
+  bottomSpace: {
+    height: 20,
   },
 });
