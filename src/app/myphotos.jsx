@@ -1,357 +1,552 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
+  Linking,
+  Modal,
+  Pressable,
+  RefreshControl,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BASE_URL from "../constants/AppUrls";
 import { Colors } from "../constants/colors";
 import { Fonts } from "../constants/Fonts";
+import {
+  deleteGalleryImage,
+  getGalleryImages,
+  getToken,
+} from "../utils/Functions";
 
-const PHOTO_GUIDELINES = [
-  "Use a clear, recent photo",
-  "Your face should be clearly visible",
-  "Good lighting and background",
-  "JPG, JPEG or PNG format",
-  "Maximum file size 5MB",
-  "No filters or heavily edited photos",
-];
+/* ============================================================
+   CONFIG
+============================================================ */
 
-const ADDITIONAL_PHOTO_SLOTS = 4;
+const MAX_PHOTOS = 100;
+const COLUMNS = 3;
+const H_PADDING = 16;
+const GAP = 10;
+const TILE_WIDTH =
+  (Dimensions.get("window").width - H_PADDING * 2 - GAP * (COLUMNS - 1)) /
+  COLUMNS;
+const TILE_HEIGHT = TILE_WIDTH * 1.25;
 
-export default function PhotosScreen() {
+const DANGER = "#D92D20";
+const DANGER_SOFT = "#FEE4E2";
+
+// Change to your actual route for the Add Photo screen
+const ADD_PHOTO_ROUTE = "/Addphoto";
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const toAbsoluteUrl = (value) => {
+  if (!value) return "";
+  if (/^(https?:|file:|content:|data:)/i.test(value)) return value;
+  return `${String(BASE_URL).replace(/\/+$/, "")}/${String(value).replace(/^\/+/, "")}`;
+};
+
+const extractList = (result) => {
+  if (Array.isArray(result)) return result;
+  return (
+    [
+      result?.data,
+      result?.data?.data,
+      result?.data?.images,
+      result?.images,
+    ].find(Array.isArray) || []
+  );
+};
+
+const extractPhotos = (result) =>
+  extractList(result)
+    .map((item) => {
+      const uri = toAbsoluteUrl(item?.image_path);
+      return uri ? { id: item?.image_id ?? null, uri } : null;
+    })
+    .filter(Boolean);
+
+/* ============================================================
+   SCREEN
+============================================================ */
+
+export default function MyGalleryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [additionalPhotos, setAdditionalPhotos] = useState(
-    Array(ADDITIONAL_PHOTO_SLOTS).fill(null),
+  const [viewerIndex, setViewerIndex] = useState(null); // full-screen viewer
+  const [menuIndex, setMenuIndex] = useState(null); // options sheet
+  const [deleteIndex, setDeleteIndex] = useState(null); // delete dialog
+  const [deleting, setDeleting] = useState(false);
+
+  /* ---------------- LOAD ---------------- */
+
+  const loadPhotos = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+
+      const token = await getToken();
+      if (!token) return;
+
+      const result = await getGalleryImages(token);
+      const list = extractPhotos(result);
+      console.log("GALLERY PARSED:", list.length, list[0]);
+      setPhotos(list);
+    } catch (error) {
+      console.log("loadPhotos error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Reload every time we come back from the Add Photo screen
+  useFocusEffect(
+    useCallback(() => {
+      loadPhotos();
+    }, [loadPhotos]),
   );
 
-  const [saving, setSaving] = useState(false);
+  /* ---------------- ACTIONS ---------------- */
 
-  const pickImage = async (onPicked) => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
+  const handleAddPress = () => {
+    if (photos.length >= MAX_PHOTOS) {
       Alert.alert(
-        "Permission Needed",
-        "Please allow photo library access to add photos.",
+        "Limit reached",
+        `You can add up to ${MAX_PHOTOS} photos. Delete one to add another.`,
       );
-
       return;
     }
+    router.push(ADD_PHOTO_ROUTE);
+  };
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets?.length) {
-      onPicked(result.assets[0].uri);
+  const handleShare = async (index) => {
+    const photo = photos[index];
+    if (!photo) return;
+    try {
+      await Share.share({ message: photo.uri, url: photo.uri });
+    } catch (error) {
+      console.log("share error:", error);
     }
   };
 
-  const handlePickProfilePhoto = () => {
-    pickImage((uri) => setProfilePhoto(uri));
+  // Opens the image URL. For a true "save to camera roll", use
+  // expo-file-system + expo-media-library instead.
+  const handleDownload = (index) => {
+    const photo = photos[index];
+    if (photo) Linking.openURL(photo.uri).catch(() => {});
   };
 
-  const handleRemoveProfilePhoto = () => {
-    setProfilePhoto(null);
-  };
-
-  const handlePickAdditionalPhoto = (index) => {
-    pickImage((uri) => {
-      setAdditionalPhotos((prev) => {
-        const next = [...prev];
-        next[index] = uri;
-        return next;
-      });
-    });
-  };
-
-  const handleRemoveAdditionalPhoto = (index) => {
-    setAdditionalPhotos((prev) => {
-      const next = [...prev];
-      next[index] = null;
-      return next;
-    });
-  };
-
-  const handleSaveAndContinue = async () => {
-    if (saving) return;
-
-    if (!profilePhoto) {
-      Alert.alert(
-        "Profile Photo Required",
-        "Please add a profile photo before continuing.",
-      );
-
-      return;
-    }
+  const performDelete = async () => {
+    const photo = photos[deleteIndex];
+    if (!photo || deleting) return;
 
     try {
-      setSaving(true);
+      setDeleting(true);
 
-      console.log("Saving photos...", {
-        profilePhoto,
-        additionalPhotos,
+      const token = await getToken();
+      await deleteGalleryImage(token, photo.id);
+
+      const removedIndex = deleteIndex;
+      const remaining = photos.length - 1;
+
+      setPhotos((prev) => prev.filter((_, i) => i !== removedIndex));
+      setViewerIndex((current) => {
+        if (current === null || remaining <= 0) return null;
+        return Math.min(current, remaining - 1);
       });
-
-      // TODO: replace with your actual upload/save call, e.g.
-      // await updateMemberPhotos(accessToken, { profilePhoto, additionalPhotos });
-
-      router.push("/profile");
+      setDeleteIndex(null);
     } catch (error) {
-      console.error("SAVE PHOTOS ERROR:", error);
-
-      Alert.alert(
-        "Error",
-        error?.message || "Something went wrong while saving your photos.",
-      );
+      setDeleteIndex(null);
+      Alert.alert("Delete failed", error?.message || "Please try again.");
     } finally {
-      setSaving(false);
+      setDeleting(false);
     }
   };
 
+  const closeDeleteDialog = () => {
+    if (!deleting) setDeleteIndex(null);
+  };
+
+  /* ---------------- RENDER ---------------- */
+
+  const canAdd = photos.length < MAX_PHOTOS;
+  const viewerOpen = viewerIndex !== null && !!photos[viewerIndex];
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      {/* HEADER */}
+      <LinearGradient
+        colors={Colors.gradientLogo}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        {/* TOP BAR */}
+        <TouchableOpacity
+          style={styles.headerBack}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
+        </TouchableOpacity>
 
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={21} color={Colors.textPrimary} />
-          </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Gallery</Text>
 
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
-              <View style={styles.progressActive} />
-            </View>
-
-            <Text style={styles.progressText}>Step 6 of 7</Text>
-          </View>
-        </View>
-
-        {/* PAGE TITLE */}
-
-        <View style={styles.titleSection}>
-          <Text style={styles.pageTitle}>Add your photos</Text>
-
-          <Text style={styles.pageSubtitle}>
-            Let your personality shine through your photos.
+        <View style={styles.headerPrivate}>
+          <Ionicons name="shield-checkmark-outline" size={26} color="#FFFFFF" />
+          <Text style={styles.headerPrivateText}>
+            Your photos{"\n"}are private
           </Text>
         </View>
+      </LinearGradient>
 
-        {/* PROFILE PHOTO CARD */}
-
-        <View style={styles.profileCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>Profile photo</Text>
-
-              <Text style={styles.cardSubtitle}>
-                Your primary profile picture
-              </Text>
-            </View>
-
-            <View style={styles.requiredBadge}>
-              <Text style={styles.requiredText}>Required</Text>
-            </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadPhotos(true)}
+            tintColor={Colors.primaryRed}
+            colors={[Colors.primaryRed]}
+          />
+        }
+      >
+        {/* PRIVATE GALLERY CARD */}
+        <View style={styles.privateCard}>
+          <View style={styles.lockCircle}>
+            <Ionicons name="lock-closed" size={24} color={Colors.primaryRed} />
           </View>
-
-          <View style={styles.profileContent}>
-            <PhotoUploadBox
-              uri={profilePhoto}
-              size="large"
-              label="Add photo"
-              helperText={"JPG, PNG • Max 5MB"}
-              onPress={handlePickProfilePhoto}
-              onRemove={handleRemoveProfilePhoto}
-            />
-
-            <View style={styles.guidelinesBlock}>
-              <Text style={styles.guidelinesTitle}>Photo guidelines</Text>
-
-              {PHOTO_GUIDELINES.map((item) => (
-                <View key={item} style={styles.guidelineRow}>
-                  <Ionicons name="checkmark-circle" size={16} color="#2E9B65" />
-
-                  <Text style={styles.guidelineText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* ADDITIONAL PHOTOS */}
-
-        <View style={styles.additionalSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>More photos</Text>
-
-              <Text style={styles.sectionSubtitle}>
-                Add up to 4 additional photos
-              </Text>
-            </View>
-
-            <Text style={styles.optionalText}>Optional</Text>
-          </View>
-
-          <View style={styles.additionalGrid}>
-            {additionalPhotos.map((uri, index) => (
-              <PhotoUploadBox
-                key={index}
-                uri={uri}
-                size="small"
-                label="Add photo"
-                helperText="Max 5MB"
-                onPress={() => handlePickAdditionalPhoto(index)}
-                onRemove={() => handleRemoveAdditionalPhoto(index)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* PRIVACY CARD */}
-
-        <View style={styles.privacyCard}>
-          <View style={styles.privacyIcon}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={19}
-              color="#4F46E5"
-            />
-          </View>
-
-          <View style={styles.privacyContent}>
-            <Text style={styles.privacyTitle}>Your privacy matters</Text>
-
-            <Text style={styles.privacyText}>
-              Your photos are securely stored and only shown according to your
-              profile visibility settings.
+          <View style={styles.privateContent}>
+            <Text style={styles.privateTitle}>Private Gallery</Text>
+            <Text style={styles.privateText}>
+              Only approved members can view your photos.
             </Text>
           </View>
         </View>
 
-        {/* CONTINUE BUTTON */}
+        {/* GRID */}
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={Colors.primaryRed} />
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {canAdd && (
+              <TouchableOpacity
+                style={styles.addTile}
+                activeOpacity={0.8}
+                onPress={handleAddPress}
+              >
+                <Ionicons name="camera" size={34} color={Colors.primaryRed} />
+                <Text style={styles.addText}>Add Photo</Text>
+              </TouchableOpacity>
+            )}
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          activeOpacity={0.85}
-          disabled={saving}
-          onPress={handleSaveAndContinue}
-        >
-          <Text style={styles.saveButtonText}>
-            {saving ? "Saving..." : "Save & Continue"}
+            {photos.map((photo, index) => (
+              <Pressable
+                key={photo.id ?? photo.uri}
+                style={styles.tile}
+                onPress={() => setViewerIndex(index)}
+              >
+                <Image source={{ uri: photo.uri }} style={styles.fill} />
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => setMenuIndex(index)}
+                >
+                  <Ionicons
+                    name="ellipsis-vertical"
+                    size={15}
+                    color="#1B1B1B"
+                  />
+                </TouchableOpacity>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* FOOTER */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {photos.length} {photos.length === 1 ? "Photo" : "Photos"}
           </Text>
-
-          {!saving && (
-            <Ionicons name="arrow-forward" size={19} color={Colors.white} />
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.bottomHint}>
-          You can update your photos anytime from your profile.
-        </Text>
+          <Text style={styles.footerText}>
+            Maximum {MAX_PHOTOS} photos allowed
+          </Text>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* DELETE DIALOG (grid) — an overlay, not a Modal, so the same dialog also works over the viewer */}
+      {deleteIndex !== null && !viewerOpen && (
+        <DeleteDialog
+          deleting={deleting}
+          onCancel={closeDeleteDialog}
+          onConfirm={performDelete}
+        />
+      )}
+
+      {/* PHOTO OPTIONS SHEET */}
+      <Modal
+        visible={menuIndex !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuIndex(null)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setMenuIndex(null)} />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>Photo options</Text>
+
+          <SheetRow
+            icon="expand-outline"
+            label="View photo"
+            tint="#1F6FEB"
+            tintBg="#E6F0FF"
+            onPress={() => {
+              const index = menuIndex;
+              setMenuIndex(null);
+              setViewerIndex(index);
+            }}
+          />
+          <SheetRow
+            icon="download-outline"
+            label="Download"
+            tint="#039855"
+            tintBg="#DCFAE6"
+            onPress={() => {
+              const index = menuIndex;
+              setMenuIndex(null);
+              handleDownload(index);
+            }}
+          />
+          <SheetRow
+            icon="trash-outline"
+            label="Delete photo"
+            tint={DANGER}
+            tintBg={DANGER_SOFT}
+            danger
+            onPress={() => {
+              const index = menuIndex;
+              setMenuIndex(null);
+              setDeleteIndex(index);
+            }}
+          />
+
+          <TouchableOpacity
+            style={styles.sheetCancel}
+            activeOpacity={0.8}
+            onPress={() => setMenuIndex(null)}
+          >
+            <Text style={styles.sheetCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* FULL SCREEN VIEWER */}
+      <Modal
+        visible={viewerOpen}
+        animationType="fade"
+        onRequestClose={() => setViewerIndex(null)}
+      >
+        {viewerOpen && (
+          <View style={styles.viewer}>
+            <StatusBar barStyle="light-content" />
+
+            <View style={[styles.viewerTop, { paddingTop: insets.top + 10 }]}>
+              <TouchableOpacity
+                style={styles.viewerIconBtn}
+                onPress={() => setViewerIndex(null)}
+              >
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <Text style={styles.viewerCount}>
+                {viewerIndex + 1} of {photos.length}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.viewerIconBtn}
+                onPress={() => setDeleteIndex(viewerIndex)}
+              >
+                <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.viewerStage}>
+              <Image
+                source={{ uri: photos[viewerIndex].uri }}
+                style={styles.fill}
+                resizeMode="cover"
+              />
+
+              {viewerIndex > 0 && (
+                <TouchableOpacity
+                  style={[styles.arrow, styles.arrowLeft]}
+                  onPress={() => setViewerIndex(viewerIndex - 1)}
+                >
+                  <Ionicons name="chevron-back" size={22} color="#111" />
+                </TouchableOpacity>
+              )}
+
+              {viewerIndex < photos.length - 1 && (
+                <TouchableOpacity
+                  style={[styles.arrow, styles.arrowRight]}
+                  onPress={() => setViewerIndex(viewerIndex + 1)}
+                >
+                  <Ionicons name="chevron-forward" size={22} color="#111" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View
+              style={[
+                styles.viewerBottom,
+                { paddingBottom: insets.bottom + 18 },
+              ]}
+            >
+              <ViewerAction
+                icon="download-outline"
+                label="Download"
+                onPress={() => handleDownload(viewerIndex)}
+              />
+              <ViewerAction
+                icon="share-social-outline"
+                label="Share"
+                onPress={() => handleShare(viewerIndex)}
+              />
+              <ViewerAction
+                icon="trash-outline"
+                label="Delete"
+                danger
+                onPress={() => setDeleteIndex(viewerIndex)}
+              />
+            </View>
+
+            {/* DELETE DIALOG (viewer) */}
+            {deleteIndex !== null && (
+              <DeleteDialog
+                deleting={deleting}
+                onCancel={closeDeleteDialog}
+                onConfirm={performDelete}
+              />
+            )}
+          </View>
+        )}
+      </Modal>
+    </View>
   );
 }
 
 /* ============================================================
-   PHOTO UPLOAD BOX
+   SUB COMPONENTS
 ============================================================ */
 
-function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
-  const isLarge = size === "large";
-
+function SheetRow({ icon, label, tint, tintBg, danger, onPress }) {
   return (
     <TouchableOpacity
-      style={[
-        styles.photoBox,
-        isLarge ? styles.photoBoxLarge : styles.photoBoxSmall,
-      ]}
-      activeOpacity={0.8}
+      style={styles.sheetRow}
+      activeOpacity={0.75}
       onPress={onPress}
     >
-      {uri ? (
-        <>
-          <Image source={{ uri }} style={styles.photoPreview} />
+      <View style={[styles.sheetIcon, { backgroundColor: tintBg }]}>
+        <Ionicons name={icon} size={20} color={tint} />
+      </View>
+      <Text style={[styles.sheetLabel, danger && { color: DANGER }]}>
+        {label}
+      </Text>
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={danger ? "#F4A6A0" : "#B6BBC3"}
+      />
+    </TouchableOpacity>
+  );
+}
+
+function ViewerAction({ icon, label, danger, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.viewerAction}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      <View
+        style={[styles.viewerActionCircle, danger && styles.viewerActionDanger]}
+      >
+        <Ionicons
+          name={icon}
+          size={22}
+          color={danger ? "#FF6B60" : "#FFFFFF"}
+        />
+      </View>
+      <Text style={[styles.viewerActionText, danger && { color: "#FF8A80" }]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function DeleteDialog({ deleting, onCancel, onConfirm }) {
+  return (
+    <View style={styles.dialogOverlay}>
+      <View style={styles.dialogCard}>
+        <View style={styles.dialogIconOuter}>
+          <View style={styles.dialogIconInner}>
+            <Ionicons name="trash-outline" size={26} color={DANGER} />
+          </View>
+        </View>
+
+        <Text style={styles.dialogTitle}>Delete this photo?</Text>
+        <Text style={styles.dialogText}>
+          This photo will be permanently removed from your gallery. This action
+          can't be undone.
+        </Text>
+
+        <View style={styles.dialogActions}>
+          <TouchableOpacity
+            style={styles.dialogCancel}
+            activeOpacity={0.8}
+            disabled={deleting}
+            onPress={onCancel}
+          >
+            <Text style={styles.dialogCancelText}>Cancel</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.removeButton}
-            hitSlop={{
-              top: 8,
-              bottom: 8,
-              left: 8,
-              right: 8,
-            }}
-            onPress={onRemove}
+            style={[styles.dialogDelete, deleting && { opacity: 0.7 }]}
+            activeOpacity={0.85}
+            disabled={deleting}
+            onPress={onConfirm}
           >
-            <Ionicons name="close" size={14} color="#FFFFFF" />
+            {deleting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.dialogDeleteText}>Delete</Text>
+            )}
           </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <View
-            style={[
-              styles.photoIconCircle,
-              isLarge
-                ? styles.photoIconCircleLarge
-                : styles.photoIconCircleSmall,
-            ]}
-          >
-            <Ionicons
-              name="camera-outline"
-              size={isLarge ? 29 : 21}
-              color={Colors.primaryRed}
-            />
-
-            <View style={styles.photoIconPlusBadge}>
-              <Ionicons name="add" size={isLarge ? 13 : 10} color="#FFFFFF" />
-            </View>
-          </View>
-
-          <Text
-            style={isLarge ? styles.photoLabelLarge : styles.photoLabelSmall}
-          >
-            {label}
-          </Text>
-
-          {helperText ? (
-            <Text
-              style={
-                isLarge ? styles.photoHelperLarge : styles.photoHelperSmall
-              }
-            >
-              {helperText}
-            </Text>
-          ) : null}
-        </>
-      )}
-    </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -360,380 +555,313 @@ function PhotoUploadBox({ uri, size, label, helperText, onPress, onRemove }) {
 ============================================================ */
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  root: { flex: 1, backgroundColor: "#FFFFFF" },
+  fill: { width: "100%", height: "100%" },
 
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 35,
-  },
-
-  /* ================= TOP BAR ================= */
-
-  topBar: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
+    paddingHorizontal: 16,
+    paddingBottom: 18,
   },
-
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
+  headerBack: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
   },
-
-  progressContainer: {
+  headerTitle: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 10,
+    fontSize: 22,
+    fontFamily: Fonts.display?.bold || Fonts.bold,
+    color: "#FFFFFF",
+  },
+  headerPrivate: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerPrivateText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: "#FFFFFF",
   },
 
-  progressTrack: {
-    height: 5,
-    borderRadius: 5,
-    backgroundColor: "#E9E9E9",
-    overflow: "hidden",
-  },
+  content: { paddingHorizontal: H_PADDING, paddingTop: 16 },
 
-  progressActive: {
-    width: "85%",
-    height: "100%",
-    backgroundColor: Colors.primaryRed,
-    borderRadius: 5,
-  },
-
-  progressText: {
-    marginTop: 5,
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    textAlign: "right",
-  },
-
-  /* ================= TITLE ================= */
-
-  titleSection: {
-    marginBottom: 22,
-  },
-
-  pageTitle: {
-    fontSize: 27,
-    fontFamily: Fonts.display.bold,
-    color: Colors.textPrimary,
-    letterSpacing: -0.4,
-  },
-
-  pageSubtitle: {
-    marginTop: 7,
-    fontSize: 13.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    lineHeight: 20,
-  },
-
-  /* ================= PROFILE CARD ================= */
-
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    marginBottom: 24,
-  },
-
-  cardHeader: {
+  privateCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 17,
-  },
-
-  cardTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-
-  cardSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 3,
-  },
-
-  requiredBadge: {
-    backgroundColor: "#FCE9E7",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  requiredText: {
-    fontSize: 10,
-    fontFamily: Fonts.body.bold,
-    color: Colors.primaryRed,
-  },
-
-  profileContent: {
-    flexDirection: "row",
-    gap: 15,
-  },
-
-  /* ================= GUIDELINES ================= */
-
-  guidelinesBlock: {
-    flex: 1,
-    paddingTop: 2,
-  },
-
-  guidelinesTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-    marginBottom: 10,
-  },
-
-  guidelineRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 7,
-  },
-
-  guidelineText: {
-    flex: 1,
-    marginLeft: 6,
-    fontSize: 10.8,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    lineHeight: 15,
-  },
-
-  /* ================= ADDITIONAL PHOTOS ================= */
-
-  additionalSection: {
+    backgroundColor: "#FDECEC",
+    borderRadius: 14,
+    padding: 14,
     marginBottom: 20,
   },
-
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 13,
-  },
-
-  sectionTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-
-  sectionSubtitle: {
-    fontSize: 11.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    marginTop: 3,
-  },
-
-  optionalText: {
-    fontSize: 11,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textMuted,
-    backgroundColor: "#F3F3F3",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  additionalGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 9,
-  },
-
-  /* ================= PHOTO BOX ================= */
-
-  photoBox: {
-    borderWidth: 1.4,
-    borderColor: "#E3B3AE",
-    borderStyle: "dashed",
-    borderRadius: 16,
-    backgroundColor: "#FFF9F8",
+  lockCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#F9D3D3",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 14,
+  },
+  privateContent: { flex: 1 },
+  privateTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: Colors.textPrimary || "#111",
+  },
+  privateText: {
+    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: Colors.textSecondary || "#555",
+  },
+
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
+  tile: {
+    width: TILE_WIDTH,
+    height: TILE_HEIGHT,
+    borderRadius: 10,
     overflow: "hidden",
+    backgroundColor: "#F1F1F1",
   },
-
-  photoBoxLarge: {
-    width: 142,
-    height: 142,
+  addTile: {
+    width: TILE_WIDTH,
+    height: TILE_HEIGHT,
+    borderRadius: 10,
+    backgroundColor: "#FDF1F1",
+    borderWidth: 1.2,
+    borderColor: "#EBB9B9",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  photoBoxSmall: {
-    flex: 1,
-    height: 92,
-    paddingHorizontal: 3,
+  addText: {
+    marginTop: 10,
+    fontSize: 14,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: Colors.primaryRed,
   },
-
-  photoPreview: {
-    width: "100%",
-    height: "100%",
-  },
-
-  removeButton: {
+  menuButton: {
     position: "absolute",
     top: 7,
     right: 7,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.65)",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.92)",
     alignItems: "center",
     justifyContent: "center",
   },
+  loadingBox: { paddingVertical: 60, alignItems: "center" },
 
-  photoIconCircle: {
-    borderRadius: 999,
-    backgroundColor: "#FBE9E7",
-    alignItems: "center",
-    justifyContent: "center",
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 22,
+  },
+  footerText: {
+    fontSize: 13.5,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: "#7A7F87",
   },
 
-  photoIconCircleLarge: {
-    width: 57,
-    height: 57,
-    marginBottom: 9,
+  /* OPTIONS SHEET */
+  backdrop: { flex: 1, backgroundColor: "rgba(16,24,40,0.55)" },
+  sheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 10,
   },
-
-  photoIconCircleSmall: {
-    width: 37,
-    height: 37,
-    marginBottom: 5,
+  sheetHandle: {
+    alignSelf: "center",
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#D0D5DD",
+    marginBottom: 14,
   },
-
-  photoIconPlusBadge: {
-    position: "absolute",
-    right: -2,
-    bottom: -1,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.primaryRed,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#FFF9F8",
+  sheetTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: Colors.textPrimary || "#101828",
+    marginBottom: 12,
   },
-
-  photoLabelLarge: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-
-  photoLabelSmall: {
-    fontSize: 9.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-  },
-
-  photoHelperLarge: {
-    fontSize: 9.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    textAlign: "center",
-    marginTop: 3,
-  },
-
-  photoHelperSmall: {
-    fontSize: 8,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    textAlign: "center",
-    marginTop: 1,
-  },
-
-  /* ================= PRIVACY ================= */
-
-  privacyCard: {
+  sheetRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F4F5FF",
-    borderRadius: 15,
-    padding: 13,
-    marginBottom: 20,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 58,
+    marginBottom: 8,
   },
-
-  privacyIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E6E8FF",
+  sheetIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 12,
   },
-
-  privacyContent: {
+  sheetLabel: {
     flex: 1,
+    fontSize: 15.5,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: Colors.textPrimary || "#101828",
   },
-
-  privacyTitle: {
-    fontSize: 12.5,
-    fontFamily: Fonts.body.bold,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-
-  privacyText: {
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
-    lineHeight: 15,
-  },
-
-  /* ================= BUTTON ================= */
-
-  saveButton: {
-    height: 54,
-    borderRadius: 15,
-    backgroundColor: Colors.primaryRedDark,
-    flexDirection: "row",
+  sheetCancel: {
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E4E7EC",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 6,
+  },
+  sheetCancelText: {
+    fontSize: 15.5,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: "#344054",
   },
 
-  saveButtonDisabled: {
-    opacity: 0.6,
+  /* DELETE DIALOG */
+  dialogOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(16,24,40,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    zIndex: 100,
+    elevation: 100,
   },
-
-  saveButtonText: {
-    fontSize: 15,
-    fontFamily: Fonts.body.bold,
-    color: Colors.white,
+  dialogCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    paddingBottom: 20,
+    alignItems: "center",
   },
-
-  bottomHint: {
+  dialogIconOuter: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "#FEF3F2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  dialogIconInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: DANGER_SOFT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: "#101828",
+  },
+  dialogText: {
+    marginTop: 8,
+    marginBottom: 22,
     textAlign: "center",
-    marginTop: 10,
-    fontSize: 10.5,
-    fontFamily: Fonts.body.regular,
-    color: Colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: "#667085",
+  },
+  dialogActions: { flexDirection: "row", gap: 12, width: "100%" },
+  dialogCancel: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D0D5DD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dialogCancelText: {
+    fontSize: 15,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: "#344054",
+  },
+  dialogDelete: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: DANGER,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dialogDeleteText: {
+    fontSize: 15,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: "#FFFFFF",
+  },
+
+  /* VIEWER */
+  viewer: { flex: 1, backgroundColor: "#000000" },
+  viewerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  viewerIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewerCount: {
+    fontSize: 17,
+    fontFamily: Fonts.body?.bold || Fonts.bold,
+    color: "#FFFFFF",
+  },
+  viewerStage: { flex: 1, backgroundColor: "#111" },
+  arrow: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  arrowLeft: { left: 20 },
+  arrowRight: { right: 20 },
+  viewerBottom: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingTop: 20,
+  },
+  viewerAction: { alignItems: "center", minWidth: 80 },
+  viewerActionCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewerActionDanger: { backgroundColor: "rgba(217,45,32,0.22)" },
+  viewerActionText: {
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: Fonts.body?.regular || Fonts.regular,
+    color: "#FFFFFF",
   },
 });

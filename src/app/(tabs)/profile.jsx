@@ -1973,7 +1973,26 @@ export default function ProfileDetails() {
 
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
+          {/* =================================================
+  PURCHASE HISTORY
+================================================= */}
 
+          <TouchableOpacity
+            style={styles.profileRow}
+            activeOpacity={0.8}
+            onPress={() => {
+              console.log("Purchase History Clicked");
+              router.push("/PurchaseHistory");
+            }}
+          >
+            <View style={[styles.rowIcon, { backgroundColor: "#EAF3FF" }]}>
+              <Ionicons name="receipt-outline" size={21} color="#2C84D6" />
+            </View>
+
+            <Text style={styles.rowTitle}>Purchase History</Text>
+
+            <Ionicons name="chevron-forward" size={18} color="#666666" />
+          </TouchableOpacity>
           {/* =================================================
             SPIRITUAL
         ================================================= */}

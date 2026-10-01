@@ -29,10 +29,17 @@ export async function getMethod(url, user, params) {
   return Requestmake(url, requestOptions);
 }
 
-export async function postMethod(url, user, data) {
+export async function postMethod(url, user, data, isFormData = false) {
+  const headers = buildHeaders(user);
+
+  // For FormData uploads, remove Content-Type so the boundary is auto-set
+  if (isFormData || data instanceof FormData) {
+    delete headers["Content-Type"];
+  }
+
   const requestOptions = {
     method: "POST",
-    headers: buildHeaders(user),
+    headers,
     body: data,
   };
   return Requestmake(url, requestOptions);

@@ -3435,3 +3435,528 @@ export async function getLanguages(accessToken) {
     throw error;
   }
 }
+// =========================================================
+// GALLERY IMAGE VIEW REQUEST APIs
+// Append these to your API functions file (same file that
+// already defines apiUrl, getMethod and postMethod).
+// =========================================================
+
+// ==================== SEND GALLERY IMAGE VIEW REQUEST ====================
+// POST /api/member/gallery-image-view-request
+// payload: { id }
+export async function sendGalleryImageViewRequest(id, token) {
+  const URL = apiUrl("/api/member/gallery-image-view-request");
+
+  const payload = {
+    id: Number(id),
+  };
+
+  try {
+    console.log("sendGalleryImageViewRequest request URL:", URL);
+    console.log("sendGalleryImageViewRequest request payload:", payload);
+
+    const result = await postMethod(URL, token, payload);
+
+    console.log(
+      "sendGalleryImageViewRequest response:",
+      JSON.stringify(result),
+    );
+
+    if (result?.success === 1 || result?.result === true) {
+      return {
+        success: 1,
+        result: true,
+        message: result?.message || "Request sent successfully",
+        data: result?.data ?? null,
+      };
+    }
+
+    return {
+      success: 0,
+      result: false,
+      message: result?.message || "Unable to send request.",
+      data: null,
+    };
+  } catch (error) {
+    console.log("sendGalleryImageViewRequest Error:", error);
+
+    return {
+      success: 0,
+      result: false,
+      message: error?.message || "Failed to send request.",
+      data: null,
+    };
+  }
+}
+
+// ==================== GET GALLERY IMAGE VIEW REQUESTS ====================
+// GET /api/member/gallery-image-view-request
+export async function getGalleryImageViewRequests(token) {
+  const URL = apiUrl("/api/member/gallery-image-view-request");
+
+  try {
+    console.log("getGalleryImageViewRequests request URL:", URL);
+
+    const result = await getMethod(URL, token);
+
+    console.log(
+      "getGalleryImageViewRequests response:",
+      JSON.stringify(result),
+    );
+
+    return result;
+  } catch (error) {
+    console.log("getGalleryImageViewRequests Error:", error);
+
+    return {
+      success: 0,
+      message: error?.message || "Unable to load gallery view requests.",
+      data: [],
+    };
+  }
+}
+
+// ==================== ACCEPT GALLERY IMAGE VIEW REQUEST ====================
+// POST /api/member/gallery-image-view-request/accept
+// payload: { gallery_image_view_request_id }
+export async function acceptGalleryImageViewRequest(token, requestId) {
+  const URL = apiUrl("/api/member/gallery-image-view-request/accept");
+
+  const payload = {
+    gallery_image_view_request_id: Number(requestId),
+  };
+
+  try {
+    console.log("acceptGalleryImageViewRequest request URL:", URL);
+    console.log("acceptGalleryImageViewRequest request payload:", payload);
+
+    const result = await postMethod(URL, token, payload);
+
+    console.log(
+      "acceptGalleryImageViewRequest response:",
+      JSON.stringify(result),
+    );
+
+    if (result?.success === 1 || result?.result === true) {
+      return {
+        success: 1,
+        result: true,
+        message: result?.message || "Request accepted",
+        data: result?.data ?? null,
+      };
+    }
+
+    return {
+      success: 0,
+      result: false,
+      message: result?.message || "Unable to accept request.",
+      data: null,
+    };
+  } catch (error) {
+    console.log("acceptGalleryImageViewRequest Error:", error);
+
+    return {
+      success: 0,
+      result: false,
+      message: error?.message || "Failed to accept request.",
+      data: null,
+    };
+  }
+}
+
+// ==================== REJECT GALLERY IMAGE VIEW REQUEST ====================
+// POST /api/member/gallery-image-view-request/reject
+// payload: { gallery_image_view_request_id }
+export async function rejectGalleryImageViewRequest(token, requestId) {
+  const URL = apiUrl("/api/member/gallery-image-view-request/reject");
+
+  const payload = {
+    gallery_image_view_request_id: Number(requestId),
+  };
+
+  try {
+    console.log("rejectGalleryImageViewRequest request URL:", URL);
+    console.log("rejectGalleryImageViewRequest request payload:", payload);
+
+    const result = await postMethod(URL, token, payload);
+
+    console.log(
+      "rejectGalleryImageViewRequest response:",
+      JSON.stringify(result),
+    );
+
+    if (result?.success === 1 || result?.result === true) {
+      return {
+        success: 1,
+        result: true,
+        message: result?.message || "Request rejected",
+        data: result?.data ?? null,
+      };
+    }
+
+    return {
+      success: 0,
+      result: false,
+      message: result?.message || "Unable to reject request.",
+      data: null,
+    };
+  } catch (error) {
+    console.log("rejectGalleryImageViewRequest Error:", error);
+
+    return {
+      success: 0,
+      result: false,
+      message: error?.message || "Failed to reject request.",
+      data: null,
+    };
+  }
+}
+
+// ==================== GET MEMBER GALLERY IMAGES ====================
+// GET /api/member/gallery-image
+// ==================== GET MEMBER GALLERY IMAGES ====================
+// GET /api/member/gallery-image
+export async function getGalleryImages(token) {
+  const URL = apiUrl("/api/member/gallery-image");
+
+  try {
+    console.log("getGalleryImages request URL:", URL);
+
+    const result = await getMethod(URL, token);
+    console.log("getGalleryImages response:", JSON.stringify(result, null, 2));
+
+    console.log("getGalleryImages response:", JSON.stringify(result));
+
+    return result;
+  } catch (error) {
+    console.log("getGalleryImages Error:", error);
+
+    return {
+      success: 0,
+      message: error?.message || "Unable to load gallery images.",
+      data: [],
+    };
+  }
+}
+
+// ==================== UPLOAD MEMBER GALLERY IMAGE ====================
+// POST /api/member/gallery-image
+// multipart/form-data: { gallery_image: FILE }
+// Works on Android/iOS and on Web.
+export async function uploadGalleryImage(accessToken, photo) {
+  requireToken(accessToken);
+
+  if (!photo?.uri) {
+    throw new Error("No image selected.");
+  }
+
+  const URL = apiUrl("/api/member/gallery-image");
+  const FIELD_NAME = "gallery_image";
+
+  const formData = new FormData();
+
+  // On web the picker returns blob:/data: URIs, and FormData needs a real
+  // Blob. On native, React Native accepts the { uri, name, type } object.
+  const isWebUri = /^(blob:|data:|https?:)/i.test(photo.uri);
+
+  if (isWebUri) {
+    const fileResponse = await fetch(photo.uri);
+    const blob = await fileResponse.blob();
+
+    const mimeType = blob.type || photo.type || "image/jpeg";
+    const extension = (mimeType.split("/")[1] || "jpg").replace("jpeg", "jpg");
+    const hasExtension = /\.[a-z0-9]{2,5}$/i.test(photo.name || "");
+    const fileName = hasExtension
+      ? photo.name
+      : `photo-${Date.now()}.${extension}`;
+
+    formData.append(FIELD_NAME, blob, fileName);
+  } else {
+    formData.append(FIELD_NAME, {
+      uri: photo.uri,
+      name: photo.name || `photo-${Date.now()}.jpg`,
+      type: photo.type || "image/jpeg",
+    });
+  }
+
+  console.log("=================================");
+  console.log("UPLOAD GALLERY IMAGE");
+  console.log("METHOD: POST");
+  console.log("URL:", URL);
+  console.log("FIELD:", FIELD_NAME);
+  console.log("WEB URI:", isWebUri);
+  console.log("=================================");
+
+  try {
+    // Do NOT set Content-Type manually — fetch adds the multipart boundary.
+    const response = await fetch(URL, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    const responseText = await response.text();
+    let responseData = {};
+
+    try {
+      responseData = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      responseData = { message: responseText };
+    }
+
+    logResponse("UPLOAD GALLERY IMAGE RESPONSE", responseData);
+
+    if (!response.ok) {
+      const serverMessage =
+        responseData?.message ||
+        responseData?.error ||
+        responseData?.errors ||
+        `Server returned HTTP ${response.status}`;
+
+      throw new Error(
+        typeof serverMessage === "object"
+          ? Object.values(serverMessage).flat().join("\n")
+          : String(serverMessage),
+      );
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error("UPLOAD GALLERY IMAGE ERROR:", error);
+    throw error;
+  }
+}
+// =========================================================
+// PACKAGE PURCHASE
+// POST /api/member/package-purchase
+// =========================================================
+
+export async function purchasePackage(
+  accessToken,
+  packageId,
+  amount,
+  paymentMethod,
+) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/member/package-purchase";
+
+  const body = {
+    package_id: Number(packageId),
+    amount: Number(amount),
+    payment_method: paymentMethod,
+  };
+
+  console.log("=================================");
+  console.log("PACKAGE PURCHASE API");
+  console.log("METHOD: POST");
+  console.log("URL:", URL);
+  console.log("BODY:", JSON.stringify(body, null, 2));
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("=================================");
+
+  try {
+    const response = await postMethod(
+      URL,
+      {
+        token: accessToken,
+      },
+      body,
+    );
+
+    console.log("PACKAGE PURCHASE RESPONSE:");
+    console.log(JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("PACKAGE PURCHASE ERROR:", error);
+    throw error;
+  }
+}
+
+// =========================================================
+// PACKAGE PURCHASE HISTORY
+// GET /api/member/package-purchase-history
+// =========================================================
+
+export async function getPackagePurchaseHistory(accessToken) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/member/package-purchase-history";
+
+  console.log("=================================");
+  console.log("PACKAGE PURCHASE HISTORY API");
+  console.log("METHOD: GET");
+  console.log("URL:", URL);
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("=================================");
+
+  try {
+    const response = await getMethod(URL, {
+      token: accessToken,
+    });
+
+    console.log("PACKAGE PURCHASE HISTORY RESPONSE:");
+    console.log(JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("PACKAGE PURCHASE HISTORY ERROR:", error);
+
+    throw error;
+  }
+}
+
+// =========================================================
+// PACKAGE PURCHASE INVOICE
+// POST /api/member/package-purchase-history-invoice
+// =========================================================
+
+export async function getPackagePurchaseInvoice(accessToken, packagePaymentId) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/member/package-purchase-history-invoice";
+
+  const body = {
+    package_payment_id: Number(packagePaymentId),
+  };
+
+  console.log("=================================");
+  console.log("PACKAGE PURCHASE INVOICE API");
+  console.log("METHOD: POST");
+  console.log("URL:", URL);
+  console.log("BODY:", JSON.stringify(body, null, 2));
+  console.log("TOKEN EXISTS:", !!accessToken);
+  console.log("=================================");
+
+  try {
+    const response = await postMethod(
+      URL,
+      {
+        token: accessToken,
+      },
+      body,
+    );
+
+    console.log("PACKAGE PURCHASE INVOICE RESPONSE:");
+    console.log(JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("PACKAGE PURCHASE INVOICE ERROR:", error);
+
+    throw error;
+  }
+}
+export async function createPayment(
+  accessToken,
+  packageId,
+  amount,
+  paymentMethod,
+) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/createpayment";
+
+  const body = {
+    package_id: Number(packageId),
+    payment_type: "package",
+    amount: Number(amount),
+    payment_method: paymentMethod,
+  };
+
+  console.log("createPayment request:", body);
+
+  const response = await postMethod(URL, { token: accessToken }, body);
+
+  console.log("createPayment response:", response);
+
+  return response;
+}
+// =========================================================
+// DELETE GALLERY IMAGE
+// DELETE /api/member/gallery-image/{image_id}
+// =========================================================
+export async function deleteGalleryImage(accessToken, imageId) {
+  requireToken(accessToken);
+
+  const id = Number(imageId);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Valid image ID is required.");
+  }
+
+  const URL = apiUrl(`/api/member/gallery-image/${id}`);
+
+  try {
+    const response = await fetch(URL, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const text = await response.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { message: text };
+    }
+
+    logResponse("DELETE GALLERY IMAGE RESPONSE", data);
+
+    if (!response.ok) {
+      throw new Error(data?.message || "Photo delete failed");
+    }
+    return data;
+  } catch (error) {
+    console.error("DELETE GALLERY IMAGE ERROR:", error);
+    throw error;
+  }
+}
+export async function getPaymentTypes(accessToken) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/payment-types";
+
+  console.log("GET payment-types API:", URL);
+
+  const response = await getMethod(URL, { token: accessToken });
+
+  console.log("payment-types response:", JSON.stringify(response, null, 2));
+
+  return response;
+}
+export async function getPackageDetails(accessToken, packageId) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/package-details";
+
+  const body = {
+    package_id: Number(packageId),
+  };
+
+  console.log("getPackageDetails request:", body);
+
+  const response = await postMethod(URL, { token: accessToken }, body);
+
+  console.log("getPackageDetails response:", JSON.stringify(response, null, 2));
+
+  return response;
+}
