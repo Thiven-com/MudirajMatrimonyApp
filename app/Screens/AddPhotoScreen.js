@@ -14,9 +14,7 @@ import {
   View,
 } from "react-native";
 
-import {
-  useFocusEffect,
-} from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import Feather from "react-native-vector-icons/Feather";
 
@@ -90,9 +88,6 @@ const validateAsset = (asset) => {
   return "";
 };
 
-/* ============================================================
-   SCREEN
-============================================================ */
 
 export default function AddPhoto({
   navigation,
@@ -101,23 +96,20 @@ export default function AddPhoto({
   const [photo, setPhoto] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  /* ==========================================================
-     BACK PRESS
-  ========================================================== */
 
   const onBackPress = useCallback(() => {
     if (uploading) {
       return true;
     }
-
-    navigation.goBack();
-
+    handleBack();
     return true;
-  }, [navigation, uploading]);
+  }, [navigation, uploading, route]);
 
-  /* ==========================================================
-     USE FOCUS EFFECT
-  ========================================================== */
+  const handleBack = () => {
+
+    navigation.navigate(route?.params?.page, route?.params?.prevs || {});
+
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -132,10 +124,6 @@ export default function AddPhoto({
       };
     }, [onBackPress])
   );
-
-  /* ==========================================================
-     HANDLE IMAGE RESULT
-  ========================================================== */
 
   const handleResult = (response) => {
     if (response.didCancel) {
@@ -152,7 +140,7 @@ export default function AddPhoto({
       Alert.alert(
         "Unable to select photo",
         response.errorMessage ||
-          "Something went wrong."
+        "Something went wrong."
       );
 
       return;
@@ -181,10 +169,6 @@ export default function AddPhoto({
     setPhoto(toPhoto(asset));
   };
 
-  /* ==========================================================
-     CHOOSE FROM GALLERY
-  ========================================================== */
-
   const chooseFromGallery = async () => {
     try {
       const response =
@@ -207,10 +191,6 @@ export default function AddPhoto({
       );
     }
   };
-
-  /* ==========================================================
-     TAKE PHOTO
-  ========================================================== */
 
   const takePhoto = async () => {
     try {
@@ -236,10 +216,6 @@ export default function AddPhoto({
     }
   };
 
-  /* ==========================================================
-     UPLOAD PHOTO
-  ========================================================== */
-
   const handleUpload = async () => {
     if (!photo || uploading) {
       return;
@@ -259,28 +235,37 @@ export default function AddPhoto({
         return;
       }
 
-      console.log(
-        "Uploading photo:",
-        photo
-      );
-
-      await uploadGalleryImage(
+      let response = await uploadGalleryImage(
         token,
         photo
       );
-
-      Alert.alert(
-        "Success",
-        "Photo uploaded successfully.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              navigation.goBack();
+      if (response?.result) {
+        Alert.alert(
+          "Success",
+          response?.message,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                handleBack();
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Alert!",
+          response?.message,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                handleBack();
+              },
+            },
+          ]
+        );
+      }
     } catch (error) {
       console.log(
         "UPLOAD PHOTO ERROR:",
@@ -290,16 +275,12 @@ export default function AddPhoto({
       Alert.alert(
         "Upload failed",
         error?.message ||
-          "Please try again."
+        "Please try again."
       );
     } finally {
       setUploading(false);
     }
   };
-
-  /* ============================================================
-     UI
-  ============================================================ */
 
   return (
     <SafeAreaView style={styles.root}>
@@ -308,10 +289,6 @@ export default function AddPhoto({
         barStyle="light-content"
         backgroundColor="#D92332"
       />
-
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
 
       <LinearGradient
         colors={
@@ -328,7 +305,7 @@ export default function AddPhoto({
         <TouchableOpacity
           style={styles.headerBack}
           activeOpacity={0.7}
-          onPress={onBackPress}
+          onPress={handleBack}
           disabled={uploading}
         >
           <Feather
@@ -350,18 +327,10 @@ export default function AddPhoto({
 
       </LinearGradient>
 
-      {/* ======================================================
-          CONTENT
-      ====================================================== */}
-
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* ====================================================
-            UPLOAD CARD
-        ==================================================== */}
 
         <View style={styles.uploadCard}>
 
@@ -388,10 +357,6 @@ export default function AddPhoto({
             or take a new photo.
           </Text>
 
-          {/* ==================================================
-              GALLERY BUTTON
-          ================================================== */}
-
           <TouchableOpacity
             style={styles.galleryButton}
             activeOpacity={0.85}
@@ -410,10 +375,6 @@ export default function AddPhoto({
             </Text>
 
           </TouchableOpacity>
-
-          {/* ==================================================
-              CAMERA BUTTON
-          ================================================== */}
 
           <TouchableOpacity
             style={styles.cameraButton}
@@ -439,10 +400,6 @@ export default function AddPhoto({
 
         </View>
 
-        {/* ====================================================
-            INFORMATION
-        ==================================================== */}
-
         <View style={styles.infoCard}>
 
           <View style={styles.infoIcon}>
@@ -466,10 +423,6 @@ export default function AddPhoto({
           </View>
 
         </View>
-
-        {/* ====================================================
-            PREVIEW
-        ==================================================== */}
 
         {photo && (
           <View>
@@ -515,16 +468,12 @@ export default function AddPhoto({
           </View>
         )}
 
-        {/* ====================================================
-            UPLOAD BUTTON
-        ==================================================== */}
-
         <TouchableOpacity
           style={[
             styles.uploadButton,
 
             (!photo || uploading) &&
-              styles.uploadButtonDisabled,
+            styles.uploadButtonDisabled,
           ]}
           activeOpacity={0.85}
           disabled={!photo || uploading}
@@ -562,24 +511,12 @@ export default function AddPhoto({
   );
 }
 
-/* ============================================================
-   STYLES
-============================================================ */
-
 const styles = StyleSheet.create({
-
-  /* ==========================================================
-     ROOT
-  ========================================================== */
 
   root: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-
-  /* ==========================================================
-     HEADER
-  ========================================================== */
 
   header: {
     flexDirection: "row",
@@ -608,19 +545,11 @@ const styles = StyleSheet.create({
     height: 42,
   },
 
-  /* ==========================================================
-     CONTENT
-  ========================================================== */
-
   content: {
     paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 30,
   },
-
-  /* ==========================================================
-     UPLOAD CARD
-  ========================================================== */
 
   uploadCard: {
     alignItems: "center",
@@ -661,10 +590,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary || "#555555",
   },
 
-  /* ==========================================================
-     GALLERY BUTTON
-  ========================================================== */
-
   galleryButton: {
     width: "100%",
     height: 54,
@@ -686,10 +611,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  /* ==========================================================
-     CAMERA BUTTON
-  ========================================================== */
-
   cameraButton: {
     width: "100%",
     height: 54,
@@ -710,10 +631,6 @@ const styles = StyleSheet.create({
       Colors.primaryRed ||
       "#D92332",
   },
-
-  /* ==========================================================
-     INFO CARD
-  ========================================================== */
 
   infoCard: {
     flexDirection: "row",
@@ -746,10 +663,6 @@ const styles = StyleSheet.create({
       Colors.textSecondary ||
       "#555555",
   },
-
-  /* ==========================================================
-     PREVIEW
-  ========================================================== */
 
   previewLabel: {
     fontSize: Fonts.size?.md || 17,
@@ -786,10 +699,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     elevation: 3,
   },
-
-  /* ==========================================================
-     UPLOAD BUTTON
-  ========================================================== */
 
   uploadButton: {
     height: 58,

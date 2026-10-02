@@ -1125,7 +1125,7 @@ function PaymentCard({
           activeOpacity={0.8}
           style={styles.viewPaymentButton}
           onPress={() =>
-            navigation.navigate("InvoiceDetailsScreen", {
+            navigation.navigate("Invoice", {
               package_payment_id: paymentId,
             })
           }

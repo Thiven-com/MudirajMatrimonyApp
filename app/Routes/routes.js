@@ -12,6 +12,7 @@ import InterestsScreen from '../Screens/InterestsScreen';
 import ShortlistScreen from '../Screens/ShortlistScreen';
 import BasicDetailsScreen from '../Screens/BasicDetailsScreen';
 import MyPhotosScreen from '../Screens/MyPhotosScreen';
+import AddPhotoScreen from '../Screens/AddPhotoScreen';
 import EditProfileScreen from '../Screens/EditProfileScreen';
 import EditBasicInformation from '../Screens/EditBasicInformation';
 import PresentAddress from '../Screens/PresentAddress';
@@ -40,7 +41,6 @@ import ProfileVisitorsScreen from '../Screens/ProfileVisitorsScreen';
 import RecentlyViewedScreen from '../Screens/RecentlyViewedScreen';
 import SubscriptionPlansScreen from '../Screens/SubscriptionPlansScreen';
 import PremiumBenefits from '../Screens/PremiumBenefits';
-import AddPhotoScreen from '../Screens/AddPhotoScreen';
 import InvoiceDetailsScreen from '../Screens/InvoiceDetailsScreen';
 import { DarkTheme, LightTheme } from '../styles/theme';
 import Fonts from '../constants/Fonts';
@@ -279,6 +279,11 @@ export const useRoutesList = () => {
       options: notTabBar,
     },
     {
+      name: 'Packages',
+      component: ChoosePackageScreen,
+      options: notTabBar,
+    },
+    {
       name: 'Languages',
       component: Languages,
       options: notTabBar,
@@ -324,17 +329,15 @@ export const useRoutesList = () => {
       options: notTabBar,
     },
     {
-      name: 'MyPhoto',
+      name: 'MyPhotos',
       component: MyPhotosScreen,
       options: notTabBar,
     },
-{
-
-name: 'AddPhoto',
-component: AddPhotoScreen,
-options: notTabBar,
-},
-
+    {
+      name: 'AddPhoto',
+      component: AddPhotoScreen,
+      options: notTabBar,
+    },
     {
       name: 'BasicDetails',
       component: BasicDetailsScreen,
@@ -365,10 +368,10 @@ options: notTabBar,
       component: SearchScreen,
       options: notTabBar,
     },
-{
-name: 'Invoice',
-component: InvoiceDetailsScreen,
-options: notTabBar,
-}
+    {
+      name: 'Invoice',
+      component: InvoiceDetailsScreen,
+      options: notTabBar,
+    }
   ];
 };

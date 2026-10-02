@@ -1,7 +1,9 @@
 import Feather from "react-native-vector-icons/Feather";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import { BackHandler } from "react-native";
+import RazorpayCheckout from 'react-native-razorpay';
 
 import {
   useFocusEffect,
@@ -29,11 +31,9 @@ import {
   getPackageDetails,
   getPaymentTypes,
   getToken,
+  getUserData,
+  successPayment
 } from "../utils/Functions";
-
-// =====================================================
-// FALLBACK PACKAGE
-// =====================================================
 
 const DEFAULT_PLAN = {
   name: "Premium Membership",
@@ -44,9 +44,6 @@ const DEFAULT_PLAN = {
   discountPercent: 40,
 };
 
-// =====================================================
-// FALLBACK PAYMENT METHODS
-// =====================================================
 
 const FALLBACK_PAYMENT_METHODS = [
   {
@@ -86,9 +83,6 @@ const FALLBACK_PAYMENT_METHODS = [
   },
 ];
 
-// =====================================================
-// TRUST BADGES
-// =====================================================
 
 const TRUST_BADGES = [
   {
@@ -108,9 +102,6 @@ const TRUST_BADGES = [
   },
 ];
 
-// =====================================================
-// PAYMENT ICON
-// =====================================================
 
 const getPaymentIcon = (value) => {
   const text = String(value || "").toLowerCase();
@@ -146,10 +137,6 @@ const getPaymentIcon = (value) => {
   return "card-outline";
 };
 
-// =====================================================
-// PAYMENT LABEL
-// =====================================================
-
 const getPaymentLabel = (item) => {
   return (
     item?.label ||
@@ -161,10 +148,6 @@ const getPaymentLabel = (item) => {
     "Payment"
   );
 };
-
-// =====================================================
-// PAYMENT KEY
-// =====================================================
 
 const getPaymentKey = (item, index) => {
   const value =
@@ -182,10 +165,6 @@ const getPaymentKey = (item, index) => {
 
   return `payment_${index}`;
 };
-
-// =====================================================
-// GET PACKAGE DATA
-// =====================================================
 
 const extractPackageData = (response) => {
   if (!response) {
@@ -229,10 +208,6 @@ const extractPackageData = (response) => {
   return data;
 };
 
-// =====================================================
-// PAYMENT SCREEN
-// =====================================================
-
 export default function PaymentScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -243,10 +218,6 @@ export default function PaymentScreen() {
   // });
 
   const { packageId } = route.params || {};
-
-  // ===================================================
-  // STATES
-  // ===================================================
 
   const [plan, setPlan] = useState(DEFAULT_PLAN);
 
@@ -262,34 +233,19 @@ export default function PaymentScreen() {
 
   const [isPaying, setIsPaying] = useState(false);
 
-  // ===================================================
-  // PACKAGE ID
-  // ===================================================
 
   const selectedPackageId = Number(
     Array.isArray(packageId) ? packageId[0] : packageId,
   );
-
-  // ===================================================
-  // LOAD DATA
-  // ===================================================
 
   useEffect(() => {
     loadPackageDetails();
     loadPaymentTypes();
   }, [packageId]);
 
-  // ===================================================
-  // LOAD PACKAGE DETAILS
-  // ===================================================
-
   const loadPackageDetails = async () => {
     try {
       setIsLoadingPackage(true);
-
-      console.log("=================================");
-      console.log("GET PACKAGE DETAILS");
-      console.log("=================================");
 
       console.log("Package ID:", selectedPackageId);
 
@@ -335,7 +291,7 @@ export default function PaymentScreen() {
         Alert.alert(
           "Package Error",
           response?.message ||
-            "Unable to load package details.",
+          "Unable to load package details.",
         );
 
         return;
@@ -380,20 +336,20 @@ export default function PaymentScreen() {
 
       const price = Number(
         data?.price ??
-          data?.amount ??
-          data?.package_price ??
-          data?.selling_price ??
-          data?.discounted_price ??
-          DEFAULT_PLAN.price,
+        data?.amount ??
+        data?.package_price ??
+        data?.selling_price ??
+        data?.discounted_price ??
+        DEFAULT_PLAN.price,
       );
 
       const originalPrice = Number(
         data?.original_price ??
-          data?.originalPrice ??
-          data?.mrp ??
-          data?.regular_price ??
-          data?.actual_price ??
-          price,
+        data?.originalPrice ??
+        data?.mrp ??
+        data?.regular_price ??
+        data?.actual_price ??
+        price,
       );
 
       let discountPercent = 0;
@@ -453,7 +409,7 @@ export default function PaymentScreen() {
       Alert.alert(
         "Package Error",
         error?.message ||
-          "Something went wrong while loading package details.",
+        "Something went wrong while loading package details.",
       );
     } finally {
       setIsLoadingPackage(false);
@@ -662,14 +618,9 @@ export default function PaymentScreen() {
 
     try {
       setIsPaying(true);
-
       const token = await getToken();
-
-      console.log(
-        "Token exists:",
-        !!token,
-      );
-
+      const user = await getUserData();
+      console.log("User data:", user);
       if (!token) {
         Alert.alert(
           "Login Required",
@@ -678,11 +629,6 @@ export default function PaymentScreen() {
 
         return;
       }
-
-      // -----------------------------------------------
-      // AMOUNT
-      // -----------------------------------------------
-
       const amount = Number(plan.price);
 
       if (!amount || amount <= 0) {
@@ -693,95 +639,12 @@ export default function PaymentScreen() {
 
         return;
       }
-
-      // -----------------------------------------------
-      // LOG REQUEST
-      // -----------------------------------------------
-
-      console.log(
-        "=================================",
-      );
-
-      console.log(
-        "CREATE PAYMENT REQUEST",
-      );
-
-      console.log(
-        "=================================",
-      );
-
-      console.log(
-        "API:",
-        "POST /api/createpayment",
-      );
-
-      console.log(
-        "Package ID:",
-        selectedPackageId,
-      );
-
-      console.log(
-        "Payment Type:",
-        "package",
-      );
-
-      console.log(
-        "Amount:",
-        amount,
-      );
-
-      console.log(
-        "Payment Method:",
-        selectedMethod,
-      );
-
-      console.log(
-        "=================================",
-      );
-
-      // -----------------------------------------------
-      // CREATE PAYMENT
-      // -----------------------------------------------
-
       const response = await createPayment(
         token,
         selectedPackageId,
         amount,
         selectedMethod,
       );
-
-      // -----------------------------------------------
-      // LOG RESPONSE
-      // -----------------------------------------------
-
-      console.log(
-        "=================================",
-      );
-
-      console.log(
-        "CREATE PAYMENT RESPONSE",
-      );
-
-      console.log(
-        "=================================",
-      );
-
-      console.log(
-        JSON.stringify(
-          response,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        "=================================",
-      );
-
-      // -----------------------------------------------
-      // NO RESPONSE
-      // -----------------------------------------------
-
       if (!response) {
         Alert.alert(
           "Payment Failed",
@@ -790,11 +653,6 @@ export default function PaymentScreen() {
 
         return;
       }
-
-      // -----------------------------------------------
-      // FAILURE
-      // -----------------------------------------------
-
       if (
         response.success === 0 ||
         response.success === false ||
@@ -803,27 +661,16 @@ export default function PaymentScreen() {
         Alert.alert(
           "Payment Failed",
           response.message ||
-            "Unable to create payment.",
+          "Unable to create payment.",
         );
 
         return;
       }
-
-      // -----------------------------------------------
-      // SUCCESS
-      // -----------------------------------------------
-
       if (
         response.success === 1 ||
         response.success === true
       ) {
-        const razorpayOrderId =
-          response.paymentOrderId;
-
-        console.log(
-          "Razorpay Order ID:",
-          razorpayOrderId,
-        );
+        const razorpayOrderId = response.paymentOrderId;
 
         if (!razorpayOrderId) {
           Alert.alert(
@@ -833,36 +680,73 @@ export default function PaymentScreen() {
 
           return;
         }
+        try {
+          console.log(selectedMethod);
 
-        /*
-         * IMPORTANT
-         *
-         * /api/createpayment only creates
-         * the Razorpay order.
-         *
-         * NEXT:
-         *
-         * Razorpay Checkout
-         *        ↓
-         * Payment
-         *        ↓
-         * razorpay_payment_id
-         * razorpay_order_id
-         * razorpay_signature
-         *        ↓
-         * Backend verification
-         *
-         * Do NOT navigate to
-         * PaymentSuccessful yet.
-         */
+          const RAZORPAY_KEY = response?.razorpay_key || "rzp_test_R9GdWcNAde0fOH";
+          const amountInPaisa = Math.round(response?.amount) + "00";
 
-        Alert.alert(
-          "Payment Order Created",
-          `Razorpay Order ID:\n${razorpayOrderId}`,
-        );
+          const options = {
+            description: 'Mudiraj Matrimony Payment',
+            currency: 'INR',
+            key: RAZORPAY_KEY,
+            amount: amountInPaisa,
+            name: 'Mudiraj Matrimony',
+            order_id: razorpayOrderId,
+            prefill: {
+              name: user?.data?.name || '',
+              email: user?.data?.email || '',
+              contact: user?.data?.mobile || '',
+            },
+            theme: {
+              color: Colors.primaryRed,
+            },
+          };
 
-        return;
-      }
+
+          RazorpayCheckout.open(options).then(
+            async data => {
+              let params = {
+                razorpay_payment_id: data?.razorpay_payment_id,
+                razorpay_order_id: data?.razorpay_order_id,
+                package_id: selectedPackageId,
+                payment_method: response?.payment_method,
+                amount: response?.amount,
+                payment_type: "package_payment"
+              }
+              const resp = await successPayment(
+                token,
+                params,
+              );
+              if (resp?.success === 1 || resp?.success === true) {
+                Alert.alert(
+                  "Package Activated",
+                  "Your package has been activated successfully.",
+                );
+              } else {
+                Alert.alert(
+                  "Package Activation Failed",
+                  resp?.message || "Failed to activate the package.",
+                );
+              }
+            },
+          ).catch(error => {
+            Alert.alert(
+              "Payment Failed",
+              `Payment failed or was cancelled. Please try again. Error: ${error?.description || error?.message || 'Unknown error'}`,
+            );
+          });
+
+        } catch (error) {
+          Alert.alert(
+            "Error",
+            `Payment Error`,
+          );
+        }
+      };
+
+      return;
+
 
       // -----------------------------------------------
       // UNKNOWN RESPONSE
@@ -871,45 +755,19 @@ export default function PaymentScreen() {
       Alert.alert(
         "Payment Status",
         response.message ||
-          "Unexpected server response.",
+        "Unexpected server response.",
       );
     } catch (error) {
-      console.error(
-        "=================================",
-      );
-
-      console.error(
-        "CREATE PAYMENT ERROR",
-      );
-
-      console.error(
-        "=================================",
-      );
-
-      console.error(error);
-
-      console.error(
-        "Error message:",
-        error?.message,
-      );
-
-      console.error(
-        "=================================",
-      );
 
       Alert.alert(
         "Payment Failed",
         error?.message ||
-          "Something went wrong while creating the payment.",
+        "Something went wrong while creating the payment.",
       );
     } finally {
       setIsPaying(false);
     }
   };
-
-  // ===================================================
-  // BACK
-  // ===================================================
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -930,19 +788,11 @@ export default function PaymentScreen() {
     }, [handleBack]),
   );
 
-  // ===================================================
-  // DISCOUNT
-  // ===================================================
-
   const discountAmount = Math.max(
     0,
     Number(plan.originalPrice) -
-      Number(plan.price),
+    Number(plan.price),
   );
-
-  // ===================================================
-  // UI
-  // ===================================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -952,10 +802,6 @@ export default function PaymentScreen() {
           Colors.primaryRed
         }
       />
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
 
       <LinearGradient
         colors={Colors.gradientLogo}
@@ -971,7 +817,7 @@ export default function PaymentScreen() {
           activeOpacity={0.75}
           onPress={handleBack}
         >
-      <Feather name="arrow-left" size={24} color="#fff" />
+          <Feather name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
 
         <View style={styles.headerTitleBlock}>
@@ -993,11 +839,11 @@ export default function PaymentScreen() {
             styles.headerSecureBlock
           }
         >
-         <Feather
-  name="shield"
-  size={20}
-  color={Colors.white}
-/>
+          <Feather
+            name="shield"
+            size={20}
+            color={Colors.white}
+          />
 
           <Text
             style={
@@ -1009,10 +855,6 @@ export default function PaymentScreen() {
         </View>
       </LinearGradient>
 
-      {/* =================================================
-          CONTENT
-      ================================================= */}
-
       <ScrollView
         contentContainerStyle={
           styles.scrollContent
@@ -1021,9 +863,6 @@ export default function PaymentScreen() {
           false
         }
       >
-        {/* =================================================
-            PLAN CARD
-        ================================================= */}
 
         {isLoadingPackage ? (
           <View
@@ -1053,11 +892,11 @@ export default function PaymentScreen() {
                 styles.planIconCircle
               }
             >
-           <Feather
-  name="award"
-  size={26}
-  color={Colors.white}
-/>
+              <Feather
+                name="award"
+                size={26}
+                color={Colors.white}
+              />
             </View>
 
             <View
@@ -1124,48 +963,45 @@ export default function PaymentScreen() {
                 plan.originalPrice,
               ) >
                 Number(plan.price) && (
+                  <Text
+                    style={
+                      styles.planOriginalPrice
+                    }
+                  >
+                    ₹{" "}
+                    {Number(
+                      plan.originalPrice,
+                    ).toLocaleString(
+                      "en-IN",
+                    )}
+                  </Text>
+                )}
+            </View>
+
+            {plan?.discountPercent > 0 &&
+              <View
+                style={
+                  styles.planDiscountBlock
+                }
+              >
                 <Text
                   style={
-                    styles.planOriginalPrice
+                    styles.planDiscountPercent
                   }
                 >
-                  ₹{" "}
-                  {Number(
-                    plan.originalPrice,
-                  ).toLocaleString(
-                    "en-IN",
-                  )}
+                  {plan.discountPercent}%
                 </Text>
-              )}
-            </View>
 
-            <View
-              style={
-                styles.planDiscountBlock
-              }
-            >
-              <Text
-                style={
-                  styles.planDiscountPercent
-                }
-              >
-                {plan.discountPercent}%
-              </Text>
-
-              <Text
-                style={
-                  styles.planDiscountLabel
-                }
-              >
-                OFF
-              </Text>
-            </View>
+                <Text
+                  style={
+                    styles.planDiscountLabel
+                  }
+                >
+                  OFF
+                </Text>
+              </View>}
           </View>
         )}
-
-        {/* =================================================
-            PAYMENT METHODS
-        ================================================= */}
 
         <Text
           style={
@@ -1221,10 +1057,6 @@ export default function PaymentScreen() {
             )}
           </View>
         )}
-
-        {/* =================================================
-            ORDER SUMMARY
-        ================================================= */}
 
         <Text
           style={
@@ -1287,33 +1119,33 @@ export default function PaymentScreen() {
             plan.originalPrice,
           ) >
             Number(plan.price) && (
-            <View
-              style={
-                styles.summaryRow
-              }
-            >
-              <Text
+              <View
                 style={
-                  styles.summaryLabel
+                  styles.summaryRow
                 }
               >
-                Original Price
-              </Text>
+                <Text
+                  style={
+                    styles.summaryLabel
+                  }
+                >
+                  Original Price
+                </Text>
 
-              <Text
-                style={
-                  styles.summaryStrikeValue
-                }
-              >
-                ₹{" "}
-                {Number(
-                  plan.originalPrice,
-                ).toLocaleString(
-                  "en-IN",
-                )}
-              </Text>
-            </View>
-          )}
+                <Text
+                  style={
+                    styles.summaryStrikeValue
+                  }
+                >
+                  ₹{" "}
+                  {Number(
+                    plan.originalPrice,
+                  ).toLocaleString(
+                    "en-IN",
+                  )}
+                </Text>
+              </View>
+            )}
 
           {discountAmount > 0 && (
             <View
@@ -1376,10 +1208,6 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        {/* =================================================
-            TRUST BADGES
-        ================================================= */}
-
         <View
           style={
             styles.trustContainer
@@ -1398,11 +1226,11 @@ export default function PaymentScreen() {
                     styles.trustIconCircle
                   }
                 >
-               <Feather
-  name={item.icon}
-  size={20}
-  color={Colors.primaryRed}
-/>
+                  <Ionicons
+                    name={item.icon}
+                    size={20}
+                    color={Colors.primaryRed}
+                  />
                 </View>
 
                 <View
@@ -1431,9 +1259,6 @@ export default function PaymentScreen() {
           )}
         </View>
 
-        {/* =================================================
-            BOTTOM SPACE
-        ================================================= */}
 
         <View
           style={
@@ -1441,11 +1266,6 @@ export default function PaymentScreen() {
           }
         />
       </ScrollView>
-
-      {/* =================================================
-          FOOTER
-      ================================================= */}
-
       <View
         style={
           styles.footer
@@ -1456,11 +1276,11 @@ export default function PaymentScreen() {
             styles.footerTerms
           }
         >
-        <Feather
-  name="lock"
-  size={16}
-  color={Colors.primaryRed}
-/>
+          <Feather
+            name="lock"
+            size={16}
+            color={Colors.primaryRed}
+          />
 
           <Text
             style={
@@ -1491,7 +1311,7 @@ export default function PaymentScreen() {
             (isPaying ||
               isLoadingPackage ||
               isLoadingPaymentTypes) &&
-              styles.payButtonDisabled,
+            styles.payButtonDisabled,
           ]}
         >
           {isPaying ? (
@@ -1524,11 +1344,11 @@ export default function PaymentScreen() {
                 )}
               </Text>
 
-             <Feather
-  name="arrow-right"
-  size={20}
-  color={Colors.white}
-/>
+              <Feather
+                name="arrow-right"
+                size={20}
+                color={Colors.white}
+              />
             </>
           )}
         </TouchableOpacity>
@@ -1536,10 +1356,6 @@ export default function PaymentScreen() {
     </SafeAreaView>
   );
 }
-
-// =====================================================
-// PAYMENT METHOD ROW
-// =====================================================
 
 function PaymentMethodRow({
   method,
@@ -1553,7 +1369,7 @@ function PaymentMethodRow({
       style={[
         styles.paymentMethodRow,
         selected &&
-          styles.paymentMethodRowSelected,
+        styles.paymentMethodRowSelected,
       ]}
     >
       <View
@@ -1561,18 +1377,18 @@ function PaymentMethodRow({
           styles.paymentMethodIconCircle
         }
       >
-   <Feather
-  name={
-    method.icon ||
-    getPaymentIcon(method.label)
-  }
-  size={23}
-  color={
-    selected
-      ? Colors.primaryRed
-      : Colors.textDark
-  }
-/>
+        <Ionicons
+          name={
+            method.icon ||
+            getPaymentIcon(method.label)
+          }
+          size={23}
+          color={
+            selected
+              ? Colors.primaryRed
+              : Colors.textDark
+          }
+        />
       </View>
 
       <View
@@ -1589,7 +1405,7 @@ function PaymentMethodRow({
             style={[
               styles.paymentMethodTitle,
               selected &&
-                styles.paymentMethodTitleSelected,
+              styles.paymentMethodTitleSelected,
             ]}
           >
             {method.label}
@@ -1627,7 +1443,7 @@ function PaymentMethodRow({
         style={[
           styles.radioOuter,
           selected &&
-            styles.radioOuterSelected,
+          styles.radioOuterSelected,
         ]}
       >
         {selected && (
@@ -1642,20 +1458,12 @@ function PaymentMethodRow({
   );
 }
 
-// =====================================================
-// STYLES
-// =====================================================
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor:
       Colors.background,
   },
-
-  // ===================================================
-  // HEADER
-  // ===================================================
 
   header: {
     minHeight: 72,
@@ -1677,7 +1485,6 @@ const styles = StyleSheet.create({
       20,
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
   },
 
   headerSubtitle: {
@@ -1706,19 +1513,11 @@ const styles = StyleSheet.create({
       Fonts?.body?.medium,
   },
 
-  // ===================================================
-  // SCROLL
-  // ===================================================
-
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 20,
   },
-
-  // ===================================================
-  // PACKAGE LOADING
-  // ===================================================
 
   packageLoading: {
     backgroundColor: Colors.white,
@@ -1747,10 +1546,6 @@ const styles = StyleSheet.create({
     fontFamily:
       Fonts?.body?.regular,
   },
-
-  // ===================================================
-  // PLAN CARD
-  // ===================================================
 
   planCard: {
     backgroundColor: Colors.white,
@@ -1788,7 +1583,6 @@ const styles = StyleSheet.create({
       "#222",
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
   },
 
   planMetaRow: {
@@ -1821,7 +1615,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily:
       Fonts?.body?.bold,
-    fontWeight: "700",
   },
 
   planPriceBlock: {
@@ -1835,7 +1628,6 @@ const styles = StyleSheet.create({
       Colors.primaryRed,
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
   },
 
   planOriginalPrice: {
@@ -1862,7 +1654,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily:
       Fonts?.body?.bold,
-    fontWeight: "700",
   },
 
   planDiscountLabel: {
@@ -1874,10 +1665,6 @@ const styles = StyleSheet.create({
       Fonts?.body?.medium,
   },
 
-  // ===================================================
-  // SECTION
-  // ===================================================
-
   sectionHeading: {
     fontSize: 17,
     color:
@@ -1885,13 +1672,8 @@ const styles = StyleSheet.create({
       "#222",
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
     marginBottom: 11,
   },
-
-  // ===================================================
-  // METHODS
-  // ===================================================
 
   methodsList: {
     marginBottom: 22,
@@ -1947,7 +1729,6 @@ const styles = StyleSheet.create({
       "#222",
     fontFamily:
       Fonts?.body?.bold,
-    fontWeight: "600",
   },
 
   paymentMethodTitleSelected: {
@@ -1979,7 +1760,6 @@ const styles = StyleSheet.create({
     color: "#258A45",
     fontFamily:
       Fonts?.body?.bold,
-    fontWeight: "700",
   },
 
   radioOuter: {
@@ -2006,10 +1786,6 @@ const styles = StyleSheet.create({
     backgroundColor:
       Colors.primaryRed,
   },
-
-  // ===================================================
-  // SUMMARY
-  // ===================================================
 
   summaryCard: {
     backgroundColor: Colors.white,
@@ -2089,7 +1865,6 @@ const styles = StyleSheet.create({
       "#222",
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
   },
 
   summaryTotalValue: {
@@ -2098,12 +1873,7 @@ const styles = StyleSheet.create({
       Colors.primaryRed,
     fontFamily:
       Fonts?.display?.bold,
-    fontWeight: "700",
   },
-
-  // ===================================================
-  // TRUST
-  // ===================================================
 
   trustContainer: {
     backgroundColor: Colors.white,
@@ -2143,7 +1913,6 @@ const styles = StyleSheet.create({
       "#222",
     fontFamily:
       Fonts?.body?.bold,
-    fontWeight: "600",
   },
 
   trustSubtitle: {
@@ -2159,10 +1928,6 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 15,
   },
-
-  // ===================================================
-  // FOOTER
-  // ===================================================
 
   footer: {
     backgroundColor: Colors.white,
@@ -2194,11 +1959,8 @@ const styles = StyleSheet.create({
   },
 
   footerTermsBold: {
-    color:
-      Colors.primaryRed,
-    fontFamily:
-      Fonts?.body?.bold,
-    fontWeight: "700",
+    color: Colors.primaryRed,
+    fontFamily: Fonts?.body?.bold,
   },
 
   payButton: {
@@ -2220,8 +1982,6 @@ const styles = StyleSheet.create({
   payButtonText: {
     color: Colors.white,
     fontSize: 15,
-    fontFamily:
-      Fonts?.display?.bold,
-    fontWeight: "700",
+    fontFamily: Fonts?.display?.bold,
   },
 });

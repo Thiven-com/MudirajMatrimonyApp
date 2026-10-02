@@ -16,6 +16,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import Fonts from "../constants/Fonts";
 import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const FALLBACK_PHOTO = require("../assets/images/Match5.png");
 

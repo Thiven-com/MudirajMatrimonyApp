@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   BackHandler,
@@ -13,15 +15,18 @@ import {
   View,
 } from "react-native";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
-import LinearGradient from "react-native-linear-gradient";
 import Feather from "react-native-vector-icons/Feather";
+import { useFocusEffect } from "@react-navigation/native";
 
-import Fonts from "../constants/Fonts";
+import { Fonts } from "../constants/Fonts";
 import { getChatList, getToken } from "../utils/Functions";
 
 const { width } = Dimensions.get("window");
+const BASE_WIDTH = 390;
+const scale = (size) => {
+  const factor = width / BASE_WIDTH;
+  return Math.round(size * Math.min(factor, 1.12));
+};
 
 const SPACING = {
   xs: 4,
@@ -85,7 +90,7 @@ function getInitials(name) {
 }
 
 const FILTERS = [
-  { key: "all", label: "All Chats", icon: "grid" },
+  { key: "all", label: "All Chats", icon: "chatbubble" },
   {
     key: "unread",
     label: "Unread",
@@ -99,9 +104,14 @@ const FILTERS = [
     dotOnly: true,
     dot: COLORS.green,
   },
-  { key: "favourites", label: "Favourites", icon: "star" },
+  { key: "favourites", label: "Favourites", icon: "star-outline" },
 ];
 
+// ---- API response -> chat row model ----
+// Matches the real /api/member/chat-list response shape:
+// { id, user_id, active, blocked_by_user, unseen_message_count,
+//   last_message, last_message_time, member_name, member_package,
+//   member_photo }
 function mapChat(item) {
   return {
     threadId: String(item.id ?? ""), // conversation/chat id, e.g. 1
@@ -117,7 +127,7 @@ function mapChat(item) {
   };
 }
 
-export default function ChatsScreen({ navigation, route }) {
+export default function ChatsScreen() {
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -125,22 +135,6 @@ export default function ChatsScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
-
-      return () => subscription.remove();
-    }, [navigation]),
-  );
-
-  const onBackPress = () => {
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    return true;
-  };
 
   const loadChats = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -188,30 +182,45 @@ export default function ChatsScreen({ navigation, route }) {
     loadChats();
   }, [loadChats]);
 
-  const handleBack = () => {
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    return true;
-  };
+  const handleBack = useCallback(() => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
 
-  const handleOpenChatting = (chat) => {
-    navigation.navigate("ChatConversion", {
-      id: chat.threadId, // conversation/chat id — matches the API's `id` field (e.g. 1)
-      memberId: chat.memberId, // the other member's user id — matches the API's `user_id` field (e.g. 32)
-      threadId: chat.threadId,
-      name: chat.name,
-      profession: chat.profession,
-      online: chat.online ? "true" : "false",
-      page: route?.name,
-      prevs: route?.params,
-    });
-  };
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          handleBack();
+          return true;
+        },
+      );
 
-  const handleUpgrade = () => {
-    navigation.navigate("SubscriptionPlans", {
-      page: route?.name,
-      prevs: route?.params,
-    });
-  };
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
+
+  const handleOpenChatting = useCallback(
+    (chat) => {
+      // Register this screen in your Stack as "ChatConversion".
+      navigation.navigate("ChatConversion", {
+        id: chat.threadId,
+        memberId: chat.memberId,
+        threadId: chat.threadId,
+        name: chat.name,
+        profession: chat.profession,
+        online: chat.online ? "true" : "false",
+        avatarUrl: chat.avatarUrl || "",
+      });
+    },
+    [navigation],
+  );
+
+  const handleUpgrade = useCallback(() => {
+    navigation.navigate("SubscriptionPlans");
+  }, [navigation]);
 
   const normalizedSearch = search.trim().toLowerCase();
 
@@ -230,7 +239,7 @@ export default function ChatsScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ====== HEADER ====== */}
+      {/* ================= HEADER ================= */}
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -254,7 +263,7 @@ export default function ChatsScreen({ navigation, route }) {
         </Text>
       </View>
 
-      {/* ====== SEARCH BAR ====== */}
+      {/* ================= SEARCH BAR ================= */}
 
       <View style={styles.searchBar}>
         <Feather name="search" size={20} color={COLORS.mutedGray} />
@@ -268,13 +277,9 @@ export default function ChatsScreen({ navigation, route }) {
           returnKeyType="search"
           autoCorrect={false}
         />
-
-        <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.8}>
-          <Feather name="sliders" size={20} color={COLORS.darkRed} />
-        </TouchableOpacity>
       </View>
 
-      {/* ====== FILTER TABS ====== */}
+      {/* ================= FILTER TABS ================= */}
 
       <FlatList
         horizontal
@@ -319,7 +324,7 @@ export default function ChatsScreen({ navigation, route }) {
         }}
       />
 
-      {/* ====== CHAT LIST ====== */}
+      {/* ================= CHAT LIST ================= */}
 
       {loading ? (
         <View style={styles.loadingState}>
@@ -356,51 +361,15 @@ export default function ChatsScreen({ navigation, route }) {
           renderItem={({ item }) => (
             <ChatRow chat={item} onPress={() => handleOpenChatting(item)} />
           )}
-          ListFooterComponent={
-            filteredChats.length > 0 ? (
-              <LinearGradient
-                colors={[COLORS.darkRed, COLORS.red]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.premiumCard}
-              >
-                <View style={styles.crownCircle}>
-                  <Feather name="award" size={22} color={COLORS.goldDeep} />
-                </View>
-
-                <View style={styles.premiumContent}>
-                  <Text style={styles.premiumTitle}>
-                    Go Premium, Get Better Connections
-                  </Text>
-                  <Text style={styles.premiumSubtitle}>
-                    Chat unlimited & see who's interested in you.
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.premiumUpgradeButton}
-                  activeOpacity={0.85}
-                  onPress={handleUpgrade}
-                >
-                  <Text style={styles.premiumUpgradeText}>Upgrade Now</Text>
-                  <Feather
-                    name="chevron-right"
-                    size={16}
-                    color={COLORS.darkRed}
-                  />
-                </TouchableOpacity>
-              </LinearGradient>
-            ) : null
-          }
         />
       )}
     </SafeAreaView>
   );
 }
 
-/* === */
-/* ====== AVATAR === */
-/* === */
+/* ================================================= */
+/* ================= AVATAR ========================= */
+/* ================================================= */
 
 function Avatar({ chat }) {
   const [failed, setFailed] = useState(false);
@@ -429,9 +398,9 @@ function Avatar({ chat }) {
   );
 }
 
-/* === */
-/* ====== CHAT ROW ======= */
-/* === */
+/* ================================================= */
+/* ================= CHAT ROW ======================= */
+/* ================================================= */
 
 function ChatRow({ chat, onPress }) {
   return (
@@ -461,7 +430,11 @@ function ChatRow({ chat, onPress }) {
             </Text>
 
             {chat.verified && (
-              <Feather name="check-circle" size={15} color={COLORS.green} />
+              <Feather
+                name="check-circle"
+                size={15}
+                color={COLORS.green}
+              />
             )}
           </View>
 
@@ -498,15 +471,15 @@ function ChatRow({ chat, onPress }) {
   );
 }
 
-/* === */
-/* ====== EMPTY STATE ===== */
-/* === */
+/* ================================================= */
+/* ================= EMPTY STATE ===================== */
+/* ================================================= */
 
 function EmptyState({ errorMessage, onRetry }) {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconCircle}>
-        <Feather name="message-circle" size={30} color={COLORS.red} />
+        <Feather name="message-square" size={30} color={COLORS.red} />
       </View>
 
       <Text style={styles.emptyTitle}>
@@ -533,19 +506,13 @@ function EmptyState({ errorMessage, onRetry }) {
 }
 
 const styles = StyleSheet.create({
-  /* ===
-     MAIN SCREEN
-  === */
-
   safeArea: {
     flex: 1,
     justifyContent: "flex-start",
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F8F8F9",
   },
 
-  /* ===
-     HEADER
-  === */
+  /* ================= HEADER ================= */
 
   header: {
     height: 48,
@@ -564,8 +531,9 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.bold,
+    fontSize: scale(14),
+    fontFamily: Fonts.display.bold,
+    fontWeight: "700",
     color: COLORS.text,
   },
 
@@ -574,10 +542,6 @@ const styles = StyleSheet.create({
     height: 34,
   },
 
-  /* ===
-     PAGE TITLE
-  === */
-
   titleBlock: {
     paddingHorizontal: SPACING.md,
     marginTop: SPACING.xs,
@@ -585,22 +549,19 @@ const styles = StyleSheet.create({
   },
 
   screenTitle: {
-    fontSize: width <= 430 ? Fonts.size.title : Fonts.size.heading,
-    fontFamily: Fonts.extraBold,
+    fontSize: width <= 430 ? 30 : 34,
+    fontWeight: "800",
     color: COLORS.darkRed,
-    letterSpacing: 0.2,
   },
 
   screenSubtitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: scale(13),
+    fontFamily: Fonts.body.medium,
     color: COLORS.gray,
     marginTop: SPACING.xs,
   },
 
-  /* ===
-     SEARCH BAR
-  === */
+  /* ================= SEARCH BAR ================= */
 
   searchBar: {
     flexDirection: "row",
@@ -618,31 +579,12 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: scale(14),
+    fontFamily: Fonts.body.regular,
     color: COLORS.text,
-    paddingVertical: 0,
   },
 
-  filterIconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: COLORS.gold,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /* ===
-     FILTER TABS
-  === */
-
-  filtersList: {
-    height: 56,
-    flexGrow: 0,
-    flexShrink: 0,
-    marginBottom: SPACING.xs,
-  },
+  /* ================= FILTER TABS ================= */
 
   filterRow: {
     paddingHorizontal: SPACING.md,
@@ -674,19 +616,24 @@ const styles = StyleSheet.create({
   },
 
   filterChipText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
+    fontSize: scale(13),
+    fontFamily: Fonts.body.bold,
+    fontWeight: "700",
     color: COLORS.text,
   },
 
   filterChipTextActive: {
     color: "#FFFFFF",
-    fontFamily: Fonts.bold,
   },
 
-  /* ===
-     CHAT LIST
-  === */
+  filtersList: {
+    height: 56,
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: SPACING.xs,
+  },
+
+  /* ================= CHAT LIST ================= */
 
   chatFlatList: {
     flex: 1,
@@ -703,10 +650,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  /* ===
-     CHAT ROW
-  === */
-
   chatRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -716,15 +659,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
-
     shadowColor: COLORS.cardShadow,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
-
     elevation: 2,
   },
 
@@ -747,8 +685,9 @@ const styles = StyleSheet.create({
 
   avatarFallbackText: {
     color: "#FFFFFF",
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.extraBold,
+    fontSize: scale(18),
+    fontFamily: Fonts.display.bold,
+    fontWeight: "800",
   },
 
   statusDot: {
@@ -761,10 +700,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.white,
   },
-
-  /* ===
-     CHAT CONTENT
-  === */
 
   chatContent: {
     flex: 1,
@@ -785,23 +720,25 @@ const styles = StyleSheet.create({
   },
 
   chatName: {
-    fontSize: Fonts.size.base,
-    fontFamily: Fonts.extraBold,
+    fontSize: scale(16),
+    fontFamily: Fonts.display.bold,
+    fontWeight: "800",
     color: COLORS.darkRed,
     flexShrink: 1,
   },
 
   chatTime: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: scale(11.5),
+    fontFamily: Fonts.body.medium,
     color: COLORS.mutedGray,
     marginLeft: SPACING.sm,
   },
 
   chatProfession: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.medium,
+    fontSize: scale(12.5),
+    fontFamily: Fonts.body.semiBold,
     color: COLORS.gray,
+    fontWeight: "600",
     marginTop: 2,
     marginBottom: 4,
   },
@@ -813,8 +750,8 @@ const styles = StyleSheet.create({
   },
 
   chatLastMessage: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: scale(13),
+    fontFamily: Fonts.body.regular,
     color: COLORS.mutedGray,
     flex: 1,
     marginRight: SPACING.sm,
@@ -822,12 +759,8 @@ const styles = StyleSheet.create({
 
   chatLastMessageUnread: {
     color: COLORS.text,
-    fontFamily: Fonts.medium,
+    fontWeight: "600",
   },
-
-  /* ===
-     UNREAD BADGE
-  === */
 
   unreadBadge: {
     minWidth: 22,
@@ -841,13 +774,12 @@ const styles = StyleSheet.create({
 
   unreadBadgeText: {
     color: "#FFFFFF",
-    fontSize: 11,
-    fontFamily: Fonts.bold,
+    fontSize: scale(11),
+    fontFamily: Fonts.body.bold,
+    fontWeight: "700",
   },
 
-  /* ===
-     LOADING
-  === */
+  /* ================= LOADING / EMPTY ================= */
 
   loadingState: {
     flex: 1,
@@ -857,14 +789,10 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: 10,
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: scale(12),
+    fontFamily: Fonts.body.medium,
     color: COLORS.mutedGray,
   },
-
-  /* ===
-     EMPTY STATE
-  === */
 
   emptyState: {
     flex: 1,
@@ -884,25 +812,22 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.extraBold,
+    fontSize: scale(18),
+    fontFamily: Fonts.display.bold,
+    fontWeight: "800",
     color: COLORS.darkRed,
     textAlign: "center",
     marginBottom: 6,
   },
 
   emptySubtitle: {
-    fontSize: Fonts.size.sm,
+    fontSize: scale(12),
+    fontFamily: Fonts.body.regular,
     lineHeight: 18,
-    fontFamily: Fonts.regular,
     color: COLORS.mutedGray,
     textAlign: "center",
     maxWidth: 290,
   },
-
-  /* ===
-     RETRY BUTTON
-  === */
 
   retryButton: {
     flexDirection: "row",
@@ -918,78 +843,8 @@ const styles = StyleSheet.create({
 
   retryButtonText: {
     color: "#FFFFFF",
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
-  },
-
-  /* ===
-     PREMIUM BANNER
-  === */
-
-  premiumCard: {
-    minHeight: 90,
-    borderRadius: 18,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SPACING.sm,
-
-    shadowColor: COLORS.darkRed,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-
-    elevation: 4,
-  },
-
-  crownCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: SPACING.md,
-  },
-
-  premiumContent: {
-    flex: 1,
-    paddingRight: SPACING.xs,
-  },
-
-  premiumTitle: {
-    color: COLORS.goldLight,
-    fontSize: width <= 430 ? Fonts.size.md : Fonts.size.md,
-    fontFamily: Fonts.extraBold,
-    marginBottom: 3,
-  },
-
-  premiumSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: width <= 430 ? Fonts.size.xs : Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    lineHeight: 15,
-  },
-
-  premiumUpgradeButton: {
-    height: 40,
-    backgroundColor: COLORS.goldDeep,
-    borderRadius: 12,
-    paddingHorizontal: SPACING.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    marginLeft: SPACING.sm,
-  },
-
-  premiumUpgradeText: {
-    color: COLORS.darkRed,
-    fontFamily: Fonts.extraBold,
-    fontSize: width <= 430 ? Fonts.size.sm : Fonts.size.md,
+    fontSize: scale(12),
+    fontFamily: Fonts.body.bold,
+    fontWeight: "700",
   },
 });

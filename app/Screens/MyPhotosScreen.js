@@ -98,9 +98,9 @@ const extractPhotos = (result) =>
 
       return uri
         ? {
-            id: item?.image_id ?? null,
-            uri,
-          }
+          id: item?.image_id ?? null,
+          uri,
+        }
         : null;
     })
     .filter(Boolean);
@@ -265,7 +265,7 @@ export default function MyGalleryScreen({
       return;
     }
 
-    navigation.navigate("Addphoto");
+    navigation.navigate("AddPhoto", { page: route?.name, prevs: route?.params });
   };
 
 
@@ -304,7 +304,7 @@ export default function MyGalleryScreen({
     if (photo) {
       Linking.openURL(
         photo.uri,
-      ).catch(() => {});
+      ).catch(() => { });
     }
   };
 
@@ -366,7 +366,7 @@ export default function MyGalleryScreen({
       Alert.alert(
         "Delete failed",
         error?.message ||
-          "Please try again.",
+        "Please try again.",
       );
     } finally {
       setDeleting(false);
@@ -416,10 +416,10 @@ export default function MyGalleryScreen({
           activeOpacity={0.7}
         >
           <Feather
-  name="arrow-left"
-  size={26}
-  color="#FFFFFF"
-/>
+            name="arrow-left"
+            size={26}
+            color="#FFFFFF"
+          />
         </TouchableOpacity>
 
 
@@ -435,11 +435,11 @@ export default function MyGalleryScreen({
             styles.headerPrivate
           }
         >
-       <Feather
-  name="shield"
-  size={26}
-  color="#FFFFFF"
-/>
+          <Feather
+            name="shield"
+            size={26}
+            color="#FFFFFF"
+          />
 
           <Text
             style={
@@ -495,11 +495,11 @@ export default function MyGalleryScreen({
               styles.lockCircle
             }
           >
-         <Feather
-  name="lock"
-  size={24}
-  color={Colors.primaryRed}
-/>
+            <Feather
+              name="lock"
+              size={24}
+              color={Colors.primaryRed}
+            />
           </View>
 
 
@@ -562,11 +562,11 @@ export default function MyGalleryScreen({
                   handleAddPress
                 }
               >
-             <Feather
-  name="camera"
-  size={34}
-  color={Colors.primaryRed}
-/>
+                <Feather
+                  name="camera"
+                  size={34}
+                  color={Colors.primaryRed}
+                />
 
                 <Text
                   style={
@@ -626,7 +626,7 @@ export default function MyGalleryScreen({
                     }
                   >
                     <Feather
-                      name="ellipsis-vertical"
+                      name="more-vertical"
                       size={15}
                       color="#1B1B1B"
                     />
@@ -726,67 +726,50 @@ export default function MyGalleryScreen({
 
 
           {/* VIEW */}
+<SheetRow
+  icon="maximize"
+  label="View photo"
+  tint="#1F6FEB"
+  tintBg="#E6F0FF"
+  onPress={() => {
+    const index = menuIndex;
 
-          <SheetRow
-            icon="expand-outline"
-            label="View photo"
-            tint="#1F6FEB"
-            tintBg="#E6F0FF"
-            onPress={() => {
-              const index =
-                menuIndex;
+    setMenuIndex(null);
 
-              setMenuIndex(null);
+    setViewerIndex(index);
+  }}
+/>
 
-              setViewerIndex(
-                index,
-              );
-            }}
-          />
+{/* DOWNLOAD */}
+<SheetRow
+  icon="download"
+  label="Download"
+  tint="#039855"
+  tintBg="#DCFAE6"
+  onPress={() => {
+    const index = menuIndex;
 
+    setMenuIndex(null);
 
-          {/* DOWNLOAD */}
+    handleDownload(index);
+  }}
+/>
 
-          <SheetRow
-            icon="download-outline"
-            label="Download"
-            tint="#039855"
-            tintBg="#DCFAE6"
-            onPress={() => {
-              const index =
-                menuIndex;
+{/* DELETE */}
+<SheetRow
+  icon="trash-2"
+  label="Delete photo"
+  tint={DANGER}
+  tintBg={DANGER_SOFT}
+  danger
+  onPress={() => {
+    const index = menuIndex;
 
-              setMenuIndex(null);
+    setMenuIndex(null);
 
-              handleDownload(
-                index,
-              );
-            }}
-          />
-
-
-          {/* DELETE */}
-
-          <SheetRow
-            icon="trash-outline"
-            label="Delete photo"
-            tint={DANGER}
-            tintBg={
-              DANGER_SOFT
-            }
-            danger
-            onPress={() => {
-              const index =
-                menuIndex;
-
-              setMenuIndex(null);
-
-              setDeleteIndex(
-                index,
-              );
-            }}
-          />
-
+    setDeleteIndex(index);
+  }}
+/>
 
           {/* CANCEL */}
 
@@ -849,11 +832,11 @@ export default function MyGalleryScreen({
                   )
                 }
               >
-              <Feather
-  name="arrow-left"
-  size={24}
-  color="#FFFFFF"
-/>
+                <Feather
+                  name="arrow-left"
+                  size={24}
+                  color="#FFFFFF"
+                />
               </TouchableOpacity>
 
 
@@ -877,11 +860,11 @@ export default function MyGalleryScreen({
                   )
                 }
               >
-             <Feather
-  name="trash-2"
-  size={22}
-  color="#FFFFFF"
-/>
+                <Feather
+                  name="trash-2"
+                  size={22}
+                  color="#FFFFFF"
+                />
               </TouchableOpacity>
             </View>
 
@@ -921,11 +904,11 @@ export default function MyGalleryScreen({
                     )
                   }
                 >
-                <Feather
-  name="chevron-left"
-  size={22}
-  color="#111"
-/>
+                  <Feather
+                    name="chevron-left"
+                    size={22}
+                    color="#111"
+                  />
                 </TouchableOpacity>
               )}
 
@@ -934,24 +917,24 @@ export default function MyGalleryScreen({
 
               {viewerIndex <
                 photos.length - 1 && (
-                <TouchableOpacity
-                  style={[
-                    styles.arrow,
-                    styles.arrowRight,
-                  ]}
-                  onPress={() =>
-                    setViewerIndex(
-                      viewerIndex + 1,
-                    )
-                  }
-                >
-                  <Feather
-                    name="chevron-right"
-                    size={22}
-                    color="#111"
-                  />
-                </TouchableOpacity>
-              )}
+                  <TouchableOpacity
+                    style={[
+                      styles.arrow,
+                      styles.arrowRight,
+                    ]}
+                    onPress={() =>
+                      setViewerIndex(
+                        viewerIndex + 1,
+                      )
+                    }
+                  >
+                    <Feather
+                      name="chevron-right"
+                      size={22}
+                      color="#111"
+                    />
+                  </TouchableOpacity>
+                )}
             </View>
 
 
@@ -1067,11 +1050,11 @@ function SheetRow({
       </Text>
 
 
-    <Feather
-  name="chevron-right"
-  size={18}
-  color={danger ? "#F4A6A0" : "#B6BBC3"}
-/>
+      <Feather
+        name="chevron-right"
+        size={18}
+        color={danger ? "#F4A6A0" : "#B6BBC3"}
+      />
     </TouchableOpacity>
   );
 }
@@ -1095,14 +1078,14 @@ function ViewerAction({
         style={[
           styles.viewerActionCircle,
           danger &&
-            styles.viewerActionDanger,
+          styles.viewerActionDanger,
         ]}
       >
-    <Feather
-  name={icon}
-  size={22}
-  color={danger ? "#FF6B60" : "#FFFFFF"}
-/>
+        <Feather
+          name={icon}
+          size={22}
+          color={danger ? "#FF6B60" : "#FFFFFF"}
+        />
       </View>
 
       <Text
@@ -1147,11 +1130,11 @@ function DeleteDialog({
               styles.dialogIconInner
             }
           >
-         <Feather
-  name="trash-2"
-  size={26}
-  color={DANGER}
-/>
+            <Feather
+              name="trash-2"
+              size={26}
+              color={DANGER}
+            />
           </View>
         </View>
 

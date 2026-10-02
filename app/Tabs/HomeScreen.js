@@ -392,12 +392,13 @@ export default function HomeScreen({ navigation, route }) {
   const openPackages = () => navigation.navigate("Packages", { page: route?.name, prevs: route?.params });
   const openHappyStories = () => navigation.navigate("HappyStories", { page: route?.name, prevs: route?.params });
   const openBlogs = () => navigation.navigate("Blogs", { page: route?.name, prevs: route?.params });
-  const openBlog = (blog) =>
-    navigation.navigate("BlogDetail", {
-      slug: blog.slug || blog.id,
-      page: route?.name,
-      prevs: route?.params,
-    });
+  const openBlog = (blog) => {
+    // navigation.navigate("BlogDetail", {
+    //   slug: blog.slug || blog.id,
+    //   page: route?.name,
+    //   prevs: route?.params,
+    // });
+  }
   const openReviews = () => navigation.navigate("Reviews", { page: route?.name, prevs: route?.params });
 
   const handleBannerPress = (banner) => {

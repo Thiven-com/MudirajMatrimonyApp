@@ -14,29 +14,21 @@ import {
   View,
 } from "react-native";
 
-import {
-  useFocusEffect
-} from "@react-navigation/native";
-import { useCallback, useEffect, useRef, useState } from "react";
 import Feather from "react-native-vector-icons/Feather";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  getChatList,
   getChatView,
   getOldMessages,
   getToken,
   sendChatReply,
-} from "../utils/Functions"; // adjust path to your actual file
-
-// NOTE: adjust this path to wherever your Fonts file actually lives,
-// same constant used on HomeScreen (../constants/Fonts there).
-import Fonts from "../constants/Fonts";
+} from "../utils/Functions"; // adjust path if your CLI project uses a different utils location
 
 const { width } = Dimensions.get("window");
 
 const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
-
-// Flip this to false once the sender_name/receiver_name mapping has been
-// confirmed against several real conversations and you're ready to ship.
-const DEBUG_SHOW_RAW_NAMES = true;
 
 const COLORS = {
   background: "#FAF7F3",
@@ -56,32 +48,115 @@ const COLORS = {
   cardShadow: "#B8AAA0",
   bubbleSent: "#B70D09",
   bubbleReceived: "#FFFFFF",
-  debugBanner: "#FFE9A8",
 };
 
-const FALLBACK_AVATAR = require("../assets/images/Match1.png");
+const FALLBACK_AVATAR = require("../../assets/images/Match1.png");
 
+/**
+ * Builds the chat header for the OTHER participant.
+ *
+ * Priority for the other member image:
+ * 1. avatar passed by the previous screen
+ * 2. member_photo from the chat-list API
+ * 3. receiver/member photo fields from chat-view
+ *
+ * auth_user_photo is intentionally never used because it belongs to the
+ * authenticated user.
+ */
+function firstParam(value) {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
 
-function mapChatPartner(payload, fallbackId) {
-  if (!payload) return null;
+function cleanImageUrl(value) {
+  if (!value) return null;
+
+  const url = String(value).trim().replaceAll("\\/", "/");
+
+  if (!url || url === "null" || url === "undefined") return null;
+
+  return url;
+}
+
+/**
+ * Build the header from the OTHER member.
+ *
+ * The route values are preferred because Chats/Match Details already know
+ * exactly which member opened this conversation. We intentionally do NOT
+ * use auth_user_photo because that field belongs to the authenticated user.
+ */
+function mapChatPartner(
+  payload,
+  fallbackId,
+  routeParams = {},
+  chatListItem = null,
+) {
+  const routeName = firstParam(routeParams?.name);
+
+  const routeAvatar = cleanImageUrl(
+    firstParam(
+      routeParams?.avatarUrl ??
+        routeParams?.memberPhoto ??
+        routeParams?.photo ??
+        routeParams?.image,
+    ),
+  );
+
+  const listAvatar = cleanImageUrl(
+    chatListItem?.member_photo ??
+      chatListItem?.memberPhoto ??
+      chatListItem?.photo ??
+      chatListItem?.image,
+  );
+
+  const apiAvatar = cleanImageUrl(
+    payload?.receiver_photo ??
+      payload?.receiver_image ??
+      payload?.receiver_profile_photo ??
+      payload?.member_photo ??
+      payload?.member_image ??
+      payload?.profile_photo ??
+      payload?.profile_image,
+  );
+
   return {
     id: String(fallbackId ?? ""),
-    name: payload.sender_name ?? "",
-    profession: "",
-    // The API doesn't return an online/active flag in this response,
-    // default to false rather than guessing.
-    online: false,
+    name:
+      routeName ||
+      chatListItem?.member_name ||
+      payload?.receiver_name ||
+      payload?.sender_name ||
+      "User",
+    profession: routeParams?.profession || chatListItem?.profession || "",
+    online:
+      firstParam(routeParams?.online) === "true" || chatListItem?.active === 1,
     verified: true,
-    avatarUrl: payload.auth_user_photo ?? null,
+    // IMPORTANT: never use auth_user_photo here.
+    avatarUrl: routeAvatar || listAvatar || apiAvatar || null,
   };
 }
 
-
-function mapMessage(item, receiverId) {
+/**
+ * Maps a single message using the ACTUAL fields returned:
+ *   { id, chat_thread_id, sender_user_id, message, attachment, seen }
+ *
+ * There's no `from_me` / `is_sender` flag and no timestamp field at all.
+ * Since this is always a 1-on-1 thread, we can derive direction by
+ * comparing sender_user_id against the OTHER member's user id
+ * (the routeMemberId / user_id passed in from the chat list):
+ *   sender_user_id === otherMemberId -> message came from them
+ *   otherwise                        -> message is from the logged-in user
+ *
+ * Note: this is a different (and correctly-named) `sender_user_id` field
+ * on each message object — it is NOT related to the confusing
+ * `sender_name` / `receiver_name` naming on the chat-view payload above,
+ * so it does not need the same swap.
+ */
+function mapMessage(item, otherMemberId) {
   const senderId = item.sender_user_id;
   const fromMe =
-    receiverId != null && senderId != null
-      ? Number(senderId) !== Number(receiverId)
+    otherMemberId != null && senderId != null
+      ? Number(senderId) !== Number(otherMemberId)
       : false;
 
   return {
@@ -99,22 +174,44 @@ function mapMessage(item, receiverId) {
 }
 
 export default function ChatConversationScreen({ navigation, route }) {
+  const params = route?.params || {};
 
-  const params = route.params || {};
-  const chatId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const firstRouteParam = (value) =>
+    Array.isArray(value) ? value[0] : value;
 
-  const routeMemberId = Array.isArray(params.memberId)
-    ? params.memberId[0]
-    : params.memberId;
+  // These three can, in principle, all be different values:
+  //  - chatId: the conversation/thread's own id (API's `id` field)
+  //  - routeMemberId: the other member's user id (API's `sender_user_id`
+  //    value that identifies THEM, used to derive message direction)
+  //  - routeThreadId: same as chatId, sent explicitly for clarity
+  const chatId = firstRouteParam(params.id);
 
-  const routeThreadId = Array.isArray(params.threadId)
-    ? params.threadId[0]
-    : params.threadId;
+  const routeMemberId = firstRouteParam(params.memberId);
 
+  const routeThreadId = firstRouteParam(params.threadId);
+
+  // getChatView is keyed by the CONVERSATION's own id (the backend
+  // looks up a ChatThread record by this id) — NOT the other member's
+  // user id. Confirmed by the "No query results for model
+  // [App\Models\ChatThread] 32" error, which showed the backend was
+  // being passed the member's user id (32) instead of the thread id (1).
   const resolvedChatId = chatId || routeThreadId;
 
+  // The other member's user id — used to figure out which side of the
+  // conversation a message belongs to (see mapMessage above), and as a
+  // fallback id for profile links.
   const memberId = routeMemberId || chatId;
 
+  console.log("ChatConversationScreen params:", {
+    chatId,
+    routeMemberId,
+    routeThreadId,
+    resolvedChatId,
+    memberId,
+  });
+
+  // threadId comes from ChatsScreen's nav params when available;
+  // falls back to whatever chat-view returns if missing (e.g. deep link).
   const [chatThreadId, setChatThreadId] = useState(
     resolvedChatId ? String(resolvedChatId) : null,
   );
@@ -122,8 +219,6 @@ export default function ChatConversationScreen({ navigation, route }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [chat, setChat] = useState(null);
-
-  const [debugNames, setDebugNames] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -133,23 +228,7 @@ export default function ChatConversationScreen({ navigation, route }) {
 
   const listRef = useRef(null);
 
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
-      return () => subscription.remove();
-    }, [navigation]),
-  );
-
-  const onBackPress = () => {
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    return true;
-  };
-
-  /* ====== INITIAL LOAD ====== */
+  /* ================= INITIAL LOAD ================= */
 
   const loadChatView = useCallback(async () => {
     if (!resolvedChatId) {
@@ -164,6 +243,9 @@ export default function ChatConversationScreen({ navigation, route }) {
     try {
       const token = await getToken();
       const result = await getChatView(resolvedChatId, token);
+
+      // This endpoint responds with `result: true` (not `success`), so
+      // check both to stay compatible with other endpoints too.
       const isSuccess =
         result?.success === 1 ||
         result?.success === true ||
@@ -172,7 +254,36 @@ export default function ChatConversationScreen({ navigation, route }) {
       if (isSuccess) {
         const payload = result?.data || result;
 
-        const partner = mapChatPartner(payload, memberId);
+        // Get the other member's photo from the chat-list record when possible.
+        // The chat-list response has member_photo, which is explicitly the
+        // other participant's photo. This prevents the logged-in user's
+        // auth_user_photo from appearing in the header.
+        let chatListItem = null;
+
+        try {
+          if (memberId) {
+            const chatListResult = await getChatList(token);
+            const chatList =
+              chatListResult?.data?.chats ||
+              chatListResult?.chats ||
+              chatListResult?.data ||
+              [];
+
+            if (Array.isArray(chatList)) {
+              chatListItem = chatList.find(
+                (item) => String(item?.user_id ?? "") === String(memberId),
+              );
+            }
+          }
+        } catch (chatListError) {
+          console.log("getChatList for chat header failed:", chatListError);
+        }
+
+        const partner = mapChatPartner(payload, memberId, params, chatListItem);
+
+        // API returns messages NEWEST-first (id 5, 4, 3, 2, 1). The
+        // FlatList expects oldest-first so it reads top-to-bottom and
+        // scrollToEnd() lands on the latest message — reverse here.
         const rawMessages = Array.isArray(payload?.messages)
           ? [...payload.messages].reverse()
           : [];
@@ -180,18 +291,13 @@ export default function ChatConversationScreen({ navigation, route }) {
         setChat(partner);
         setMessages(rawMessages.map((m) => mapMessage(m, memberId)));
         setHasMoreOlder(true);
-        setDebugNames({
-          receiver_name: payload?.receiver_name ?? null,
-          sender_name: payload?.sender_name ?? null,
-        });
-
         if (!chatThreadId) {
           setChatThreadId(
             String(
               payload?.chat_thread_id ??
-              payload?.thread_id ??
-              payload?.id ??
-              resolvedChatId,
+                payload?.thread_id ??
+                payload?.id ??
+                resolvedChatId,
             ),
           );
         }
@@ -215,7 +321,7 @@ export default function ChatConversationScreen({ navigation, route }) {
     loadChatView();
   }, [loadChatView]);
 
-  /* ====== LOAD OLDER MESSAGES ====== */
+  /* ================= LOAD OLDER MESSAGES ================= */
 
   const handleLoadOlderMessages = useCallback(async () => {
     if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
@@ -228,6 +334,7 @@ export default function ChatConversationScreen({ navigation, route }) {
     try {
       const token = await getToken();
       const result = await getOldMessages(Number(firstMessageId), token);
+      console.log("getOldMessages response:", JSON.stringify(result));
 
       const isSuccess = result?.success === 1 || result?.result === true;
 
@@ -254,9 +361,27 @@ export default function ChatConversationScreen({ navigation, route }) {
     }
   }, [loadingOlder, hasMoreOlder, messages, memberId]);
 
-  /* ====== SEND MESSAGE ====== */
+  /* ================= SEND MESSAGE ================= */
 
-  const handleBack = () => onBackPress();
+  const handleBack = useCallback(() => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    } else {
+      navigation?.navigate?.("Home");
+    }
+    return true;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBack,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   const handleSend = async () => {
     const trimmed = message.trim();
@@ -315,7 +440,7 @@ export default function ChatConversationScreen({ navigation, route }) {
     }
   };
 
-  /* ====== RENDER ====== */
+  /* ================= RENDER ================= */
 
   if (loading) {
     return (
@@ -357,7 +482,7 @@ export default function ChatConversationScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ====== HEADER ====== */}
+      {/* ================= HEADER ================= */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -367,12 +492,16 @@ export default function ChatConversationScreen({ navigation, route }) {
           <Feather name="arrow-left" size={24} color={COLORS.red} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerProfile}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate("Profile", { id: chat.id, page: route?.name, prevs: route?.params })}
-        >
-          <View style={styles.headerAvatarWrapper}>
+        <View style={styles.headerProfile}>
+          <TouchableOpacity
+            style={styles.headerAvatarWrapper}
+            activeOpacity={0.8}
+            onPress={() =>
+              navigation.navigate("MatchesDetail", {
+                id: String(chat.id),
+              })
+            }
+          >
             <Image source={avatarSource} style={styles.headerAvatar} />
             <View
               style={[
@@ -384,7 +513,7 @@ export default function ChatConversationScreen({ navigation, route }) {
                 },
               ]}
             />
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.headerNameBlock}>
             <View style={styles.headerNameRow}>
@@ -392,46 +521,42 @@ export default function ChatConversationScreen({ navigation, route }) {
                 {chat.name}
               </Text>
               {chat.verified && (
-                <Feather name="check-circle" size={14} color={COLORS.green} />
+                <Feather
+                  name="check-circle"
+                  size={14}
+                  color={COLORS.green}
+                />
               )}
             </View>
             <Text style={styles.headerStatus}>
               {chat.online ? "Online" : "Offline"}
             </Text>
           </View>
-        </TouchableOpacity>
+        </View>
 
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
             <Feather name="phone" size={20} color={COLORS.darkRed} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+            <Feather
+              name="more-vertical"
+              size={20}
+              color={COLORS.darkRed}
+            />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ====== DEBUG: RAW NAME FIELDS ====== */}
-      {/* Remove this block (and DEBUG_SHOW_RAW_NAMES) once you've
-          confirmed sender_name/auth_user_photo is the right pairing
-          across several real conversations, not just this one. */}
-      {DEBUG_SHOW_RAW_NAMES && debugNames && (
-        <View style={styles.debugBanner}>
-          <Text style={styles.debugText} numberOfLines={1}>
-            receiver_name: "{String(debugNames.receiver_name)}" | sender_name: "
-            {String(debugNames.sender_name)}" → using sender_name
-          </Text>
-        </View>
-      )}
-
-      {/* ====== SAFETY NOTICE ====== */}
+      {/* ================= SAFETY NOTICE ================= */}
       <View style={styles.safetyBanner}>
-        <Feather name="shield" size={14} color={COLORS.green} />
+        <Feather name="shield-check" size={14} color={COLORS.green} />
         <Text style={styles.safetyText}>
           Never share OTPs, bank details or make payments outside the app.
         </Text>
       </View>
 
-      {/* ====== MESSAGES ====== */}
+      {/* ================= MESSAGES ================= */}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -474,7 +599,7 @@ export default function ChatConversationScreen({ navigation, route }) {
           renderItem={({ item }) => <MessageBubble message={item} />}
         />
 
-        {/* ====== INPUT BAR ====== */}
+        {/* ================= INPUT BAR ================= */}
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Feather name="plus" size={24} color={COLORS.darkRed} />
@@ -513,9 +638,9 @@ export default function ChatConversationScreen({ navigation, route }) {
   );
 }
 
-/* === */
-/* ====== MESSAGE BUBBLE ====== */
-/* === */
+/* ================================================= */
+/* ================= MESSAGE BUBBLE ================= */
+/* ================================================= */
 
 function MessageBubble({ message }) {
   const { fromMe, text, time, status, attachment } = message;
@@ -567,8 +692,8 @@ function MessageBubble({ message }) {
             />
           ) : (
             fromMe && (
-              <Feather
-                name="check"
+              <MaterialIcons
+                name={status === "read" ? "done-all" : "done"}
                 size={14}
                 color={
                   status === "read" ? COLORS.goldLight : "rgba(255,255,255,0.7)"
@@ -591,9 +716,9 @@ function formatTime(date) {
   return `${hours}:${minutes} ${ampm}`;
 }
 
-/* === */
-/* ====== STYLES === */
-/* === */
+/* ================================================= */
+/* ================= STYLES ========================= */
+/* ================================================= */
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
@@ -608,8 +733,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: 14,
     color: COLORS.mutedGray,
     textAlign: "center",
     marginBottom: SPACING.md,
@@ -622,12 +746,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  retryButtonText: {
-    color: COLORS.white,
-    fontFamily: Fonts.bold,
-  },
+  retryButtonText: { color: COLORS.white, fontWeight: "700" },
 
-  /* ====== HEADER ====== */
+  /* ================= HEADER ================= */
 
   header: {
     flexDirection: "row",
@@ -673,18 +794,13 @@ const styles = StyleSheet.create({
   headerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 
   headerName: {
-    fontSize: Fonts.size.base,
-    fontFamily: Fonts.extraBold,
+    fontSize: 16,
+    fontWeight: "800",
     color: COLORS.darkRed,
     maxWidth: width * 0.4,
   },
 
-  headerStatus: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: COLORS.mutedGray,
-    marginTop: 1,
-  },
+  headerStatus: { fontSize: 11.5, color: COLORS.mutedGray, marginTop: 1 },
 
   headerActions: { flexDirection: "row", alignItems: "center" },
 
@@ -696,21 +812,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
   },
 
-  /* ====== DEBUG BANNER ====== */
-
-  debugBanner: {
-    backgroundColor: COLORS.debugBanner,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 5,
-  },
-
-  debugText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: COLORS.text,
-  },
-
-  /* ====== SAFETY BANNER ====== */
+  /* ================= SAFETY BANNER ================= */
 
   safetyBanner: {
     flexDirection: "row",
@@ -721,14 +823,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
 
-  safetyText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: COLORS.gray,
-    flexShrink: 1,
-  },
+  safetyText: { fontSize: 11, color: COLORS.gray, flexShrink: 1 },
 
-  /* ====== MESSAGES ====== */
+  /* ================= MESSAGES ================= */
 
   messageList: {
     paddingHorizontal: SPACING.md,
@@ -753,8 +850,8 @@ const styles = StyleSheet.create({
   },
 
   dateSeparatorText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
+    fontSize: 11.5,
+    fontWeight: "700",
     color: COLORS.mutedGray,
   },
 
@@ -790,19 +887,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
 
-  bubbleTextSent: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: COLORS.white,
-    lineHeight: 19,
-  },
+  bubbleTextSent: { fontSize: 14, color: COLORS.white, lineHeight: 19 },
 
-  bubbleTextReceived: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: COLORS.text,
-    lineHeight: 19,
-  },
+  bubbleTextReceived: { fontSize: 14, color: COLORS.text, lineHeight: 19 },
 
   bubbleMeta: {
     flexDirection: "row",
@@ -811,19 +898,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  bubbleTimeSent: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: "rgba(255,255,255,0.75)",
-  },
+  bubbleTimeSent: { fontSize: 10, color: "rgba(255,255,255,0.75)" },
 
-  bubbleTimeReceived: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: COLORS.mutedGray,
-  },
+  bubbleTimeReceived: { fontSize: 10, color: COLORS.mutedGray },
 
-  /* ====== INPUT BAR ====== */
+  /* ================= INPUT BAR ================= */
 
   inputBar: {
     flexDirection: "row",
@@ -856,12 +935,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  textInput: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: COLORS.text,
-    maxHeight: 90,
-  },
+  textInput: { fontSize: 14, color: COLORS.text, maxHeight: 90 },
 
   sendButton: {
     width: 42,

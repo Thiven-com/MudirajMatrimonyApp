@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  BackHandler,
   Modal,
   SafeAreaView,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -14,110 +14,114 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Feather from "react-native-vector-icons/Feather";
-import Ionicons from "react-native-vector-icons/Ionicons";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
+import { BackHandler } from "react-native";
 
-import Fonts from "../constants/Fonts";
 import { deleteMemberCareerById, getMemberCareer } from "../utils/Functions";
 
-// =====
+// =========================================================
 // COLORS
-// =====
+// =========================================================
 
 const COLORS = {
   background: "#F5F6F8",
   white: "#FFFFFF",
+
   text: "#222222",
   secondary: "#666666",
-  lightText: "#777777",
-  border: "#E8E8E8",
+  lightText: "#888888",
+
+  border: "#E6E6E6",
+
   red: "#ED1B2F",
+  darkRed: "#C91428",
+
   lightRed: "#FFF0F2",
-  iconBg: "#FFF0F2",
+
   editBg: "#F5F6F8",
+
   green: "#20A464",
   lightGreen: "#EAF8F0",
-  darkRed: "#C91428",
 };
 
-// =====
+// =========================================================
 // CAREER INFORMATION
-// =====
+// =========================================================
 
-export default function CareerInformation({ navigation, route }) {
-
+export default function CareerInformation({ navigation }) {
   const [careers, setCareers] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+
+  // -------------------------------------------------------
+  // DELETE
+  // -------------------------------------------------------
+
   const [confirmVisible, setConfirmVisible] = useState(false);
+
   const [selectedCareerId, setSelectedCareerId] = useState(null);
+
   const [deleting, setDeleting] = useState(false);
+
+  // -------------------------------------------------------
+  // ALERT
+  // -------------------------------------------------------
+
   const [alertVisible, setAlertVisible] = useState(false);
+
   const [alertTitle, setAlertTitle] = useState("");
+
   const [alertMessage, setAlertMessage] = useState("");
+
   const [alertType, setAlertType] = useState("success");
 
-  useFocusEffect(
-    useCallback(() => {
-
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
-
-      return () => subscription.remove();
-    }, [navigation, confirmVisible, alertVisible]),
-  );
-
-  const onBackPress = () => {
-    if (confirmVisible) {
-      setConfirmVisible(false);
-      setSelectedCareerId(null);
-      return true;
-    }
-
-    if (alertVisible) {
-      setAlertVisible(false);
-      return true;
-    }
-
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    return true;
-  };
-
-  // ===
-  // SHOW CUSTOM ALERT
-  // ===
+  // =======================================================
+  // SHOW ALERT
+  // =======================================================
 
   const showAlert = (title, message, type = "success") => {
     setAlertTitle(String(title || ""));
+
     setAlertMessage(String(message || ""));
+
     setAlertType(type);
+
     setAlertVisible(true);
   };
 
-  // ===
+  // =======================================================
   // CLOSE ALERT
-  // ===
+  // =======================================================
 
   const closeAlert = () => {
     setAlertVisible(false);
   };
 
-  // ===
-  // NORMALIZE CAREER RESPONSE
-  // ===
+  // =======================================================
+  // NORMALIZE API RESPONSE
+  // =======================================================
 
   const normalizeCareerResponse = useCallback((response) => {
+    console.log("========== CAREER RESPONSE ==========");
+
+    console.log(JSON.stringify(response, null, 2));
 
     let data = response;
 
-    if (data?.data && typeof data.data === "object") {
-      data = data.data;
-    }
+    // response.data
 
     if (data?.data && typeof data.data === "object") {
       data = data.data;
     }
+
+    // response.data.data
+
+    if (data?.data && typeof data.data === "object") {
+      data = data.data;
+    }
+
+    // result object
 
     if (
       data?.result &&
@@ -127,21 +131,31 @@ export default function CareerInformation({ navigation, route }) {
       data = data.result;
     }
 
+    // careers array
+
     if (Array.isArray(data?.careers)) {
       return data.careers;
     }
+
+    // direct array
 
     if (Array.isArray(data)) {
       return data;
     }
 
+    // data array
+
     if (Array.isArray(data?.data)) {
       return data.data;
     }
 
+    // result array
+
     if (Array.isArray(data?.result)) {
       return data.result;
     }
+
+    // single career
 
     if (
       data &&
@@ -150,7 +164,6 @@ export default function CareerInformation({ navigation, route }) {
         data.career_id ||
         data.careerId ||
         data.company ||
-        data.company_name ||
         data.designation)
     ) {
       return [data];
@@ -159,13 +172,23 @@ export default function CareerInformation({ navigation, route }) {
     return [];
   }, []);
 
-  // ===
+  // =======================================================
   // GET CAREER
-  // ===
+  // =======================================================
 
   const loadCareer = useCallback(async () => {
     try {
+      setLoading(true);
+
       const accessToken = await AsyncStorage.getItem("authToken");
+
+      console.log("========================================");
+
+      console.log("GET CAREER");
+
+      console.log("TOKEN EXISTS:", !!accessToken);
+
+      console.log("========================================");
 
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
@@ -174,65 +197,73 @@ export default function CareerInformation({ navigation, route }) {
       }
 
       const response = await getMemberCareer(accessToken);
+
+      console.log("GET CAREER API RESPONSE:");
+
+      console.log(JSON.stringify(response, null, 2));
+
       const careerData = normalizeCareerResponse(response);
+
+      console.log("NORMALIZED CAREER DATA:");
+
+      console.log(JSON.stringify(careerData, null, 2));
 
       setCareers(Array.isArray(careerData) ? careerData : []);
     } catch (error) {
-      console.error(
-        "RESPONSE:",
-        JSON.stringify(error?.response?.data, null, 2),
-      );
+      console.error("GET CAREER ERROR:", error);
 
       showAlert(
         "Error",
         error?.response?.data?.message ||
-        error?.message ||
-        "Unable to load career information.",
+          error?.message ||
+          "Unable to load career information.",
         "error",
       );
+    } finally {
+      setLoading(false);
     }
   }, [normalizeCareerResponse]);
 
-  // ===
+  // =======================================================
   // LOAD SCREEN
-  // ===
+  // =======================================================
 
   useEffect(() => {
     loadCareer();
   }, [loadCareer]);
 
-  // ===
+  // =======================================================
   // REFRESH
-  // ===
+  // =======================================================
 
   const handleRefresh = async () => {
-
     await loadCareer();
   };
 
-  // ===
+  // =======================================================
   // ADD CAREER
-  // ===
+  // =======================================================
 
   const handleAddCareer = () => {
-
     navigation.navigate("AddCareer");
   };
 
-  // ===
+  // =======================================================
   // GET CAREER ID
-  // ===
+  // =======================================================
 
   const getCareerId = (career) => {
     return career?.id ?? career?.career_id ?? career?.careerId ?? null;
   };
 
-  // ===
-  // OPEN DELETE CONFIRMATION
-  // ===
+  // =======================================================
+  // DELETE CLICK
+  // =======================================================
 
   const handleDeleteCareer = (career) => {
     const careerId = getCareerId(career);
+
+    console.log("DELETE CAREER:", JSON.stringify(career, null, 2));
 
     if (
       careerId === null ||
@@ -253,22 +284,23 @@ export default function CareerInformation({ navigation, route }) {
     }
 
     setSelectedCareerId(deleteId);
+
     setConfirmVisible(true);
   };
 
-  // ===
+  // =======================================================
   // CANCEL DELETE
-  // ===
+  // =======================================================
 
   const cancelDelete = () => {
-
     setConfirmVisible(false);
+
     setSelectedCareerId(null);
   };
 
-  // ===
+  // =======================================================
   // CONFIRM DELETE
-  // ===
+  // =======================================================
 
   const confirmDelete = async () => {
     const deleteId = selectedCareerId;
@@ -286,20 +318,36 @@ export default function CareerInformation({ navigation, route }) {
     await executeDeleteCareer(deleteId);
   };
 
-  // ===
-  // DELETE CAREER API
-  // ===
+  // =======================================================
+  // DELETE API
+  // =======================================================
 
   const executeDeleteCareer = async (deleteId) => {
     try {
       setDeleting(true);
+
+      console.log("========================================");
+
+      console.log("DELETE CAREER");
+
+      console.log("CAREER ID:", deleteId);
+
+      console.log("========================================");
+
       const accessToken = await AsyncStorage.getItem("authToken");
+
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
 
         return;
       }
+
       const response = await deleteMemberCareerById(accessToken, deleteId);
+
+      console.log("DELETE RESPONSE:");
+
+      console.log(JSON.stringify(response, null, 2));
+
       const responseData =
         response?.data && typeof response.data === "object"
           ? response.data
@@ -310,22 +358,23 @@ export default function CareerInformation({ navigation, route }) {
         response?.status ??
         responseData?.statusCode ??
         responseData?.status;
+
       const success = response?.success ?? responseData?.success;
 
       const result = response?.result ?? responseData?.result;
+
       const serverMessage =
         response?.message ??
         responseData?.message ??
         responseData?.msg ??
         response?.msg ??
         "";
+
       const httpFailure = statusCode !== undefined && Number(statusCode) >= 400;
 
       const apiFailure = success === false || success === 0 || result === false;
 
       if (httpFailure || apiFailure) {
-        console.error("DELETE API FAILED");
-
         showAlert(
           "Delete Failed",
           serverMessage || `Unable to delete Career ID ${deleteId}.`,
@@ -335,6 +384,7 @@ export default function CareerInformation({ navigation, route }) {
         return;
       }
 
+      // Remove immediately
 
       setCareers((previousCareers) =>
         previousCareers.filter(
@@ -342,121 +392,178 @@ export default function CareerInformation({ navigation, route }) {
         ),
       );
 
-
-      const successMessage =
-        serverMessage || `Career ID ${deleteId} deleted successfully.`;
-
-      showAlert("Delete Successful", successMessage, "success");
-
       setSelectedCareerId(null);
 
-
-      await loadCareer();
-
-    } catch (error) {
-
-      console.error(
-        "RESPONSE:",
-        JSON.stringify(error?.response?.data, null, 2),
+      showAlert(
+        "Delete Successful",
+        serverMessage || "Career deleted successfully.",
+        "success",
       );
 
-      console.error("===");
+      // Reload latest server data
 
-      const errorMessage =
+      await loadCareer();
+    } catch (error) {
+      console.error("DELETE CAREER ERROR:", error);
+
+      showAlert(
+        "Delete Failed",
         error?.response?.data?.message ||
-        error?.response?.data?.msg ||
-        error?.message ||
-        `Unable to delete Career ID ${deleteId}.`;
-
-      showAlert("Delete Failed", errorMessage, "error");
+          error?.response?.data?.msg ||
+          error?.message ||
+          "Unable to delete career.",
+        "error",
+      );
     } finally {
       setDeleting(false);
     }
   };
 
-  // ===
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          }
+          return true;
+        },
+      );
+
+      return () => subscription.remove();
+    }, [navigation]),
+  );
+
+  // =======================================================
   // RENDER CAREER ITEM
-  // ===
+  // =======================================================
 
   const renderCareerItem = (career, index) => {
+    // -----------------------------------------------------
+    // ID
+    // -----------------------------------------------------
+
     const careerId = getCareerId(career);
 
-    const jobTitle =
+    // -----------------------------------------------------
+    // DESIGNATION
+    // API: designation
+    // -----------------------------------------------------
+
+    const designation =
+      career?.designation ||
       career?.job_title ||
       career?.jobTitle ||
-      career?.designation ||
       career?.position ||
-      career?.occupation ||
       career?.role ||
       "Career";
 
-    const companyName =
-      career?.company_name ||
-      career?.companyName ||
-      career?.company ||
-      career?.institution ||
-      career?.organization ||
-      "";
+    // -----------------------------------------------------
+    // COMPANY
+    // API: company
+    // -----------------------------------------------------
 
-    const startYear =
-      career?.start ??
-      career?.start_year ??
-      career?.startYear ??
-      career?.career_start ??
-      "";
+    const company =
+      career?.company || career?.company_name || career?.companyName || "";
 
-    const endYear =
-      career?.end ??
-      career?.end_year ??
-      career?.endYear ??
-      career?.career_end ??
-      "";
+    // -----------------------------------------------------
+    // START
+    // API: start
+    // -----------------------------------------------------
+
+    const start =
+      career?.start ?? career?.start_year ?? career?.startYear ?? "";
+
+    // -----------------------------------------------------
+    // END
+    // API: end
+    // -----------------------------------------------------
+
+    const end = career?.end ?? career?.end_year ?? career?.endYear ?? "";
+
+    // -----------------------------------------------------
+    // PRESENT
+    // API: present
+    // -----------------------------------------------------
 
     const isPresent =
       career?.present === true ||
       career?.present === 1 ||
-      career?.is_present === true ||
-      career?.is_present === 1;
+      career?.present === "1" ||
+      career?.present === "true";
+
+    // -----------------------------------------------------
+    // YEAR DISPLAY
+    // -----------------------------------------------------
 
     let duration = "";
 
-    if (startYear && isPresent) {
-      duration = `${startYear} - Present`;
-    } else if (startYear && endYear) {
-      duration = `${startYear} - ${endYear}`;
-    } else if (startYear) {
-      duration = String(startYear);
+    if (start && isPresent) {
+      duration = `${start} - Present`;
+    } else if (start && end) {
+      duration = `${start} - ${end}`;
+    } else if (start) {
+      duration = String(start);
     }
 
     return (
       <View key={careerId ?? `career-${index}`} style={styles.careerItem}>
-        {/* CAREER ICON */}
+        {/* ================================================
+            CAREER ICON
+        ================================================= */}
 
         <View style={styles.briefcaseCircle}>
-          <Feather name="briefcase" size={20} color={COLORS.red} />
+          <Feather name="briefcase" size={25} color={COLORS.red} />
         </View>
 
-        {/* DETAILS */}
+        {/* ================================================
+            DETAILS
+        ================================================= */}
 
         <View style={styles.careerDetails}>
+          {/* DESIGNATION */}
+
           <Text style={styles.jobTitle} numberOfLines={1}>
-            {jobTitle}
+            {designation}
           </Text>
 
-          {!!companyName && (
+          {/* COMPANY */}
+
+          {!!company && (
             <Text style={styles.companyName} numberOfLines={1}>
-              {companyName}
+              {company}
             </Text>
           )}
 
+          {/* YEAR */}
+
           {!!duration && (
-            <Text style={styles.duration} numberOfLines={1}>
-              {duration}
-            </Text>
+            <View style={styles.durationRow}>
+              <Feather
+                name="calendar"
+                size={14}
+                color={COLORS.lightText}
+              />
+
+              <Text style={styles.duration}>{duration}</Text>
+            </View>
+          )}
+
+          {/* CURRENTLY WORKING */}
+
+          {isPresent && (
+            <View style={styles.presentBadge}>
+              <View style={styles.presentDot} />
+
+              <Text style={styles.presentText}>Currently working</Text>
+            </View>
           )}
         </View>
 
-        {/* ACTION BUTTONS */}
+        {/* ================================================
+            ACTIONS
+        ================================================= */}
 
         <View style={styles.actionButtons}>
           {/* EDIT */}
@@ -465,19 +572,16 @@ export default function CareerInformation({ navigation, route }) {
             style={styles.editButton}
             activeOpacity={0.7}
             onPress={() => {
-              if (careerId === undefined || careerId === null) {
+              if (careerId === null || careerId === undefined) {
                 showAlert("Error", "Career ID not found.", "error");
 
                 return;
               }
 
-              navigation.navigate("EditCareer", {
-                id: String(careerId),
-                page: route?.name, prevs: route?.params
-              });
+              navigation.navigate("EditCareer", { id: String(careerId) });
             }}
           >
-            <Feather name="edit-2" size={15} color="#444444" />
+            <Feather name="edit-2" size={21} color="#333333" />
           </TouchableOpacity>
 
           {/* DELETE */}
@@ -488,60 +592,116 @@ export default function CareerInformation({ navigation, route }) {
             disabled={deleting}
             onPress={() => handleDeleteCareer(career)}
           >
-            <Feather name="trash-2" size={17} color={COLORS.red} />
+            <Feather name="trash-2" size={20} color={COLORS.red} />
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  // ===
+  // =======================================================
   // RENDER
-  // ===
+  // =======================================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.screen}>
-        {/* ======
-                    HEADER
-                ====== */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <View style={styles.header}>
+          {/* BACK */}
+
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => onBackPress()}
+            onPress={() => navigation.goBack()}
           >
-            <Feather name="chevron-left" size={19} color={COLORS.red} />
+            <Feather name="chevron-left" size={24} color={COLORS.red} />
           </TouchableOpacity>
+
+          {/* TITLE */}
 
           <Text style={styles.headerTitle}>Career Information</Text>
 
+          {/* REFRESH */}
+
           <TouchableOpacity
-            style={styles.menuButton}
+            style={styles.refreshButton}
             activeOpacity={0.7}
+            disabled={loading}
             onPress={handleRefresh}
           >
-            <Feather name="refresh-ccw" size={18} color={COLORS.red} />
+            <Feather name="refresh-cw" size={25} color={COLORS.red} />
           </TouchableOpacity>
         </View>
 
-        {/* ======
-                    MAIN CARD
-                ====== */}
+        {/* =================================================
+            CONTENT
+        ================================================= */}
 
         <View style={styles.card}>
-          {careers.length > 0 ? (
-            <View style={styles.careerList}>
-              {careers.map(renderCareerItem)}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* =============================================
+                CAREER LIST
+            ============================================= */}
 
-              {/* ADD CAREER */}
+            {careers.length > 0 ? (
+              <View>
+                {careers.map(renderCareerItem)}
 
-              <View style={styles.addCareerSection}>
+                {/* =========================================
+                    ADD CAREER SECTION
+                ========================================= */}
+
+                <View style={styles.addCareerSection}>
+                  <View style={styles.addIconCircle}>
+                    <Feather
+                      name="briefcase"
+                      size={30}
+                      color={COLORS.red}
+                    />
+                  </View>
+
+                  <Text style={styles.addCareerTitle}>
+                    Add your career details
+                  </Text>
+
+                  <Text style={styles.addCareerDescription}>
+                    Help others know about your professional
+                  </Text>
+
+                  <Text style={styles.addCareerDescription}>background</Text>
+
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    activeOpacity={0.85}
+                    onPress={handleAddCareer}
+                  >
+                    <Feather name="plus" size={22} color={COLORS.white} />
+
+                    <Text style={styles.addButtonText}>Add Career</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              /* ===========================================
+                 EMPTY STATE
+              =========================================== */
+
+              <View style={styles.emptyCareerSection}>
                 <View style={styles.addIconCircle}>
-                  <Feather name="briefcase" size={24} color={COLORS.red} />
+                  <Feather
+                    name="briefcase"
+                    size={30}
+                    color={COLORS.red}
+                  />
                 </View>
 
                 <Text style={styles.addCareerTitle}>
@@ -559,47 +719,19 @@ export default function CareerInformation({ navigation, route }) {
                   activeOpacity={0.85}
                   onPress={handleAddCareer}
                 >
-                  <Feather name="plus" size={18} color={COLORS.white} />
+                  <Feather name="plus" size={22} color={COLORS.white} />
 
                   <Text style={styles.addButtonText}>Add Career</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          ) : (
-            <View style={styles.emptyCareerSection}>
-              <View style={styles.addIconCircle}>
-                <Ionicons
-                  name="briefcase-outline"
-                  size={24}
-                  color={COLORS.red}
-                />
-              </View>
-
-              <Text style={styles.addCareerTitle}>Add your career details</Text>
-
-              <Text style={styles.addCareerDescription}>
-                Help others know about your professional
-              </Text>
-
-              <Text style={styles.addCareerDescription}>background</Text>
-
-              <TouchableOpacity
-                style={styles.addButton}
-                activeOpacity={0.85}
-                onPress={handleAddCareer}
-              >
-                <Feather name="plus" size={18} color={COLORS.white} />
-
-                <Text style={styles.addButtonText}>Add Career</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
+          </ScrollView>
         </View>
       </View>
 
-      {/* =====
-                DELETE CONFIRMATION MODAL
-            ===== */}
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+      ===================================================== */}
 
       <Modal
         visible={confirmVisible}
@@ -620,22 +752,26 @@ export default function CareerInformation({ navigation, route }) {
             </Text>
 
             <View style={styles.modalButtons}>
+              {/* CANCEL */}
+
               <TouchableOpacity
                 style={styles.cancelButton}
                 activeOpacity={0.8}
-                onPress={cancelDelete}
                 disabled={deleting}
+                onPress={cancelDelete}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
+              {/* DELETE */}
+
               <TouchableOpacity
                 style={styles.confirmDeleteButton}
                 activeOpacity={0.8}
-                onPress={confirmDelete}
                 disabled={deleting}
+                onPress={confirmDelete}
               >
-                <Feather name="trash-2" size={16} color={COLORS.white} />
+                <Feather name="trash-2" size={17} color={COLORS.white} />
 
                 <Text style={styles.confirmDeleteText}>
                   {deleting ? "Deleting..." : "Delete"}
@@ -646,9 +782,9 @@ export default function CareerInformation({ navigation, route }) {
         </View>
       </Modal>
 
-      {/* =====
-                SUCCESS / ERROR MODAL
-            ===== */}
+      {/* =====================================================
+          SUCCESS / ERROR MODAL
+      ===================================================== */}
 
       <Modal
         visible={alertVisible}
@@ -661,13 +797,14 @@ export default function CareerInformation({ navigation, route }) {
             <View
               style={[
                 styles.alertIconCircle,
+
                 alertType === "error"
                   ? styles.errorIconCircle
                   : styles.successIconCircle,
               ]}
             >
               <Feather
-                name={alertType === "error" ? "x" : "check"}
+                name={alertType === "error" ? "close" : "checkmark"}
                 size={30}
                 color={COLORS.white}
               />
@@ -695,11 +832,15 @@ export default function CareerInformation({ navigation, route }) {
   );
 }
 
-// =====
+// =========================================================
 // STYLES
-// =====
+// =========================================================
 
 const styles = StyleSheet.create({
+  // =======================================================
+  // SCREEN
+  // =======================================================
+
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -708,361 +849,603 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: 4,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingHorizontal: 6,
+    paddingTop: 5,
+    paddingBottom: 5,
   },
 
-  // =====
+  // =======================================================
   // HEADER
-  // =====
+  // =======================================================
 
   header: {
+    height: 70,
+
     width: "100%",
-    height: 62,
+
     backgroundColor: COLORS.white,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
+    borderTopLeftRadius: 14,
+
+    borderTopRightRadius: 14,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    position: "relative",
   },
 
   backButton: {
     position: "absolute",
-    left: 7,
-    top: 5,
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+
+    left: 10,
+
+    width: 42,
+
+    height: 42,
+
+    borderRadius: 21,
+
     borderWidth: 1,
+
     borderColor: "#EEEEEE",
+
+    backgroundColor: COLORS.white,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   headerTitle: {
-    fontSize: 20,
-    lineHeight: 22,
-    fontFamily: Fonts.semiBold,
+    fontSize: 22,
+
+    fontWeight: "700",
+
     color: COLORS.text,
-    includeFontPadding: false,
+
     textAlign: "center",
   },
 
-  menuButton: {
+  refreshButton: {
     position: "absolute",
-    right: 8,
-    top: 5,
-    width: 30,
-    height: 31,
+
+    right: 12,
+
+    width: 42,
+
+    height: 42,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
-  // =====
+  // =======================================================
   // CARD
-  // =====
+  // =======================================================
 
   card: {
     flex: 1,
+
     width: "100%",
+
     backgroundColor: COLORS.white,
+
     borderWidth: 1,
+
     borderTopWidth: 0,
+
     borderColor: COLORS.border,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+
+    borderBottomLeftRadius: 14,
+
+    borderBottomRightRadius: 14,
+
     overflow: "hidden",
   },
 
-  careerList: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: 10,
+
+    paddingTop: 10,
+
+    paddingBottom: 30,
   },
 
-  // =====
-  // CAREER ITEM
-  // =====
+  // =======================================================
+  // CAREER CARD
+  // =======================================================
 
   careerItem: {
     width: "100%",
-    minHeight: 82,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-    borderRadius: 9,
+
+    minHeight: 112,
+
     backgroundColor: COLORS.white,
-    marginBottom: 10,
+
+    borderWidth: 1,
+
+    borderColor: "#E7E7E7",
+
+    borderRadius: 14,
+
+    paddingHorizontal: 13,
+
+    paddingVertical: 14,
+
+    marginBottom: 12,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    shadowColor: "#000",
+
+    shadowOpacity: 0.03,
+
+    shadowRadius: 4,
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    elevation: 1,
   },
 
+  // =======================================================
+  // BRIEFCASE
+  // =======================================================
+
   briefcaseCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: COLORS.iconBg,
+    width: 58,
+
+    height: 58,
+
+    borderRadius: 29,
+
+    backgroundColor: COLORS.lightRed,
+
     alignItems: "center",
+
     justifyContent: "center",
-    marginRight: 10,
+
+    marginRight: 13,
   },
+
+  // =======================================================
+  // DETAILS
+  // =======================================================
 
   careerDetails: {
     flex: 1,
+
+    minWidth: 0,
+
     justifyContent: "center",
   },
 
   jobTitle: {
     fontSize: 18,
-    lineHeight: 21,
-    fontFamily: Fonts.medium,
+
+    lineHeight: 22,
+
+    fontWeight: "700",
+
     color: COLORS.text,
-    marginBottom: 2,
+
+    marginBottom: 3,
+
     includeFontPadding: false,
   },
 
   companyName: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 15,
+
+    lineHeight: 20,
+
     color: COLORS.secondary,
-    marginBottom: 1,
+
+    marginBottom: 4,
+
     includeFontPadding: false,
+  },
+
+  // =======================================================
+  // YEAR
+  // =======================================================
+
+  durationRow: {
+    flexDirection: "row",
+
+    alignItems: "center",
   },
 
   duration: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 14,
+
+    lineHeight: 18,
+
     color: COLORS.lightText,
+
+    marginLeft: 5,
+
+    fontWeight: "500",
+
     includeFontPadding: false,
   },
 
-  // =====
-  // ACTION BUTTONS
-  // =====
+  // =======================================================
+  // PRESENT BADGE
+  // =======================================================
+
+  presentBadge: {
+    alignSelf: "flex-start",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    backgroundColor: COLORS.lightGreen,
+
+    borderRadius: 10,
+
+    paddingHorizontal: 8,
+
+    paddingVertical: 4,
+
+    marginTop: 7,
+  },
+
+  presentDot: {
+    width: 6,
+
+    height: 6,
+
+    borderRadius: 3,
+
+    backgroundColor: COLORS.green,
+
+    marginRight: 5,
+  },
+
+  presentText: {
+    fontSize: 10,
+
+    fontWeight: "700",
+
+    color: COLORS.green,
+  },
+
+  // =======================================================
+  // ACTIONS
+  // =======================================================
 
   actionButtons: {
-    flexDirection: "row",
+    marginLeft: 8,
+
     alignItems: "center",
-    marginLeft: 5,
+
+    justifyContent: "center",
+
+    gap: 9,
   },
 
   editButton: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
+    width: 42,
+
+    height: 42,
+
+    borderRadius: 21,
+
     backgroundColor: COLORS.editBg,
+
     alignItems: "center",
+
     justifyContent: "center",
-    marginRight: 7,
   },
 
   deleteButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 42,
+
+    height: 42,
+
+    borderRadius: 21,
+
     backgroundColor: COLORS.lightRed,
-    alignItems: "center",
-    justifyContent: "center",
+
     borderWidth: 1,
-    borderColor: "#FFD9DE",
+
+    borderColor: "#F7D5DA",
+
+    alignItems: "center",
+
+    justifyContent: "center",
   },
 
-  // =====
+  // =======================================================
   // ADD CAREER
-  // =====
+  // =======================================================
 
   addCareerSection: {
     alignItems: "center",
+
     justifyContent: "center",
+
     paddingHorizontal: 20,
-    paddingVertical: 20,
+
+    paddingTop: 35,
+
+    paddingBottom: 30,
   },
 
   emptyCareerSection: {
     flex: 1,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     paddingHorizontal: 20,
-    paddingBottom: 12,
+
+    paddingBottom: 40,
   },
 
   addIconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: COLORS.iconBg,
+    width: 72,
+
+    height: 72,
+
+    borderRadius: 36,
+
+    backgroundColor: COLORS.lightRed,
+
     alignItems: "center",
+
     justifyContent: "center",
-    marginBottom: 12,
+
+    marginBottom: 15,
   },
 
   addCareerTitle: {
-    fontSize: 18,
-    lineHeight: 21,
-    fontFamily: Fonts.semiBold,
+    fontSize: 20,
+
+    lineHeight: 25,
+
+    fontWeight: "700",
+
     color: COLORS.text,
+
     textAlign: "center",
-    marginBottom: 4,
+
+    marginBottom: 5,
+
     includeFontPadding: false,
   },
 
   addCareerDescription: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
-    lineHeight: 17,
+
+    lineHeight: 19,
+
     color: COLORS.lightText,
+
     textAlign: "center",
+
     includeFontPadding: false,
   },
 
   addButton: {
-    height: 41,
-    minWidth: 131,
-    paddingHorizontal: 15,
-    marginTop: 10,
-    borderRadius: 7,
+    minWidth: 160,
+
+    height: 48,
+
+    paddingHorizontal: 20,
+
+    marginTop: 16,
+
+    borderRadius: 9,
+
     backgroundColor: COLORS.red,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
+
+    elevation: 2,
   },
 
   addButtonText: {
-    fontFamily: Fonts.semiBold,
     fontSize: 16,
-    lineHeight: 19,
-    fontFamily: Fonts.semiBold,
+
+    fontWeight: "700",
+
     color: COLORS.white,
-    marginLeft: 4,
-    includeFontPadding: false,
+
+    marginLeft: 6,
   },
 
-  // =====
-  // MODAL OVERLAY
-  // =====
+  // =======================================================
+  // MODAL
+  // =======================================================
 
   modalOverlay: {
     flex: 1,
+
     backgroundColor: "rgba(0,0,0,0.45)",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     paddingHorizontal: 20,
   },
 
-  // =====
-  // CONFIRM MODAL
-  // =====
+  // =======================================================
+  // DELETE MODAL
+  // =======================================================
 
   confirmModal: {
     width: "100%",
+
     maxWidth: 400,
+
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+
+    borderRadius: 18,
+
     paddingHorizontal: 22,
+
     paddingVertical: 25,
+
     alignItems: "center",
   },
 
   confirmIconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 64,
+
+    height: 64,
+
+    borderRadius: 32,
+
     backgroundColor: COLORS.lightRed,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginBottom: 14,
   },
 
   modalTitle: {
-    fontFamily: Fonts.bold,
     fontSize: 20,
-    lineHeight: 24,
-    fontFamily: Fonts.bold,
+
+    lineHeight: 25,
+
+    fontWeight: "700",
+
     color: COLORS.text,
+
     textAlign: "center",
+
     marginBottom: 8,
   },
 
   modalMessage: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
+
     lineHeight: 21,
+
     color: COLORS.secondary,
+
     textAlign: "center",
+
     marginBottom: 22,
   },
 
   modalButtons: {
     width: "100%",
+
     flexDirection: "row",
+
     justifyContent: "space-between",
   },
 
   cancelButton: {
     flex: 1,
-    height: 44,
-    borderRadius: 8,
+
+    height: 46,
+
+    borderRadius: 9,
+
     borderWidth: 1,
+
     borderColor: COLORS.border,
+
     backgroundColor: COLORS.white,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginRight: 6,
   },
 
   cancelButtonText: {
-    fontFamily: Fonts.semiBold,
     fontSize: 15,
-    fontFamily: Fonts.semiBold,
+
+    fontWeight: "600",
+
     color: COLORS.secondary,
   },
 
   confirmDeleteButton: {
     flex: 1,
-    height: 44,
-    borderRadius: 8,
+
+    height: 46,
+
+    borderRadius: 9,
+
     backgroundColor: COLORS.red,
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginLeft: 6,
   },
 
   confirmDeleteText: {
-    fontFamily: Fonts.semiBold,
     fontSize: 15,
-    fontFamily: Fonts.semiBold,
+
+    fontWeight: "700",
+
     color: COLORS.white,
+
     marginLeft: 5,
   },
 
-  // =====
-  // SUCCESS / ERROR MODAL
-  // =====
+  // =======================================================
+  // ALERT MODAL
+  // =======================================================
 
   alertModal: {
     width: "100%",
+
     maxWidth: 400,
+
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+
+    borderRadius: 18,
+
     paddingHorizontal: 22,
+
     paddingVertical: 25,
+
     alignItems: "center",
   },
 
   alertIconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 64,
+
+    height: 64,
+
+    borderRadius: 32,
+
     alignItems: "center",
+
     justifyContent: "center",
+
     marginBottom: 14,
   },
 
@@ -1075,46 +1458,64 @@ const styles = StyleSheet.create({
   },
 
   alertTitle: {
-    fontFamily: Fonts.bold,
     fontSize: 20,
-    lineHeight: 24,
-    fontFamily: Fonts.bold,
+
+    lineHeight: 25,
+
+    fontWeight: "700",
+
     color: COLORS.text,
+
     textAlign: "center",
+
     marginBottom: 8,
   },
 
   alertMessage: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
+
     lineHeight: 21,
+
     color: COLORS.secondary,
+
     textAlign: "center",
+
     marginBottom: 20,
   },
 
   successOkButton: {
     width: "100%",
-    height: 44,
-    borderRadius: 8,
+
+    height: 46,
+
+    borderRadius: 9,
+
     backgroundColor: COLORS.green,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   errorOkButton: {
     width: "100%",
-    height: 44,
-    borderRadius: 8,
+
+    height: 46,
+
+    borderRadius: 9,
+
     backgroundColor: COLORS.red,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   alertOkText: {
-    fontFamily: Fonts.bold,
     fontSize: 15,
-    fontFamily: Fonts.bold,
+
+    fontWeight: "700",
+
     color: COLORS.white,
   },
 });
