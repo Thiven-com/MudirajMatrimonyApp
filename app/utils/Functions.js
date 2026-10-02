@@ -15,8 +15,7 @@ export const getToken = async () => {
     if (userdata) {
       try {
         const parsed = JSON.parse(userdata);
-        const token =
-          parsed?.data?.token || parsed?.token || parsed?.access_token || null;
+        const token = parsed?.data?.token || parsed?.token || parsed?.access_token || null;
         if (token) return token;
       } catch (error) {
         console.log("getToken userdata parse error:", error);
@@ -55,6 +54,24 @@ export const getToken = async () => {
   }
 };
 
+
+export const getUserData = async () => {
+  try {
+    const userdata = await AsyncStorage.getItem("userdata");
+    if (userdata) {
+      try {
+        const parsed = JSON.parse(userdata);
+        return parsed;
+      } catch (error) {
+        console.log("getUserData userdata parse error:", error);
+      }
+    }
+    return null;
+  } catch (error) {
+    console.log("getUserData Error:", error);
+    return null;
+  }
+};
 // === SHARED DEBUG / VALIDATION HELPERS ===
 
 // Throws a consistent error when a required access token is missing.
@@ -2981,14 +2998,6 @@ export async function uploadGalleryImage(accessToken, photo) {
     });
   }
 
-  console.log("=================================");
-  console.log("UPLOAD GALLERY IMAGE");
-  console.log("METHOD: POST");
-  console.log("URL:", URL);
-  console.log("FIELD:", FIELD_NAME);
-  console.log("WEB URI:", isWebUri);
-  console.log("=================================");
-
   try {
     // Do NOT set Content-Type manually — fetch adds the multipart boundary.
     const response = await fetch(URL, {
@@ -3008,9 +3017,6 @@ export async function uploadGalleryImage(accessToken, photo) {
     } catch {
       responseData = { message: responseText };
     }
-
-    logResponse("UPLOAD GALLERY IMAGE RESPONSE", responseData);
-
     if (!response.ok) {
       const serverMessage =
         responseData?.message ||
@@ -3178,12 +3184,20 @@ export async function createPayment(
     payment_method: paymentMethod,
   };
 
-  console.log("createPayment request:", body);
+  const response = await postMethod(URL, { token: accessToken }, body);
+  return response;
+}
+export async function successPayment(
+  accessToken,
+  body,
+) {
+  if (!accessToken) {
+    throw new Error("Access token is missing. Please login again.");
+  }
+
+  const URL = BASE_URL + "/api/successpayment";
 
   const response = await postMethod(URL, { token: accessToken }, body);
-
-  console.log("createPayment response:", response);
-
   return response;
 }
 // =========================================================
