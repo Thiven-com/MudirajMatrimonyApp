@@ -4,8 +4,8 @@ import {
     BackHandler,
     Dimensions,
     Image,
+    KeyboardAvoidingView,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -25,6 +25,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import { Fonts } from "../constants/Fonts";
 import { sendLoginOtp } from "../utils/Functions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOGO = require("../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -110,90 +111,94 @@ export default function LoginScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
-            <StatusBar
-                barStyle="light-content"
-                translucent
-                backgroundColor="transparent"
-            />
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-                keyboardShouldPersistTaps="handled"
-            >
-                <View style={styles.shell}>
-                    <View style={styles.headerContainer}>
-                        <HeaderWave width={SCREEN_WIDTH} />
-                        <View style={styles.logoRing}>
-                            <Image
-                                source={LOGO}
-                                style={styles.logoImage}
-                                resizeMode="contain"
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.titleBlock}>
-                        <Text style={styles.title}>Welcome Back</Text>
-                        <Text style={styles.subtitle}>Login to continue your journey</Text>
-                    </View>
-
-                    <View style={styles.tabRow}>
-                        <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                            <Text style={styles.tabText}>Register</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.formWrapper}>
-                        <Text style={styles.fieldLabel}>Mobile Number</Text>
-                        <View style={styles.inputWrap}>
-                            <View style={styles.codeWrap}>
-                                <Text style={styles.codeText}>+91</Text>
-                                <Feather
-                                    name="chevron-down"
-                                    size={14}
-                                    color={Colors.textMuted}
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+                <StatusBar
+                    barStyle="light-content"
+                    translucent
+                    backgroundColor="transparent"
+                />
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.shell}>
+                        <View style={styles.headerContainer}>
+                            <HeaderWave width={SCREEN_WIDTH} />
+                            <View style={styles.logoRing}>
+                                <Image
+                                    source={LOGO}
+                                    style={styles.logoImage}
+                                    resizeMode="contain"
                                 />
                             </View>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter mobile number"
-                                placeholderTextColor={Colors.placeholder}
-                                keyboardType="phone-pad"
-                                value={mobile}
-                                onChangeText={setMobile}
-                                underlineColorAndroid="transparent"
-                            />
                         </View>
 
-                        {errorText ? (
-                            <Text style={styles.errorText}>{errorText}</Text>
-                        ) : null}
+                        <View style={styles.titleBlock}>
+                            <Text style={styles.title}>Welcome Back</Text>
+                            <Text style={styles.subtitle}>Login to continue your journey</Text>
+                        </View>
 
-                        <TouchableOpacity
-                            style={styles.loginButtonTouchable}
-                            activeOpacity={0.85}
-                            onPress={handleLogin}
-                            disabled={loading}
-                        >
-                            <LinearGradient
-                                colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={[
-                                    styles.loginButton,
-                                    loading && styles.loginButtonDisabled,
-                                ]}
+                        <View style={styles.tabRow}>
+                            <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+                                <Text style={styles.tabText}>Register</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.formWrapper}>
+                            <Text style={styles.fieldLabel}>Mobile Number</Text>
+                            <View style={styles.inputWrap}>
+                                <View style={styles.codeWrap}>
+                                    <Text style={styles.codeText}>+91</Text>
+                                    <Feather
+                                        name="chevron-down"
+                                        size={14}
+                                        color={Colors.textMuted}
+                                    />
+                                </View>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter mobile number"
+                                    placeholderTextColor={Colors.placeholder}
+                                    keyboardType="phone-pad"
+                                    value={mobile}
+                                    onChangeText={setMobile}
+                                    underlineColorAndroid="transparent"
+                                />
+                            </View>
+
+                            {errorText ? (
+                                <Text style={styles.errorText}>{errorText}</Text>
+                            ) : null}
+
+                            <TouchableOpacity
+                                style={styles.loginButtonTouchable}
+                                activeOpacity={0.85}
+                                onPress={handleLogin}
+                                disabled={loading}
                             >
-                                <Text style={styles.loginButtonText}>
-                                    {loading ? "Sending..." : "Send OTP"}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                                <LinearGradient
+                                    colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[
+                                        styles.loginButton,
+                                        loading && styles.loginButtonDisabled,
+                                    ]}
+                                >
+                                    <Text style={styles.loginButtonText}>
+                                        {loading ? "Sending..." : "Send OTP"}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
 
-                        {/* <View style={styles.orRow}>
+                            {/* <View style={styles.orRow}>
                             <View style={styles.orLine} />
                             <Text style={styles.orText}>or continue with</Text>
                             <View style={styles.orLine} />
@@ -217,18 +222,19 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </View> */}
 
-                        <View style={styles.registerRow}>
-                            <Text style={styles.registerText}>
-                                New to Mudiraj World Matrimony?{" "}
-                            </Text>
-                            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                                <Text style={styles.registerLink}>Register</Text>
-                            </TouchableOpacity>
+                            <View style={styles.registerRow}>
+                                <Text style={styles.registerText}>
+                                    New to Mudiraj World Matrimony?{" "}
+                                </Text>
+                                <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+                                    <Text style={styles.registerLink}>Register</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                </ScrollView>
+            </SafeAreaView>
+        </KeyboardAvoidingView>
     );
 }
 

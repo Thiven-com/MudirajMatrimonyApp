@@ -4,6 +4,7 @@ import {
     BackHandler,
     Dimensions,
     Image,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
@@ -138,299 +139,303 @@ export default function RegisterScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar
-                barStyle="light-content"
-                translucent
-                backgroundColor="transparent"
-            />
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-            >
-                {/* ====== HEADER SECTION ====== */}
-                <View style={styles.headerContainer}>
-                    <HeaderWave width={SCREEN_WIDTH} />
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar
+                    barStyle="light-content"
+                    translucent
+                    backgroundColor="transparent"
+                />
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                >
+                    {/* ====== HEADER SECTION ====== */}
+                    <View style={styles.headerContainer}>
+                        <HeaderWave width={SCREEN_WIDTH} />
 
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    >
-                        <Feather name="arrow-left" size={24} color={Colors.white} />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        >
+                            <Feather name="arrow-left" size={24} color={Colors.white} />
+                        </TouchableOpacity>
 
-                    <View style={styles.logoRing}>
-                        <Image
-                            source={LOGO}
-                            style={styles.logoImage}
-                            resizeMode="contain"
-                        />
+                        <View style={styles.logoRing}>
+                            <Image
+                                source={LOGO}
+                                style={styles.logoImage}
+                                resizeMode="contain"
+                            />
+                        </View>
                     </View>
-                </View>
 
-                {/* ====== TITLE & TAGLINE ====== */}
-                <View style={styles.titleContainer}>
-                    <Text style={styles.title}>MUDIRAJ WORLD</Text>
-                    <View style={styles.taglineRow}>
-                        <View style={styles.taglineLine} />
-                        <Text style={styles.taglineText}>
-                            Connect | Unite | Grow Together
-                        </Text>
-                        <View style={styles.taglineLine} />
+                    {/* ====== TITLE & TAGLINE ====== */}
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title}>MUDIRAJ WORLD</Text>
+                        <View style={styles.taglineRow}>
+                            <View style={styles.taglineLine} />
+                            <Text style={styles.taglineText}>
+                                Connect | Unite | Grow Together
+                            </Text>
+                            <View style={styles.taglineLine} />
+                        </View>
+                        <View style={styles.flourishRow}>
+                            <View style={styles.flourishDot} />
+                            <Text style={styles.flourishSymbol}>❖</Text>
+                            <View style={styles.flourishDot} />
+                        </View>
                     </View>
-                    <View style={styles.flourishRow}>
-                        <View style={styles.flourishDot} />
-                        <Text style={styles.flourishSymbol}>❖</Text>
-                        <View style={styles.flourishDot} />
-                    </View>
-                </View>
 
-                {/* ====== FORM HEADING ====== */}
-                <Text style={styles.formHeading}>Create Your Account</Text>
-                <Text style={styles.formSubtext}>
-                    Join Mudiraj World and find your perfect match
-                </Text>
+                    {/* ====== FORM HEADING ====== */}
+                    <Text style={styles.formHeading}>Create Your Account</Text>
+                    <Text style={styles.formSubtext}>
+                        Join Mudiraj World and find your perfect match
+                    </Text>
 
-                {/* ====== FORM FIELDS ====== */}
-                <View style={styles.fieldsContainer}>
-                    <FieldCard
-                        icon={
-                            <Ionicons
-                                name="person-outline"
-                                size={18}
-                                color={Colors.primaryRed}
-                            />
-                        }
-                        label="First Name"
-                        placeholder="Enter your first name"
-                        value={firstName}
-                        onChangeText={setFirstName}
-                        trailing={
-                            <Ionicons
-                                name="person-outline"
-                                size={20}
-                                color={Colors.textMuted}
-                            />
-                        }
-                    />
-
-                    <FieldCard
-                        icon={
-                            <Ionicons
-                                name="person-outline"
-                                size={18}
-                                color={Colors.primaryRed}
-                            />
-                        }
-                        label="Last Name"
-                        placeholder="Enter your last name"
-                        value={lastName}
-                        onChangeText={setLastName}
-                        trailing={
-                            <Ionicons
-                                name="person-outline"
-                                size={20}
-                                color={Colors.textMuted}
-                            />
-                        }
-                    />
-
-                    <FieldCard
-                        icon={
-                            <Ionicons
-                                name="call-outline"
-                                size={18}
-                                color={Colors.primaryRed}
-                            />
-                        }
-                        label="Mobile Number"
-                        placeholder="Enter your mobile number"
-                        value={mobile}
-                        onChangeText={setMobile}
-                        keyboardType="phone-pad"
-                        trailing={
-                            <View style={styles.countryCode}>
-                                <Text style={styles.countryCodeText}>+91</Text>
+                    {/* ====== FORM FIELDS ====== */}
+                    <View style={styles.fieldsContainer}>
+                        <FieldCard
+                            icon={
                                 <Ionicons
-                                    name="chevron-down"
-                                    size={15}
+                                    name="person-outline"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            }
+                            label="First Name"
+                            placeholder="Enter your first name"
+                            value={firstName}
+                            onChangeText={setFirstName}
+                            trailing={
+                                <Ionicons
+                                    name="person-outline"
+                                    size={20}
                                     color={Colors.textMuted}
                                 />
-                            </View>
-                        }
-                    />
+                            }
+                        />
 
-                    <FieldCard
-                        icon={
-                            <Ionicons
-                                name="mail-outline"
-                                size={18}
-                                color={Colors.primaryRed}
-                            />
-                        }
-                        label="Email Address"
-                        placeholder="Enter your email address"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        trailing={
-                            <Ionicons
-                                name="mail-outline"
-                                size={20}
-                                color={Colors.textMuted}
-                            />
-                        }
-                    />
+                        <FieldCard
+                            icon={
+                                <Ionicons
+                                    name="person-outline"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            }
+                            label="Last Name"
+                            placeholder="Enter your last name"
+                            value={lastName}
+                            onChangeText={setLastName}
+                            trailing={
+                                <Ionicons
+                                    name="person-outline"
+                                    size={20}
+                                    color={Colors.textMuted}
+                                />
+                            }
+                        />
 
-                    <FieldCard
-                        icon={
-                            <Ionicons
-                                name="calendar-outline"
-                                size={18}
-                                color={Colors.primaryRed}
-                            />
-                        }
-                        label="Date of Birth"
-                        placeholder="DD / MM / YYYY"
-                        value={dob}
-                        onChangeText={setDob}
-                        keyboardType="number-pad"
-                        trailing={
-                            <Ionicons
-                                name="calendar-outline"
-                                size={20}
-                                color={Colors.textMuted}
-                            />
-                        }
-                    />
-                    {/* For a real date picker, swap the TextInput above for
+                        <FieldCard
+                            icon={
+                                <Ionicons
+                                    name="call-outline"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            }
+                            label="Mobile Number"
+                            placeholder="Enter your mobile number"
+                            value={mobile}
+                            onChangeText={setMobile}
+                            keyboardType="phone-pad"
+                            trailing={
+                                <View style={styles.countryCode}>
+                                    <Text style={styles.countryCodeText}>+91</Text>
+                                    <Ionicons
+                                        name="chevron-down"
+                                        size={15}
+                                        color={Colors.textMuted}
+                                    />
+                                </View>
+                            }
+                        />
+
+                        <FieldCard
+                            icon={
+                                <Ionicons
+                                    name="mail-outline"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            }
+                            label="Email Address"
+                            placeholder="Enter your email address"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            trailing={
+                                <Ionicons
+                                    name="mail-outline"
+                                    size={20}
+                                    color={Colors.textMuted}
+                                />
+                            }
+                        />
+
+                        <FieldCard
+                            icon={
+                                <Ionicons
+                                    name="calendar-outline"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            }
+                            label="Date of Birth"
+                            placeholder="DD / MM / YYYY"
+                            value={dob}
+                            onChangeText={setDob}
+                            keyboardType="number-pad"
+                            trailing={
+                                <Ionicons
+                                    name="calendar-outline"
+                                    size={20}
+                                    color={Colors.textMuted}
+                                />
+                            }
+                        />
+                        {/* For a real date picker, swap the TextInput above for
               @react-native-community/datetimepicker and format the result into `dob`. */}
 
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setGenderModalVisible(true)}
-                    >
-                        <FieldCard
-                            icon={
-                                <Ionicons
-                                    name="people-outline"
-                                    size={18}
-                                    color={Colors.primaryRed}
-                                />
-                            }
-                            label="Gender"
-                            placeholder="Select your gender"
-                            value={gender}
-                            editable={false}
-                            pointerEvents="none"
-                            trailing={
-                                <Ionicons
-                                    name="chevron-down"
-                                    size={20}
-                                    color={Colors.textMuted}
-                                />
-                            }
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setGenderModalVisible(true)}
+                        >
+                            <FieldCard
+                                icon={
+                                    <Ionicons
+                                        name="people-outline"
+                                        size={18}
+                                        color={Colors.primaryRed}
+                                    />
+                                }
+                                label="Gender"
+                                placeholder="Select your gender"
+                                value={gender}
+                                editable={false}
+                                pointerEvents="none"
+                                trailing={
+                                    <Ionicons
+                                        name="chevron-down"
+                                        size={20}
+                                        color={Colors.textMuted}
+                                    />
+                                }
+                            />
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setOnBehalfModalVisible(true)}
-                    >
-                        <FieldCard
-                            icon={
-                                <Ionicons
-                                    name="person-circle-outline"
-                                    size={18}
-                                    color={Colors.primaryRed}
-                                />
-                            }
-                            label="Register For"
-                            placeholder="Select option"
-                            value={
-                                onBehalf
-                                    ? ON_BEHALF_OPTIONS.find(
-                                        (o) => o.value === parseInt(onBehalf),
-                                    )?.label
-                                    : ""
-                            }
-                            editable={false}
-                            pointerEvents="none"
-                            trailing={
-                                <Ionicons
-                                    name="chevron-down"
-                                    size={20}
-                                    color={Colors.textMuted}
-                                />
-                            }
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                {/* ====== TERMS CHECKBOX ====== */}
-                <TouchableOpacity
-                    style={styles.termsRow}
-                    activeOpacity={0.8}
-                    onPress={() => setAgreed(!agreed)}
-                >
-                    <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                        {agreed && <Feather name="check" size={12} color={Colors.white} />}
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setOnBehalfModalVisible(true)}
+                        >
+                            <FieldCard
+                                icon={
+                                    <Ionicons
+                                        name="person-circle-outline"
+                                        size={18}
+                                        color={Colors.primaryRed}
+                                    />
+                                }
+                                label="Register For"
+                                placeholder="Select option"
+                                value={
+                                    onBehalf
+                                        ? ON_BEHALF_OPTIONS.find(
+                                            (o) => o.value === parseInt(onBehalf),
+                                        )?.label
+                                        : ""
+                                }
+                                editable={false}
+                                pointerEvents="none"
+                                trailing={
+                                    <Ionicons
+                                        name="chevron-down"
+                                        size={20}
+                                        color={Colors.textMuted}
+                                    />
+                                }
+                            />
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.termsText}>
-                        I agree to the{" "}
-                        <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
-                        <Text style={styles.termsLink}>Privacy Policy</Text>
-                    </Text>
-                </TouchableOpacity>
 
-                {/* ====== ERROR MESSAGE ====== */}
-                {errorText.length > 0 && (
-                    <View style={styles.errorContainer}>
-                        <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
-                        <Text style={styles.errorText}>{errorText}</Text>
-                    </View>
-                )}
-
-                {/* ====== REGISTER BUTTON ====== */}
-                <TouchableOpacity
-                    style={[
-                        styles.registerButtonTouchable,
-                        loading && styles.registerButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={handleRegister}
-                    disabled={loading}
-                >
-                    <LinearGradient
-                        colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.registerButton}
+                    {/* ====== TERMS CHECKBOX ====== */}
+                    <TouchableOpacity
+                        style={styles.termsRow}
+                        activeOpacity={0.8}
+                        onPress={() => setAgreed(!agreed)}
                     >
-                        <Ionicons
-                            name={loading ? "hourglass-outline" : "person-add-outline"}
-                            size={20}
-                            color="#FFFFFF"
-                            style={{ marginRight: 8 }}
-                        />
-                        <Text style={styles.registerButtonText}>
-                            {loading ? "REGISTERING..." : "REGISTER"}
+                        <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
+                            {agreed && <Feather name="check" size={12} color={Colors.white} />}
+                        </View>
+                        <Text style={styles.termsText}>
+                            I agree to the{" "}
+                            <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
+                            <Text style={styles.termsLink}>Privacy Policy</Text>
                         </Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+                    </TouchableOpacity>
 
-                {/* ====== OR DIVIDER ====== */}
-                {/* <View style={styles.orRow}>
+                    {/* ====== ERROR MESSAGE ====== */}
+                    {errorText.length > 0 && (
+                        <View style={styles.errorContainer}>
+                            <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
+                            <Text style={styles.errorText}>{errorText}</Text>
+                        </View>
+                    )}
+
+                    {/* ====== REGISTER BUTTON ====== */}
+                    <TouchableOpacity
+                        style={[
+                            styles.registerButtonTouchable,
+                            loading && styles.registerButtonDisabled,
+                        ]}
+                        activeOpacity={0.85}
+                        onPress={handleRegister}
+                        disabled={loading}
+                    >
+                        <LinearGradient
+                            colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.registerButton}
+                        >
+                            <Ionicons
+                                name={loading ? "hourglass-outline" : "person-add-outline"}
+                                size={20}
+                                color="#FFFFFF"
+                                style={{ marginRight: 8 }}
+                            />
+                            <Text style={styles.registerButtonText}>
+                                {loading ? "REGISTERING..." : "REGISTER"}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* ====== OR DIVIDER ====== */}
+                    {/* <View style={styles.orRow}>
                     <View style={styles.orLine} />
                     <Text style={styles.orText}>OR</Text>
                     <View style={styles.orLine} />
                 </View> */}
 
-                {/* ====== SOCIAL BUTTONS ====== */}
-                {/* <View style={styles.socialRow}>
+                    {/* ====== SOCIAL BUTTONS ====== */}
+                    {/* <View style={styles.socialRow}>
                     <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
                         <Feather name="globe" size={18} color={Colors.google} />
                         <Text style={styles.socialText}>Continue with Google</Text>
@@ -442,97 +447,98 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                 </View> */}
 
-                {/* ====== LOGIN LINK ====== */}
-                <View style={styles.loginRow}>
-                    <Text style={styles.loginText}>Already have an account? </Text>
+                    {/* ====== LOGIN LINK ====== */}
+                    <View style={styles.loginRow}>
+                        <Text style={styles.loginText}>Already have an account? </Text>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate("SignIn")}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.loginLink}>Login</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* ====== HERITAGE WATERMARK FOOTER ====== */}
+                    <View style={styles.skylineWrapper}>
+                        <HeritageSkyline />
+                    </View>
+                </ScrollView>
+
+                {/* ====== GENDER PICKER MODAL ====== */}
+                <Modal
+                    visible={genderModalVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setGenderModalVisible(false)}
+                >
                     <TouchableOpacity
-                        onPress={() => navigation.navigate("SignIn")}
-                        activeOpacity={0.7}
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setGenderModalVisible(false)}
                     >
-                        <Text style={styles.loginLink}>Login</Text>
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>Select Gender</Text>
+                            {GENDER_OPTIONS.map((option) => (
+                                <TouchableOpacity
+                                    key={option}
+                                    style={styles.modalOption}
+                                    onPress={() => {
+                                        setGender(option);
+                                        setGenderModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalOptionText}>{option}</Text>
+                                    {gender === option && (
+                                        <Ionicons
+                                            name="checkmark"
+                                            size={18}
+                                            color={Colors.primaryRed}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     </TouchableOpacity>
-                </View>
+                </Modal>
 
-                {/* ====== HERITAGE WATERMARK FOOTER ====== */}
-                <View style={styles.skylineWrapper}>
-                    <HeritageSkyline />
-                </View>
-            </ScrollView>
-
-            {/* ====== GENDER PICKER MODAL ====== */}
-            <Modal
-                visible={genderModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setGenderModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setGenderModalVisible(false)}
+                {/* ====== ON BEHALF PICKER MODAL ====== */}
+                <Modal
+                    visible={onBehalfModalVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setOnBehalfModalVisible(false)}
                 >
-                    <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Select Gender</Text>
-                        {GENDER_OPTIONS.map((option) => (
-                            <TouchableOpacity
-                                key={option}
-                                style={styles.modalOption}
-                                onPress={() => {
-                                    setGender(option);
-                                    setGenderModalVisible(false);
-                                }}
-                            >
-                                <Text style={styles.modalOptionText}>{option}</Text>
-                                {gender === option && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={18}
-                                        color={Colors.primaryRed}
-                                    />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-
-            {/* ====== ON BEHALF PICKER MODAL ====== */}
-            <Modal
-                visible={onBehalfModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setOnBehalfModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setOnBehalfModalVisible(false)}
-                >
-                    <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Register For</Text>
-                        {ON_BEHALF_OPTIONS.map((option) => (
-                            <TouchableOpacity
-                                key={option.value}
-                                style={styles.modalOption}
-                                onPress={() => {
-                                    setOnBehalf(String(option.value));
-                                    setOnBehalfModalVisible(false);
-                                }}
-                            >
-                                <Text style={styles.modalOptionText}>{option.label}</Text>
-                                {onBehalf === String(option.value) && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={18}
-                                        color={Colors.primaryRed}
-                                    />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-        </SafeAreaView>
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setOnBehalfModalVisible(false)}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>Register For</Text>
+                            {ON_BEHALF_OPTIONS.map((option) => (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={styles.modalOption}
+                                    onPress={() => {
+                                        setOnBehalf(String(option.value));
+                                        setOnBehalfModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalOptionText}>{option.label}</Text>
+                                    {onBehalf === String(option.value) && (
+                                        <Ionicons
+                                            name="checkmark"
+                                            size={18}
+                                            color={Colors.primaryRed}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
+            </SafeAreaView>
+        </KeyboardAvoidingView>
     );
 }
 

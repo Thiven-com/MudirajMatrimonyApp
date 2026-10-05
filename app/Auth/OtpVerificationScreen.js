@@ -9,8 +9,8 @@ import {
   BackHandler,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -28,6 +28,7 @@ import Feather from "react-native-vector-icons/Feather";
 import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 import { verifyLoginOtp } from "../utils/Functions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOGO = require("../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -94,6 +95,10 @@ export default function OtpScreen({ setIsLoggedIn }) {
     if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
+    const ncode = nextOtp?.join("");
+    if (ncode?.length === OTP_LENGTH) {
+      handleVerify(ncode);
+    }
   };
 
   const handleKeyPress = (event, index) => {
@@ -108,9 +113,9 @@ export default function OtpScreen({ setIsLoggedIn }) {
     }
   };
 
-  const handleVerify = async () => {
-    const code = otp.join("");
-    if (code.length !== OTP_LENGTH) return;
+  const handleVerify = async (ncode) => {
+    const code = ncode?.length === OTP_LENGTH ? ncode : otp.join("");
+    if (code?.length !== OTP_LENGTH) return;
 
     setLoading(true);
     setErrorText("");
@@ -198,137 +203,141 @@ export default function OtpScreen({ setIsLoggedIn }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="light-content"
-        translucent
-        backgroundColor="transparent"
-      />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar
+          barStyle="light-content"
+          translucent
+          backgroundColor="transparent"
+        />
 
-      {/* ====== HEADER SECTION ====== */}
-      <View style={styles.headerContainer}>
-        <HeaderWave width={SCREEN_WIDTH} />
+        {/* ====== HEADER SECTION ====== */}
+        <View style={styles.headerContainer}>
+          <HeaderWave width={SCREEN_WIDTH} />
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Feather name="arrow-left" size={24} color={Colors.white} />
+          </TouchableOpacity>
+
+          <View style={styles.logoRing}>
+            <Image source={LOGO} style={styles.logoImage} resizeMode="contain" />
+          </View>
+        </View>
+
+        {/* ====== TITLE & TAGLINE ====== */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>MUDIRAJ WORLD</Text>
+          <View style={styles.taglineRow}>
+            <View style={styles.taglineLine} />
+            <Text style={styles.taglineText}>
+              Connect | Unite | Grow Together
+            </Text>
+            <View style={styles.taglineLine} />
+          </View>
+          <View style={styles.flourishRow}>
+            <View style={styles.flourishDot} />
+            <Text style={styles.flourishSymbol}>❖</Text>
+            <View style={styles.flourishDot} />
+          </View>
+        </View>
+
+        {/* ====== FORM HEADING ====== */}
+        <Text style={styles.formHeading}>Verify Your Mobile Number</Text>
+        <Text style={styles.formSubtext}>
+          Enter the {OTP_LENGTH}-digit OTP sent to
+        </Text>
 
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={styles.mobileRow}
+          activeOpacity={0.7}
+          onPress={handleEditNumber}
         >
-          <Feather name="arrow-left" size={24} color={Colors.white} />
+          <Text style={styles.mobileText}>+91 {mobile}</Text>
+          <Feather
+            name="edit-2"
+            size={15}
+            color={Colors.primaryRed}
+            style={{ marginLeft: 6 }}
+          />
         </TouchableOpacity>
 
-        <View style={styles.logoRing}>
-          <Image source={LOGO} style={styles.logoImage} resizeMode="contain" />
+        {/* ====== OTP INPUT BOXES ====== */}
+        <View style={styles.otpRow}>
+          {otp.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(ref) => (inputRefs.current[index] = ref)}
+              style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
+              value={digit}
+              onChangeText={(text) => handleChange(text, index)}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              textAlign="center"
+              underlineColorAndroid="transparent"
+              selectTextOnFocus
+            />
+          ))}
         </View>
-      </View>
 
-      {/* ====== TITLE & TAGLINE ====== */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>MUDIRAJ WORLD</Text>
-        <View style={styles.taglineRow}>
-          <View style={styles.taglineLine} />
-          <Text style={styles.taglineText}>
-            Connect | Unite | Grow Together
-          </Text>
-          <View style={styles.taglineLine} />
-        </View>
-        <View style={styles.flourishRow}>
-          <View style={styles.flourishDot} />
-          <Text style={styles.flourishSymbol}>❖</Text>
-          <View style={styles.flourishDot} />
-        </View>
-      </View>
-
-      {/* ====== FORM HEADING ====== */}
-      <Text style={styles.formHeading}>Verify Your Mobile Number</Text>
-      <Text style={styles.formSubtext}>
-        Enter the {OTP_LENGTH}-digit OTP sent to
-      </Text>
-
-      <TouchableOpacity
-        style={styles.mobileRow}
-        activeOpacity={0.7}
-        onPress={handleEditNumber}
-      >
-        <Text style={styles.mobileText}>+91 {mobile}</Text>
-        <Feather
-          name="edit-2"
-          size={15}
-          color={Colors.primaryRed}
-          style={{ marginLeft: 6 }}
-        />
-      </TouchableOpacity>
-
-      {/* ====== OTP INPUT BOXES ====== */}
-      <View style={styles.otpRow}>
-        {otp.map((digit, index) => (
-          <TextInput
-            key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
-            style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
-            value={digit}
-            onChangeText={(text) => handleChange(text, index)}
-            onKeyPress={(e) => handleKeyPress(e, index)}
-            keyboardType="number-pad"
-            maxLength={1}
-            textAlign="center"
-            underlineColorAndroid="transparent"
-            selectTextOnFocus
-          />
-        ))}
-      </View>
-
-      {/* ====== PENDING APPROVAL MESSAGE ====== */}
-      {isPendingApproval && (
-        <View style={styles.pendingContainer}>
-          <View style={styles.pendingIconCircle}>
-            <Feather name="clock" size={22} color={Colors.warning} />
+        {/* ====== PENDING APPROVAL MESSAGE ====== */}
+        {isPendingApproval && (
+          <View style={styles.pendingContainer}>
+            <View style={styles.pendingIconCircle}>
+              <Feather name="clock" size={22} color={Colors.warning} />
+            </View>
+            <Text style={styles.pendingTitle}>Awaiting Admin Approval</Text>
+            <Text style={styles.pendingText}>
+              Your number is verified, but your account still needs to be approved
+              by an admin before you can log in. This usually doesn't take long —
+              please check back shortly.
+            </Text>
           </View>
-          <Text style={styles.pendingTitle}>Awaiting Admin Approval</Text>
-          <Text style={styles.pendingText}>
-            Your number is verified, but your account still needs to be approved
-            by an admin before you can log in. This usually doesn't take long —
-            please check back shortly.
-          </Text>
-        </View>
-      )}
+        )}
 
-      {/* ====== ERROR MESSAGE ====== */}
-      {!isPendingApproval && errorText.length > 0 && (
-        <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
-          <Text style={styles.errorText}>{errorText}</Text>
-        </View>
-      )}
-
-      {!isPendingApproval && (
-        <>
-          {/* ====== RESEND ROW ====== */}
-          <View style={styles.resendRow}>
-            <Text style={styles.resendText}>Didn't receive the code? </Text>
-            {secondsLeft > 0 ? (
-              <Text style={styles.resendText}>
-                Resend OTP in{" "}
-                <Text style={styles.resendTimer}>{formattedTimer}</Text>
-              </Text>
-            ) : (
-              <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
-                <Text style={styles.resendLink}>Resend OTP</Text>
-              </TouchableOpacity>
-            )}
+        {/* ====== ERROR MESSAGE ====== */}
+        {!isPendingApproval && errorText.length > 0 && (
+          <View style={styles.errorContainer}>
+            <Feather name="alert-circle" size={18} color={Colors.primaryRed} />
+            <Text style={styles.errorText}>{errorText}</Text>
           </View>
+        )}
 
-          {/* ====== VERIFY BUTTON ====== */}
-          <TouchableOpacity
-            style={[
-              styles.verifyButtonTouchable,
-              !isComplete && styles.verifyButtonDisabled,
-            ]}
-            activeOpacity={0.85}
-            onPress={handleVerify}
-            disabled={!isComplete || loading}
-          >
-            {/* <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>
+        {!isPendingApproval && (
+          <>
+            {/* ====== RESEND ROW ====== */}
+            <View style={styles.resendRow}>
+              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              {secondsLeft > 0 ? (
+                <Text style={styles.resendText}>
+                  Resend OTP in{" "}
+                  <Text style={styles.resendTimer}>{formattedTimer}</Text>
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
+                  <Text style={styles.resendLink}>Resend OTP</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ====== VERIFY BUTTON ====== */}
+            <TouchableOpacity
+              style={[
+                styles.verifyButtonTouchable,
+                !isComplete && styles.verifyButtonDisabled,
+              ]}
+              activeOpacity={0.85}
+              onPress={() => handleVerify("")}
+              disabled={!isComplete || loading}
+            >
+              {/* <Svg width="100%" height={54} style={StyleSheet.absoluteFillObject}>
               <Defs>
                 <SvgGradient id="otpBtnGrad" x1="0" y1="0" x2="1" y2="0">
                   <Stop offset="0" stopColor={Colors.primaryRed} />
@@ -341,49 +350,50 @@ export default function OtpScreen({ setIsLoggedIn }) {
                 fill="url(#otpBtnGrad)"
               />
             </Svg> */}
-            <View style={styles.verifyButtonContent}>
-              <Feather
-                name="shield"
-                size={20}
-                color={Colors.white}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.verifyButtonText}>
-                {loading ? "VERIFYING..." : "VERIFY OTP"}
-              </Text>
-            </View>
+              <View style={styles.verifyButtonContent}>
+                <Feather
+                  name="shield"
+                  size={20}
+                  color={Colors.white}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.verifyButtonText}>
+                  {loading ? "VERIFYING..." : "VERIFY OTP"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+          </>
+        )}
+
+        {isPendingApproval && (
+          <TouchableOpacity
+            style={styles.whatsappButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.replace("Login")}
+          >
+            <Feather name="arrow-left" size={18} color={Colors.primaryRed} />
+            <Text style={styles.whatsappText}>Back to Login</Text>
           </TouchableOpacity>
+        )}
 
-        </>
-      )}
-
-      {isPendingApproval && (
-        <TouchableOpacity
-          style={styles.whatsappButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.replace("Login")}
-        >
-          <Feather name="arrow-left" size={18} color={Colors.primaryRed} />
-          <Text style={styles.whatsappText}>Back to Login</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* ====== PRIVACY NOTE ====== */}
-      <View style={styles.privacyRow}>
-        <View style={styles.privacyIconCircle}>
-          <Feather name="lock" size={16} color={Colors.primaryRed} />
+        {/* ====== PRIVACY NOTE ====== */}
+        <View style={styles.privacyRow}>
+          <View style={styles.privacyIconCircle}>
+            <Feather name="lock" size={16} color={Colors.primaryRed} />
+          </View>
+          <Text style={styles.privacyText}>
+            We never share your number with anyone.{"\n"}Your privacy is our
+            priority.
+          </Text>
         </View>
-        <Text style={styles.privacyText}>
-          We never share your number with anyone.{"\n"}Your privacy is our
-          priority.
-        </Text>
-      </View>
 
-      {/* ====== HERITAGE WATERMARK FOOTER ====== */}
-      <View style={styles.skylineWrapper}>
-        <HeritageSkyline />
-      </View>
-    </SafeAreaView>
+        {/* ====== HERITAGE WATERMARK FOOTER ====== */}
+        <View style={styles.skylineWrapper}>
+          <HeritageSkyline />
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

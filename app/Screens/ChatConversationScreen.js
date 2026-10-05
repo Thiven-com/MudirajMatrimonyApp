@@ -601,9 +601,9 @@ export default function ChatConversationScreen({ navigation, route }) {
 
         {/* ================= INPUT BAR ================= */}
         <View style={styles.inputBar}>
-          <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
+          {/* <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
             <Feather name="plus" size={24} color={COLORS.darkRed} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <View style={styles.inputWrapper}>
             <TextInput
