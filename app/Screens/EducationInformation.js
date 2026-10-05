@@ -200,7 +200,7 @@ export default function EducationInformation({ navigation, route }) {
 === */
 
   const handleDeleteEducation = (educationId) => {
-    console.log("===");
+ 
     console.log("DELETE BUTTON CLICKED");
     console.log("RAW EDUCATION ID:", educationId);
 
@@ -261,7 +261,6 @@ export default function EducationInformation({ navigation, route }) {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            console.log("DELETE CONFIRMED - CALLING API");
 
             performDelete(numericId);
           },
@@ -275,7 +274,6 @@ export default function EducationInformation({ navigation, route }) {
 
   const performDelete = async (numericId) => {
     try {
-      console.log("===");
       console.log("PERFORM DELETE CALLED");
       console.log("EDUCATION ID:", numericId);
 
@@ -328,7 +326,6 @@ export default function EducationInformation({ navigation, route }) {
       // -------------------------------------------------
 
       if (success) {
-        console.log("===");
 
         console.log("EDUCATION DELETE SUCCESS");
 
@@ -368,7 +365,7 @@ export default function EducationInformation({ navigation, route }) {
         Alert.alert("Delete Failed", message);
       }
     } catch (error) {
-      console.error("===");
+     
 
       console.error("DELETE EDUCATION ERROR:", error);
 

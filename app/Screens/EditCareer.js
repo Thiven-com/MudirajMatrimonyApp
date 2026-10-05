@@ -364,18 +364,8 @@ export default function EditCareer({ navigation, route }) {
       // GET SINGLE CAREER
       // GET /api/member/career/{id}
       // -----------------------------------------
-
-      console.log("===");
-
-      console.log("EDIT CAREER SCREEN");
-
       console.log("CAREER ID:", careerId);
-
-      console.log("===");
-
       const response = await getMemberCareerById(accessToken, careerId);
-
-      console.log("GET SINGLE CAREER RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
 
@@ -605,8 +595,6 @@ export default function EditCareer({ navigation, route }) {
       // DEBUG
       // -------------------------------------------------
 
-      console.log("===");
-
       console.log("UPDATE CAREER BUTTON CLICKED");
 
       console.log("METHOD: PUT");
@@ -614,9 +602,6 @@ export default function EditCareer({ navigation, route }) {
       console.log("URL:", `/api/member/career/${id}`);
 
       console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-
-      console.log("===");
-
       // -------------------------------------------------
       // CALL PUT API
       // -------------------------------------------------

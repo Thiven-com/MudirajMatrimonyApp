@@ -85,14 +85,7 @@ export default function FamilyInformation({ navigation, route }) {
         === */
 
       const accessToken = await AsyncStorage.getItem("authToken");
-
-      console.log("=====");
-
-      console.log("FAMILY INFORMATION SCREEN");
-
       console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("=====");
 
       /* ===
            TOKEN CHECK
@@ -110,13 +103,9 @@ export default function FamilyInformation({ navigation, route }) {
 
       const response = await getMemberFamilyInfo(accessToken);
 
-      console.log("=====");
-
       console.log("FAMILY API FULL RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("=====");
 
       /* ===
            RESPONSE DATA
@@ -180,7 +169,7 @@ export default function FamilyInformation({ navigation, route }) {
         sibling: data?.sibling ?? data?.siblings ?? data?.sibling_count ?? "",
       });
     } catch (error) {
-      console.error("=====");
+     
 
       console.error("FAMILY INFORMATION SCREEN ERROR");
 
@@ -190,8 +179,6 @@ export default function FamilyInformation({ navigation, route }) {
         "ERROR RESPONSE:",
         JSON.stringify(error?.response?.data, null, 2),
       );
-
-      console.error("=====");
 
       const message =
         error?.response?.data?.message ||

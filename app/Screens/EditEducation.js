@@ -120,14 +120,9 @@ export default function EditEducation({ navigation, route }) {
   const loadEducation = async () => {
     try {
       setLoading(true);
-
-      console.log("===");
-
       console.log("EDIT EDUCATION SCREEN");
 
       console.log("EDUCATION ID:", educationId);
-
-      console.log("===");
 
       /* =======
          GET ACCESS TOKEN
@@ -170,14 +165,9 @@ export default function EditEducation({ navigation, route }) {
       ======= */
 
       const response = await getMemberEducationById(accessToken, numericId);
-
-      console.log("===");
-
       console.log("SINGLE EDUCATION RESPONSE");
 
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("===");
 
       /* =======
          EXTRACT DATA
@@ -288,14 +278,9 @@ export default function EditEducation({ navigation, route }) {
         ),
       );
     } catch (error) {
-      console.error("===");
-
       console.error("GET SINGLE EDUCATION ERROR");
 
       console.error(error);
-
-      console.error("===");
-
       Alert.alert(
         "Error",
         error?.message || "Unable to load education information.",
@@ -432,7 +417,7 @@ export default function EditEducation({ navigation, route }) {
       // DEBUG
       // ---------------------------------------------------
 
-      console.log("===");
+     
 
       console.log("UPDATE EDUCATION SCREEN");
 
@@ -444,7 +429,7 @@ export default function EditEducation({ navigation, route }) {
 
       console.log(JSON.stringify(payload, null, 2));
 
-      console.log("===");
+    
 
       // ---------------------------------------------------
       // CALL UPDATE API
@@ -460,13 +445,13 @@ export default function EditEducation({ navigation, route }) {
       // DEBUG RESPONSE
       // ---------------------------------------------------
 
-      console.log("===");
+  
 
       console.log("UPDATE EDUCATION RESPONSE:");
 
       console.log(JSON.stringify(response, null, 2));
 
-      console.log("===");
+      
 
       // ---------------------------------------------------
       // CHECK RESPONSE
@@ -522,21 +507,12 @@ export default function EditEducation({ navigation, route }) {
       // ---------------------------------------------------
       // ERROR LOG
       // ---------------------------------------------------
-
-      console.error("===");
-
-      console.error("UPDATE EDUCATION ERROR");
-
       console.error(error);
 
       console.error("ERROR MESSAGE:", error?.message);
-
-      console.error("===");
-
       // ---------------------------------------------------
       // ERROR MESSAGE
       // ---------------------------------------------------
-
       Alert.alert(
         "Update Failed",
         error?.message || "Unable to update education. Please try again.",

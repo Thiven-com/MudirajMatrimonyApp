@@ -276,7 +276,7 @@ export default function ChatConversationScreen({ navigation, route }) {
             }
           }
         } catch (chatListError) {
-          console.log("getChatList for chat header failed:", chatListError);
+         
         }
 
         const partner = mapChatPartner(payload, memberId, params, chatListItem);
@@ -426,7 +426,7 @@ export default function ChatConversationScreen({ navigation, route }) {
             m.id === optimisticId ? { ...m, status: "failed" } : m,
           ),
         );
-        console.log("sendChatReply failed:", result.message);
+      
       }
     } catch (err) {
       console.log("handleSend Error:", err);

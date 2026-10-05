@@ -274,15 +274,7 @@ export default function PaymentScreen() {
         token,
         selectedPackageId,
       );
-
-      console.log("=================================");
-      console.log("PACKAGE DETAILS RESPONSE");
-      console.log("=================================");
-
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("=================================");
-
       if (
         response?.success === 0 ||
         response?.success === false ||
@@ -387,16 +379,10 @@ export default function PaymentScreen() {
         discountPercent,
       });
     } catch (error) {
-      console.error(
-        "=================================",
-      );
+  
 
       console.error(
         "GET PACKAGE DETAILS ERROR",
-      );
-
-      console.error(
-        "=================================",
       );
 
       console.error(error);
@@ -423,37 +409,23 @@ export default function PaymentScreen() {
   const loadPaymentTypes = async () => {
     try {
       setIsLoadingPaymentTypes(true);
-
-      console.log("=================================");
       console.log("GET PAYMENT TYPES");
-      console.log("=================================");
-
       const token = await getToken();
-
       console.log("Token exists:", !!token);
-
       if (!token) {
         console.log(
           "Token not available. Using fallback payment methods.",
         );
-
         setPaymentMethods(
           FALLBACK_PAYMENT_METHODS,
         );
-
         return;
       }
-
       const response = await getPaymentTypes(token);
 
-      console.log("=================================");
-      console.log("PAYMENT TYPES RESPONSE");
-      console.log("=================================");
-
+    
+     
       console.log(JSON.stringify(response, null, 2));
-
-      console.log("=================================");
-
       if (
         response?.success === 0 ||
         response?.success === false ||
@@ -556,18 +528,7 @@ export default function PaymentScreen() {
         );
       }
     } catch (error) {
-      console.error(
-        "=================================",
-      );
-
-      console.error(
-        "GET PAYMENT TYPES ERROR",
-      );
-
-      console.error(
-        "=================================",
-      );
-
+     
       console.error(error);
 
       setPaymentMethods(

@@ -103,7 +103,7 @@ export default function CareerInformation({ navigation }) {
   // =======================================================
 
   const normalizeCareerResponse = useCallback((response) => {
-    console.log("========== CAREER RESPONSE ==========");
+
 
     console.log(JSON.stringify(response, null, 2));
 
@@ -182,13 +182,13 @@ export default function CareerInformation({ navigation }) {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("========================================");
+     
 
       console.log("GET CAREER");
 
       console.log("TOKEN EXISTS:", !!accessToken);
 
-      console.log("========================================");
+  
 
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
@@ -204,13 +204,12 @@ export default function CareerInformation({ navigation }) {
 
       const careerData = normalizeCareerResponse(response);
 
-      console.log("NORMALIZED CAREER DATA:");
+      
 
       console.log(JSON.stringify(careerData, null, 2));
 
       setCareers(Array.isArray(careerData) ? careerData : []);
     } catch (error) {
-      console.error("GET CAREER ERROR:", error);
 
       showAlert(
         "Error",
@@ -326,14 +325,13 @@ export default function CareerInformation({ navigation }) {
     try {
       setDeleting(true);
 
-      console.log("========================================");
+    
 
       console.log("DELETE CAREER");
 
       console.log("CAREER ID:", deleteId);
 
-      console.log("========================================");
-
+     
       const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {

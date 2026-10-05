@@ -182,10 +182,10 @@ export default function AddCareer({ navigation }) {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("=================================");
+   
       console.log("SAVE CAREER BUTTON CLICKED");
       console.log("TOKEN EXISTS:", !!accessToken);
-      console.log("=================================");
+     
 
       if (!accessToken) {
         throw new Error("Access token is missing. Please login again.");

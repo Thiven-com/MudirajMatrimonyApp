@@ -156,16 +156,9 @@ export default function EditFamilyInformation({ navigation, route }) {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-      console.log("=====");
-
-      console.log("EDIT FAMILY INFORMATION");
-
       console.log("SELECTED FIELD:", selectedField);
 
       console.log("TOKEN EXISTS:", !!accessToken);
-
-      console.log("=====");
-
       /* ===
            TOKEN CHECK
         === */
@@ -242,8 +235,6 @@ export default function EditFamilyInformation({ navigation, route }) {
 
       setErrorMessage("");
     } catch (error) {
-      console.error("=====");
-
       console.error("EDIT FAMILY INFORMATION GET ERROR");
 
       console.error(error);
@@ -254,8 +245,6 @@ export default function EditFamilyInformation({ navigation, route }) {
         "RESPONSE:",
         JSON.stringify(error?.response?.data, null, 2),
       );
-
-      console.error("=====");
 
       setErrorMessage(
         error?.response?.data?.message ||
@@ -391,9 +380,6 @@ export default function EditFamilyInformation({ navigation, route }) {
         Alert.alert("Update Failed", errorMessage);
       }
     } catch (error) {
-      console.error("=====");
-
-      console.error("SAVE FAMILY INFORMATION ERROR");
 
       console.error(error);
 
@@ -403,8 +389,6 @@ export default function EditFamilyInformation({ navigation, route }) {
         "ERROR RESPONSE:",
         JSON.stringify(error?.response?.data, null, 2),
       );
-
-      console.error("=====");
 
       const errorMessage =
         error?.response?.data?.message ||

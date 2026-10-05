@@ -494,7 +494,6 @@ export default function PurchaseHistory() {
           "Transaction ID copied to clipboard.",
         );
       } catch (error) {
-        console.log("Clipboard error:", error);
       }
     },
     [],

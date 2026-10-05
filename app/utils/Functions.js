@@ -87,10 +87,7 @@ function requireToken(accessToken) {
 // crashes the caller just because logging failed.
 function logResponse(label, response) {
   try {
-    // console.log("===");
-    // console.log(label);
-    // console.log(JSON.stringify(response, null, 2));
-    // console.log("===");
+ 
   } catch (e) {
     console.log(label, response);
   }
@@ -1794,14 +1791,8 @@ export async function addMemberEducation(accessToken, education = {}) {
     const response = await postMethod(URL, user, body);
     return response;
   } catch (error) {
-    console.error("===");
-
     console.error("ADD EDUCATION API ERROR");
-
     console.error(error);
-
-    console.error("===");
-
     throw error;
   }
 }
@@ -2076,14 +2067,7 @@ export async function addMemberCareer(accessToken, career = {}) {
 
     return response;
   } catch (error) {
-    console.error("===");
-
-    console.error("ADD MEMBER CAREER API ERROR");
-
     console.error(error);
-
-    console.error("===");
-
     throw error;
   }
 }
@@ -3059,15 +3043,10 @@ export async function purchasePackage(
     amount: Number(amount),
     payment_method: paymentMethod,
   };
-
-  console.log("=================================");
-  console.log("PACKAGE PURCHASE API");
   console.log("METHOD: POST");
   console.log("URL:", URL);
   console.log("BODY:", JSON.stringify(body, null, 2));
   console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
-
   try {
     const response = await postMethod(
       URL,
@@ -3076,9 +3055,6 @@ export async function purchasePackage(
       },
       body,
     );
-
-    console.log("PACKAGE PURCHASE RESPONSE:");
-    console.log(JSON.stringify(response, null, 2));
 
     return response;
   } catch (error) {
@@ -3099,24 +3075,23 @@ export async function getPackagePurchaseHistory(accessToken) {
 
   const URL = BASE_URL + "/api/member/package-purchase-history";
 
-  console.log("=================================");
-  console.log("PACKAGE PURCHASE HISTORY API");
+
   console.log("METHOD: GET");
   console.log("URL:", URL);
   console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
+
 
   try {
     const response = await getMethod(URL, {
       token: accessToken,
     });
 
-    console.log("PACKAGE PURCHASE HISTORY RESPONSE:");
+  
     console.log(JSON.stringify(response, null, 2));
 
     return response;
   } catch (error) {
-    console.error("PACKAGE PURCHASE HISTORY ERROR:", error);
+
 
     throw error;
   }
@@ -3137,14 +3112,11 @@ export async function getPackagePurchaseInvoice(accessToken, packagePaymentId) {
   const body = {
     package_payment_id: Number(packagePaymentId),
   };
-
-  console.log("=================================");
-  console.log("PACKAGE PURCHASE INVOICE API");
   console.log("METHOD: POST");
   console.log("URL:", URL);
   console.log("BODY:", JSON.stringify(body, null, 2));
   console.log("TOKEN EXISTS:", !!accessToken);
-  console.log("=================================");
+
 
   try {
     const response = await postMethod(
@@ -3155,7 +3127,7 @@ export async function getPackagePurchaseInvoice(accessToken, packagePaymentId) {
       body,
     );
 
-    console.log("PACKAGE PURCHASE INVOICE RESPONSE:");
+   
     console.log(JSON.stringify(response, null, 2));
 
     return response;

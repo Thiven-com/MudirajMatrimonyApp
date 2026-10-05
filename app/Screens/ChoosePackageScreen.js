@@ -490,13 +490,6 @@ export default function ChoosePackageScreen({ navigation, route }) {
       setLoading(true);
 
       setError(null);
-
-      console.log("=======");
-
-      console.log("FETCHING PACKAGES");
-
-      console.log("=======");
-
       const response = await getPackagesData();
 
       console.log("PACKAGES API RESPONSE:", JSON.stringify(response, null, 2));
