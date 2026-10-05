@@ -1,4 +1,4 @@
-package com.mudirajmatrimony
+package app.mudirajworldmatrimony.com
 
 import android.app.Application
 import com.facebook.react.PackageList

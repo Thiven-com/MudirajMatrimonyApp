@@ -46,8 +46,7 @@ const ON_BEHALF_OPTIONS = [
     { label: "For Someone Else", value: 1 },
 ];
 
-export default function RegisterScreen() {
-    const navigation = useNavigation();
+export default function RegisterScreen({ navigation, route }) {
 
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -386,8 +385,13 @@ export default function RegisterScreen() {
                         </View>
                         <Text style={styles.termsText}>
                             I agree to the{" "}
-                            <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
-                            <Text style={styles.termsLink}>Privacy Policy</Text>
+                            <Text style={styles.termsLink} onPress={() => navigation.navigate("Terms", { page: route?.name })}>
+                                Terms & Conditions
+                            </Text>
+                            and{" "}
+                            <Text style={styles.termsLink} onPress={() => navigation.navigate("Privacy", { page: route?.name })}>
+                                Privacy Policy
+                            </Text>
                         </Text>
                     </TouchableOpacity>
 

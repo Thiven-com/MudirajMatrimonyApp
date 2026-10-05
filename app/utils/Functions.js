@@ -1241,6 +1241,35 @@ export async function getOldMessages(firstMessageId, token) {
     };
   }
 }
+export async function userReport(user_id, token, reason) {
+  const URL = apiUrl("/api/member/report-member");
+  const payload = { user_id: user_id, reason: reason };
+
+  try {
+    const result = await postMethod(URL, token, payload);
+    if (result?.success === 1 || result?.result === true) {
+      return {
+        success: 1,
+        result: true,
+        message: result?.message,
+        data: result?.data ?? [],
+      };
+    }
+    return {
+      success: 0,
+      result: false,
+      message: result?.message || "Unable to report user.",
+      data: [],
+    };
+  } catch (error) {
+    return {
+      success: 0,
+      result: false,
+      message: error?.message || "Failed to report user.",
+      data: [],
+    };
+  }
+}
 export async function getProfileDetails(accessToken) {
   requireToken(accessToken);
 

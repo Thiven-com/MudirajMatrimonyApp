@@ -4,6 +4,8 @@ import SignUpScreen from '../Auth/SignUpScreen';
 import OtpVerificationScreen from '../Auth/OtpVerificationScreen';
 import ForgotPasswordScreen from '../Auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../Auth/ResetPasswordScreen';
+import TermsAndConditions from '../Screens/TermsAndConditions';
+import PrivacyAndPolicyScreen from '../Screens/PrivacyAndPolicyScreen';
 
 const options = {
   tabBarButton: (props) => null, tabBarVisible: false, tabBarLabel: '', headerShown: false, tabBarStyle: { display: "none" }, gestureEnabled: false
@@ -15,4 +17,6 @@ export const publicRoutes = [
   { name: 'VerifyOTP', component: OtpVerificationScreen, options: options },
   { name: 'ForgotPassword', component: ForgotPasswordScreen, options: options },
   { name: 'ResetPassword', component: ResetPasswordScreen, options: options },
+  { name: 'Privacy', component: PrivacyAndPolicyScreen, options: options },
+  { name: 'Terms', component: TermsAndConditions, options: options },
 ];

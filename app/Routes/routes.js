@@ -47,7 +47,6 @@ import RefundAndPolicyScreen from '../Screens/RefundAndPolicyScreen';
 import TermsAndConditions from '../Screens/TermsAndConditions';
 import { DarkTheme, LightTheme } from '../styles/theme';
 import Fonts from '../constants/Fonts';
-import TermsAndConditions from '../Screens/TermsAndConditions';
 
 const width = Dimensions.get('window').width;
 
@@ -377,20 +376,20 @@ export const useRoutesList = () => {
       component: InvoiceDetailsScreen,
       options: notTabBar,
     },
-{
-name: 'Privacy',
-component: PrivacyAndPolicyScreen,
-options: notTabBar,
-},
-{
-name:'Refund',
-component: RefundAndPolicyScreen,
-options: notTabBar,
-},
-{
-name:'Terms',
-component: TermsAndConditions,
-options: notTabBar,
-}
+    {
+      name: 'Privacy',
+      component: PrivacyAndPolicyScreen,
+      options: notTabBar,
+    },
+    {
+      name: 'Refund',
+      component: RefundAndPolicyScreen,
+      options: notTabBar,
+    },
+    {
+      name: 'Terms',
+      component: TermsAndConditions,
+      options: notTabBar,
+    }
   ];
 };

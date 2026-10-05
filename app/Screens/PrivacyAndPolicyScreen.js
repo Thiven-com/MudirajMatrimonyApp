@@ -80,10 +80,10 @@ const SECTIONS = [
   },
 ];
 
-export default function PrivacyPolicy({ navigation }) {
+export default function PrivacyPolicy({ navigation, route }) {
   const handleBack = () => {
     if (navigation?.canGoBack?.()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Profile");
     } else {
       navigation?.navigate?.("Home");
     }

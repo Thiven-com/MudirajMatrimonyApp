@@ -4,6 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
   Image,
   Platform,
@@ -25,7 +26,9 @@ import {
   getPublicProfile,
   rejectInterest,
   removeFromShortlist,
+  userReport,
 } from "../utils/Functions";
+import ReportBlockModal from "./ReportBlockModal";
 
 const LOGO = require("../assets/images/logo.png");
 const FALLBACK_PHOTO = require("../assets/images/logo.png");
@@ -148,12 +151,12 @@ function getDisplayValue(value) {
   if (typeof value === "object") {
     return String(
       value.name ??
-        value.label ??
-        value.value ??
-        value.title ??
-        value.qualification ??
-        value.degree ??
-        "",
+      value.label ??
+      value.value ??
+      value.title ??
+      value.qualification ??
+      value.degree ??
+      "",
     );
   }
 
@@ -198,20 +201,20 @@ function mapProfile(api, routeId) {
     gender: basic.gender ?? "",
     profession: getDisplayValue(
       basic.profession ??
-        basic.occupation ??
-        careerList[0]?.profession ??
-        careerList[0]?.designation ??
-        "",
+      basic.occupation ??
+      careerList[0]?.profession ??
+      careerList[0]?.designation ??
+      "",
     ),
     location: getDisplayValue(
       basic.location ?? [basic.city, basic.state].filter(Boolean).join(", "),
     ),
     education: getDisplayValue(
       educationList[0]?.qualification ??
-        educationList[0]?.degree ??
-        basic.education ??
-        basic.qualification ??
-        "",
+      educationList[0]?.degree ??
+      basic.education ??
+      basic.qualification ??
+      "",
     ),
     height: getDisplayValue(
       physical.height ?? basic.height_text ?? basic.height ?? "",
@@ -279,6 +282,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
+  const [reportBlockVisible, setReportBlockVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -327,8 +331,8 @@ export default function ProfileDetailScreen({ navigation, route }) {
       if (!memberData && !publicData) {
         setLoadError(
           memberResult?.message ||
-            publicResult?.message ||
-            "Unable to load profile.",
+          publicResult?.message ||
+          "Unable to load profile.",
         );
         return;
       }
@@ -412,14 +416,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
       const memberId = String(existingChat.user_id ?? targetMemberId);
 
       navigation.navigate("ChatConversion", {
-          id: threadId,
-          threadId,
-          memberId,
-          name: profile?.name ?? existingChat.member_name ?? "",
-          profession: profile?.profession ?? existingChat.profession ?? "",
-          online: existingChat.active === 1 ? "true" : "false",
-          page: route?.name,
-          prevs: route?.params || {},
+        id: threadId,
+        threadId,
+        memberId,
+        name: profile?.name ?? existingChat.member_name ?? "",
+        profession: profile?.profession ?? existingChat.profession ?? "",
+        online: existingChat.active === 1 ? "true" : "false",
+        page: route?.name,
+        prevs: route?.params || {},
       });
     } catch (error) {
       console.log("handleOpenChat Error:", error);
@@ -469,7 +473,29 @@ export default function ProfileDetailScreen({ navigation, route }) {
       setSendingInterest(false);
     }
   };
+  const reportUser = async (data) => {
+    setRejecting(true);
+    const targetId = profile?.id ?? id;
+    try {
+      const token = await getToken();
+      const result = await userReport(Number(targetId), token, data.reason);
 
+      const isSuccess = result?.success === 1 || result?.result === true;
+
+      if (isSuccess) {
+        setRejecting(false);
+        Alert.alert("Alert", result.message || "User has been reported successfully.");
+        navigation.navigate(route?.params?.page || "Home");
+      } else {
+        Alert.alert("Alert", result.message);
+        console.log("getOldMessages failed:", result.message);
+      }
+    } catch (err) {
+      console.log("handleLoadOlderMessages Error:", err);
+    } finally {
+      setRejecting(false);
+    }
+  }
   const handleRejectInterest = async () => {
     if (rejecting || interestRejected) return;
 
@@ -671,15 +697,16 @@ export default function ProfileDetailScreen({ navigation, route }) {
                 />
               )}
               <View style={{ flex: 1 }} />
-              {/* <TouchableOpacity
+              <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => setReportBlockVisible(true)}
               >
                 <Feather
-                  name="share-2"
+                  name="more-vertical"
                   size={20}
                   color={Colors.primaryRed}
                 />
-              </TouchableOpacity> */}
+              </TouchableOpacity>
               <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{ marginLeft: 12 }}
@@ -692,19 +719,35 @@ export default function ProfileDetailScreen({ navigation, route }) {
                     color={Colors.textSecondary}
                   />
                 ) : null
-                //  (
-                //   <Feather
-                //     name="more-vertical"
-                //     size={20}
-                //     color={
-                //       interestRejected ? Colors.textMuted : Colors.textSecondary
-                //     }
-                //   />
-                // )
+                  //  (
+                  //   <Feather
+                  //     name="more-vertical"
+                  //     size={20}
+                  //     color={
+                  //       interestRejected ? Colors.textMuted : Colors.textSecondary
+                  //     }
+                  //   />
+                  // )
                 }
               </TouchableOpacity>
             </View>
 
+            <ReportBlockModal
+              visible={reportBlockVisible}
+              onClose={() => setReportBlockVisible(false)}
+              onReport={reason => {
+                reportUser({
+                  user_id: route?.params?.memberId,
+                  reason: reason,
+                });
+              }}
+              onBlock={() => {
+                reportUser({
+                  user_id: route?.params?.memberId,
+                  reason: "Blocked by user",
+                });
+              }}
+            />
             {!!profile.profession && (
               <Text style={styles.professionText}>{profile.profession}</Text>
             )}

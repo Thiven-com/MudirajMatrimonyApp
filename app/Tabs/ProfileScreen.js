@@ -6,8 +6,6 @@ import {
   Dimensions,
   Image,
   Modal,
-  Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -40,6 +38,7 @@ import {
   updateMemberIntroduction,
 } from "../utils/Functions";
 import moment from "moment";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const { width } = Dimensions.get("window");
@@ -463,7 +462,6 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
       }
 
       const profile = result?.data || result?.user || result?.profile || result;
-
       setProfileData(profile);
 
       const profilePhotos =
@@ -563,17 +561,11 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
   };
 
   const handleLogout = () => {
-    // so use window.confirm there instead
-    if (Platform.OS === "web") {
-      if (window.confirm("Are you sure you want to log out?")) {
-        performLogout();
-      }
-      return;
-    }
-
+     performLogout();
+     return;
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: performLogout },
+      { text: "Log Out", style: "destructive", onPress: ()=> performLogout() },
     ]);
   };
 
@@ -609,7 +601,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
       setIntroduction("");
       setAboutTextValue("");
     } catch (error) {
-   
+
 
       setIntroduction("");
       setAboutTextValue("");
@@ -1889,94 +1881,88 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
           </TouchableOpacity>
         </View>
 
-{/* =================================================
+        {/* =================================================
     PRIVACY POLICY
 ================================================= */}
 
-<TouchableOpacity
-  style={styles.profileRow}
-  activeOpacity={0.8}
-  onPress={() => {
-    console.log("Privacy Policy Clicked");
+        <TouchableOpacity
+          style={styles.profileRow}
+          activeOpacity={0.8}
+          onPress={() => {
+            navigation.navigate("Privacy", {
+              page: route?.name,
+              prevs: route?.params,
+            });
+          }}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: "#EAF3FF" }]}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={21}
+              color="#2C84D6"
+            />
+          </View>
 
-    navigation.navigate("PrivacyAndPolicy", {
-      page: route?.name,
-      prevs: route?.params,
-    });
-  }}
->
-  <View style={[styles.rowIcon, { backgroundColor: "#EAF3FF" }]}>
-    <Ionicons
-      name="shield-checkmark-outline"
-      size={21}
-      color="#2C84D6"
-    />
-  </View>
+          <Text style={styles.rowTitle}>Privacy Policy</Text>
 
-  <Text style={styles.rowTitle}>Privacy Policy</Text>
-
-  <Ionicons name="chevron-forward" size={18} color="#666666" />
-</TouchableOpacity>
+          <Ionicons name="chevron-forward" size={18} color="#666666" />
+        </TouchableOpacity>
 
 
-{/* =================================================
+        {/* =================================================
     TERMS & CONDITIONS
 ================================================= */}
 
-<TouchableOpacity
-  style={styles.profileRow}
-  activeOpacity={0.8}
-  onPress={() => {
-    console.log("Terms & Conditions Clicked");
+        <TouchableOpacity
+          style={styles.profileRow}
+          activeOpacity={0.8}
+          onPress={() => {
+            navigation.navigate("Terms", {
+              page: route?.name,
+              prevs: route?.params,
+            });
+          }}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: "#F3EAFE" }]}>
+            <Ionicons
+              name="document-text-outline"
+              size={21}
+              color="#7538B7"
+            />
+          </View>
 
-    navigation.navigate("TermsAndConditions", {
-      page: route?.name,
-      prevs: route?.params,
-    });
-  }}
->
-  <View style={[styles.rowIcon, { backgroundColor: "#F3EAFE" }]}>
-    <Ionicons
-      name="document-text-outline"
-      size={21}
-      color="#7538B7"
-    />
-  </View>
+          <Text style={styles.rowTitle}>Terms & Conditions</Text>
 
-  <Text style={styles.rowTitle}>Terms & Conditions</Text>
-
-  <Ionicons name="chevron-forward" size={18} color="#666666" />
-</TouchableOpacity>
+          <Ionicons name="chevron-forward" size={18} color="#666666" />
+        </TouchableOpacity>
 
 
-{/* =================================================
+        {/* =================================================
     REFUND POLICY
 ================================================= */}
 
-<TouchableOpacity
-  style={[styles.profileRow, styles.lastProfileRow]}
-  activeOpacity={0.8}
-  onPress={() => {
-    console.log("Refund Policy Clicked");
+        <TouchableOpacity
+          style={[styles.profileRow, styles.lastProfileRow]}
+          activeOpacity={0.8}
+          onPress={() => {
+            navigation.navigate("Refund", {
+              page: route?.name,
+              prevs: route?.params,
+            });
+          }}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: "#EAF9F1" }]}>
+            <Ionicons
+              name="cash-outline"
+              size={21}
+              color="#1AA968"
+            />
+          </View>
 
-    navigation.navigate("RefundAndPolicy", {
-      page: route?.name,
-      prevs: route?.params,
-    });
-  }}
->
-  <View style={[styles.rowIcon, { backgroundColor: "#EAF9F1" }]}>
-    <Ionicons
-      name="cash-outline"
-      size={21}
-      color="#1AA968"
-    />
-  </View>
+          <Text style={styles.rowTitle}>Refund Policy</Text>
 
-  <Text style={styles.rowTitle}>Refund Policy</Text>
-
-  <Ionicons name="chevron-forward" size={18} color="#666666" />
-</TouchableOpacity>
+          <Ionicons name="chevron-forward" size={18} color="#666666" />
+        </TouchableOpacity>
 
         {/* ===
           PROFILE VERIFICATION

@@ -104,7 +104,7 @@ const LAST_UPDATED = "August 20, 2025";
    MAIN SCREEN
 ============================================================ */
 
-export default function RefundPolicy({ navigation }) {
+export default function RefundPolicy({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
@@ -124,7 +124,7 @@ export default function RefundPolicy({ navigation }) {
             activeOpacity={0.8}
             onPress={() => {
               if (navigation?.canGoBack?.()) {
-                navigation.goBack();
+                navigation.navigate(route?.params?.page || "Profile");
               } else {
                 navigation.navigate("Home");
               }

@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
   Dimensions,
   FlatList,
@@ -24,7 +25,9 @@ import {
   getOldMessages,
   getToken,
   sendChatReply,
-} from "../utils/Functions"; // adjust path if your CLI project uses a different utils location
+  userReport,
+} from "../utils/Functions";
+import ReportBlockModal from "./ReportBlockModal";
 
 const { width } = Dimensions.get("window");
 
@@ -78,13 +81,6 @@ function cleanImageUrl(value) {
   return url;
 }
 
-/**
- * Build the header from the OTHER member.
- *
- * The route values are preferred because Chats/Match Details already know
- * exactly which member opened this conversation. We intentionally do NOT
- * use auth_user_photo because that field belongs to the authenticated user.
- */
 function mapChatPartner(
   payload,
   fallbackId,
@@ -96,27 +92,27 @@ function mapChatPartner(
   const routeAvatar = cleanImageUrl(
     firstParam(
       routeParams?.avatarUrl ??
-        routeParams?.memberPhoto ??
-        routeParams?.photo ??
-        routeParams?.image,
+      routeParams?.memberPhoto ??
+      routeParams?.photo ??
+      routeParams?.image,
     ),
   );
 
   const listAvatar = cleanImageUrl(
     chatListItem?.member_photo ??
-      chatListItem?.memberPhoto ??
-      chatListItem?.photo ??
-      chatListItem?.image,
+    chatListItem?.memberPhoto ??
+    chatListItem?.photo ??
+    chatListItem?.image,
   );
 
   const apiAvatar = cleanImageUrl(
     payload?.receiver_photo ??
-      payload?.receiver_image ??
-      payload?.receiver_profile_photo ??
-      payload?.member_photo ??
-      payload?.member_image ??
-      payload?.profile_photo ??
-      payload?.profile_image,
+    payload?.receiver_image ??
+    payload?.receiver_profile_photo ??
+    payload?.member_photo ??
+    payload?.member_image ??
+    payload?.profile_photo ??
+    payload?.profile_image,
   );
 
   return {
@@ -136,22 +132,6 @@ function mapChatPartner(
   };
 }
 
-/**
- * Maps a single message using the ACTUAL fields returned:
- *   { id, chat_thread_id, sender_user_id, message, attachment, seen }
- *
- * There's no `from_me` / `is_sender` flag and no timestamp field at all.
- * Since this is always a 1-on-1 thread, we can derive direction by
- * comparing sender_user_id against the OTHER member's user id
- * (the routeMemberId / user_id passed in from the chat list):
- *   sender_user_id === otherMemberId -> message came from them
- *   otherwise                        -> message is from the logged-in user
- *
- * Note: this is a different (and correctly-named) `sender_user_id` field
- * on each message object — it is NOT related to the confusing
- * `sender_name` / `receiver_name` naming on the chat-view payload above,
- * so it does not need the same swap.
- */
 function mapMessage(item, otherMemberId) {
   const senderId = item.sender_user_id;
   const fromMe =
@@ -175,43 +155,20 @@ function mapMessage(item, otherMemberId) {
 
 export default function ChatConversationScreen({ navigation, route }) {
   const params = route?.params || {};
+  const [reportBlockVisible, setReportBlockVisible] = useState(false);
 
   const firstRouteParam = (value) =>
     Array.isArray(value) ? value[0] : value;
 
-  // These three can, in principle, all be different values:
-  //  - chatId: the conversation/thread's own id (API's `id` field)
-  //  - routeMemberId: the other member's user id (API's `sender_user_id`
-  //    value that identifies THEM, used to derive message direction)
-  //  - routeThreadId: same as chatId, sent explicitly for clarity
   const chatId = firstRouteParam(params.id);
 
   const routeMemberId = firstRouteParam(params.memberId);
 
   const routeThreadId = firstRouteParam(params.threadId);
 
-  // getChatView is keyed by the CONVERSATION's own id (the backend
-  // looks up a ChatThread record by this id) — NOT the other member's
-  // user id. Confirmed by the "No query results for model
-  // [App\Models\ChatThread] 32" error, which showed the backend was
-  // being passed the member's user id (32) instead of the thread id (1).
   const resolvedChatId = chatId || routeThreadId;
-
-  // The other member's user id — used to figure out which side of the
-  // conversation a message belongs to (see mapMessage above), and as a
-  // fallback id for profile links.
   const memberId = routeMemberId || chatId;
 
-  console.log("ChatConversationScreen params:", {
-    chatId,
-    routeMemberId,
-    routeThreadId,
-    resolvedChatId,
-    memberId,
-  });
-
-  // threadId comes from ChatsScreen's nav params when available;
-  // falls back to whatever chat-view returns if missing (e.g. deep link).
   const [chatThreadId, setChatThreadId] = useState(
     resolvedChatId ? String(resolvedChatId) : null,
   );
@@ -276,7 +233,7 @@ export default function ChatConversationScreen({ navigation, route }) {
             }
           }
         } catch (chatListError) {
-         
+
         }
 
         const partner = mapChatPartner(payload, memberId, params, chatListItem);
@@ -295,9 +252,9 @@ export default function ChatConversationScreen({ navigation, route }) {
           setChatThreadId(
             String(
               payload?.chat_thread_id ??
-                payload?.thread_id ??
-                payload?.id ??
-                resolvedChatId,
+              payload?.thread_id ??
+              payload?.id ??
+              resolvedChatId,
             ),
           );
         }
@@ -334,7 +291,6 @@ export default function ChatConversationScreen({ navigation, route }) {
     try {
       const token = await getToken();
       const result = await getOldMessages(Number(firstMessageId), token);
-      console.log("getOldMessages response:", JSON.stringify(result));
 
       const isSuccess = result?.success === 1 || result?.result === true;
 
@@ -361,11 +317,34 @@ export default function ChatConversationScreen({ navigation, route }) {
     }
   }, [loadingOlder, hasMoreOlder, messages, memberId]);
 
+  const reportUser = async (data) => {
+    setLoadingOlder(true);
+    try {
+      const token = await getToken();
+      const result = await userReport(Number(data.user_id), token, data.reason);
+
+      const isSuccess = result?.success === 1 || result?.result === true;
+
+      if (isSuccess) {
+        setHasMoreOlder(false);
+        Alert.alert("Alert", result.message || "User has been reported successfully.");
+        navigation.navigate(route?.params?.page || "Home");
+      } else {
+        Alert.alert("Alert", result.message);
+        console.log("getOldMessages failed:", result.message);
+      }
+    } catch (err) {
+      console.log("handleLoadOlderMessages Error:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
   /* ================= SEND MESSAGE ================= */
 
   const handleBack = useCallback(() => {
     if (navigation?.canGoBack?.()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Home");
     } else {
       navigation?.navigate?.("Home");
     }
@@ -426,7 +405,7 @@ export default function ChatConversationScreen({ navigation, route }) {
             m.id === optimisticId ? { ...m, status: "failed" } : m,
           ),
         );
-      
+
       }
     } catch (err) {
       console.log("handleSend Error:", err);
@@ -537,25 +516,41 @@ export default function ChatConversationScreen({ navigation, route }) {
         <View style={styles.headerActions}>
           {/* <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
             <Feather name="phone" size={20} color={COLORS.darkRed} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+          </TouchableOpacity> */}
+          <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => setReportBlockVisible(true)}>
             <Feather
               name="more-vertical"
               size={20}
               color={COLORS.darkRed}
             />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* ================= SAFETY NOTICE ================= */}
       <View style={styles.safetyBanner}>
-        <Feather name="shield-check" size={14} color={COLORS.green} />
+        <Feather name="shield" size={14} color={COLORS.green} />
         <Text style={styles.safetyText}>
           Never share OTPs, bank details or make payments outside the app.
         </Text>
       </View>
 
+      <ReportBlockModal
+        visible={reportBlockVisible}
+        onClose={() => setReportBlockVisible(false)}
+        onReport={reason => {
+          reportUser({
+            user_id: route?.params?.memberId,
+            reason: reason,
+          });
+        }}
+        onBlock={() => {
+          reportUser({
+            user_id: route?.params?.memberId,
+            reason: "Blocked by user",
+          });
+        }}
+      />
       {/* ================= MESSAGES ================= */}
       <KeyboardAvoidingView
         style={styles.flex}
