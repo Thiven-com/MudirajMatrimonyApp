@@ -1,14 +1,12 @@
+import Feather from "react-native-vector-icons/Feather";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  useFocusEffect
-} from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
   Image,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,13 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Feather from "react-native-vector-icons/Feather";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
-import Fonts from "../constants/Fonts";
+import { Fonts, FontSizes } from "../constants/Fonts";
 import {
   addToShortlist,
   expressInterest,
+  getChatList,
   getMemberInfo,
   getPublicProfile,
   rejectInterest,
@@ -30,19 +28,16 @@ import {
 } from "../utils/Functions";
 
 const LOGO = require("../assets/images/logo.png");
-const FALLBACK_PHOTO = require("../assets/images/Match4.png");
+const FALLBACK_PHOTO = require("../assets/images/logo.png");
 
 const TABS = [
   { key: "about", label: "About", icon: "user" },
   { key: "family", label: "Family", icon: "users" },
-  { key: "lifestyle", label: "Lifestyle", icon: "smile" },
+  { key: "lifestyle", label: "Lifestyle", icon: "coffee" },
   { key: "career", label: "Education & Career", icon: "briefcase" },
   { key: "photos", label: "Photos", icon: "image" },
 ];
 
-/* ===
-   GET TOKEN (same pattern as matches screen)
-=== */
 const getToken = async () => {
   try {
     const authToken = await AsyncStorage.getItem("authToken");
@@ -73,7 +68,6 @@ const getToken = async () => {
   }
 };
 
-// Was interest sent to this member? Accepts many possible
 // backend representations of "yes, sent/pending/accepted".
 function isInterestSentStatus(status) {
   if (status === null || status === undefined) return false;
@@ -107,7 +101,6 @@ function isInterestRejectedStatus(status) {
   ].includes(s);
 }
 
-// Is this member currently shortlisted? Accepts booleans,
 // 1/0, "1"/"0", "true"/"false".
 function isShortlistedValue(value) {
   if (value === null || value === undefined) return false;
@@ -117,8 +110,6 @@ function isShortlistedValue(value) {
   return ["1", "true", "yes", "shortlisted"].includes(s);
 }
 
-// Generic "did this API call succeed" check. Backends are
-// inconsistent about success ? 1 : true : "success" etc, so
 // this checks every shape we've seen instead of one strict form.
 function isSuccessResponse(result) {
   if (!result) return false;
@@ -132,7 +123,6 @@ function isSuccessResponse(result) {
   return false;
 }
 
-// instead of showing a retry-able error.
 function isAlreadyDoneMessage(message) {
   if (!message || typeof message !== "string") return false;
   const m = message.toLowerCase();
@@ -158,12 +148,12 @@ function getDisplayValue(value) {
   if (typeof value === "object") {
     return String(
       value.name ??
-      value.label ??
-      value.value ??
-      value.title ??
-      value.qualification ??
-      value.degree ??
-      "",
+        value.label ??
+        value.value ??
+        value.title ??
+        value.qualification ??
+        value.degree ??
+        "",
     );
   }
 
@@ -208,20 +198,20 @@ function mapProfile(api, routeId) {
     gender: basic.gender ?? "",
     profession: getDisplayValue(
       basic.profession ??
-      basic.occupation ??
-      careerList[0]?.profession ??
-      careerList[0]?.designation ??
-      "",
+        basic.occupation ??
+        careerList[0]?.profession ??
+        careerList[0]?.designation ??
+        "",
     ),
     location: getDisplayValue(
       basic.location ?? [basic.city, basic.state].filter(Boolean).join(", "),
     ),
     education: getDisplayValue(
       educationList[0]?.qualification ??
-      educationList[0]?.degree ??
-      basic.education ??
-      basic.qualification ??
-      "",
+        educationList[0]?.degree ??
+        basic.education ??
+        basic.qualification ??
+        "",
     ),
     height: getDisplayValue(
       physical.height ?? basic.height_text ?? basic.height ?? "",
@@ -246,10 +236,7 @@ function mapProfile(api, routeId) {
     online: !!(basic.is_online ?? basic.online),
     verified: !!(basic.is_verified ?? basic.verified),
     canViewContact,
-    // Only expose the actual number once the backend has unlocked it.
     phone: canViewContact ? rawPhone : "",
-    // Lets the UI show a "locked" row instead of nothing when a phone
-    // exists on the backend but hasn't been unlocked for this viewer.
     hasPhone: !!rawPhone,
     photoCount: Array.isArray(api.photo_gallery)
       ? api.photo_gallery.length || 1
@@ -259,16 +246,13 @@ function mapProfile(api, routeId) {
       : basic.photo
         ? { uri: basic.photo }
         : FALLBACK_PHOTO,
-    // Whether THIS member is already shortlisted / has an interest
-    // already sent to them, if the API tells us up front.
     isShortlisted: isShortlistedValue(rawShortlisted),
     interestStatus: rawInterestStatus,
   };
 }
 
 export default function ProfileDetailScreen({ navigation, route }) {
-
-  const params = route.params ?? {};
+  const params = route?.params || {};
   const rawId = params.id ?? params.memberId;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
@@ -296,19 +280,13 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
 
-
-  const onBackPress = () => {
-    navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
-    return true;
-  };
-
   useFocusEffect(
     useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
-
+      const onBackPress = () => {
+        if (navigation?.canGoBack?.()) navigation.goBack();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => subscription.remove();
     }, [navigation]),
   );
@@ -324,7 +302,6 @@ export default function ProfileDetailScreen({ navigation, route }) {
       }
 
       const token = await getToken();
-
       if (!token) {
         setLoadError("Authentication token not found. Please login again.");
         return;
@@ -337,6 +314,8 @@ export default function ProfileDetailScreen({ navigation, route }) {
         getPublicProfile(id, token),
       ]);
 
+      // Confirmed shape: { result: true, data: {...} } — data is the
+      // profile object directly, NOT nested under data.member.
       const memberData = isSuccessResponse(memberResult)
         ? (memberResult?.data?.member ?? memberResult?.data ?? null)
         : null;
@@ -348,25 +327,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
       if (!memberData && !publicData) {
         setLoadError(
           memberResult?.message ||
-          publicResult?.message ||
-          "Unable to load profile.",
+            publicResult?.message ||
+            "Unable to load profile.",
         );
         return;
       }
 
       // Merge: public profile as the base, member info overrides/fills in on top
       const merged = { ...publicData, ...memberData };
-
-      console.log(
-        "loadProfile interest/shortlist raw fields:",
-        JSON.stringify({
-          interest_status: merged.interest_status,
-          interest_sent_status: merged.interest_sent_status,
-          interest_sent: merged.interest_sent,
-          is_shortlisted: merged.is_shortlisted,
-          shortlisted: merged.shortlisted,
-        }),
-      );
 
       const mapped = mapProfile(merged, id);
 
@@ -392,9 +360,6 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
   };
 
-  /* ===
-     Shared token resolver used by every action handler below.
-  === */
   const ensureToken = async () => {
     let token = authToken;
     if (!token) {
@@ -402,6 +367,64 @@ export default function ProfileDetailScreen({ navigation, route }) {
       setAuthToken(token);
     }
     return token;
+  };
+
+  const handleOpenChat = async () => {
+    const targetMemberId = String(profile?.id ?? id ?? "");
+
+    if (!targetMemberId) {
+      setLoadError("Unable to identify this member.");
+      return;
+    }
+
+    try {
+      const token = await ensureToken();
+
+      if (!token) {
+        setLoadError("Please login again.");
+        return;
+      }
+
+      const result = await getChatList(token);
+
+      const success =
+        result?.success === 1 ||
+        result?.success === true ||
+        result?.result === true;
+
+      if (!success) {
+        setLoadError(result?.message || "Unable to load conversations.");
+        return;
+      }
+
+      const chats = result?.data?.chats || result?.chats || result?.data || [];
+
+      const existingChat = Array.isArray(chats)
+        ? chats.find((item) => String(item?.user_id ?? "") === targetMemberId)
+        : null;
+
+      if (!existingChat?.id) {
+        setLoadError("No conversation found for this member.");
+        return;
+      }
+
+      const threadId = String(existingChat.id);
+      const memberId = String(existingChat.user_id ?? targetMemberId);
+
+      navigation.navigate("ChatConversion", {
+          id: threadId,
+          threadId,
+          memberId,
+          name: profile?.name ?? existingChat.member_name ?? "",
+          profession: profile?.profession ?? existingChat.profession ?? "",
+          online: existingChat.active === 1 ? "true" : "false",
+          page: route?.name,
+          prevs: route?.params || {},
+      });
+    } catch (error) {
+      console.log("handleOpenChat Error:", error);
+      setLoadError(error?.message || "Unable to open conversation.");
+    }
   };
 
   const handleSendInterest = async () => {
@@ -425,15 +448,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
 
     try {
       const result = await expressInterest(targetId, token);
-      console.log(
-        "EXPRESS INTEREST RESPONSE:",
-        JSON.stringify(result, null, 2),
-      );
 
       if (isSuccessResponse(result)) {
         setInterestSent(true);
         setInterestRejected(false);
       } else if (isAlreadyDoneMessage(result?.message)) {
+        // Backend says "already expressed" — this confirms interest
+        // WAS sent successfully before, so reflect that in the UI
+        // instead of surfacing it as an actionable error.
         setInterestSent(true);
         setInterestRejected(false);
         setInterestError("");
@@ -577,7 +599,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
 
   const ABOUT_RIGHT = [
     { icon: "om", label: "Religion", value: profile.religion },
-    { icon: "people", label: "Caste", value: profile.caste },
+    { icon: "users", label: "Caste", value: profile.caste },
     { icon: "people2", label: "Sub Caste", value: profile.subCaste },
     { icon: "school", label: "Education", value: profile.education },
     { icon: "briefcase", label: "Profession", value: profile.profession },
@@ -588,16 +610,16 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const hasMoreText = profile.aboutMyself.length > 140;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ====== TOP BAR ====== */}
+        {/* ================= TOP BAR ================= */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => onBackPress()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
@@ -606,7 +628,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
           <Image source={LOGO} style={styles.headerLogo} resizeMode="contain" />
         </View>
 
-        {/* ====== PHOTO + SUMMARY ROW ====== */}
+        {/* ================= PHOTO + SUMMARY ROW ================= */}
         <View style={styles.summaryRow}>
           <View style={styles.photoCard}>
             <Image
@@ -625,12 +647,12 @@ export default function ProfileDetailScreen({ navigation, route }) {
               <Text style={styles.photoCounterText}>
                 1/{profile.photoCount}
               </Text>
-              <Feather
-                name="maximize"
+              {/* <Feather
+                name="expand-outline"
                 size={12}
                 color={Colors.white}
                 style={{ marginLeft: 4 }}
-              />
+              /> */}
             </View>
           </View>
 
@@ -649,11 +671,15 @@ export default function ProfileDetailScreen({ navigation, route }) {
                 />
               )}
               <View style={{ flex: 1 }} />
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Feather name="share-2" size={20} color={Colors.primaryRed} />
-              </TouchableOpacity>
+                <Feather
+                  name="share-2"
+                  size={20}
+                  color={Colors.primaryRed}
+                />
+              </TouchableOpacity> */}
               <TouchableOpacity
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{ marginLeft: 12 }}
@@ -665,15 +691,17 @@ export default function ProfileDetailScreen({ navigation, route }) {
                     size="small"
                     color={Colors.textSecondary}
                   />
-                ) : (
-                  <Feather
-                    name="more-vertical"
-                    size={20}
-                    color={
-                      interestRejected ? Colors.textMuted : Colors.textSecondary
-                    }
-                  />
-                )}
+                ) : null
+                //  (
+                //   <Feather
+                //     name="more-vertical"
+                //     size={20}
+                //     color={
+                //       interestRejected ? Colors.textMuted : Colors.textSecondary
+                //     }
+                //   />
+                // )
+                }
               </TouchableOpacity>
             </View>
 
@@ -685,7 +713,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
               <DetailRow icon="location" text={profile.location} />
             )}
             {!!profile.education && (
-              <DetailRow icon="school-outline" text={profile.education} />
+              <DetailRow icon="book" text={profile.education} />
             )}
             {!!profile.height && (
               <DetailRow icon="resize-outline" text={profile.height} />
@@ -702,10 +730,6 @@ export default function ProfileDetailScreen({ navigation, route }) {
               <DetailRow icon="people-outline" text={profile.subCaste} />
             )}
 
-            {/* Contact info: only show the real number once the backend
-                has unlocked it (view_contact_check). If a number exists
-                but isn't unlocked yet, show a locked row instead of
-                leaking it or hiding it silently. */}
             {profile.canViewContact && !!profile.phone ? (
               <DetailRow icon="call-outline" text={profile.phone} />
             ) : profile.hasPhone ? (
@@ -725,7 +749,11 @@ export default function ProfileDetailScreen({ navigation, route }) {
             {profile.verified && (
               <View style={styles.verifiedBanner}>
                 <View style={styles.verifiedIconCircle}>
-                  <Feather name="shield" size={18} color={Colors.primaryRed} />
+                  <Feather
+                    name="shield"
+                    size={18}
+                    color={Colors.primaryRed}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.verifiedTitle}>
@@ -740,7 +768,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* ====== TABS ====== */}
+        {/* ================= TABS ================= */}
         <View style={styles.tabsRow}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -768,7 +796,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
         </View>
         <View style={styles.tabsDivider} />
 
-        {/* ====== TAB CONTENT ====== */}
+        {/* ================= TAB CONTENT ================= */}
         {activeTab === "about" ? (
           <View style={styles.aboutSection}>
             <Text style={styles.aboutHeading}>About {profile.name}</Text>
@@ -826,7 +854,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
         )}
       </ScrollView>
 
-      {/* ====== STICKY BOTTOM BAR ====== */}
+      {/* ================= STICKY BOTTOM BAR ================= */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.bottomOutlineButton}
@@ -851,9 +879,13 @@ export default function ProfileDetailScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.bottomRedButton}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate("ChatConversion", { page: route?.name, prevs: route?.params })}
+          onPress={handleOpenChat}
         >
-          <Feather name="message-circle" size={18} color={Colors.white} />
+          <Feather
+            name="message-circle"
+            size={18}
+            color={Colors.white}
+          />
 
           <Text style={styles.bottomRedText}>Message</Text>
         </TouchableOpacity>
@@ -870,7 +902,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
             <Feather
-              name={interestSent ? "checkmark-circle" : "star"}
+              name={interestSent ? "check-circle" : "star"}
               size={18}
               color={Colors.white}
             />
@@ -909,7 +941,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
   );
 }
 
-// ====== SMALL SUBCOMPONENTS ======
+// ================= SMALL SUBCOMPONENTS =================
 function DetailRow({ icon, text }) {
   const isOm = icon === "om";
   return (
@@ -962,31 +994,57 @@ function AboutItem({ icon, label, value }) {
 function renderAboutIcon(icon) {
   switch (icon) {
     case "calendar":
-      return <Feather name="calendar" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="calendar" size={16} color={Colors.primaryRed} />
+      );
     case "AGE":
       return <Text style={styles.aboutIconText}>AGE</Text>;
     case "ruler":
-      return <Feather name="move" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="maximize-2" size={16} color={Colors.primaryRed} />
+      );
     case "marital":
-      return <Feather name="circle" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="heart" size={16} color={Colors.primaryRed} />
+      );
     case "gender":
-      return <Feather name="users" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather
+          name="users"
+          size={16}
+          color={Colors.primaryRed}
+        />
+      );
     case "R":
       return <Text style={styles.aboutIconText}>R</Text>;
     case "blood":
-      return <Feather name="droplet" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="droplet" size={16} color={Colors.primaryRed} />
+      );
     case "om":
       return <Text style={styles.omSymbolSmall}>ॐ</Text>;
     case "people":
-      return <Feather name="users" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="users" size={16} color={Colors.primaryRed} />
+      );
     case "people2":
       return <Feather name="users" size={16} color={Colors.primaryRed} />;
     case "school":
-      return <Feather name="book-open" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather name="book-open" size={16} color={Colors.primaryRed} />
+      );
     case "briefcase":
-      return <Feather name="briefcase" size={16} color={Colors.primaryRed} />;
+      return (
+        <Feather
+          name="briefcase"
+          size={16}
+          color={Colors.primaryRed}
+        />
+      );
     case "rupee":
-      return <Feather name="dollar-sign" size={13} color={Colors.primaryRed} />;
+      return (
+        <Text style={styles.aboutIconText}>₹</Text>
+      );
     default:
       return null;
   }
@@ -1004,8 +1062,7 @@ const styles = StyleSheet.create({
   },
   centerStateText: {
     marginTop: 12,
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: 14,
     color: Colors.textSecondary,
     textAlign: "center",
   },
@@ -1016,10 +1073,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 10,
   },
-  retryButtonText: {
-    color: Colors.white,
-    fontFamily: Fonts.bold,
-  },
+  retryButtonText: { color: Colors.white, fontWeight: "800" },
 
   topBar: {
     flexDirection: "row",
@@ -1057,8 +1111,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   onlineText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    fontFamily: Fonts.body.semiBold,
     color: Colors.textPrimary,
   },
   photoCounter: {
@@ -1073,8 +1127,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   photoCounterText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.medium,
+    fontSize: 10,
+    fontFamily: Fonts.body.medium,
     color: Colors.white,
     marginHorizontal: 3,
   },
@@ -1082,13 +1136,13 @@ const styles = StyleSheet.create({
   infoPanel: { flex: 1 },
   nameRow: { flexDirection: "row", alignItems: "center" },
   nameText: {
-    fontSize: Fonts.size.xl,
-    fontFamily: Fonts.extraBold,
+    fontSize: FontSizes.welcome,
+    fontFamily: Fonts.display.bold,
     color: Colors.primaryRedDark,
   },
   professionText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.semiBold,
+    fontSize: FontSizes.input,
+    fontFamily: Fonts.body.semiBold,
     color: Colors.textPrimary,
     marginTop: 4,
     marginBottom: 8,
@@ -1096,15 +1150,15 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   detailIcon: { marginRight: 8, width: 16 },
   omSymbol: {
-    fontSize: Fonts.size.sm,
+    fontSize: 15,
     color: Colors.primaryRed,
     marginRight: 8,
     width: 16,
     textAlign: "center",
   },
   detailText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: FontSizes.label,
+    fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
     flexShrink: 1,
   },
@@ -1114,8 +1168,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   lockedContactText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: FontSizes.label,
+    fontFamily: Fonts.body.regular,
     color: Colors.textMuted,
     fontStyle: "italic",
     flexShrink: 1,
@@ -1139,13 +1193,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   verifiedTitle: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
     color: Colors.primaryRedDark,
   },
   verifiedSubtitle: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
+    fontSize: 10.5,
+    fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
     marginTop: 1,
   },
@@ -1167,8 +1221,8 @@ const styles = StyleSheet.create({
   quickAction: { alignItems: "center", flex: 1 },
   quickActionDisabled: { opacity: 0.5 },
   quickActionLabel: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.semiBold,
+    fontSize: 10.5,
+    fontFamily: Fonts.body.semiBold,
     marginTop: 4,
     textAlign: "center",
   },
@@ -1180,13 +1234,13 @@ const styles = StyleSheet.create({
   },
   tabItem: { alignItems: "center", flex: 1, paddingBottom: 10 },
   tabLabel: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.medium,
+    fontSize: 10.5,
+    fontFamily: Fonts.body.medium,
     color: Colors.textMuted,
     marginTop: 4,
     textAlign: "center",
   },
-  tabLabelActive: { color: Colors.primaryRed, fontFamily: Fonts.bold },
+  tabLabelActive: { color: Colors.primaryRed, fontFamily: Fonts.body.bold },
   tabUnderline: {
     position: "absolute",
     bottom: 0,
@@ -1199,8 +1253,8 @@ const styles = StyleSheet.create({
 
   aboutSection: { marginTop: 20 },
   aboutHeading: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.extraBold,
+    fontSize: FontSizes.welcome - 2,
+    fontFamily: Fonts.display.bold,
     color: Colors.primaryRed,
     marginBottom: 14,
   },
@@ -1221,19 +1275,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   aboutIconText: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.bold,
+    fontSize: 10,
+    fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
   },
-  omSymbolSmall: { fontSize: Fonts.size.sm, color: Colors.primaryRed },
+  omSymbolSmall: { fontSize: 15, color: Colors.primaryRed },
   aboutItemLabel: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    fontFamily: Fonts.body.semiBold,
     color: Colors.textPrimary,
   },
   aboutItemValue: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.regular,
     color: Colors.textMuted,
     marginTop: 1,
   },
@@ -1245,8 +1299,8 @@ const styles = StyleSheet.create({
   },
 
   aboutMyselfText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: 13.5,
+    fontFamily: Fonts.body.regular,
     color: Colors.textSecondary,
     lineHeight: 21,
   },
@@ -1257,16 +1311,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   showMoreText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
+    fontSize: 13,
+    fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
     marginRight: 4,
   },
 
   placeholderSection: { marginTop: 30, alignItems: "center" },
   placeholderText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
+    fontSize: 14,
+    fontFamily: Fonts.body.regular,
     color: Colors.textMuted,
   },
 
@@ -1296,8 +1350,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomOutlineText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
     color: Colors.primaryRed,
   },
   bottomRedButton: {
@@ -1311,8 +1365,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomRedText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
     color: Colors.white,
   },
   bottomGoldButton: {
@@ -1326,8 +1380,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bottomGoldText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.bold,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.bold,
     color: Colors.white,
   },
   bottomButtonDisabled: {
@@ -1348,8 +1402,8 @@ const styles = StyleSheet.create({
   },
   interestErrorText: {
     flex: 1,
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
+    fontSize: 12.5,
+    fontFamily: Fonts.body.regular,
     color: "#B42318",
   },
 });

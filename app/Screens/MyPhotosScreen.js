@@ -626,7 +626,7 @@ export default function MyGalleryScreen({
                     }
                   >
                     <Feather
-                      name="ellipsis-vertical"
+                      name="more-vertical"
                       size={15}
                       color="#1B1B1B"
                     />
@@ -726,67 +726,50 @@ export default function MyGalleryScreen({
 
 
           {/* VIEW */}
+<SheetRow
+  icon="maximize"
+  label="View photo"
+  tint="#1F6FEB"
+  tintBg="#E6F0FF"
+  onPress={() => {
+    const index = menuIndex;
 
-          <SheetRow
-            icon="expand-outline"
-            label="View photo"
-            tint="#1F6FEB"
-            tintBg="#E6F0FF"
-            onPress={() => {
-              const index =
-                menuIndex;
+    setMenuIndex(null);
 
-              setMenuIndex(null);
+    setViewerIndex(index);
+  }}
+/>
 
-              setViewerIndex(
-                index,
-              );
-            }}
-          />
+{/* DOWNLOAD */}
+<SheetRow
+  icon="download"
+  label="Download"
+  tint="#039855"
+  tintBg="#DCFAE6"
+  onPress={() => {
+    const index = menuIndex;
 
+    setMenuIndex(null);
 
-          {/* DOWNLOAD */}
+    handleDownload(index);
+  }}
+/>
 
-          <SheetRow
-            icon="download-outline"
-            label="Download"
-            tint="#039855"
-            tintBg="#DCFAE6"
-            onPress={() => {
-              const index =
-                menuIndex;
+{/* DELETE */}
+<SheetRow
+  icon="trash-2"
+  label="Delete photo"
+  tint={DANGER}
+  tintBg={DANGER_SOFT}
+  danger
+  onPress={() => {
+    const index = menuIndex;
 
-              setMenuIndex(null);
+    setMenuIndex(null);
 
-              handleDownload(
-                index,
-              );
-            }}
-          />
-
-
-          {/* DELETE */}
-
-          <SheetRow
-            icon="trash-outline"
-            label="Delete photo"
-            tint={DANGER}
-            tintBg={
-              DANGER_SOFT
-            }
-            danger
-            onPress={() => {
-              const index =
-                menuIndex;
-
-              setMenuIndex(null);
-
-              setDeleteIndex(
-                index,
-              );
-            }}
-          />
-
+    setDeleteIndex(index);
+  }}
+/>
 
           {/* CANCEL */}
 

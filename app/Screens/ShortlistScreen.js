@@ -18,7 +18,7 @@ import Fonts from "../constants/Fonts";
 import { getMyShortlists, removeFromShortlist } from "../utils/Functions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const FALLBACK_PHOTO = require("../assets/images/Match5.png");
+const FALLBACK_PHOTO = require("../assets/images/logo.png");
 
 /* ===
    GET TOKEN (same pattern used across the app)

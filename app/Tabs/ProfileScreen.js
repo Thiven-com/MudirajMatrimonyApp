@@ -39,6 +39,7 @@ import {
   updateMemberBasicInfo,
   updateMemberIntroduction,
 } from "../utils/Functions";
+import moment from "moment";
 
 
 const { width } = Dimensions.get("window");
@@ -1528,26 +1529,35 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
                 <Ionicons name="briefcase-outline" size={15} color="#FFFFFF" />
 
                 <Text style={styles.heroInfoText} numberOfLines={1}>
-                  {PROFILE.profession}
+                  {PROFILE.profession || basicInfo?.code}
                 </Text>
               </View>
 
               {/* LOCATION */}
+              {presentAddress?.city != undefined || presentAddressForm.city ? (
+                <View style={styles.heroInfoRow}>
+                  <Ionicons name="location-outline" size={16} color="#FFFFFF" />
 
-              <View style={styles.heroInfoRow}>
-                <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.heroInfoText} numberOfLines={2}>
+                    {[
+                      presentAddress?.city || presentAddressForm.city,
+                      presentAddress?.state || presentAddressForm.state,
+                      presentAddress?.country || presentAddressForm.country,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || PROFILE.location}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.heroInfoRow}>
+                  <Ionicons name="calendar-outline" size={15} color="#FFFFFF" />
 
-                <Text style={styles.heroInfoText} numberOfLines={2}>
-                  {[
-                    presentAddress?.city || presentAddressForm.city,
-                    presentAddress?.state || presentAddressForm.state,
-                    presentAddress?.country || presentAddressForm.country,
-                  ]
-                    .filter(Boolean)
-                    .join(", ") || PROFILE.location}
-                </Text>
-              </View>
-
+                  <Text style={styles.heroInfoText} numberOfLines={1}>
+                    {moment(basicInfo?.date_of_birth).format("DD MMMM YYYY") || PROFILE.dob}
+                  </Text>
+                </View>
+              )
+              }
               {/* TAGS */}
 
               <View style={styles.heroTags}>
@@ -1560,13 +1570,13 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
                 <View style={styles.heroTag}>
                   <Ionicons name="flower-outline" size={11} color="#FFD54F" />
 
-                  <Text style={styles.heroTagText}>Hindu</Text>
+                  <Text style={styles.heroTagText}>{PROFILE.religion || "N/A"}</Text>
                 </View>
 
                 <View style={styles.heroTag}>
                   <Ionicons name="heart-outline" size={11} color="#FFD54F" />
 
-                  <Text style={styles.heroTagText}>Never Married</Text>
+                  <Text style={styles.heroTagText}>{PROFILE.religion || "N/A"}</Text>
                 </View>
               </View>
             </View>
