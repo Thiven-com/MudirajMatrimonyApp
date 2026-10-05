@@ -557,7 +557,6 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
       await AsyncStorage.clear();
 
     } catch (error) {
-      console.error("LOGOUT ERROR:", error);
     }
 
     setIsLoggedIn(false);
@@ -610,7 +609,7 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
       setIntroduction("");
       setAboutTextValue("");
     } catch (error) {
-      console.error("LOAD INTRODUCTION ERROR:", error);
+   
 
       setIntroduction("");
       setAboutTextValue("");
@@ -845,7 +844,6 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
 
       setPresentAddress(null);
     } catch (error) {
-      console.error("LOAD PRESENT ADDRESS ERROR:", error);
 
       setPresentAddress(null);
     }
@@ -1890,6 +1888,95 @@ export default function ProfileDetails({ setIsLoggedIn, navigation, route }) {
             <Ionicons name="chevron-forward" size={18} color="#666666" />
           </TouchableOpacity>
         </View>
+
+{/* =================================================
+    PRIVACY POLICY
+================================================= */}
+
+<TouchableOpacity
+  style={styles.profileRow}
+  activeOpacity={0.8}
+  onPress={() => {
+    console.log("Privacy Policy Clicked");
+
+    navigation.navigate("PrivacyAndPolicy", {
+      page: route?.name,
+      prevs: route?.params,
+    });
+  }}
+>
+  <View style={[styles.rowIcon, { backgroundColor: "#EAF3FF" }]}>
+    <Ionicons
+      name="shield-checkmark-outline"
+      size={21}
+      color="#2C84D6"
+    />
+  </View>
+
+  <Text style={styles.rowTitle}>Privacy Policy</Text>
+
+  <Ionicons name="chevron-forward" size={18} color="#666666" />
+</TouchableOpacity>
+
+
+{/* =================================================
+    TERMS & CONDITIONS
+================================================= */}
+
+<TouchableOpacity
+  style={styles.profileRow}
+  activeOpacity={0.8}
+  onPress={() => {
+    console.log("Terms & Conditions Clicked");
+
+    navigation.navigate("TermsAndConditions", {
+      page: route?.name,
+      prevs: route?.params,
+    });
+  }}
+>
+  <View style={[styles.rowIcon, { backgroundColor: "#F3EAFE" }]}>
+    <Ionicons
+      name="document-text-outline"
+      size={21}
+      color="#7538B7"
+    />
+  </View>
+
+  <Text style={styles.rowTitle}>Terms & Conditions</Text>
+
+  <Ionicons name="chevron-forward" size={18} color="#666666" />
+</TouchableOpacity>
+
+
+{/* =================================================
+    REFUND POLICY
+================================================= */}
+
+<TouchableOpacity
+  style={[styles.profileRow, styles.lastProfileRow]}
+  activeOpacity={0.8}
+  onPress={() => {
+    console.log("Refund Policy Clicked");
+
+    navigation.navigate("RefundAndPolicy", {
+      page: route?.name,
+      prevs: route?.params,
+    });
+  }}
+>
+  <View style={[styles.rowIcon, { backgroundColor: "#EAF9F1" }]}>
+    <Ionicons
+      name="cash-outline"
+      size={21}
+      color="#1AA968"
+    />
+  </View>
+
+  <Text style={styles.rowTitle}>Refund Policy</Text>
+
+  <Ionicons name="chevron-forward" size={18} color="#666666" />
+</TouchableOpacity>
 
         {/* ===
           PROFILE VERIFICATION
