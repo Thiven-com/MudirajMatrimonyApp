@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
+    Alert,
     BackHandler,
     Dimensions,
     Image,
@@ -29,6 +30,7 @@ import { Colors } from "../constants/colors";
 import { Fonts, FontSizes } from "../constants/Fonts";
 import { signup } from "../utils/Functions";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DateOfBirthModal from '../Screens/DateOfBirthModal';
 
 const LOGO = require("../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -60,6 +62,8 @@ export default function RegisterScreen({ navigation, route }) {
     const [onBehalfModalVisible, setOnBehalfModalVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorText, setErrorText] = useState("");
+    const [dobModal, setDobModal] = useState(false);
+
 
     useFocusEffect(
         useCallback(() => {
@@ -126,9 +130,9 @@ export default function RegisterScreen({ navigation, route }) {
                 setErrorText(result?.message || "Unable to create account right now.");
                 return;
             }
-
+            Alert.alert("Alert!", result?.message);
             // Registration successful
-            navigation.replace("login");
+            navigation.navigate("SignIn");
         } catch (error) {
             console.log("signup Error:", error);
             setErrorText(error?.message || "Something went wrong. Please try again.");
@@ -289,26 +293,45 @@ export default function RegisterScreen({ navigation, route }) {
                             }
                         />
 
-                        <FieldCard
-                            icon={
-                                <Ionicons
-                                    name="calendar-outline"
-                                    size={18}
-                                    color={Colors.primaryRed}
-                                />
-                            }
-                            label="Date of Birth"
-                            placeholder="DD / MM / YYYY"
-                            value={dob}
-                            onChangeText={setDob}
-                            keyboardType="number-pad"
-                            trailing={
-                                <Ionicons
-                                    name="calendar-outline"
-                                    size={20}
-                                    color={Colors.textMuted}
-                                />
-                            }
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setDobModal(true)}
+                        >
+                            <FieldCard
+                                icon={
+                                    <Ionicons
+                                        name="calendar-outline"
+                                        size={18}
+                                        color={Colors.primaryRed}
+                                    />
+                                }
+                                label="Date of Birth"
+                                placeholder="DD / MM / YYYY"
+                                value={dob}
+                                onChangeText={setDob}
+                                editable={false}
+                                keyboardType="number-pad"
+                                trailing={
+                                    <Ionicons
+                                        name="calendar-outline"
+                                        size={20}
+                                        color={Colors.textMuted}
+                                    />
+                                }
+                            />
+                        </TouchableOpacity>
+
+
+                        <DateOfBirthModal
+                            visible={dobModal}
+                            onClose={() => setDobModal(false)}
+                            initialDate={dob}
+                            minimumAge={1}
+                            maximumAge={100}
+                            onSelect={date => {                                
+                                setDobModal(false);
+                                setDob(date);
+                            }}
                         />
                         {/* For a real date picker, swap the TextInput above for
               @react-native-community/datetimepicker and format the result into `dob`. */}
