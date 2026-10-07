@@ -43,7 +43,7 @@ const COLORS = {
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300.png?text=Profile";
 
-const PROFILE_ROUTE = "matchesdetail";
+const PROFILE_ROUTE = "MatchesDetail";
 
 const TABS = [
   {
@@ -332,8 +332,6 @@ export default function InterestsScreen({ navigation, route }) {
   const openProfile = (item) => {
     const memberId = getMemberId(item);
 
-    console.log("OPEN PROFILE -> memberId:", memberId, "route:", PROFILE_ROUTE);
-
     if (!memberId) {
       notify("Error", "Member ID not found.");
       return;
@@ -342,7 +340,8 @@ export default function InterestsScreen({ navigation, route }) {
     navigation.navigate(PROFILE_ROUTE, {
       memberId: String(memberId),
       id: String(memberId),
-      page: route?.name, prevs: route?.params
+      page: route?.name,
+      prevs: route?.params
     });
   };
 
@@ -805,7 +804,7 @@ export default function InterestsScreen({ navigation, route }) {
         data={visibleInterests}
         renderItem={renderItem}
         keyExtractor={(item, index) =>
-          String(getInterestId(item) ?? getMemberId(item) ?? index)
+          String(getInterestId(item) + "_profiles_" + (index + 1))
         }
         contentContainerStyle={[
           styles.listContent,

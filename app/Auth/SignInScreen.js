@@ -1,5 +1,6 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback, useState } from "react";
+
 import {
     BackHandler,
     Dimensions,
@@ -14,42 +15,52 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+
 import LinearGradient from "react-native-linear-gradient";
+
 import Svg, {
     Defs,
     Path,
     Stop,
     LinearGradient as SvgGradient,
 } from "react-native-svg";
+
 import Feather from "react-native-vector-icons/Feather";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Colors } from "../constants/colors";
 import { Fonts } from "../constants/Fonts";
 import { sendLoginOtp } from "../utils/Functions";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOGO = require("../assets/images/logo.png");
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Header wave geometry — reversed curve: edges dip down, center arches up
-// (same geometry used on the OTP screen)
-const HEADER_HEIGHT = 210;
-const EDGE_Y = HEADER_HEIGHT * 0.7;
-const PEAK_Y = HEADER_HEIGHT * 0.33;
-const CTRL_Y = HEADER_HEIGHT * 0.05;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const MOBILE_LENGTH = 10;
 
+const HEADER_HEIGHT = 250;
+const EDGE_Y = HEADER_HEIGHT * 0.78;
+const PEAK_Y = HEADER_HEIGHT * 0.40;
+const CTRL_Y = HEADER_HEIGHT * 0.10;
+
 export default function LoginScreen() {
     const navigation = useNavigation();
+
     const [mobile, setMobile] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorText, setErrorText] = useState("");
+
+    // ----------------------------------------------------
+    // BACK HANDLER
+    // ----------------------------------------------------
 
     const handleBack = useCallback(() => {
         if (navigation.canGoBack()) {
             navigation.goBack();
             return true;
         }
+
         return false;
     }, [navigation]);
 
@@ -64,12 +75,19 @@ export default function LoginScreen() {
         }, [handleBack]),
     );
 
+    // ----------------------------------------------------
+    // LOGIN
+    // ----------------------------------------------------
+
     const handleLogin = async () => {
         if (loading) return;
 
         const cleanedMobile = mobile.trim();
+
         if (cleanedMobile.length !== MOBILE_LENGTH) {
-            setErrorText(`Enter a valid ${MOBILE_LENGTH}-digit mobile number`);
+            setErrorText(
+                `Enter a valid ${MOBILE_LENGTH}-digit mobile number`,
+            );
             return;
         }
 
@@ -78,19 +96,31 @@ export default function LoginScreen() {
 
         try {
             const result = await sendLoginOtp(cleanedMobile);
+
             if (
                 result?.userNotFound === true ||
                 result?.message?.toLowerCase().includes("user not found")
             ) {
-                setErrorText("📝 No account found. Redirecting to registration...");
+                setErrorText(
+                    "📝 No account found. Redirecting to registration...",
+                );
+
                 setTimeout(() => {
                     navigation.replace("SignUp");
                 }, 2000);
+
                 return;
             }
 
-            if (result?.result === false || result?.success === 0) {
-                setErrorText(result?.message || "Unable to send OTP right now.");
+            if (
+                result?.result === false ||
+                result?.success === 0
+            ) {
+                setErrorText(
+                    result?.message ||
+                    "Unable to send OTP right now.",
+                );
+
                 return;
             }
 
@@ -101,6 +131,7 @@ export default function LoginScreen() {
             });
         } catch (error) {
             console.log("login Error:", error);
+
             setErrorText(
                 error?.message ||
                 "Something went wrong while sending the OTP. Please try again.",
@@ -110,127 +141,423 @@ export default function LoginScreen() {
         }
     };
 
+    // ----------------------------------------------------
+    // UI
+    // ----------------------------------------------------
+
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1 }}
+            style={styles.keyboardContainer}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-            <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
+            <SafeAreaView
+                style={styles.safeArea}
+                edges={["bottom", "left", "right"]}
+            >
                 <StatusBar
                     barStyle="light-content"
                     translucent
                     backgroundColor="transparent"
                 />
+
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     bounces={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View style={styles.shell}>
+                    <View style={styles.container}>
+
+                        {/* ================================================= */}
+                        {/* HEADER */}
+                        {/* ================================================= */}
+
                         <View style={styles.headerContainer}>
                             <HeaderWave width={SCREEN_WIDTH} />
-                            <View style={styles.logoRing}>
-                                <Image
-                                    source={LOGO}
-                                    style={styles.logoImage}
-                                    resizeMode="contain"
+
+                            {/* Decorative circles */}
+                            <View
+                                style={[
+                                    styles.headerCircle,
+                                    styles.circleOne,
+                                ]}
+                            />
+
+                            <View
+                                style={[
+                                    styles.headerCircle,
+                                    styles.circleTwo,
+                                ]}
+                            />
+
+                            {/* Logo */}
+                            <View style={styles.logoShadow}>
+                                <View style={styles.logoRing}>
+                                    <Image
+                                        source={LOGO}
+                                        style={styles.logoImage}
+                                        resizeMode="contain"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Small decorative icon */}
+                            <View style={styles.headerBadge}>
+                                <Feather
+                                    name="heart"
+                                    size={15}
+                                    color={Colors.primaryRed}
                                 />
                             </View>
                         </View>
 
+                        {/* ================================================= */}
+                        {/* TITLE */}
+                        {/* ================================================= */}
+
                         <View style={styles.titleBlock}>
-                            <Text style={styles.title}>Welcome Back</Text>
-                            <Text style={styles.subtitle}>Login to continue your journey</Text>
+                            <Text style={styles.welcomeSmall}>
+                                WELCOME BACK
+                            </Text>
+
+                            <Text style={styles.title}>
+                                Welcome Back
+                            </Text>
+
+                            <Text style={styles.subtitle}>
+                                Login to continue your journey
+                            </Text>
                         </View>
 
-                        <View style={styles.tabRow}>
-                            <Text style={[styles.tabText, styles.tabActive]}>Login</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                                <Text style={styles.tabText}>Register</Text>
-                            </TouchableOpacity>
+                        {/* ================================================= */}
+                        {/* LOGIN / REGISTER TABS */}
+                        {/* ================================================= */}
+
+                        <View style={styles.tabContainer}>
+                            <View style={styles.tabRow}>
+
+                                <View style={styles.activeTabContainer}>
+                                    <Text
+                                        style={[
+                                            styles.tabText,
+                                            styles.tabActive,
+                                        ]}
+                                    >
+                                        Login
+                                    </Text>
+
+                                    <View style={styles.activeTabLine} />
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.inactiveTab}
+                                    activeOpacity={0.7}
+                                    onPress={() =>
+                                        navigation.navigate("SignUp")
+                                    }
+                                >
+                                    <Text style={styles.tabText}>
+                                        Register
+                                    </Text>
+                                </TouchableOpacity>
+
+                            </View>
                         </View>
 
-                        <View style={styles.formWrapper}>
-                            <Text style={styles.fieldLabel}>Mobile Number</Text>
-                            <View style={styles.inputWrap}>
-                                <View style={styles.codeWrap}>
-                                    <Text style={styles.codeText}>+91</Text>
+                        {/* ================================================= */}
+                        {/* FORM CARD */}
+                        {/* ================================================= */}
+
+                        <View style={styles.formCard}>
+
+                            <View style={styles.formHeader}>
+                                <View style={styles.formIcon}>
+                                    <Feather
+                                        name="smartphone"
+                                        size={21}
+                                        color={Colors.primaryRed}
+                                    />
+                                </View>
+
+                                <View style={styles.formHeaderText}>
+                                    <Text style={styles.formTitle}>
+                                        Login with Mobile
+                                    </Text>
+
+                                    <Text style={styles.formSubtitle}>
+                                        We'll send a secure OTP to verify
+                                        your number
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Mobile label */}
+                            <Text style={styles.fieldLabel}>
+                                Mobile Number
+                            </Text>
+
+                            {/* Mobile input */}
+                            <View
+                                style={[
+                                    styles.inputWrap,
+                                    errorText &&
+                                    styles.inputWrapError,
+                                ]}
+                            >
+                                <View style={styles.countrySection}>
+                                    <View style={styles.indiaFlag}>
+                                        <View
+                                            style={[
+                                                styles.flagStripe,
+                                                styles.flagOrange,
+                                            ]}
+                                        />
+
+                                        <View
+                                            style={[
+                                                styles.flagStripe,
+                                                styles.flagWhite,
+                                            ]}
+                                        >
+                                            <View
+                                                style={
+                                                    styles.flagCircle
+                                                }
+                                            />
+                                        </View>
+
+                                        <View
+                                            style={[
+                                                styles.flagStripe,
+                                                styles.flagGreen,
+                                            ]}
+                                        />
+                                    </View>
+
+                                    <Text style={styles.codeText}>
+                                        +91
+                                    </Text>
+
                                     <Feather
                                         name="chevron-down"
-                                        size={14}
+                                        size={15}
                                         color={Colors.textMuted}
                                     />
                                 </View>
+
+                                <View style={styles.inputDivider} />
+
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Enter mobile number"
-                                    placeholderTextColor={Colors.placeholder}
+                                    placeholder="Enter 10-digit mobile number"
+                                    placeholderTextColor={
+                                        Colors.placeholder
+                                    }
                                     keyboardType="phone-pad"
                                     value={mobile}
-                                    onChangeText={setMobile}
+                                    maxLength={10}
+                                    onChangeText={(value) => {
+                                        const cleaned =
+                                            value.replace(
+                                                /[^0-9]/g,
+                                                "",
+                                            );
+
+                                        setMobile(cleaned);
+
+                                        if (errorText) {
+                                            setErrorText("");
+                                        }
+                                    }}
                                     underlineColorAndroid="transparent"
+                                    editable={!loading}
                                 />
+
+                                {mobile.length === MOBILE_LENGTH &&
+                                    !loading ? (
+                                    <View style={styles.validIcon}>
+                                        <Feather
+                                            name="check"
+                                            size={15}
+                                            color="#FFFFFF"
+                                        />
+                                    </View>
+                                ) : null}
                             </View>
 
+                            {/* Error */}
                             {errorText ? (
-                                <Text style={styles.errorText}>{errorText}</Text>
+                                <View style={styles.errorContainer}>
+                                    <Feather
+                                        name="alert-circle"
+                                        size={16}
+                                        color={Colors.error}
+                                    />
+
+                                    <Text style={styles.errorText}>
+                                        {errorText}
+                                    </Text>
+                                </View>
                             ) : null}
+
+                            {/* ================================================= */}
+                            {/* LOGIN BUTTON */}
+                            {/* ================================================= */}
 
                             <TouchableOpacity
                                 style={styles.loginButtonTouchable}
-                                activeOpacity={0.85}
+                                activeOpacity={0.88}
                                 onPress={handleLogin}
                                 disabled={loading}
                             >
                                 <LinearGradient
-                                    colors={["#C00000", "#DC2626", "#F59E0B", "#FBBF24"]}
+                                    colors={[
+                                        "#A80000",
+                                        "#C00000",
+                                        "#E02929",
+                                        "#F59E0B",
+                                    ]}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={[
                                         styles.loginButton,
-                                        loading && styles.loginButtonDisabled,
+                                        loading &&
+                                        styles.loginButtonDisabled,
                                     ]}
                                 >
-                                    <Text style={styles.loginButtonText}>
-                                        {loading ? "Sending..." : "Send OTP"}
-                                    </Text>
+                                    {loading ? (
+                                        <>
+                                            <View
+                                                style={
+                                                    styles.loadingDot
+                                                }
+                                            />
+
+                                            <Text
+                                                style={
+                                                    styles.loginButtonText
+                                                }
+                                            >
+                                                Sending OTP...
+                                            </Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Text
+                                                style={
+                                                    styles.loginButtonText
+                                                }
+                                            >
+                                                Send OTP
+                                            </Text>
+
+                                            <View
+                                                style={
+                                                    styles.buttonArrow
+                                                }
+                                            >
+                                                <Feather
+                                                    name="arrow-right"
+                                                    size={18}
+                                                    color="#FFFFFF"
+                                                />
+                                            </View>
+                                        </>
+                                    )}
                                 </LinearGradient>
                             </TouchableOpacity>
 
-                            {/* <View style={styles.orRow}>
-                            <View style={styles.orLine} />
-                            <Text style={styles.orText}>or continue with</Text>
-                            <View style={styles.orLine} />
-                        </View>
-
-                        <View style={styles.socialRow}>
-                            <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                                <Feather name="chrome" size={28} color={Colors.google} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                                <Feather name="facebook" size={28} color={Colors.facebook} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                            {/* Security message */}
+                            <View style={styles.securityRow}>
                                 <Feather
-                                    name="smartphone"
-                                    size={28}
-                                    color={Colors.textPrimary}
+                                    name="shield"
+                                    size={14}
+                                    color={Colors.primaryRed}
                                 />
-                            </TouchableOpacity>
-                        </View> */}
 
-                            <View style={styles.registerRow}>
-                                <Text style={styles.registerText}>
-                                    New to Mudiraj World Matrimony?{" "}
+                                <Text style={styles.securityText}>
+                                    Your number is secure and will only be
+                                    used for account verification
                                 </Text>
-                                <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                                    <Text style={styles.registerLink}>Register</Text>
-                                </TouchableOpacity>
                             </View>
                         </View>
+
+                        {/* ================================================= */}
+                        {/* REGISTER */}
+                        {/* ================================================= */}
+
+                        <View style={styles.registerCard}>
+                            <View style={styles.registerIcon}>
+                                <Feather
+                                    name="user-plus"
+                                    size={17}
+                                    color={Colors.primaryRed}
+                                />
+                            </View>
+
+                            <View style={styles.registerContent}>
+                                <Text style={styles.registerText}>
+                                    New to Mudiraj World Matrimony?
+                                </Text>
+
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() =>
+                                        navigation.navigate("SignUp")
+                                    }
+                                >
+                                    <Text style={styles.registerLink}>
+                                        Create an account
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.registerArrow}
+                                activeOpacity={0.7}
+                                onPress={() =>
+                                    navigation.navigate("SignUp")
+                                }
+                            >
+                                <Feather
+                                    name="chevron-right"
+                                    size={18}
+                                    color={Colors.primaryRed}
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* ================================================= */}
+                        {/* BOTTOM BRANDING */}
+                        {/* ================================================= */}
+
+                        <View style={styles.bottomBranding}>
+
+                            <View style={styles.decorativeLine} />
+
+                            <View style={styles.brandingContent}>
+                                <Feather
+                                    name="heart"
+                                    size={13}
+                                    color="#C00000"
+                                />
+
+                                <Text style={styles.brandingText}>
+                                    Find your perfect match
+                                </Text>
+
+                                <Feather
+                                    name="heart"
+                                    size={13}
+                                    color="#C00000"
+                                />
+                            </View>
+
+                            <Text style={styles.brandingSubText}>
+                                Trusted matrimonial platform
+                            </Text>
+                        </View>
+
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -238,12 +565,31 @@ export default function LoginScreen() {
     );
 }
 
-// ====== HEADER WAVE (reversed: edges dip, center arches up) ======
-// Same geometry as the OTP screen's HeaderWave.
+// ============================================================
+// HEADER WAVE
+// ============================================================
+
 function HeaderWave({ width }) {
     const w = width;
-    const redPath = `M0,0 H${w} V${EDGE_Y} Q${w * 0.75},${CTRL_Y} ${w / 2},${PEAK_Y} Q${w * 0.25},${CTRL_Y} 0,${EDGE_Y} Z`;
-    const goldPath = `M0,${EDGE_Y + 10} Q${w * 0.25},${CTRL_Y + 10} ${w / 2},${PEAK_Y + 10} Q${w * 0.75},${CTRL_Y + 10} ${w},${EDGE_Y + 10}`;
+
+    const redPath = `
+        M0,0
+        H${w}
+        V${EDGE_Y}
+        Q${w * 0.75},${CTRL_Y}
+        ${w / 2},${PEAK_Y}
+        Q${w * 0.25},${CTRL_Y}
+        0,${EDGE_Y}
+        Z
+    `;
+
+    const goldPath = `
+        M0,${EDGE_Y + 10}
+        Q${w * 0.25},${CTRL_Y + 10}
+        ${w / 2},${PEAK_Y + 10}
+        Q${w * 0.75},${CTRL_Y + 10}
+        ${w},${EDGE_Y + 10}
+    `;
 
     return (
         <Svg
@@ -253,21 +599,57 @@ function HeaderWave({ width }) {
             style={StyleSheet.absoluteFillObject}
         >
             <Defs>
-                <SvgGradient id="loginHeaderRedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor={Colors.primaryRed} />
-                    <Stop offset="1" stopColor={Colors.primaryRedDark} />
+                <SvgGradient
+                    id="loginHeaderRedGrad"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                >
+                    <Stop
+                        offset="0"
+                        stopColor={Colors.primaryRed}
+                    />
+
+                    <Stop
+                        offset="1"
+                        stopColor={Colors.primaryRedDark}
+                    />
                 </SvgGradient>
-                <SvgGradient id="loginHeaderGoldGrad" x1="0" y1="0" x2="1" y2="0">
-                    <Stop offset="0" stopColor={Colors.goldLight} />
-                    <Stop offset="0.5" stopColor={Colors.gold} />
-                    <Stop offset="1" stopColor={Colors.goldLight} />
+
+                <SvgGradient
+                    id="loginHeaderGoldGrad"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                >
+                    <Stop
+                        offset="0"
+                        stopColor={Colors.goldLight}
+                    />
+
+                    <Stop
+                        offset="0.5"
+                        stopColor={Colors.gold}
+                    />
+
+                    <Stop
+                        offset="1"
+                        stopColor={Colors.goldLight}
+                    />
                 </SvgGradient>
             </Defs>
-            <Path d={redPath} fill="url(#loginHeaderRedGrad)" />
+
+            <Path
+                d={redPath}
+                fill="url(#loginHeaderRedGrad)"
+            />
+
             <Path
                 d={goldPath}
                 stroke="url(#loginHeaderGoldGrad)"
-                strokeWidth={6}
+                strokeWidth={5}
                 fill="none"
                 strokeLinecap="round"
             />
@@ -275,426 +657,585 @@ function HeaderWave({ width }) {
     );
 }
 
-// Stylized Heritage Monument Skyline (Indian Temple / Charminar Silhouette)
-function HeritageSkyline() {
-    return (
-        <View style={styles.skylineSvgContainer}>
-            <View style={styles.monumentCluster}>
-                <View style={styles.monumentPillar}>
-                    <View style={styles.domeTop} />
-                    <View style={styles.towerBody} />
-                </View>
-
-                <View style={styles.monumentTower}>
-                    <View style={styles.spireTop} />
-                    <View style={styles.minaretDome} />
-                    <View style={styles.minaretBody}>
-                        <View style={styles.archHole} />
-                    </View>
-                </View>
-
-                <View style={styles.templeBlock}>
-                    <View style={styles.kalashPeak} />
-                    <View style={styles.onionDome} />
-                    <View style={styles.buildingBase}>
-                        <View style={styles.archWindow} />
-                        <View style={styles.archWindow} />
-                    </View>
-                </View>
-
-                <View style={styles.grandArchBlock}>
-                    <View style={styles.charminarTowers}>
-                        <View style={styles.miniMinaret}>
-                            <View style={styles.spireTop} />
-                            <View style={styles.miniMinaretBody} />
-                        </View>
-                        <View style={styles.miniMinaret}>
-                            <View style={styles.spireTop} />
-                            <View style={styles.miniMinaretBody} />
-                        </View>
-                    </View>
-                    <View style={styles.grandCenterArch}>
-                        <View style={styles.grandInnerArch} />
-                    </View>
-                </View>
-
-                <View style={styles.templeBlock}>
-                    <View style={styles.kalashPeak} />
-                    <View style={styles.onionDome} />
-                    <View style={styles.buildingBase}>
-                        <View style={styles.archWindow} />
-                        <View style={styles.archWindow} />
-                    </View>
-                </View>
-
-                <View style={styles.monumentTower}>
-                    <View style={styles.spireTop} />
-                    <View style={styles.minaretDome} />
-                    <View style={styles.minaretBody}>
-                        <View style={styles.archHole} />
-                    </View>
-                </View>
-
-                <View style={styles.monumentPillar}>
-                    <View style={styles.domeTop} />
-                    <View style={styles.towerBody} />
-                </View>
-            </View>
-        </View>
-    );
-}
+// ============================================================
+// STYLES
+// ============================================================
 
 const styles = StyleSheet.create({
+
+    // --------------------------------------------------------
+    // SCREEN
+    // --------------------------------------------------------
+
+    keyboardContainer: {
+        flex: 1,
+    },
+
     safeArea: {
         flex: 1,
-        backgroundColor: Colors.primaryRed,
-    },
-    scrollContent: {
-        paddingBottom: 30,
-        backgroundColor: Colors.primaryRed,
-    },
-    shell: {
-        width: "100%",
-        minHeight: "100%",
         backgroundColor: Colors.background,
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
-        overflow: "hidden",
-        paddingBottom: 18,
     },
+
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 30,
+        backgroundColor: Colors.background,
+    },
+
+    container: {
+        flex: 1,
+        width: "100%",
+        backgroundColor: Colors.background,
+    },
+
+    // --------------------------------------------------------
+    // HEADER
+    // --------------------------------------------------------
 
     headerContainer: {
         width: "100%",
-        height: 240,
+        height: 230,
         position: "relative",
         alignItems: "center",
         backgroundColor: Colors.primaryRed,
+        overflow: "hidden",
     },
-    logoRing: {
+
+    headerCircle: {
         position: "absolute",
-        top: 54,
-        alignSelf: "center",
-        width: 124,
-        height: 124,
-        borderRadius: 62,
-        backgroundColor: Colors.white,
+        borderRadius: 100,
+        backgroundColor: "rgba(255,255,255,0.07)",
+    },
+
+    circleOne: {
+        width: 180,
+        height: 180,
+        left: -85,
+        top: -80,
+    },
+
+    circleTwo: {
+        width: 150,
+        height: 150,
+        right: -60,
+        top: 20,
+    },
+
+    logoShadow: {
+        position: "absolute",
+        top: 48,
+        alignItems: "center",
+        justifyContent: "center",
+        width: 136,
+        height: 136,
+        borderRadius: 68,
+        backgroundColor: "rgba(0,0,0,0.15)",
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 15,
+        shadowOffset: {
+            width: 0,
+            height: 7,
+        },
+        elevation: 10,
+    },
+
+    logoRing: {
+        width: 126,
+        height: 126,
+        borderRadius: 63,
+        backgroundColor: "#FFFFFF",
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 4,
-        borderColor: Colors.white,
-        elevation: 9,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
+        borderColor: "rgba(255,255,255,0.95)",
     },
+
     logoImage: {
-        width: 110,
-        height: 110,
-        borderRadius: 55,
+        width: 112,
+        height: 112,
+        borderRadius: 56,
     },
+
+    headerBadge: {
+        position: "absolute",
+        top: 50,
+        right: 25,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 5,
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+    },
+
+    // --------------------------------------------------------
+    // TITLE
+    // --------------------------------------------------------
 
     titleBlock: {
         alignItems: "center",
-        marginTop: 80,
+        paddingHorizontal: 20,
+        marginTop: 22,
     },
+
+    welcomeSmall: {
+        fontSize: 11,
+        letterSpacing: 2,
+        color: Colors.primaryRed,
+        fontFamily: Fonts.body.bold,
+        marginBottom: 5,
+    },
+
     title: {
-        fontSize: 38,
+        fontSize: 31,
+        lineHeight: 38,
         fontFamily: Fonts.display.bold,
         color: Colors.primaryRed,
         textAlign: "center",
     },
+
     subtitle: {
-        marginTop: 8,
-        fontSize: 18,
+        marginTop: 5,
+        fontSize: 15,
+        lineHeight: 21,
         fontFamily: Fonts.body.regular,
         color: Colors.textSecondary,
         textAlign: "center",
+    },
+
+    // --------------------------------------------------------
+    // TABS
+    // --------------------------------------------------------
+
+    tabContainer: {
+        width: "88%",
+        alignSelf: "center",
+        marginTop: 22,
+        marginBottom: 15,
     },
 
     tabRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        width: "72%",
-        marginTop: 24,
-        marginBottom: 18,
-        alignSelf: "center",
-        paddingHorizontal: 8,
-    },
-    tabText: {
-        fontSize: 26,
-        fontFamily: Fonts.body.bold,
-        color: Colors.textMuted,
-        paddingBottom: 10,
-    },
-    tabActive: {
-        color: Colors.primaryRed,
-        borderBottomWidth: 3,
-        borderBottomColor: Colors.primaryRed,
-        paddingHorizontal: 2,
-    },
-
-    formWrapper: {
-        width: "88%",
-        alignSelf: "center",
-    },
-    fieldLabel: {
-        fontSize: 18,
-        fontFamily: Fonts.body.bold,
-        color: Colors.textPrimary,
-        marginBottom: 10,
-        marginTop: 8,
-    },
-    inputWrap: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.white,
-        borderWidth: 1,
-        borderColor: "#D5D5D5",
-        borderRadius: 14,
-        paddingHorizontal: 12,
-        marginBottom: 18,
-        minHeight: 56,
-    },
-    codeWrap: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingRight: 10,
-        borderRightWidth: 1,
-        borderRightColor: "#D5D5D5",
-        marginRight: 10,
-        minHeight: 28,
-    },
-    codeText: {
-        fontSize: 18,
-        color: Colors.textPrimary,
-        fontFamily: Fonts.body.medium,
-        marginRight: 8,
-    },
-    input: {
-        flex: 1,
-        fontSize: 18,
-        color: Colors.textPrimary,
-        fontFamily: Fonts.body.regular,
-        paddingVertical: Platform.OS === "ios" ? 14 : 10,
-    },
-    errorText: {
-        color: Colors.error,
-        textAlign: "center",
-        fontSize: 14,
-        fontFamily: Fonts.body.medium,
-        marginBottom: 12,
-    },
-
-    loginButtonTouchable: {
-        width: "100%",
-        height: 58,
+        height: 50,
         borderRadius: 16,
-        overflow: "hidden",
-        elevation: 4,
-        shadowColor: "#E67E00",
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-    },
-    loginButton: {
-        width: "100%",
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    loginButtonText: {
-        color: Colors.white,
-        fontSize: 28,
-        fontFamily: Fonts.body.bold,
-        letterSpacing: 0.5,
-    },
-
-    orRow: {
-        width: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        marginVertical: 22,
-    },
-    orLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: "#D8D8D8",
-    },
-    orText: {
-        marginHorizontal: 12,
-        color: Colors.textMuted,
-        fontFamily: Fonts.body.medium,
-        fontSize: 16,
-    },
-
-    socialRow: {
-        width: "100%",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        gap: 14,
-    },
-    socialButton: {
-        flex: 1,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: Colors.white,
+        padding: 4,
+        backgroundColor: "#F7F1F1",
         borderWidth: 1,
-        borderColor: "#D8D8D8",
+        borderColor: "#EFE1E1",
+    },
+
+    activeTabContainer: {
+        flex: 1,
+        borderRadius: 13,
+        backgroundColor: "#FFFFFF",
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 5,
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        elevation: 2,
     },
 
-    registerRow: {
-        flexDirection: "row",
+    inactiveTab: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 28,
-        marginBottom: 10,
-        flexWrap: "wrap",
     },
-    registerText: {
-        fontSize: 18,
+
+    tabText: {
+        fontSize: 15,
+        fontFamily: Fonts.body.bold,
+        color: Colors.textMuted,
+    },
+
+    tabActive: {
+        color: Colors.primaryRed,
+    },
+
+    activeTabLine: {
+        position: "absolute",
+        bottom: 4,
+        width: 25,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: Colors.primaryRed,
+    },
+
+    // --------------------------------------------------------
+    // FORM CARD
+    // --------------------------------------------------------
+
+    formCard: {
+        width: "92%",
+        alignSelf: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 22,
+        paddingHorizontal: 18,
+        paddingTop: 20,
+        paddingBottom: 18,
+        borderWidth: 1,
+        borderColor: "#F0E4E4",
+
+        shadowColor: "#700000",
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        shadowOffset: {
+            width: 0,
+            height: 7,
+        },
+
+        elevation: 4,
+    },
+
+    formHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 20,
+    },
+
+    formIcon: {
+        width: 46,
+        height: 46,
+        borderRadius: 14,
+        backgroundColor: "#FFF2F2",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
+    },
+
+    formHeaderText: {
+        flex: 1,
+    },
+
+    formTitle: {
+        fontSize: 16,
+        fontFamily: Fonts.body.bold,
+        color: Colors.textPrimary,
+        marginBottom: 3,
+    },
+
+    formSubtitle: {
+        fontSize: 11.5,
+        lineHeight: 17,
         fontFamily: Fonts.body.regular,
         color: Colors.textSecondary,
     },
+
+    // --------------------------------------------------------
+    // INPUT
+    // --------------------------------------------------------
+
+    fieldLabel: {
+        fontSize: 13,
+        fontFamily: Fonts.body.bold,
+        color: Colors.textPrimary,
+        marginBottom: 8,
+    },
+
+    inputWrap: {
+        minHeight: 58,
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FAFAFA",
+        borderWidth: 1,
+        borderColor: "#E5E5E5",
+        borderRadius: 15,
+        paddingHorizontal: 12,
+    },
+
+    inputWrapError: {
+        borderColor: Colors.error,
+        backgroundColor: "#FFF8F8",
+    },
+
+    countrySection: {
+        flexDirection: "row",
+        alignItems: "center",
+        minWidth: 76,
+    },
+
+    indiaFlag: {
+        width: 22,
+        height: 16,
+        borderRadius: 2,
+        overflow: "hidden",
+        marginRight: 7,
+        borderWidth: 0.5,
+        borderColor: "#DDD",
+    },
+
+    flagStripe: {
+        height: 5.33,
+        width: "100%",
+    },
+
+    flagOrange: {
+        backgroundColor: "#FF9933",
+    },
+
+    flagWhite: {
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    flagGreen: {
+        backgroundColor: "#138808",
+    },
+
+    flagCircle: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        borderWidth: 0.7,
+        borderColor: "#000080",
+    },
+
+    codeText: {
+        fontSize: 14,
+        color: Colors.textPrimary,
+        fontFamily: Fonts.body.bold,
+        marginRight: 4,
+    },
+
+    inputDivider: {
+        width: 1,
+        height: 28,
+        backgroundColor: "#E1E1E1",
+        marginHorizontal: 10,
+    },
+
+    input: {
+        flex: 1,
+        minHeight: 56,
+        fontSize: 16,
+        color: Colors.textPrimary,
+        fontFamily: Fonts.body.medium,
+        paddingVertical: Platform.OS === "ios" ? 14 : 8,
+    },
+
+    validIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: "#16A34A",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    // --------------------------------------------------------
+    // ERROR
+    // --------------------------------------------------------
+
+    errorContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF2F2",
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginTop: 8,
+        marginBottom: 10,
+    },
+
+    errorText: {
+        flex: 1,
+        color: Colors.error,
+        fontSize: 12,
+        lineHeight: 17,
+        fontFamily: Fonts.body.medium,
+        marginLeft: 7,
+    },
+
+    // --------------------------------------------------------
+    // LOGIN BUTTON
+    // --------------------------------------------------------
+
+    loginButtonTouchable: {
+        width: "100%",
+        height: 56,
+        borderRadius: 15,
+        overflow: "hidden",
+        marginTop: 18,
+
+        shadowColor: "#C00000",
+        shadowOpacity: 0.22,
+        shadowRadius: 9,
+        shadowOffset: {
+            width: 0,
+            height: 5,
+        },
+
+        elevation: 5,
+    },
+
+    loginButton: {
+        width: "100%",
+        height: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    loginButtonDisabled: {
+        opacity: 0.75,
+    },
+
+    loginButtonText: {
+        color: Colors.white,
+        fontSize: 17,
+        fontFamily: Fonts.body.bold,
+        letterSpacing: 0.2,
+    },
+
+    buttonArrow: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: "rgba(255,255,255,0.18)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 12,
+    },
+
+    loadingDot: {
+        width: 9,
+        height: 9,
+        borderRadius: 5,
+        backgroundColor: "#FFFFFF",
+        marginRight: 10,
+    },
+
+    // --------------------------------------------------------
+    // SECURITY
+    // --------------------------------------------------------
+
+    securityRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        marginTop: 13,
+        paddingHorizontal: 6,
+    },
+
+    securityText: {
+        flex: 1,
+        marginLeft: 6,
+        fontSize: 10.5,
+        lineHeight: 15,
+        color: Colors.textMuted,
+        fontFamily: Fonts.body.regular,
+        textAlign: "center",
+    },
+
+    // --------------------------------------------------------
+    // REGISTER CARD
+    // --------------------------------------------------------
+
+    registerCard: {
+        width: "92%",
+        minHeight: 68,
+        alignSelf: "center",
+        marginTop: 16,
+        borderRadius: 17,
+        backgroundColor: "#FFF9F9",
+        borderWidth: 1,
+        borderColor: "#F3DEDE",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 13,
+    },
+
+    registerIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: "#F0D8D8",
+    },
+
+    registerContent: {
+        flex: 1,
+    },
+
+    registerText: {
+        fontSize: 11.5,
+        fontFamily: Fonts.body.regular,
+        color: Colors.textSecondary,
+        marginBottom: 3,
+    },
+
     registerLink: {
-        fontSize: 18,
+        fontSize: 13,
         fontFamily: Fonts.body.bold,
         color: Colors.primaryRed,
     },
 
-    skylineWrapper: {
-        width: "100%",
+    registerArrow: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#FFFFFF",
         alignItems: "center",
-        marginTop: 8,
-        opacity: 0.6,
-    },
-    skylineSvgContainer: {
-        width: SCREEN_WIDTH,
-        height: 70,
-        alignItems: "center",
-        justifyContent: "flex-end",
-        overflow: "hidden",
-    },
-    monumentCluster: {
-        flexDirection: "row",
-        alignItems: "flex-end",
         justifyContent: "center",
-        gap: 8,
+        borderWidth: 1,
+        borderColor: "#F0D8D8",
+    },
+
+    // --------------------------------------------------------
+    // BOTTOM BRANDING
+    // --------------------------------------------------------
+
+    bottomBranding: {
         width: "100%",
-        paddingHorizontal: 10,
-    },
-    monumentPillar: {
         alignItems: "center",
+        marginTop: 22,
+        paddingBottom: 5,
     },
-    domeTop: {
-        width: 14,
-        height: 10,
-        borderTopLeftRadius: 7,
-        borderTopRightRadius: 7,
-        backgroundColor: "#E4B8B8",
+
+    decorativeLine: {
+        width: 55,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: Colors.gold,
+        marginBottom: 9,
     },
-    towerBody: {
-        width: 12,
-        height: 28,
-        backgroundColor: "#E4B8B8",
-    },
-    monumentTower: {
-        alignItems: "center",
-    },
-    spireTop: {
-        width: 2,
-        height: 6,
-        backgroundColor: "#D99E9E",
-    },
-    minaretDome: {
-        width: 12,
-        height: 8,
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 6,
-        backgroundColor: "#E4B8B8",
-    },
-    minaretBody: {
-        width: 10,
-        height: 42,
-        backgroundColor: "#E4B8B8",
+
+    brandingContent: {
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
     },
-    archHole: {
-        width: 4,
-        height: 8,
-        borderTopLeftRadius: 2,
-        borderTopRightRadius: 2,
-        backgroundColor: Colors.background,
+
+    brandingText: {
+        marginHorizontal: 8,
+        fontSize: 11,
+        color: Colors.textSecondary,
+        fontFamily: Fonts.body.medium,
     },
-    templeBlock: {
-        alignItems: "center",
-    },
-    kalashPeak: {
-        width: 3,
-        height: 5,
-        backgroundColor: "#D99E9E",
-    },
-    onionDome: {
-        width: 28,
-        height: 20,
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        backgroundColor: "#E4B8B8",
-    },
-    buildingBase: {
-        width: 34,
-        height: 28,
-        backgroundColor: "#E4B8B8",
-        flexDirection: "row",
-        justifyContent: "space-around",
-        paddingTop: 4,
-    },
-    archWindow: {
-        width: 6,
-        height: 12,
-        borderTopLeftRadius: 3,
-        borderTopRightRadius: 3,
-        backgroundColor: Colors.background,
-    },
-    grandArchBlock: {
-        alignItems: "center",
-    },
-    charminarTowers: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        width: 44,
-    },
-    miniMinaret: {
-        alignItems: "center",
-    },
-    miniMinaretBody: {
-        width: 6,
-        height: 18,
-        backgroundColor: "#E4B8B8",
-    },
-    grandCenterArch: {
-        width: 50,
-        height: 45,
-        backgroundColor: "#E4B8B8",
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-        alignItems: "center",
-        justifyContent: "flex-end",
-    },
-    grandInnerArch: {
-        width: 26,
-        height: 28,
-        backgroundColor: Colors.background,
-        borderTopLeftRadius: 13,
-        borderTopRightRadius: 13,
+
+    brandingSubText: {
+        marginTop: 4,
+        fontSize: 9.5,
+        color: Colors.textMuted,
+        fontFamily: Fonts.body.regular,
     },
 });

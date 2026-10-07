@@ -243,9 +243,9 @@ export default function ShortlistedProfilesScreen({ navigation, route }) {
 
                 {/* ====== PROFILE LIST ====== */}
                 <View style={styles.profileList}>
-                    {profiles.map((profile) => (
+                    {profiles.map((profile, index) => (
                         <ProfileCard
-                            key={profile.id}
+                            key={profile.id + "_profiles_" + (index + 1)}
                             profile={profile}
                             isToggling={togglingId === profile.id}
                             onRemove={() => handleRemove(profile.id)}

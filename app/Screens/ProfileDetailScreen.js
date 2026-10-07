@@ -287,7 +287,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (navigation?.canGoBack?.()) navigation.goBack();
+        if (navigation?.canGoBack?.()) navigation.navigate(route?.params?.page || "Home", route?.params.prevs || {});
         return true;
       };
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
@@ -645,7 +645,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
         {/* ================= TOP BAR ================= */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate(route?.params?.page || "Home", route?.params.prevs || {})}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather name="arrow-left" size={26} color={Colors.primaryRed} />
@@ -960,27 +960,33 @@ export default function ProfileDetailScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
 
-      {!!interestError && (
-        <View style={styles.interestErrorBanner}>
-          <Feather name="alert-circle" size={16} color="#B42318" />
-          <Text style={styles.interestErrorText}>{interestError}</Text>
-        </View>
-      )}
+      {
+        !!interestError && (
+          <View style={styles.interestErrorBanner}>
+            <Feather name="alert-circle" size={16} color="#B42318" />
+            <Text style={styles.interestErrorText}>{interestError}</Text>
+          </View>
+        )
+      }
 
-      {!!rejectError && (
-        <View style={styles.interestErrorBanner}>
-          <Feather name="alert-circle" size={16} color="#B42318" />
-          <Text style={styles.interestErrorText}>{rejectError}</Text>
-        </View>
-      )}
+      {
+        !!rejectError && (
+          <View style={styles.interestErrorBanner}>
+            <Feather name="alert-circle" size={16} color="#B42318" />
+            <Text style={styles.interestErrorText}>{rejectError}</Text>
+          </View>
+        )
+      }
 
-      {!!shortlistError && (
-        <View style={styles.interestErrorBanner}>
-          <Feather name="alert-circle" size={16} color="#B42318" />
-          <Text style={styles.interestErrorText}>{shortlistError}</Text>
-        </View>
-      )}
-    </SafeAreaView>
+      {
+        !!shortlistError && (
+          <View style={styles.interestErrorBanner}>
+            <Feather name="alert-circle" size={16} color="#B42318" />
+            <Text style={styles.interestErrorText}>{shortlistError}</Text>
+          </View>
+        )
+      }
+    </SafeAreaView >
   );
 }
 

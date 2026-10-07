@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   BackHandler,
@@ -243,7 +243,7 @@ export default function Languages({ navigation, route }) {
   const loadLanguages = useCallback(async () => {
     try {
       setErrorMessage("");
-
+      setLoading(true);
       const accessToken = await AsyncStorage.getItem("authToken");
 
       if (!accessToken) {
@@ -296,6 +296,8 @@ export default function Languages({ navigation, route }) {
         error?.message ||
         "Unable to load languages.",
       );
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -309,25 +311,15 @@ export default function Languages({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
+      loadLanguages();
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         handleBack,
       );
 
       return () => subscription.remove();
-    }, [handleBack]),
+    }, [handleBack, route]),
   );
-
-  useEffect(() => {
-    loadAstronomicInformation();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadLanguages();
-    }, [loadLanguages]),
-  );
-
   const editMotherTongue = () => {
     navigation.navigate("EditLanguages", {
       field: "motherTongue",

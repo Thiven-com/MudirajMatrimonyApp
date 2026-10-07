@@ -1,62 +1,49 @@
 import { useCallback, useEffect, useState } from "react";
-
 import {
+
   ActivityIndicator,
   BackHandler,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+
 } from "react-native";
-
 import Feather from "react-native-vector-icons/Feather";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Fonts from "../constants/Fonts";
-
 import { getMemberFamilyInfo } from "../utils/Functions";
-
-
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FamilyInformation({ navigation, route }) {
-
   const [familyData, setFamilyData] = useState({
     father: "",
-
     mother: "",
-
     sibling: "",
   });
-
   const [loading, setLoading] = useState(true);
-
   const [errorMessage, setErrorMessage] = useState("");
 
 
   const onBackPress = () => {
     navigation.navigate(route?.params?.page || "Home", route?.params?.prevs || {});
     return true;
-  };
 
+  };
   const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
       onBackPress();
     }
-  }, [navigation]);
 
+  }, [navigation]);
   useFocusEffect(
     useCallback(() => {
+      loadFamilyInformation();
       const handleHardwareBack = () => {
-        if (loading) {
-          return true;
-        }
-
         handleBack();
-
         return true;
       };
 
@@ -68,28 +55,18 @@ export default function FamilyInformation({ navigation, route }) {
       return () => {
         subscription.remove();
       };
-    }, [handleBack, loading]));
-
+    }, [handleBack]));
   /* ====
      GET FAMILY INFORMATION
-  ==== */
 
-  const loadFamilyInformation = useCallback(async () => {
+  \==== \*/
+  const loadFamilyInformation = async () => {
     try {
       setLoading(true);
 
       setErrorMessage("");
 
-      /* ===
-           GET ACCESS TOKEN
-        === */
-
       const accessToken = await AsyncStorage.getItem("authToken");
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-      /* ===
-           TOKEN CHECK
-        === */
 
       if (!accessToken) {
         setErrorMessage("Please login again.");
@@ -97,41 +74,9 @@ export default function FamilyInformation({ navigation, route }) {
         return;
       }
 
-      /* ===
-           CALL GET API
-        === */
-
       const response = await getMemberFamilyInfo(accessToken);
 
-      console.log("FAMILY API FULL RESPONSE:");
-
-      console.log(JSON.stringify(response, null, 2));
-
-      /* ===
-           RESPONSE DATA
-        === */
-
       let data = response?.data;
-
-      /*
-       * Handle possible response:
-       *
-       * {
-       *   data: {
-       *     father: "...",
-       *     mother: "...",
-       *     sibling: "..."
-       *   }
-       * }
-       *
-       * Also handles:
-       *
-       * {
-       *   data: {
-       *     data: {...}
-       *   }
-       * }
-       */
 
       if (
         data &&
@@ -142,10 +87,6 @@ export default function FamilyInformation({ navigation, route }) {
         data = data.data;
       }
 
-      /* ===
-           RESULT OBJECT
-        === */
-
       if (
         data &&
         typeof data === "object" &&
@@ -155,21 +96,12 @@ export default function FamilyInformation({ navigation, route }) {
         data = data.result;
       }
 
-      console.log("FAMILY DATA USED BY SCREEN:", JSON.stringify(data, null, 2));
-
-      /* ===
-           SET FAMILY DATA
-        === */
-
       setFamilyData({
         father: data?.father ?? data?.father_name ?? "",
-
         mother: data?.mother ?? data?.mother_name ?? "",
-
         sibling: data?.sibling ?? data?.siblings ?? data?.sibling_count ?? "",
       });
     } catch (error) {
-     
 
       console.error("FAMILY INFORMATION SCREEN ERROR");
 
@@ -189,46 +121,21 @@ export default function FamilyInformation({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  }, []);
 
-  /* ====
-     LOAD API WHEN SCREEN OPENS
-  ==== */
-
-  useEffect(() => {
-    loadFamilyInformation();
-  }, [loadFamilyInformation]);
-
-  /* ====
-     EDIT SINGLE FIELD
-  ==== */
+  };
 
   const handleEdit = (field) => {
     navigation.navigate("EditFamilyInformation", {
       field,
       page: route?.name, prevs: route?.params
     });
-  };
 
-  /* ====
-     EDIT DETAILS
-  ==== */
+  };
 
   const handleEditDetails = () => {
     navigation.navigate("EditFamilyInformation", { page: route?.name, prevs: route?.params });
+
   };
-
-  /* ====
-     MORE BUTTON
-  ==== */
-
-  const handleMore = () => {
-    console.log("FAMILY INFORMATION MORE CLICKED");
-  };
-
-  /* ====
-     LOADING SCREEN
-  ==== */
 
   if (loading) {
     return (
@@ -242,11 +149,9 @@ export default function FamilyInformation({ navigation, route }) {
         </View>
       </SafeAreaView>
     );
+
   }
 
-  /* ====
-     MAIN SCREEN
-  ==== */
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -255,25 +160,35 @@ export default function FamilyInformation({ navigation, route }) {
       <View style={styles.screen}>
         {/* ===
             CARD
-        === */}
+        \=== \*/}
 
         <View style={styles.card}>
           {/* ======
               HEADER
-          ====== */}
+          \====== \*/}
 
           <View style={styles.header}>
+            {/* BACK BUTTON */}
+            <TouchableOpacity
+              style={styles.backButton}
+              activeOpacity={0.8}
+              onPress={handleBack}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Feather name="arrow-left" size={20} color="#222222" />
+            </TouchableOpacity>
             {/* HEADER ICON */}
 
             <View style={styles.headerIconContainer}>
               <Feather name="users" size={15} color="#D7192A" />
             </View>
 
-            {/* TITLE */}
+            {/* TITLE \*/}
 
             <Text style={styles.headerTitle}>Family Information</Text>
 
-            {/* MORE */}
+            {/* MORE \*/}
 
             <TouchableOpacity
               style={styles.moreButton}
@@ -284,13 +199,13 @@ export default function FamilyInformation({ navigation, route }) {
 
           {/* ======
               DIVIDER
-          ====== */}
+          \====== \*/}
 
           <View style={styles.divider} />
 
           {/* ======
               ERROR
-          ====== */}
+          \====== \*/}
 
           {errorMessage ? (
             <View style={styles.errorBox}>
@@ -302,7 +217,7 @@ export default function FamilyInformation({ navigation, route }) {
 
           {/* ======
               FATHER
-          ====== */}
+          \====== \*/}
 
           <TouchableOpacity
             style={styles.row}
@@ -324,7 +239,7 @@ export default function FamilyInformation({ navigation, route }) {
 
           {/* ======
               MOTHER
-          ====== */}
+          \====== \*/}
 
           <TouchableOpacity
             style={styles.row}
@@ -346,7 +261,7 @@ export default function FamilyInformation({ navigation, route }) {
 
           {/* ======
               SIBLING
-          ====== */}
+          \====== \*/}
 
           <TouchableOpacity
             style={styles.row}
@@ -368,7 +283,7 @@ export default function FamilyInformation({ navigation, route }) {
 
           {/* ======
               EDIT DETAILS
-          ====== */}
+          \====== \*/}
 
           <TouchableOpacity
             style={styles.editDetailsButton}
@@ -382,344 +297,244 @@ export default function FamilyInformation({ navigation, route }) {
         </View>
       </View>
     </SafeAreaView>
+
   );
+
 }
-
 /* ===
-   STYLES
-=== */
 
+   STYLES
+
+\=== \*/
 const styles = StyleSheet.create({
+
   /* =======
        SAFE AREA
-    ======= */
-
+    \======= \*/
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F6F8",
   },
-
   /* =======
        SCREEN
-    ======= */
-
+    \======= \*/
   screen: {
     flex: 1,
-
     backgroundColor: "#F5F6F8",
-
     paddingHorizontal: 12,
-
     paddingTop: 12,
     paddingLeft: 6,
     paddingRight: 6,
   },
-
   /* =======
        LOADING
-    ======= */
-
+    \======= \*/
   loadingContainer: {
     flex: 1,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     backgroundColor: "#F5F6F8",
   },
-
   loadingText: {
     marginTop: 12,
-
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.md,
-
     color: "#777777",
   },
-
   /* =======
        CARD
-    ======= */
-
+    \======= \*/
   card: {
     width: "100%",
-
     backgroundColor: "#FFFFFF",
-
     borderRadius: 12,
-
     paddingHorizontal: 10,
-
     paddingTop: 10,
-
     paddingBottom: 370,
-
     borderWidth: 1,
-
     borderColor: "#ECECF0",
-
     shadowColor: "#000000",
-
     shadowOffset: {
       width: 0,
       height: 2,
     },
-
     shadowOpacity: 0.08,
-
     shadowRadius: 6,
-
     elevation: 3,
   },
-
   /* =======
        HEADER
-    ======= */
-
+    \======= \*/
   header: {
     minHeight: 32,
-
     flexDirection: "row",
-
     alignItems: "center",
-
     marginBottom: 30,
   },
-
   /* =======
        HEADER ICON
-    ======= */
-
+    \======= \*/
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECECF0",
+    marginRight: 10,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   headerIconContainer: {
     width: 30,
-
     height: 30,
-
     borderRadius: 15,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     backgroundColor: "#FFF0F2",
-
     marginRight: 9,
   },
-
   /* =======
        HEADER TITLE
-    ======= */
-
+    \======= \*/
   headerTitle: {
     flex: 1,
-
     fontFamily: Fonts.bold,
     fontSize: Fonts.size.lg,
-
     color: "#222222",
   },
-
   /* =======
        MORE
-    ======= */
-
+    \======= \*/
   moreButton: {
     width: 30,
-
     height: 30,
-
     borderRadius: 15,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     backgroundColor: "#FFF7F8",
   },
-
   /* =======
        DIVIDER
-    ======= */
-
+    \======= \*/
   divider: {
     height: 1,
-
     backgroundColor: "#F0F0F0",
-
     marginBottom: 30,
   },
-
   /* =======
        ERROR
-    ======= */
-
+    \======= \*/
   errorBox: {
     flexDirection: "row",
-
     alignItems: "center",
-
     backgroundColor: "#FFF1F2",
-
     borderRadius: 8,
-
     paddingHorizontal: 10,
-
     paddingVertical: 8,
-
     marginBottom: 50,
   },
-
   errorText: {
     flex: 1,
-
     marginLeft: 7,
-
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.sm,
-
     color: "#D7192A",
   },
-
   /* =======
        ROW
-    ======= */
-
+    \======= \*/
   row: {
     minHeight: 60,
-
     flexDirection: "row",
-
     alignItems: "center",
-
     borderBottomWidth: 1,
-
     borderBottomColor: "#F5F5F5",
   },
-
   /* =======
        PERSON ICON
-    ======= */
-
+    \======= \*/
   personIcon: {
     width: 32,
-
     height: 32,
-
     borderRadius: 16,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     marginRight: 11,
   },
-
   fatherIcon: {
     backgroundColor: "#EAF5FF",
   },
-
   motherIcon: {
     backgroundColor: "#FFF0F6",
   },
-
   siblingIcon: {
     backgroundColor: "#EAF8F0",
   },
-
   /* =======
        TEXT
-    ======= */
-
+    \======= \*/
   textContainer: {
     flex: 1,
-
     flexDirection: "row",
-
     alignItems: "center",
   },
-
   label: {
     width: 65,
-
     fontFamily: Fonts.semiBold,
     fontSize: Fonts.size.sm,
-
     color: "#444444",
   },
-
   value: {
     flex: 1,
-
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.sm,
-
     color: "#777777",
-
     marginLeft: 8,
   },
-
   /* =======
        EDIT ICON
-    ======= */
-
+    \======= \*/
   editIconButton: {
     width: 29,
-
     height: 29,
-
     borderRadius: 15,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     backgroundColor: "#F5F5F6",
-
     marginLeft: 8,
   },
-
   /* =======
        EDIT DETAILS
-    ======= */
-
+    \======= \*/
   editDetailsButton: {
     height: 43,
-
     width: "100%",
-
     marginTop: 90,
-
     borderRadius: 9,
-
     backgroundColor: "#D7192A",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     shadowColor: "#D7192A",
-
     shadowOffset: {
       width: 0,
       height: 3,
     },
-
     shadowOpacity: 0.18,
-
     shadowRadius: 5,
-
     elevation: 2,
   },
-
   editDetailsText: {
     marginLeft: 7,
-
     fontFamily: Fonts.bold,
     fontSize: Fonts.size.md,
-
     color: "#FFFFFF",
   },
+
 });

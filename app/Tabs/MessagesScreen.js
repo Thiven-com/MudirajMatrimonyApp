@@ -508,105 +508,120 @@ function EmptyState({ errorMessage, onRetry }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    justifyContent: "flex-start",
-    backgroundColor: "#F8F8F9",
+    backgroundColor: "#F7F4F1",
   },
 
-  /* ================= HEADER ================= */
-
   header: {
-    height: 48,
+    height: 58,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: 18,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0E8E1",
   },
 
   backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF5F2",
   },
 
   headerTitle: {
-    fontSize: scale(14),
+    fontSize: scale(16),
     fontFamily: Fonts.display.bold,
-    fontWeight: "700",
-    color: COLORS.text,
+    color: COLORS.darkRed,
+    letterSpacing: 0.2,
   },
 
   headerRightSpace: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
   },
 
   titleBlock: {
-    paddingHorizontal: SPACING.md,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.md,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
   },
 
   screenTitle: {
     fontSize: width <= 430 ? 30 : 34,
-    fontWeight: "800",
-    color: COLORS.darkRed,
+    fontFamily: Fonts.display.bold,
+    color: COLORS.text,
+    letterSpacing: -0.7,
   },
 
   screenSubtitle: {
     fontSize: scale(13),
     fontFamily: Fonts.body.medium,
     color: COLORS.gray,
-    marginTop: SPACING.xs,
+    marginTop: 5,
+    lineHeight: 19,
   },
-
-  /* ================= SEARCH BAR ================= */
 
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
-    borderRadius: 16,
-    paddingHorizontal: SPACING.md,
-    height: 54,
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
+    height: 52,
+    marginHorizontal: 18,
+    marginTop: 14,
+    marginBottom: 12,
+    paddingHorizontal: 15,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#EDE3DB",
+    shadowColor: "#8D7164",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 2,
+    gap: 10,
   },
 
   searchInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: scale(14),
     fontFamily: Fonts.body.regular,
     color: COLORS.text,
+    paddingVertical: 0,
   },
 
-  /* ================= FILTER TABS ================= */
-
   filterRow: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
+    paddingHorizontal: 18,
+    paddingVertical: 5,
+    gap: 9,
     alignItems: "center",
   },
 
   filterChip: {
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    paddingHorizontal: SPACING.md,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    gap: SPACING.xs,
+    justifyContent: "center",
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E7DDD5",
+    backgroundColor: "#FFFFFF",
+    gap: 7,
   },
 
   filterChipActive: {
     backgroundColor: COLORS.red,
     borderColor: COLORS.red,
+    shadowColor: COLORS.red,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
+    elevation: 3,
   },
 
   filterDot: {
@@ -616,9 +631,8 @@ const styles = StyleSheet.create({
   },
 
   filterChipText: {
-    fontSize: scale(13),
-    fontFamily: Fonts.body.bold,
-    fontWeight: "700",
+    fontSize: scale(12.5),
+    fontFamily: Fonts.body.semiBold,
     color: COLORS.text,
   },
 
@@ -627,13 +641,11 @@ const styles = StyleSheet.create({
   },
 
   filtersList: {
-    height: 56,
+    height: 55,
     flexGrow: 0,
     flexShrink: 0,
-    marginBottom: SPACING.xs,
+    backgroundColor: "#F7F4F1",
   },
-
-  /* ================= CHAT LIST ================= */
 
   chatFlatList: {
     flex: 1,
@@ -641,9 +653,9 @@ const styles = StyleSheet.create({
   },
 
   chatList: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: 0,
-    paddingBottom: SPACING.xl,
+    paddingHorizontal: 16,
+    paddingTop: 5,
+    paddingBottom: 26,
   },
 
   chatListEmpty: {
@@ -653,29 +665,32 @@ const styles = StyleSheet.create({
   chatRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.white,
+    minHeight: 84,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    padding: SPACING.sm,
-    marginBottom: SPACING.sm,
-    shadowColor: COLORS.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    borderColor: "#EEE5DE",
+    shadowColor: "#80685D",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
     elevation: 2,
   },
 
   avatarWrapper: {
     position: "relative",
-    marginRight: SPACING.md,
+    marginRight: 12,
   },
 
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: "#F2ECE6",
+    borderWidth: 2,
+    borderColor: "#FFF7F3",
   },
 
   avatarFallback: {
@@ -685,62 +700,63 @@ const styles = StyleSheet.create({
 
   avatarFallbackText: {
     color: "#FFFFFF",
-    fontSize: scale(18),
+    fontSize: scale(17),
     fontFamily: Fonts.display.bold,
-    fontWeight: "800",
   },
 
   statusDot: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 13,
-    height: 13,
+    right: 0,
+    bottom: 1,
+    width: 14,
+    height: 14,
     borderRadius: 7,
-    borderWidth: 2,
-    borderColor: COLORS.white,
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
   },
 
   chatContent: {
     flex: 1,
     minWidth: 0,
+    paddingVertical: 1,
   },
 
   chatTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 2,
   },
 
   chatNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
     flexShrink: 1,
+    gap: 5,
   },
 
   chatName: {
-    fontSize: scale(16),
-    fontFamily: Fonts.display.bold,
-    fontWeight: "800",
-    color: COLORS.darkRed,
     flexShrink: 1,
+    fontSize: scale(15.5),
+    fontFamily: Fonts.display.bold,
+    color: COLORS.text,
+    letterSpacing: -0.1,
   },
 
   chatTime: {
-    fontSize: scale(11.5),
+    flexShrink: 0,
+    fontSize: scale(10.5),
     fontFamily: Fonts.body.medium,
     color: COLORS.mutedGray,
-    marginLeft: SPACING.sm,
+    marginLeft: 8,
   },
 
   chatProfession: {
-    fontSize: scale(12.5),
+    fontSize: scale(11.5),
     fontFamily: Fonts.body.semiBold,
-    color: COLORS.gray,
-    fontWeight: "600",
+    color: COLORS.red,
     marginTop: 2,
-    marginBottom: 4,
+    marginBottom: 5,
   },
 
   chatBottomRow: {
@@ -750,45 +766,48 @@ const styles = StyleSheet.create({
   },
 
   chatLastMessage: {
-    fontSize: scale(13),
+    flex: 1,
+    marginRight: 8,
+    fontSize: scale(12.5),
     fontFamily: Fonts.body.regular,
     color: COLORS.mutedGray,
-    flex: 1,
-    marginRight: SPACING.sm,
   },
 
   chatLastMessageUnread: {
     color: COLORS.text,
-    fontWeight: "600",
+    fontFamily: Fonts.body.semiBold,
   },
 
   unreadBadge: {
     minWidth: 22,
     height: 22,
     borderRadius: 11,
+    paddingHorizontal: 6,
     backgroundColor: COLORS.badgeRed,
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 5,
+    justifyContent: "center",
+    shadowColor: COLORS.badgeRed,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
   unreadBadgeText: {
     color: "#FFFFFF",
-    fontSize: scale(11),
+    fontSize: scale(10.5),
     fontFamily: Fonts.body.bold,
-    fontWeight: "700",
   },
-
-  /* ================= LOADING / EMPTY ================= */
 
   loadingState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F7F4F1",
   },
 
   loadingText: {
-    marginTop: 10,
+    marginTop: 12,
     fontSize: scale(12),
     fontFamily: Fonts.body.medium,
     color: COLORS.mutedGray,
@@ -798,53 +817,59 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 32,
+    backgroundColor: "#F7F4F1",
   },
 
   emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.goldLight,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    backgroundColor: "#FFF0E6",
+    borderWidth: 1,
+    borderColor: "#F5D7C7",
+    marginBottom: 16,
   },
 
   emptyTitle: {
-    fontSize: scale(18),
+    fontSize: scale(19),
     fontFamily: Fonts.display.bold,
-    fontWeight: "800",
     color: COLORS.darkRed,
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 7,
   },
 
   emptySubtitle: {
-    fontSize: scale(12),
+    maxWidth: 300,
+    fontSize: scale(12.5),
     fontFamily: Fonts.body.regular,
-    lineHeight: 18,
+    lineHeight: 19,
     color: COLORS.mutedGray,
     textAlign: "center",
-    maxWidth: 290,
   },
 
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 7,
+    minHeight: 42,
+    paddingHorizontal: 20,
+    borderRadius: 21,
     backgroundColor: COLORS.red,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 16,
+    marginTop: 18,
+    shadowColor: COLORS.red,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 7,
+    elevation: 3,
   },
 
   retryButtonText: {
     color: "#FFFFFF",
     fontSize: scale(12),
     fontFamily: Fonts.body.bold,
-    fontWeight: "700",
   },
 });

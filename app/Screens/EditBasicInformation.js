@@ -928,176 +928,330 @@ export default function EditBasicInformation({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  screen: { flex: 1, paddingHorizontal: 16 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F7F3F0",
+  },
+
+  screen: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+
   header: {
-    height: 50,
+    height: 58,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  backButton: { padding: 8 },
+
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: "#EEE4DE",
+    shadowColor: "#6F4E45",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
   headerTitle: {
     fontFamily: Fonts.bold,
     fontSize: Fonts.size.base,
-    color: COLORS.black,
+    color: "#241D1B",
+    letterSpacing: 0.2,
   },
-  menuButton: { padding: 8 },
+
+  menuButton: {
+    width: 42,
+    height: 42,
+  },
+
   card: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    marginVertical: 10,
-    padding: 16,
-    elevation: 2,
+    borderRadius: 24,
+    marginVertical: 8,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#EEE5DF",
+    shadowColor: "#6D5148",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 4,
   },
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   loaderText: {
-    marginTop: 10,
+    marginTop: 12,
     color: COLORS.gray,
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.md,
   },
-  scrollContent: { paddingBottom: 20 },
-  photoSection: { alignItems: "center", marginBottom: 20 },
-  photoContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    overflow: "hidden",
-    backgroundColor: COLORS.border,
-    marginBottom: 10,
+
+  scrollContent: {
+    paddingBottom: 28,
   },
-  photoImage: { width: "100%", height: "100%" },
+
+  photoSection: {
+    alignItems: "center",
+    marginBottom: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0E8E3",
+  },
+
+  photoContainer: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    overflow: "hidden",
+    backgroundColor: "#F6EFEB",
+    borderWidth: 4,
+    borderColor: "#FFF7F4",
+    shadowColor: "#8B4B46",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  photoImage: {
+    width: "100%",
+    height: "100%",
+  },
+
   photoPlaceholder: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#F8EFEC",
   },
-  photoActions: { flexDirection: "row", gap: 10 },
+
+  photoActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+
   uploadBtn: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: "#FFF2EF",
+    borderWidth: 1,
+    borderColor: "#F3C9C6",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
   },
+
   uploadBtnText: {
-    color: COLORS.black,
-    fontFamily: Fonts.semiBold,
-    fontSize: Fonts.size.sm,
-  },
-  removeBtn: {
-    backgroundColor: "#FFF0F0",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  removeBtnText: {
     color: COLORS.red,
     fontFamily: Fonts.semiBold,
     fontSize: Fonts.size.sm,
   },
-  fieldContainer: { marginBottom: 16 },
+
+  removeBtn: {
+    backgroundColor: "#FFF7F7",
+    borderWidth: 1,
+    borderColor: "#F1D7D9",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
+  },
+
+  removeBtnText: {
+    color: "#C9273A",
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.sm,
+  },
+
+  fieldContainer: {
+    marginBottom: 18,
+  },
+
   label: {
     fontFamily: Fonts.semiBold,
-    fontSize: Fonts.size.md,
-    color: COLORS.black,
-    marginBottom: 6,
+    fontSize: Fonts.size.sm,
+    color: "#332B28",
+    marginBottom: 8,
+    letterSpacing: 0.1,
   },
-  required: { color: COLORS.red },
+
+  required: {
+    color: COLORS.red,
+  },
+
   input: {
+    minHeight: 52,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: "#E7DDD7",
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: "#FCFAF9",
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.md,
-    color: COLORS.black,
+    color: "#27211F",
   },
-  genderRow: { flexDirection: "row", justifyContent: "space-between" },
-  radioItem: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
-  radioOuter: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: COLORS.gray,
+
+  genderRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  radioItem: {
+    flex: 1,
+    minHeight: 50,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 6,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#E7DDD7",
+    borderRadius: 15,
+    backgroundColor: "#FCFAF9",
   },
-  radioOuterSelected: { borderColor: COLORS.red },
+
+  radioOuter: {
+    width: 19,
+    height: 19,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#B8AAA3",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 7,
+  },
+
+  radioOuterSelected: {
+    borderColor: COLORS.red,
+  },
+
   radioInner: {
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
     backgroundColor: COLORS.red,
   },
+
   radioText: {
-    fontFamily: Fonts.regular,
-    fontSize: Fonts.size.md,
+    fontFamily: Fonts.semiBold,
+    fontSize: Fonts.size.sm,
     color: COLORS.text,
   },
+
   pickerTrigger: {
+    minHeight: 52,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: "#E7DDD7",
+    borderRadius: 15,
+    paddingHorizontal: 15,
     paddingVertical: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#FCFAF9",
   },
+
   pickerValue: {
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.semiBold,
     fontSize: Fonts.size.md,
-    color: COLORS.black,
+    color: "#29221F",
   },
+
   pickerPlaceholder: {
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.md,
     color: COLORS.placeholder,
   },
+
   saveButton: {
     backgroundColor: COLORS.red,
-    borderRadius: 8,
-    paddingVertical: 14,
+    minHeight: 54,
+    borderRadius: 16,
     alignItems: "center",
-    marginTop: 10,
+    justifyContent: "center",
+    marginTop: 8,
+    shadowColor: COLORS.red,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  saveButtonDisabled: { opacity: 0.6 },
+
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+
   saveButtonText: {
     color: COLORS.white,
     fontFamily: Fonts.bold,
     fontSize: Fonts.size.md,
+    letterSpacing: 0.2,
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
+    backgroundColor: "rgba(34, 24, 21, 0.55)",
+    justifyContent: "flex-end",
   },
-  modalCard: { backgroundColor: COLORS.white, borderRadius: 12, padding: 20 },
+
+  modalCard: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 12,
+  },
+
   modalTitle: {
     fontFamily: Fonts.bold,
     fontSize: Fonts.size.base,
-    marginBottom: 15,
-    color: COLORS.black,
+    marginBottom: 12,
+    paddingTop: 8,
+    color: "#2B2320",
   },
+
   modalOption: {
+    minHeight: 52,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: "#F0E8E3",
+    borderRadius: 10,
   },
+
   modalOptionText: {
     fontFamily: Fonts.regular,
     fontSize: Fonts.size.md,
     color: COLORS.text,
   },
-  modalOptionTextSelected: { fontFamily: Fonts.bold, color: COLORS.red },
+
+  modalOptionTextSelected: {
+    fontFamily: Fonts.bold,
+    color: COLORS.red,
+  },
 });

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   Modal,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -19,6 +18,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { BackHandler } from "react-native";
 
 import { deleteMemberCareerById, getMemberCareer } from "../utils/Functions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // =========================================================
 // COLORS
@@ -49,7 +49,7 @@ const COLORS = {
 // CAREER INFORMATION
 // =========================================================
 
-export default function CareerInformation({ navigation }) {
+export default function CareerInformation({ navigation, route }) {
   const [careers, setCareers] = useState([]);
 
   const [loading, setLoading] = useState(false);
@@ -182,14 +182,6 @@ export default function CareerInformation({ navigation }) {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-     
-
-      console.log("GET CAREER");
-
-      console.log("TOKEN EXISTS:", !!accessToken);
-
-  
-
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
 
@@ -198,15 +190,7 @@ export default function CareerInformation({ navigation }) {
 
       const response = await getMemberCareer(accessToken);
 
-      console.log("GET CAREER API RESPONSE:");
-
-      console.log(JSON.stringify(response, null, 2));
-
       const careerData = normalizeCareerResponse(response);
-
-      
-
-      console.log(JSON.stringify(careerData, null, 2));
 
       setCareers(Array.isArray(careerData) ? careerData : []);
     } catch (error) {
@@ -214,8 +198,8 @@ export default function CareerInformation({ navigation }) {
       showAlert(
         "Error",
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to load career information.",
+        error?.message ||
+        "Unable to load career information.",
         "error",
       );
     } finally {
@@ -244,7 +228,11 @@ export default function CareerInformation({ navigation }) {
   // =======================================================
 
   const handleAddCareer = () => {
-    navigation.navigate("AddCareer");
+    navigation.navigate("AddCareer", { page: route?.name, prevs: route?.params });
+  };
+
+  const handleBack = () => {
+    navigation.navigate(route?.params?.page || "Profile", route?.params?.prev || {});
   };
 
   // =======================================================
@@ -324,16 +312,7 @@ export default function CareerInformation({ navigation }) {
   const executeDeleteCareer = async (deleteId) => {
     try {
       setDeleting(true);
-
-    
-
-      console.log("DELETE CAREER");
-
-      console.log("CAREER ID:", deleteId);
-
-     
       const accessToken = await AsyncStorage.getItem("authToken");
-
       if (!accessToken) {
         showAlert("Session Expired", "Please login again.", "error");
 
@@ -341,11 +320,6 @@ export default function CareerInformation({ navigation }) {
       }
 
       const response = await deleteMemberCareerById(accessToken, deleteId);
-
-      console.log("DELETE RESPONSE:");
-
-      console.log(JSON.stringify(response, null, 2));
-
       const responseData =
         response?.data && typeof response.data === "object"
           ? response.data
@@ -407,9 +381,9 @@ export default function CareerInformation({ navigation }) {
       showAlert(
         "Delete Failed",
         error?.response?.data?.message ||
-          error?.response?.data?.msg ||
-          error?.message ||
-          "Unable to delete career.",
+        error?.response?.data?.msg ||
+        error?.message ||
+        "Unable to delete career.",
         "error",
       );
     } finally {
@@ -423,7 +397,7 @@ export default function CareerInformation({ navigation }) {
         "hardwareBackPress",
         () => {
           if (navigation?.canGoBack?.()) {
-            navigation.goBack();
+            navigation.navigate(route?.params?.page || "Profile", route?.params?.prev || {});
           }
           return true;
         },
@@ -576,7 +550,7 @@ export default function CareerInformation({ navigation }) {
                 return;
               }
 
-              navigation.navigate("EditCareer", { id: String(careerId) });
+              navigation.navigate("EditCareer", { id: String(careerId), page: route?.name, prevs: route?.params });
             }}
           >
             <Feather name="edit-2" size={21} color="#333333" />
@@ -616,7 +590,7 @@ export default function CareerInformation({ navigation }) {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
+            onPress={() => handleBack()}
           >
             <Feather name="chevron-left" size={24} color={COLORS.red} />
           </TouchableOpacity>

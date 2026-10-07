@@ -36,7 +36,7 @@ const LOGO = require("../assets/images/logo.png");
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Header wave geometry — reversed curve: edges dip down, center arches up
-// (same geometry used on the login / OTP screens)
+
 const HEADER_HEIGHT = 210;
 const EDGE_Y = HEADER_HEIGHT * 0.7;
 const PEAK_Y = HEADER_HEIGHT * 0.33;
@@ -411,7 +411,7 @@ export default function RegisterScreen({ navigation, route }) {
                             <Text style={styles.termsLink} onPress={() => navigation.navigate("Terms", { page: route?.name })}>
                                 Terms & Conditions
                             </Text>
-                            and{" "}
+                            {" "}and{" "}
                             <Text style={styles.termsLink} onPress={() => navigation.navigate("Privacy", { page: route?.name })}>
                                 Privacy Policy
                             </Text>
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     /* ===== TITLE & TAGLINE ===== */
     titleContainer: {
         alignItems: "center",
-        marginTop: 6,
+        marginTop: -116,
     },
     title: {
         fontSize: FontSizes.title,

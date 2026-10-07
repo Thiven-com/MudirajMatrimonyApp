@@ -243,7 +243,7 @@ export default function AddEducation({ navigation, route }) {
     degree: {
       label: "Degree / Course",
       required: true,
-      icon: "school-outline",
+      icon: "book-open",
       value: degree,
       setValue: setDegree,
       options: DEGREE_OPTIONS,
@@ -251,7 +251,7 @@ export default function AddEducation({ navigation, route }) {
     startYear: {
       label: "Start Year",
       required: true,
-      icon: "calendar-outline",
+      icon: "calendar",
       value: startYear,
       setValue: setStartYear,
       options: YEAR_OPTIONS,
@@ -259,7 +259,7 @@ export default function AddEducation({ navigation, route }) {
     endYear: {
       label: "End Year",
       required: true,
-      icon: "calendar-outline",
+      icon: "calendar",
       value: endYear,
       setValue: setEndYear,
       options: YEAR_OPTIONS,

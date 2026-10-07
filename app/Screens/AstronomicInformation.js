@@ -80,19 +80,13 @@ const AstronomicInformation = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       getAstronomicInformation();
-    }, []),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress,
       );
 
       return () => subscription.remove();
-    }, [navigation]),
+    }, [route]),
   );
 
   const onBackPress = () => {

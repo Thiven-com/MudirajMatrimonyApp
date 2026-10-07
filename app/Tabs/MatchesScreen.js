@@ -39,12 +39,6 @@ const COLORS = {
 };
 
 const FALLBACK_IMAGE = require("../assets/images/Match1.png");
-
-/* ===
-   GET TOKEN
-   Same token logic used by HomeScreen
-=== */
-
 const getToken = async () => {
     try {
         // 1. Your login screen stores the token here
@@ -115,10 +109,6 @@ const getToken = async () => {
     }
 };
 
-/* ===
-   API -> UI MAPPING
-=== */
-
 function formatHeight(value) {
     if (value == null || value === "") return "";
 
@@ -186,8 +176,8 @@ const ID_MAPS = {
     },
 };
 
-// "5'3\" - 5'5\"" -> { min_height: 5.3, max_height: 5.5 }
-// "6'0\"+"        -> { min_height: 6.0 }               (open-ended)
+// "5'3\\" - 5'5\\"" -> { min_height: 5.3, max_height: 5.5 }
+// "6'0\\"+"        -> { min_height: 6.0 }               (open-ended)
 function parseHeightRange(heightLabel) {
     if (!heightLabel || typeof heightLabel !== "string") return {};
 
@@ -330,7 +320,7 @@ function mapMember(api) {
 /* ===
    TABS
    member_type: 0 = All, 1 = Premium, 2 = Free
-=== */
+\=== */
 
 const tabs = [
     {
@@ -352,7 +342,7 @@ const tabs = [
 
 /* ===
    COMPONENT
-=== */
+\=== */
 
 export default function MatchesScreen({ navigation, route }) {
 
@@ -399,15 +389,15 @@ export default function MatchesScreen({ navigation, route }) {
             }
 
             /*
-             * IMPORTANT:
-             *
-             * postMemberListing expects:
-             *
-             * postMemberListing(filters, token)
-             *
-             * So DO NOT use:
-             *
-             * postMemberListing(token)
+             \* IMPORTANT:
+             \*
+             \* postMemberListing expects:
+             \*
+             \* postMemberListing(filters, token)
+             \*
+             \* So DO NOT use:
+             \*
+             \* postMemberListing(token)
              */
 
             const filters = buildFiltersFromParams(params);
@@ -438,7 +428,7 @@ export default function MatchesScreen({ navigation, route }) {
 
     /* ===
        INITIAL LOAD
-    === */
+    \=== */
 
     useEffect(() => {
         loadMatches();
@@ -461,7 +451,7 @@ export default function MatchesScreen({ navigation, route }) {
     /* ===
        FILTER MATCHES
        member_type: 0 = All, 1 = Premium, 2 = Free
-    === */
+    \=== */
 
     const filteredMatches = useMemo(() => {
         const query = searchText.trim().toLowerCase();
@@ -490,7 +480,7 @@ export default function MatchesScreen({ navigation, route }) {
 
     /* ===
        LIKE
-    === */
+    \=== */
 
     const toggleLike = (id) => {
         setLiked((previous) =>
@@ -502,7 +492,7 @@ export default function MatchesScreen({ navigation, route }) {
 
     /* ===
        CLEAR FILTERS
-    === */
+    \=== */
 
     const clearFilters = () => {
         setSearchText("");
@@ -511,7 +501,7 @@ export default function MatchesScreen({ navigation, route }) {
 
     /* ===
        LOADING STATE
-    === */
+    \=== */
 
     if (loading) {
         return (
@@ -527,7 +517,7 @@ export default function MatchesScreen({ navigation, route }) {
 
     /* ===
        MAIN UI
-    === */
+    \=== */
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -536,7 +526,7 @@ export default function MatchesScreen({ navigation, route }) {
             <View style={styles.container}>
                 {/* ===
             HEADER
-        === */}
+        \=== */}
 
                 <View style={styles.headerArea}>
                     <TouchableOpacity
@@ -560,7 +550,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                     {/* ===
               SEARCH
-          === */}
+          \=== */}
 
                     <View style={styles.searchRow}>
                         <View style={styles.searchContainer}>
@@ -590,7 +580,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                     {/* ===
               TABS
-          === */}
+          \=== */}
 
                     <ScrollView
                         horizontal
@@ -636,7 +626,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                 {/* ===
             MATCH LIST
-        === */}
+        \=== */}
 
                 <ScrollView
                     style={styles.list}
@@ -645,7 +635,7 @@ export default function MatchesScreen({ navigation, route }) {
                 >
                     {/* ===
               ERROR
-          === */}
+          \=== */}
 
                     {!!loadError && (
                         <View style={styles.emptyState}>
@@ -667,7 +657,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                     {/* ===
               EMPTY
-          === */}
+          \=== */}
 
                     {!loadError && filteredMatches.length === 0 ? (
                         <View style={styles.emptyState}>
@@ -704,7 +694,7 @@ export default function MatchesScreen({ navigation, route }) {
                             >
                                 {/* ===
                     IMAGE
-                === */}
+                \=== */}
 
                                 <View style={styles.imageContainer}>
                                     <Image
@@ -736,7 +726,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                                 {/* ===
                     DETAILS
-                === */}
+                \=== */}
 
                                 <View style={styles.detailsContainer}>
                                     <View style={styles.detailsLeft}>
@@ -829,7 +819,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                                     {/* ===
                       ACTIONS
-                  === */}
+                  \=== */}
 
                                     <View style={styles.actionsContainer}>
                                         <TouchableOpacity
@@ -884,7 +874,7 @@ export default function MatchesScreen({ navigation, route }) {
 
                     {/* ===
               PREMIUM
-          === */}
+          \=== */}
 
                     <View style={styles.premiumBanner}>
                         <View style={styles.premiumIconCircle}>
@@ -920,453 +910,427 @@ export default function MatchesScreen({ navigation, route }) {
 
 /* ===
    STYLES
-=== */
+\=== */
 
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: "#F7F5F2",
     },
-
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: "#F7F5F2",
     },
-
     centerState: {
         flex: 1,
+        minHeight: 500,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#F7F5F2",
     },
-
     centerStateText: {
-        marginTop: 12,
+        marginTop: 14,
         fontSize: 14,
-        fontFamily: Fonts.regular,
-        color: "#666",
+        fontFamily: Fonts.medium,
+        color: "#6B625D",
     },
-
     headerArea: {
-        backgroundColor: COLORS.background,
+        backgroundColor: "#F7F5F2",
+        paddingTop: 4,
+        paddingBottom: 2,
     },
-
     backButton: {
-        width: 50,
-        height: 46,
-        justifyContent: "center",
-        marginLeft: 20,
+        width: 44,
+        height: 44,
+        marginLeft: 18,
         marginTop: 4,
+        borderRadius: 14,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#ECE5DF",
+        shadowColor: "#6B2B24",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+        elevation: 2,
     },
-
     titleSection: {
-        paddingHorizontal: 28,
-        marginTop: 16,
+        paddingHorizontal: 20,
+        marginTop: 14,
     },
-
     title: {
-        fontSize: 29,
+        fontSize: 31,
+        lineHeight: 37,
         fontFamily: Fonts.bold,
-        color: "#242424",
+        color: "#211F1D",
+        letterSpacing: -0.5,
     },
-
     titleRed: {
         color: "#A81712",
     },
-
     matchesFound: {
-        marginTop: 5,
-        fontSize: 16,
-        fontFamily: Fonts.regular,
-        color: "#666",
+        marginTop: 4,
+        fontSize: 13,
+        fontFamily: Fonts.medium,
+        color: "#817770",
     },
-
     searchRow: {
         flexDirection: "row",
-        paddingHorizontal: 20,
-        marginTop: 24,
+        paddingHorizontal: 18,
+        marginTop: 18,
         alignItems: "center",
     },
-
     searchContainer: {
         flex: 1,
-        height: 58,
+        height: 54,
         borderWidth: 1,
-        borderColor: "#E2DDD8",
-        borderRadius: 16,
+        borderColor: "#E7DED7",
+        borderRadius: 18,
         backgroundColor: "#FFFFFF",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 14,
+        paddingHorizontal: 15,
+        shadowColor: "#5E332A",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
-
     searchIcon: {
         marginRight: 9,
     },
-
     searchInput: {
         flex: 1,
         fontSize: 14,
         fontFamily: Fonts.regular,
-        color: "#333",
+        color: "#292624",
         minWidth: 0,
+        paddingVertical: 0,
     },
-
     tabsContainer: {
-        marginTop: 18,
-        maxHeight: 54,
+        marginTop: 14,
+        maxHeight: 52,
     },
-
     tabsScroll: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 18,
         alignItems: "center",
     },
-
     tab: {
-        height: 48,
+        height: 44,
         paddingHorizontal: 15,
-        borderRadius: 15,
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: "#E1DDD8",
+        borderColor: "#E6DED8",
         backgroundColor: "#FFFFFF",
         flexDirection: "row",
         alignItems: "center",
-        marginRight: 9,
+        marginRight: 8,
     },
-
     activeTab: {
-        backgroundColor: COLORS.red,
-        borderColor: COLORS.red,
+        backgroundColor: "#A81712",
+        borderColor: "#A81712",
+        shadowColor: "#A81712",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.16,
+        shadowRadius: 7,
+        elevation: 3,
     },
-
     tabText: {
-        fontSize: 13,
+        fontSize: 12.5,
         fontFamily: Fonts.bold,
-        color: "#444",
+        color: "#57504B",
         marginLeft: 7,
     },
-
     activeTabText: {
         color: "#FFFFFF",
         fontFamily: Fonts.bold,
     },
-
     onlineDot: {
-        width: 10,
-        height: 10,
+        width: 9,
+        height: 9,
         borderRadius: 5,
-        backgroundColor: COLORS.green,
+        backgroundColor: "#159447",
     },
-
     onlineDotActive: {
         backgroundColor: "#FFFFFF",
     },
-
     list: {
         flex: 1,
-        marginTop: 16,
+        marginTop: 14,
     },
-
     scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 92,
+        paddingHorizontal: 18,
+        paddingTop: 2,
+        paddingBottom: 90,
     },
-
     matchCard: {
-        minHeight: 190,
-        maxHeight: 190,
+        minHeight: 188,
+        maxHeight: 188,
         backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        borderRadius: 22,
         marginBottom: 14,
         flexDirection: "row",
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "#EEE8E3",
-
-        shadowColor: "#888",
+        borderColor: "#EEE5DF",
+        shadowColor: "#4A3028",
         shadowOffset: {
             width: 0,
-            height: 3,
+            height: 5,
         },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOpacity: 0.09,
+        shadowRadius: 12,
+        elevation: 4,
     },
-
     imageContainer: {
-        width: "37%",
-        minHeight: 190,
+        width: "38%",
+        minHeight: 188,
         position: "relative",
-        backgroundColor: "#EEE",
+        backgroundColor: "#EDE7E2",
+        overflow: "hidden",
     },
-
     profileImage: {
         width: "100%",
         height: "100%",
     },
-
     onlineBadge: {
         position: "absolute",
         top: 10,
-        left: 9,
-        backgroundColor: "#13934A",
+        left: 10,
+        backgroundColor: "#159447",
         paddingHorizontal: 9,
         paddingVertical: 5,
-        borderRadius: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.45)",
     },
-
     onlineText: {
         color: "#FFFFFF",
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: Fonts.bold,
     },
-
     premiumTag: {
         position: "absolute",
-        bottom: 9,
-        left: 9,
-        backgroundColor: "#C90804",
+        bottom: 10,
+        left: 10,
+        backgroundColor: "#A81712",
         paddingHorizontal: 9,
         paddingVertical: 5,
-        borderRadius: 8,
+        borderRadius: 9,
     },
-
     premiumTagText: {
         color: "#FFD333",
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: Fonts.bold,
     },
-
     communityBadge: {
         position: "absolute",
-        right: 8,
-        top: 10,
+        right: 9,
+        top: 9,
+        width: 31,
+        height: 31,
+        borderRadius: 16,
+        backgroundColor: "rgba(20,15,12,0.62)",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.22)",
     },
-
     detailsContainer: {
         flex: 1,
         flexDirection: "row",
-        paddingLeft: 13,
-        paddingVertical: 14,
+        paddingLeft: 14,
+        paddingRight: 9,
+        paddingVertical: 13,
     },
-
     detailsLeft: {
         flex: 1,
         minWidth: 0,
     },
-
     nameRow: {
         flexDirection: "row",
         alignItems: "center",
+        paddingRight: 2,
     },
-
     name: {
-        maxWidth: 135,
-        fontSize: 21,
+        flexShrink: 1,
+        maxWidth: 145,
+        fontSize: 18,
+        lineHeight: 23,
         fontFamily: Fonts.bold,
-        color: "#A81C16",
+        color: "#9F1A15",
     },
-
     verifiedIcon: {
         marginLeft: 5,
     },
-
     profession: {
-        fontSize: 15,
-        fontFamily: Fonts.regular,
-        color: "#333",
-        marginTop: 7,
-        marginBottom: 12,
+        fontSize: 12.5,
+        fontFamily: Fonts.medium,
+        color: "#3D3936",
+        marginTop: 4,
+        marginBottom: 10,
     },
-
     infoRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 7,
+        marginBottom: 6,
+        minWidth: 0,
     },
-
     infoText: {
         flex: 1,
         minWidth: 0,
         marginLeft: 7,
-        fontSize: 12,
+        fontSize: 11.5,
         fontFamily: Fonts.regular,
-        color: "#626262",
+        color: "#6A625D",
     },
-
     actionsContainer: {
-        width: 50,
+        width: 43,
         alignItems: "center",
         justifyContent: "center",
+        marginLeft: 4,
     },
-
     heartButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: "#FFFFFF",
+        width: 39,
+        height: 39,
+        borderRadius: 20,
+        backgroundColor: "#FFF5F4",
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "#EEE9E5",
-
-        shadowColor: "#888",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 2,
+        borderColor: "#F2DAD7",
     },
-
     chatButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 39,
+        height: 39,
+        borderRadius: 20,
         backgroundColor: "#F8BA00",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 13,
+        marginTop: 10,
         elevation: 3,
+        shadowColor: "#8B5C00",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.14,
+        shadowRadius: 5,
     },
-
     premiumBanner: {
         width: "100%",
-        minHeight: 76,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 10,
+        minHeight: 82,
+        backgroundColor: "#FFF9EC",
+        borderRadius: 18,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginTop: 12,
-        marginBottom: 16,
+        paddingVertical: 11,
+        marginTop: 3,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: "#F0E8E3",
-
-        shadowColor: "#A99A92",
-        shadowOffset: {
-            width: 0,
-            height: 3,
-        },
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
-        elevation: 4,
+        borderColor: "#F1D99A",
+        shadowColor: "#8D681A",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.07,
+        shadowRadius: 9,
+        elevation: 2,
     },
-
     premiumIconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: "#C90804",
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+        backgroundColor: "#A81712",
         justifyContent: "center",
         alignItems: "center",
         marginRight: 10,
-
-        shadowColor: "#C90804",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 3,
     },
-
     crownText: {
-        fontSize: 27,
+        fontSize: 25,
         color: "#FFD333",
         fontFamily: Fonts.bold,
     },
-
     premiumTextContainer: {
         flex: 1,
         justifyContent: "center",
     },
-
     premiumTitle: {
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: Fonts.bold,
-        color: "#A51B16",
+        color: "#8F1813",
         marginBottom: 3,
     },
-
     premiumDescription: {
-        fontSize: 9,
+        fontSize: 9.5,
         lineHeight: 13,
-        color: "#716864",
+        color: "#756A61",
         fontFamily: Fonts.medium,
     },
-
     upgradeButton: {
         height: 38,
-        minWidth: 82,
-        backgroundColor: "#C90804",
-        borderRadius: 7,
+        minWidth: 88,
+        backgroundColor: "#A81712",
+        borderRadius: 11,
         paddingHorizontal: 9,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginLeft: 8,
-
-        shadowColor: "#B00000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
+        marginLeft: 7,
+        shadowColor: "#8B160F",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 5,
         elevation: 3,
     },
-
     buttonCrown: {
         fontSize: 13,
         fontFamily: Fonts.regular,
         color: "#FFD333",
         marginRight: 4,
     },
-
     upgradeText: {
         fontSize: 10,
         fontFamily: Fonts.bold,
         color: "#FFFFFF",
     },
-
     emptyState: {
-        minHeight: 260,
+        minHeight: 270,
         backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        borderRadius: 22,
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 30,
+        marginTop: 4,
         marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#ECE4DE",
     },
-
     emptyTitle: {
         marginTop: 12,
-        fontSize: 20,
+        fontSize: 18,
         fontFamily: Fonts.bold,
-        color: "#333",
-    },
-
-    emptyText: {
-        marginTop: 7,
-        fontSize: 14,
-        fontFamily: Fonts.regular,
-        color: "#777",
+        color: "#302C29",
         textAlign: "center",
     },
-
-    emptyButton: {
-        marginTop: 17,
-        backgroundColor: COLORS.red,
-        paddingHorizontal: 20,
-        paddingVertical: 11,
-        borderRadius: 10,
+    emptyText: {
+        marginTop: 7,
+        fontSize: 12.5,
+        lineHeight: 19,
+        fontFamily: Fonts.regular,
+        color: "#7A716B",
+        textAlign: "center",
     },
-
+    emptyButton: {
+        marginTop: 18,
+        height: 43,
+        paddingHorizontal: 24,
+        borderRadius: 13,
+        backgroundColor: "#A81712",
+        alignItems: "center",
+        justifyContent: "center",
+    },
     emptyButtonText: {
         color: "#FFFFFF",
+        fontSize: 13,
         fontFamily: Fonts.bold,
     },
 });

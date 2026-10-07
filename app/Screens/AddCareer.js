@@ -38,10 +38,12 @@ const COLORS = {
   green: "#039855",
 };
 
-export default function AddCareer({ navigation }) {
+export default function AddCareer({ navigation, route }) {
+
+
   const handleBack = useCallback(() => {
     if (navigation?.canGoBack?.()) {
-      navigation.goBack();
+      navigation.navigate(route?.params?.page || "Profile", route?.params?.prev || {});
     }
     return true;
   }, [navigation]);
@@ -182,10 +184,10 @@ export default function AddCareer({ navigation }) {
 
       const accessToken = await AsyncStorage.getItem("authToken");
 
-   
+
       console.log("SAVE CAREER BUTTON CLICKED");
       console.log("TOKEN EXISTS:", !!accessToken);
-     
+
 
       if (!accessToken) {
         throw new Error("Access token is missing. Please login again.");
@@ -227,7 +229,7 @@ export default function AddCareer({ navigation }) {
       ) {
         alert("Career added successfully.");
 
-        navigation.goBack();
+        handleBack();
       } else {
         alert(response?.message || "Unable to add career.");
       }
@@ -259,7 +261,7 @@ export default function AddCareer({ navigation }) {
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
+            onPress={() => handleBack()}
           >
             <Feather name="chevron-left" size={23} color={COLORS.red} />
           </TouchableOpacity>
@@ -271,7 +273,7 @@ export default function AddCareer({ navigation }) {
           {/* MENU */}
 
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Feather name="more-vertical" size={20} color={COLORS.red} />
+            {/* <Feather name="more-vertical" size={20} color={COLORS.red} /> */}
           </TouchableOpacity>
         </View>
 
@@ -457,7 +459,7 @@ export default function AddCareer({ navigation }) {
               <TouchableOpacity
                 style={styles.cancelButton}
                 activeOpacity={0.8}
-                onPress={() => navigation.goBack()}
+                onPress={() => handleBack()}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
